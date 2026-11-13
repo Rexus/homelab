@@ -155,6 +155,10 @@
     enabled: "{{ software_intake_freshclam_enabled }}"
     state: "{{ 'started' if software_intake_freshclam_enabled else 'stopped' }}"
 
+- name: Import explicitly approved offline definitions after stopping the native updater
+  ansible.builtin.include_tasks: definitions.yml
+  when: software_intake_definition_files | length > 0
+
 - name: Require an initial approved publication before enabling unattended intake
   ansible.builtin.stat:
     path: "{{ software_intake_data_dir }}/public/{{ item.name }}/latest.json"

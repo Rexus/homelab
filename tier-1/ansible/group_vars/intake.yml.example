@@ -1,7 +1,7 @@
 # Copy to: ansible/group_vars/intake.yml
 # Provisioning: terraform/deployments/intake/terraform.tfvars.example
 # Service inputs/defaults: ansible/roles/software_intake/defaults/main.yml
-# Guide: docs/03-deployment/stage-3-trust/step-3b-verified-intake.md
+# Guide: docs/03-deployment/stage-3-trust/step-15b-verified-intake.md
 # Terraform attaches scsi1; Ansible prepares its filesystem and persistent UUID mount.
 
 platform_host_ips:
@@ -34,8 +34,19 @@ software_intake_environment:
 repository_proxy_enabled: "{{ software_intake_environment.get('http_proxy', '') | length > 0 }}"
 repository_proxy_url: "{{ software_intake_environment.get('http_proxy', '') }}"
 repository_proxy_https_url: "{{ software_intake_environment.get('https_proxy', repository_proxy_url) }}"
-# Preposition official daily.cvd/daily.cld offline, or commission the native updater first.
-# Updater configuration uses the explicit proxy above; keep it stopped until that path is qualified.
+# Choose offline imports below OR the native updater. Empty imports preserve installed definitions.
+# Pre-stage approved files on the controller (offline bundle/SCP); the normal installer copies and loads them.
+# CVD signatures are checked by native sigtool. CLD has no publisher-signature guarantee:
+# only import it from the approved definition-transfer workflow with its independently approved SHA-256.
+# At least daily.cvd/daily.cld must be imported or already installed for native freshness qualification.
+# Keep each installed database's CVD/CLD format. Downgrades and changed same-version files are rejected.
+software_intake_definition_files: []
+# - name: daily.cvd
+#   src: /absolute/approved/clamav/daily.cvd
+#   sha256: <independently-approved-64-lowercase-hex-sha256>
+# Optional entries use main.cvd/main.cld or bytecode.cvd/bytecode.cld with the same fields.
+# Newer replacements retain backup copies; unrelated active definitions are preserved.
+# To use online FreshClam, clear the imports and explicitly enable the qualified proxy path below.
 software_intake_freshclam_enabled: false
 software_intake_clam_mirrors: [database.clamav.net]
 # First run intake.service manually, review every receipt and test consumers, then enable scheduling.

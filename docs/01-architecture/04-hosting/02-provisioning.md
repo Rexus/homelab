@@ -4,6 +4,32 @@ Tier 0 owns the hardware-facing control plane. Workload owners describe what
 they need; Tier 0 controls how infrastructure operations are authorized and run.
 This applies across all tiers, not only to the machines hosting Tier 0 itself.
 
+```mermaid
+sequenceDiagram
+  actor Operator as Authorized operator
+  participant Execute as Protected execution host
+  participant State as Owning tier inputs / state
+  participant Platform as Proxmox / guests
+  Operator->>Execute: Select accepted code and deployment scope
+  Execute->>State: Read definitions and existing resource bindings
+  Execute->>Platform: Inspect resources and prepare plan
+  Execute-->>Operator: Proposed changes
+  Operator->>Execute: Accept reviewed scope
+  Execute->>Platform: Apply scoped infrastructure changes
+  Execute->>State: Record resulting resource bindings
+  Execute->>Platform: Configure guests with selected Ansible recipe
+  Execute-->>Operator: Results and verification evidence
+```
+
+*Figure: Current operator execution uses protected credentials with the owning tier's inputs and
+state. Infrastructure creation and guest configuration are separate parts of the same workflow.*
+
+The execution host may be an independent workstation, a bootstrap VM or a protected
+runner. Its credentials determine infrastructure authority; the selected repository
+determines which resources and state it operates on. The
+[deployment helper](../../../shared/scripts/deploy.sh) implements this operator path.
+Delegating requests to a controller is a further capability, described below.
+
 ## Table of contents
 
 - [Ownership](#ownership)
@@ -59,24 +85,27 @@ GitOps definitions. Tier 2 users may then request approved VM creation and
 updates without administering the infrastructure or changing the controller.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Request["Tier 2<br/>Workload create or update request"]
-  Policy["Tier 0 control<br/>Authorize and validate request"]
-  Execute["Protected execution<br/>Tier 0 credentials<br/>Tier-owned state"]
-  Platform["Tier 0 foundation<br/>Virtualization, templates, and networks"]
-  Request -->|bounded request data| Policy
-  Policy --> Execute --> Platform
-  Execute -. scoped result .-> Request
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Request actor
-  class Policy,Execute,Platform control
+sequenceDiagram
+  actor Request as Tier 2 requester
+  participant Policy as Tier 0 request policy
+  participant Execute as Protected executor
+  participant Platform as Infrastructure APIs
+  Request->>Policy: Bounded create or update request
+  Policy->>Policy: Authorize caller and validate requested scope
+  alt Rejected or incomplete request
+    Policy-->>Request: Refuse the operation
+  else Accepted operation
+    Policy->>Execute: Accepted bounded operation
+    Execute->>Execute: Select scoped credentials and tier-owned state
+    Execute->>Platform: Authorized resource changes
+    Platform-->>Execute: Operation result
+    Execute-->>Request: Result within the granted scope
+  end
+  Note over Policy,Platform: Proposed delegation service - project integration, not a supplied controller
 ```
 
-*Figure: Proposed delegation sends bounded Tier 2 requests through Tier 0 authorization and execution,
-returning scoped results.*
+*Figure: Proposed delegation admits bounded requests before protected execution can reach infrastructure
+APIs. The requester receives project-scoped status, never execution credentials or raw state.*
 
 Arrows show the request contract, not a dependency on Tier 2 for control-plane
 operation. No implementation or request API is shipped yet.

@@ -5,9 +5,9 @@
 Operations supplies independent visibility, inventory documentation, maintenance,
 incident response and recovery. Every stateful resource has a recovery owner, regardless
 of whether its monitoring is local or supplied by shared operational services.
-These capabilities cover the whole [platform architecture](../README.md).
-The [backup and recovery design](04-backup-recovery.md) defines independent copies,
-retention authority, compatible recovery sets and the evidence needed to trust them.
+Visibility explains what happened; protected evidence preserves what must survive;
+recovery restores accepted service identity and data. Their access and failure boundaries
+remain distinct even when one operator is responsible for all three.
 
 ## Table of contents
 
@@ -15,14 +15,14 @@ retention authority, compatible recovery sets and the evidence needed to trust t
 - [Components and interfaces](#components-and-interfaces)
 - [Design choices](#design-choices)
 - [Design constraints](#design-constraints)
+- [Independent operation](#independent-operation)
 - [Detailed views](#detailed-views)
 - [Realization](#realization)
 
 ## Completed design
 
-Observability diagnoses the running system using logs, metrics and distributed
-traces. Security Logging and Audit preserves protected evidence. Independent
-failure detection and recovery remain usable when operational dashboards fail.
+The map separates routine telemetry from protected security evidence. Follow the
+application telemetry through Tier 1, then the security submissions into Tier 0.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -56,49 +56,67 @@ flowchart TB
   class T0,Evidence,Health control
 ```
 
-*Figure: Tier 2 telemetry flows to Tier 1 observability, while security submissions from Tiers 1 and 2 go to
-Tier 0 protected evidence alongside independent health checks.*
+*Figure: Application telemetry reaches Tier 1 query services through gateways. Security
+submissions reach Tier 0 directly; critical visibility has a path outside Tier 1 Kubernetes.*
 
-NetBox documents approved inventory; Headlamp supplies scoped cluster operations.
-Their interfaces complement telemetry without replacing tier-local bootstrap inputs
-or independent recovery records. General telemetry can be Tier 1-owned; Tier 0
-control visibility has an independently recoverable path. Syslog and audit evidence
-from every tier remain in protected Tier 0 custody; Observability receives only
-approved copies, with application-owner read scopes separate from security readers.
+Tier 1 collectors normalize and route operational logs, metrics and distributed traces
+to their query backends. Operators use those signals to understand service behavior.
+System, security and audit records from every tier follow restricted intake into
+Tier 0 custody. Approved projections can be searchable in Tier 1 without giving
+query users or analytics administrators authority over the originals.
 
 ## Components and interfaces
 
-| Component | Function and boundary |
-| --- | --- |
-| Inventory documentation | Describe deployed infrastructure; never replace tier-local bootstrap inputs |
-| Cluster interface | Expose scoped cluster operations; not blanket infrastructure administration |
-| Telemetry collectors | Receive, normalize and route signals under approved access policy |
-| Protected log intake | Accept all tiers' security submissions without granting archive queries, editing or deletion |
-| Observability backends | Store operational logs, metrics, traces and approved evidence copies; no authority over Tier 0 originals |
-| Security evidence archive | Retain original security/audit records under Tier 0 custody, independently recoverable |
-| Recovery storage | Retain backups and restore evidence outside the service being recovered |
-| Workload governance | Isolate consumers and authorize changes without transferring Tier 0 control |
+### From a producer to a reader
 
-| Boundary | Interface and connected function |
-| --- | --- |
-| Supplied to producers | Approved telemetry and security-event ingestion endpoints |
-| Supplied to operators | Scoped inventory, cluster operations, signal queries and owned alert delivery |
-| Supplied to recovery owners | Retained backups, archives and restoration evidence outside the protected service |
-| Consumed from tier owners | Infrastructure records, workload scope, retention requirements and recovery responsibilities |
-| Consumed from runtime and access services | Signals, backup streams, cluster APIs, authentication and service-local authorization |
-| Consumed from independent arrangements | Recovery storage and failure detection outside the affected service or cluster |
-| Exchanged with data services | [Qualified storage and data ownership](../06-data/README.md); operations defines retention, recovery objectives and restore evidence |
+A producer receives approved telemetry and security-event endpoints, not archive
+administration credentials. Telemetry queries, application-log views and raw security
+investigation have separate reader scopes. Authentication identifies a reader;
+the receiving service enforces that reader's permitted sources and operations.
+
+Collectors consume runtime signals and enforce routing policy. Query backends and
+UIs consume the permitted outputs. Protected intake instead creates independently
+recoverable evidence, with retention and recovery authority held outside producer
+and ordinary query identities.
+
+### From an operator to a system
+
+NetBox documents approved inventory; Headlamp supplies scoped cluster operations.
+These interfaces help operators understand and change the deployed system, while
+tier-local inputs remain the bootstrap authority. Neither tool replaces independent
+recovery records or grants blanket infrastructure administration.
+
+Tier owners supply infrastructure records, workload scope and recovery responsibilities.
+Operators use approved cluster APIs, service-local authorization and owned alert
+delivery. Workload governance isolates consumers and authorizes changes without
+transferring Tier 0 control; the [service-boundary design](../02-organization/README.md)
+explains shared versus isolated operation.
+
+### From retained data to recovery
+
+Recovery owners need backups, archives and restoration evidence outside the service
+being recovered. Data services supply [qualified storage interfaces](../06-data/README.md);
+operations defines retention, recovery objectives and the checks that demonstrate a
+usable restore. Hardware custody and application-state recovery have separate owners.
+Storage availability or a successful copy does not establish recoverability.
 
 ## Design choices
 
-| Decision | Alternatives | Consequence |
-| --- | --- | --- |
-| Observability placement | Native Kubernetes workloads; separate-role VMs or an existing service as alternatives | [Telemetry design](03-observability.md) separates resource/scaling budgets and retains Tier 0 outage independence |
-| Sharing | Central platform service; isolated project collectors/backends | Isolation follows access, retention and trust requirements |
-| Recovery target | Dedicated backup service; approved external target; protected offsite copy | Storage availability alone is not tested restore |
-| Log retention | NAS snapshots/backups with trusted administration; qualified retention locks | [Archive choices](02-log-retention.md) make deletion authority and growth recommendations explicit |
-| Workload runtime | Linux VMs, image-based Linux, Kubernetes applications | Definitions and inventory stay tier-local; runtime changes need explicit lifecycle ownership |
-| Workload execution | Reviewed operator action; bounded self-service | The latter needs the [request contract](../04-hosting/02-provisioning.md), not unrestricted CI credentials |
+The reference places routine observability in Tier 1 Kubernetes, with separate
+collection, storage and UI workloads. Separate-role VMs or an existing accepted
+service are alternatives. Shared or project-isolated collectors and backends follow
+source sensitivity, access and retention requirements; resource budgets remain separate.
+
+For retained evidence, choose NAS snapshots and independent backups when storage
+administrators remain trusted, or qualified retention locks when the threat model
+requires stronger privileged-deletion protection. [Archive choices](02-log-retention.md)
+explains those boundaries. Recovery can use a dedicated backup service, an accepted
+external target and protected offsite copies according to its selected contract.
+
+Workloads can run in Linux VMs, image-based Linux or Kubernetes. Their definitions,
+inventory and lifecycle ownership remain tier-local. Bounded self-service needs the
+[authorized request contract](../04-hosting/02-provisioning.md); reviewed operator action
+and unrestricted CI credentials are different authority models.
 
 NetBox, Headlamp and monitoring are reference implementations, not prerequisites
 for creating the infrastructure on which they run.
@@ -114,35 +132,39 @@ for creating the infrastructure on which they run.
 | Recovery | Backups, custodians and recovery targets remain independent of the protected service |
 | Governance | Workload requests cannot bypass tier ownership or infrastructure authorization |
 
-Hardware custody and application-state recovery remain separate responsibilities.
 A central dashboard alone is insufficient for independent failure detection.
-
-## Detailed views
-
-- [Runtime flows](04-backup-recovery.md#recovery-boundaries) connects service data, visibility and recovery across domains.
-- [Telemetry design](03-observability.md) expands collection, signal backends, retention and placement alternatives.
-- [Infrastructure coverage](03-observability.md#infrastructure-coverage) includes live diagnostics,
-  virtualization, BMC sensors, storage and network health without moving Tier 0 authority.
-- [Security logging](01-protected-logging.md) owns append-only submission, segmented reads and the evidence durability contract.
-- [Log archive choices](02-log-retention.md) compares NAS-backed recovery with retention locks and explains role separation as access grows.
-- [Service boundaries](../02-organization/README.md) defines shared and isolated operational services.
-- [Workload request contract](../04-hosting/02-provisioning.md) connects governance to privileged execution.
-- [Component allocation](../03-reference-platform.md#service-placement) locates inventory, cluster interfaces and supporting services.
-
-## Realization
-
-Implementation procedures: [foundational logging](../../03-deployment/stage-2-logging/README.md),
-[independent monitoring](../../03-deployment/stage-8-observability/step-3-infrastructure-monitoring.md),
-[Observability](../../03-deployment/stage-8-observability/README.md),
-[operational tools](../../03-deployment/stage-6-secrets/README.md#step-2-add-operational-tools)
-and [operational acceptance](../../03-deployment/stage-6-secrets/README.md#step-3-integrate-access-and-recovery).
-Recurring work belongs in [administration](../../05-operations/README.md).
 
 <a id="failure-boundaries"></a>
 
 ## Independent operation
 
-Read [Observability](03-observability.md#availability-and-recovery) for routine signals
-and independent failure detection, [Protected logging](01-protected-logging.md) for
-original evidence, and [Recovery](04-backup-recovery.md) for retained restoration inputs.
-Loss of a shared dashboard must not remove critical alerts or recovery authority.
+Tier 0 failure detection and critical alert delivery remain usable without Tier 1,
+its Kubernetes cluster or normal SSO. General telemetry can be Tier 1-owned; control
+visibility has an independently recoverable path. A lost shared dashboard must not
+remove critical alerts, original evidence or recovery authority.
+
+Inventory and monitoring services are reference implementations, not prerequisites
+for creating the infrastructure on which they run. Backups, credentials and tools
+must be accessible without the service being restored. Recovery therefore depends
+on retained restoration inputs as well as on an available target.
+
+## Detailed views
+
+Read this chapter in the order of the responsibility being examined:
+
+- [Protected logging](01-protected-logging.md): submission, investigation and original evidence.
+- [Log retention](02-log-retention.md): custody, deletion authority and checkpoint limits.
+- [Observability](03-observability.md): signal routing, infrastructure coverage and independent diagnostics.
+- [Backup and recovery](04-backup-recovery.md): independent copies and compatible restoration inputs.
+
+The [reference platform](../03-reference-platform.md#service-placement) locates the
+selected inventory, cluster interfaces and supporting services.
+
+## Realization
+
+Implementation procedures: [foundational logging](../../03-deployment/stage-2-logging/README.md),
+[independent monitoring](../../03-deployment/stage-8-observability/step-13-infrastructure-monitoring.md),
+[Observability](../../03-deployment/stage-8-observability/README.md),
+[operational tools](../../03-deployment/stage-6-secrets/README.md#step-2-add-operational-tools)
+and [operational acceptance](../../03-deployment/stage-6-secrets/README.md#step-3-integrate-access-and-recovery).
+Recurring work belongs in [administration](../../05-operations/README.md).

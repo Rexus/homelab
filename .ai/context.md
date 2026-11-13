@@ -13,6 +13,25 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Repository intent
 
+- Number deployment actions by the edit/run/check the operator performs next, with as many
+  sequential steps as the implementation needs. Do not compress a workflow into a few numbered
+  phases with another numbered installation hidden behind each link. Keep the normal path on
+  its owning page; use separate pages for actual selections, later maintenance or reusable detail.
+  Name already completed IaC work explicitly when a later idempotent run verifies/reuses it.
+- Service-facing DNS uses stable, familiar lowercase functional labels, usually 2–8 characters:
+  iam/auth/idp/sso, ldap, dc where applicable, smtp/imap/pop/mx, proxy/cache, git, db, nfs,
+  ca/secrets, registry, logs/metrics, cd/release. docs/02-conventions/service-dns.md owns this rule.
+  Default <service>.<domain>; environment/project scopes are optional. Keep numbered machine
+  identities separate and preserve required protocol member names, discovery records, TLS SANs
+  and canonical issuer/client URLs. This preference is not a DNS limit or an automatic rename.
+- Lead deployment guides with the expected result figure, before long contents or input tables.
+  Introduce a major enhancement with its own result figure where that installation begins, and
+  reference named figure anchors from the actions that create/configure/verify its parts.
+  Architecture teaches the completed system through placement, request/response and dependency
+  views with concise explanations; avoid replacing that journey with introductory link catalogs.
+  Primary communication/dependency flow reads left to right, provider or authority to the right,
+  while tier stacking, protection layers, real return/alert traffic and custody transfers retain
+  their higher-priority meanings. Aim near 4:3 by composition and verify rendered placement.
 - Architecture groups related functions into substantive domain chapters: Hosting includes Kubernetes
   and lab isolation; Cryptography includes trust and secrets; Delivery includes the development
   platform; Operations includes protected logging and observability. Stage names link directly to
@@ -48,11 +67,12 @@ This file keeps durable context for AI-assisted work across sessions.
   Complete all selected paths before the next stage. Enhancements are scheduled after their real
   prerequisites, even when they extend earlier capabilities; never send a fresh operator to a future
   stage and back to finish a supposedly completed stage. Qualified existing/manual interfaces remain explicit.
-- Foundation now has four numbered actions: hosts/networks, first manual Linux template, bootstrap,
-  then managed publication/clone/recovery qualification. Select HA/SDN before guests, complete SDN
+- Foundation has ten numbered actions: hosts/networks, first manual Linux template, bootstrap,
+  then publication, clone/recovery qualification and selected HA acceptance in actions 4-10.
+  Bootstrap has nineteen sequential actions; template-refresh remains separate later maintenance/state. Select HA/SDN before guests, complete SDN
   authorization after bootstrap, and qualify guest HA/ProxLB before leaving Foundation. Old anchors remain.
   Linux host security belongs under docs/05-operations/01-hosting/linux-security.md and is first selected at
-  Stage 1 option 4b after cache VMs exist, not a pre-guest Foundation deployment.
+  Stage 1 option 8b after cache VMs exist, not a pre-guest Foundation deployment.
 - Normal post-bootstrap deployment provisions the complete selected realization through IaC:
   Terraform owns guests, attached disks and state; Ansible owns guest filesystems, persistent mounts
   and service configuration. Reuse Shared's guarded data_volume role for dedicated XFS/ext4 volumes.
@@ -108,7 +128,7 @@ This file keeps durable context for AI-assisted work across sessions.
   pinned publisher verification, ClamAV on a sealed copy and immutable read-only HTTPS publication.
   Normal deployment uses one deploy.sh intake: Terraform provisions VM/disks and Ansible uses Shared's
   data_volume role to initialize only verified new blank storage, mount by UUID and grow XFS/ext4.
-  This is Stage 3 option 3b after issuer/logging acceptance, not an unfinished Stage 1 option.
+  This is Stage 3 option 15b after issuer/logging acceptance, not an unfinished Stage 1 option.
   Intake defaults select the scsi1 by-id link, xfs and /srv/intake; software_intake_data_uuid optionally pins existing
   data. Preserve recognized filesystems; an absent declared volume or conflicting fstab identity fails
   rather than formatting a replacement. Do not add manual mkfs/fstab prerequisites to normal
@@ -126,7 +146,7 @@ This file keeps durable context for AI-assisted work across sessions.
   Python wheels, Ansible collections and provider artifacts before restricted/offline deployment;
   transfer bundles by verified SCP/media rather than depending on the cache being installed.
   After Stage 1 acceptance, boot-1 consumes the approved internal proxy/mirrors for updates.
-- Bootstrap Step 2a owns the copyable fresh OS-package and Terraform RPM-repository installation,
+- Bootstrap Steps 6-9 own the copyable fresh OS-package and Terraform RPM-repository installation,
   followed by kit checkout and an explicit OS-package or isolated manifest-based Ansible path.
   Keep that sequence visible in the main path; control-node-tooling is its scope/compatibility
   reference, not a competing install recipe. Offline preparation follows the same dependency inputs.
@@ -477,7 +497,7 @@ This file keeps durable context for AI-assisted work across sessions.
   using the separate delivery_edge subnet; they hold no Tier 0 credentials
 - controlled software intake is documented in docs/01-architecture/07-software-intake/README.md;
   Squid/VIP supplies the existing explicit proxy/cache, not a mirror or patch controller
-- Stage 1 Step 7 explicitly commissions Proxmox host update access using Tier 0's existing
+- Stage 1 Steps 14–16 explicitly commission Proxmox host update access using Tier 0's existing
   proxmox-hosts.yml recipe (Datacenter download proxy plus per-host APT), then links controlled
   one-host-at-a-time maintenance. Hosts pull through the proxy; the cache gets no host authority.
 - software intake is a separate early capability at docs/03-deployment/stage-1-software-intake/,

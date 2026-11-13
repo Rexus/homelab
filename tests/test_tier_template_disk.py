@@ -248,7 +248,7 @@ if pathlib.Path(sys.argv[0]).name == 'ansible-playbook':
             result = run('replace-disk', '--template', 'rocky', MISSING_MODULE=missing)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn(missing, result.stderr)
-            self.assertIn('ansible-galaxy collection install', result.stderr)
+            self.assertIn('TEMPLATE_RUNTIME_MODE=auto bash scripts/proxmox-templates.sh setup', result.stderr)
             calls = [json.loads(line) for line in log.read_text().splitlines()[before:]]
             self.assertFalse(any(call['tool'] == 'ansible-playbook' for call in calls))
             self.assertFalse(any('apply' in call['args'] for call in calls))

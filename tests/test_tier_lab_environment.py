@@ -104,7 +104,9 @@ class LabEnvironment(TierRepositoryTestCase):
     def test_iac_and_guide_use_the_same_names_and_no_privileged_access(self):
         example = yaml.safe_load((UPSTREAM / 'tier-2/ansible/group_vars/lab_environment.yml.example').read_text())
         guide = (UPSTREAM / 'docs/03-deployment/stage-10-lab-environments/README.md').read_text()
-        self.assertIn(example['lab_environment_name'], guide)
+        application = UPSTREAM / 'docs/03-deployment/stage-10-lab-environments/step-3a-application.md'
+        self.assertIn(f'({application.name})', guide)
+        self.assertIn(example['lab_environment_name'], application.read_text())
         self.assertEqual(example['lab_environment_replicas'], 2)
         template = (UPSTREAM / 'tier-2/ansible/roles/lab_environment/templates/environment.yml.j2').read_text()
         self.assertNotIn('hostPath', template)

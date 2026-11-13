@@ -12,7 +12,7 @@ UPSTREAM = Path(__file__).resolve().parents[1]
 GUIDES = (
     "stage-4-kubernetes/procedures/basic-platform.md",
     "stage-4-kubernetes/procedures/flux-sops.md",
-    "stage-5-identity/procedures/keycloak.md",
+    "stage-5-identity/README.md",
 )
 
 

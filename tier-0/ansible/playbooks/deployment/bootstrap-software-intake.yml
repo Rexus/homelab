@@ -1,6 +1,6 @@
 ---
 # Local configuration only; boot-1 is not enrolled in inventory or Terraform.
-# Guide: docs/03-deployment/stage-1-software-intake/step-6-bootstrap-consumer.md
+# Guide: docs/03-deployment/stage-1-software-intake/README.md#step-11-apply-bootstrap-configuration
 - name: Check bootstrap intake tooling
   ansible.builtin.import_playbook: ../control-node.yml
   vars:

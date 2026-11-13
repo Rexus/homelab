@@ -42,11 +42,14 @@ Record deployed revision, result, UTC time, evidence and reviewer privately.
 | ID-1 | 5 | FreeIPA replication, Keycloak LDAP federation and allowed/denied groups work; deletion/offboarding removes access as specified |
 | ID-2 | 5/6 | Kubernetes OIDC accepts only the configured audience/claims; Headlamp has exactly its namespace permissions, not cluster-admin |
 | ID-3 | 5 | With IdP/directory unavailable, certificate-based break-glass API access and control-plane recovery still work |
+| ID-4 | 5 new reader option | The primary-local bind-only sysaccount can read the selected federation attributes, cannot modify directory data or obtain POSIX/Kerberos login, and survives replica failover and an idempotent rerun |
 | DB-1 | 5/6/8 | Live database stays on Proxmox/Ceph-backed storage; selected NAS full-copy or object/WAL backup restores a clean target within its declared RPO/RTO; file mode makes no PITR claim |
 | DB-2 | 5/6/8 files option | NAS loss/full storage and wrong source/marker never publish a valid set; finite WAL sender timeout and source capacity are qualified; isolated recovery keeps NAS read-only and stages on new block storage |
+| DB-3 | Managed backup claims | Actual NFS CSI binds the exact retained PV/PVC, preserves an accepted namespace, mounts only the selected dedicated export, survives rerun/reboot and refuses released/rebound storage without changing it |
 | SEC-1 | 6 | Vault is manually initialized/unsealed, all expected voters join, scoped OIDC policies deny unrelated paths, and file/stdout audit reaches protected intake |
 | SEC-2 | 6 | Vault snapshot plus independent unseal/recovery material restore the selected seal identity; NetBox media/database and Headlamp access recover coherently |
 | SEC-3 | 6 | NetBox audited-change export is separately commissioned and tested; application stdout alone is not accepted as its full change history |
+| SEC-4 | 6 audit-account option | Native NetBox bootstrap creates only a view-only Object changes reader; real API writes are denied, reruns retain the token, and loss of its private plaintext requires explicit recovery |
 | MON-1 | 6/8 | Proxmox/BMC collection cannot mutate/power-cycle targets; missing sensors remain unknown and stale sources alert |
 | MON-2 | 6/8 | Tier 1/SSO outage does not stop Tier 0 history, local administration, critical alerts or external dead-man notification |
 | DEL-1 | 7 | Only accepted sources/destinations deploy; Tier 0 targets are denied; rollback, source outage and controller recovery are tested |

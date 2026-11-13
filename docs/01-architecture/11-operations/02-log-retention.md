@@ -19,24 +19,20 @@ identity, segmented reads and the accepted-record durability contract.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart BT
-  subgraph T1["Tier 1 / scoped investigation"]
-    Search["Approved projections / read-only application views"]
-  end
+flowchart LR
   subgraph T0["Tier 0 / retained security evidence"]
-    direction TB
+    direction LR
     subgraph Intake["Collector runtime / outside Kubernetes"]
+      direction TB
       Receiver["Authenticated append intake"]
       Local[("Local evidence disk")]
       Receiver --> Local
     end
     subgraph Protection["Independent storage and recovery custody"]
-      direction LR
-      subgraph Storage["Archive / select A, B or both"]
-        direction LR
+      direction TB
+      subgraph Storage["A / NAS archive custody"]
+        direction TB
         NAS[("A: NAS archive<br/>Storage-owned snapshots")]
-        Locked[("B: Locked objects<br/>Qualified retention enforcement")]
-        NAS ~~~ Locked
       end
       subgraph Recovery["Independent recovery custody"]
         Copies["Off-device / off-site copies<br/>Portable reader kit<br/>Separately held keys"]
@@ -45,26 +41,40 @@ flowchart BT
     end
     Intake -->|Verified checkpoints| Protection
   end
-  T0 -->|Approved copies only / no raw archive authority| T1
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T1 services
   class T0 control
   class Intake,Storage,Protection boundary
-  class Local,NAS,Locked data
+  class Local,NAS data
   class Recovery,Copies custody
 ```
 
-*Figure: Tier 0 intake checkpoints flow to selected archive protection and independent recovery custody; Tier
-1 receives only approved copies for scoped investigation.*
+*Figure: Choice A publishes verified checkpoints left-to-right into independent NAS custody.
+The backup branch preserves a recovery copy under separate custody beneath the archive.*
 
-Storage custody remains Tier 0-owned even when the NAS serves other datasets.
-The two archive targets are alternatives, not mandatory duplicate destinations.
-Copy approval and read authorization do not grant archive deletion or retention control.
+The receiver publishes portable records to an archive outside its own runtime.
+In the pictured NAS choice, storage-owned snapshots preserve checkpoints against
+the share writer's changes; an independently executed backup preserves selected
+verified files outside the source NAS failure domain. Transfer, snapshot and backup
+complete at different times, as the [checkpoint sequence](01-protected-logging.md#durability-and-availability)
+shows. NAS and backup administrators remain trusted under this choice.
+
+Tier 1 scoped investigation receives only [approved projections](03-observability.md#flow-and-interfaces)
+for read-only application views, with no raw archive authority. That separate publication
+path does not change the retention flow pictured here.
+
+Choice B instead uses a qualified storage-enforced retention lock. The choices can
+coexist, but are not mandatory duplicate destinations. Storage custody remains
+Tier 0-owned even when a NAS serves other datasets. Copy approval and read authorization
+do not grant archive deletion or retention control.
+
+The supplied [archive role](../../../tier-0/ansible/roles/logging_archive/tasks/main.yml)
+and [backup inputs](../../../tier-0/ansible/group_vars/logging_backup.yml.example)
+realize the pictured NAS path; the separate retention-lock procedure below owns B.
 
 | Choice | A: NAS snapshots and independent backups | B: Storage-enforced retention locks |
 | --- | --- | --- |
@@ -73,7 +83,7 @@ Copy approval and read authorization do not grant archive deletion or retention 
 | Protection | Storage-owned snapshots plus an independently recoverable backup | Locked object versions for an approved retention period, plus independent recovery copies |
 | Trusted authority | NAS/backup administrators can ultimately delete their copies | Depends on lock mode, storage operator and key/account custody |
 | Principal limit | Not immutable against NAS/backup administration; snapshot/backup lag exposes a tail | Does not protect unavailable/deleted keys, every provider failure or records not yet committed |
-| Reference deployment | [3c: NAS-backed archive](../../03-deployment/stage-2-logging/step-3c-nas-archive.md) | [3d: Retention-locked archive](../../03-deployment/stage-2-logging/step-3d-retention-lock.md) |
+| Reference deployment | [15a: NAS-backed archive](../../03-deployment/stage-2-logging/step-15a-nas-archive.md) | [15b: Retention-locked archive](../../03-deployment/stage-2-logging/step-15b-retention-lock.md) |
 
 **Recommendation:** use A when trusted storage administration and a measured
 recovery-point objective are acceptable. Use B when deletion by a privileged
@@ -136,7 +146,7 @@ coverage rather than assuming a new lock protects previously mutable records.
 
 ## Realization
 
-Select A or B at [Stage 2, Step 3](../../03-deployment/stage-2-logging/README.md#step-3-protect-and-verify-retained-evidence).
+Select A or B at [Stage 2, Step 15](../../03-deployment/stage-2-logging/README.md#step-15-protect-retained-records).
 [Logging administration](../../05-operations/06-resilience/protected-logging.md) owns recurring
 checks; the [fault/restore drill](../../05-operations/06-resilience/logging-drill.md) records the
 chosen protection boundary and its demonstrated limits. Implementation coverage

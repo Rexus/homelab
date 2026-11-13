@@ -1,6 +1,7 @@
 ---
 # Local Tier 1 application inputs; not a Terraform setup or shared inventory.
 # Guide: docs/03-deployment/stage-9-development/README.md
+# Service DNS: docs/02-conventions/service-dns.md
 development_platform_action: render
 development_platform_components: [gitlab]
 development_platform_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
@@ -9,7 +10,7 @@ development_platform_gitlab_version: REPLACE_WITH_EXACT_CHART_VERSION
 development_platform_gitlab_backup_enabled: true
 development_platform_gitlab_backup_schedule: "30 2 * * *"
 development_platform_runner_version: REPLACE_WITH_EXACT_RUNNER_CHART_VERSION
-development_platform_host: gitlab.internal.example.com
+development_platform_host: git.internal.example.com
 development_platform_domain: internal.example.com
 development_platform_ingress_class: REPLACE_WITH_ACCEPTED_INGRESS_CLASS
 development_platform_database_host: REPLACE_WITH_POSTGRESQL_HOST

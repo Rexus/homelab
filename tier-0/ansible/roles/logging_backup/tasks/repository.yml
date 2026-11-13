@@ -8,6 +8,7 @@
     data_volume_fstype: "{{ logging_backup_repository_fstype }}"
     data_volume_label: log-backup
     data_volume_expected_uuid: "{{ logging_backup_repository_uuid }}"
+    data_volume_uuid_input: logging_backup_repository_uuid
     data_volume_min_free_bytes: "{{ logging_backup_repository_min_free_bytes }}"
     data_volume_environment: "{{ logging_backup_environment }}"
     data_volume_allowed_bind_mounts: []

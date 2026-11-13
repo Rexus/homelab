@@ -26,6 +26,9 @@ software_intake_timeout_seconds: 7200
 software_intake_timer_enabled: false
 software_intake_schedule: '*-*-* 03:00:00'
 software_intake_clam_database_dir: /var/lib/clamav
+# Optional controller-local CVD/CLD imports: [{name: daily.cvd, src: /approved/daily.cvd, sha256: ...}].
+# Use an independently approved digest; CLD loading does not authenticate its publisher.
+software_intake_definition_files: []
 software_intake_freshclam_enabled: false
 software_intake_clam_mirrors: [database.clamav.net]
 software_intake_ansible_doc_binary: ansible-doc

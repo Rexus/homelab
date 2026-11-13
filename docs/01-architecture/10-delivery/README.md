@@ -4,11 +4,6 @@ Software passes through controlled intake, reviewed source, builds, approved art
 and scoped release delivery. These functions have different owners and can use different
 tools; a downloaded package or successful build alone is not release approval.
 
-Read this before choosing the [delivery controller](02-controllers.md) or
-[development platform](03-development-platform.md). [Software intake](../07-software-intake/README.md)
-owns external package/artifact acceptance; [Hosting](../04-hosting/02-provisioning.md)
-owns infrastructure changes rather than ordinary application releases.
-
 ## Contents
 
 - [Completed design](#completed-design)
@@ -66,10 +61,14 @@ flowchart TB
   class T0,ControlDelivery,Hosting control
 ```
 
-*Figure: Software intake, source, builds and delivery occupy distinct ownership and protection boundaries.*
+*Figure: Builds and release delivery consume source and artifact authorities in Tier 1.
+Tier 0 retains separate control-service delivery and infrastructure authority; this is a placement map.*
 
-**Architecture:** this view shows placement and authority. The
-[controller design](02-controllers.md) shows approved-input and scoped-change flows.
+Read the Tier 1 row as cooperating services. Source control retains reviewed definitions;
+build jobs read those definitions and publish versioned candidates. A delivery controller
+reads approved release intent and changes only its authorized application targets.
+The sequence below follows those handoffs rather than the map's placement order.
+
 Tier 0 separately accepts sources; source access does not transfer control authority.
 Retained code, artifacts, keys and recovery remain usable without hosted Tier 1 services.
 
@@ -110,22 +109,31 @@ and the runtime retrieves the selected artifact independently of the controller.
 
 ## Components and interfaces
 
-- [Software intake](../07-software-intake/README.md) admits approved external sources and retained content.
-- [Development platform](03-development-platform.md) retains source and executes general build jobs.
-- [Artifact supply](01-artifact-supply.md) identifies and retains versions for authorized consumers.
-- [Delivery controllers](02-controllers.md) apply accepted application releases within the target's scope.
-- [Operations](../11-operations/README.md) supplies rollout findings and recovery evidence.
+The handoffs carry different kinds of authority. Intake admits external packages and artifacts;
+source review accepts definitions; a build produces a candidate; release policy authorizes a
+particular version for a particular target. Registry storage and a successful build do not
+collapse those decisions into one approval.
+
+The runtime retrieves the identified artifact from its approved supply path. The controller
+uses target credentials to apply the release and observe rollout status. Operators use that
+status, service telemetry and recovery evidence to decide whether the release is acceptable.
+Application rollback still needs the application's own data compatibility contract.
 
 Application traffic follows [Networking](../05-networking/README.md#service-reachability-and-publication),
 not the release pipeline. A new base template does not update existing VMs; workload
 maintenance and hardware-facing provisioning remain separate operations.
+Infrastructure changes belong to [Hosting](../04-hosting/02-provisioning.md).
 
 ## Design choices
 
-Choose the controller in [controller patterns](02-controllers.md): Tier 0 uses Flux;
-Tier 1 selects Argo CD or Spinnaker. Reconciliation and release orchestration have
-different triggers, ownership and failure behavior. Choose the registry and optional
-distribution acceleration in [artifact supply](01-artifact-supply.md).
+First decide how approved releases reach their targets: continuous reconciliation or
+pipeline orchestration. [Controller patterns](02-controllers.md) explains the consequence
+of that choice; Tier 0 uses Flux and Tier 1 selects Argo CD or Spinnaker.
+
+Then select [artifact supply](01-artifact-supply.md): an existing compatible registry or
+an independently operated registry, with distribution acceleration only where justified.
+The [software-intake design](../07-software-intake/README.md) owns external acceptance and
+retained upstream content; this chapter adds builds and release delivery to that supply path.
 
 Kubernetes build pods and external VM runners are placements of build execution,
 not interchangeable network grants. [Development platform](03-development-platform.md)
@@ -140,9 +148,12 @@ An unavailable portal or repository must not authorize workload destruction.
 
 ## Realization
 
-**Deploy:** [Stage 7: Delivery](../../03-deployment/stage-7-delivery/README.md), then
-[Stage 9: Development platform](../../03-deployment/stage-9-development/README.md).
-**Operate:** [Delivery](../../05-operations/05-delivery.md) and
-[Development platform](../../05-operations/05-delivery.md).
+Stage 7 establishes delivery using an existing bootstrap source and approved artifacts.
+Stage 9 adds hosted source control and general CI; delivery must therefore work before the
+new GitLab service exists. Observability is established between those deployment stages.
+
+**Deploy:** [Stage 7: Delivery](../../03-deployment/stage-7-delivery/README.md), then follow
+its onward path through Observability to [Stage 9: Development](../../03-deployment/stage-9-development/README.md).
+**Operate:** [Delivery and development](../../05-operations/05-delivery.md).
 The [support map](../../08-reference/implementation-support.md) distinguishes supplied installers
 from required existing interfaces and project integrations.

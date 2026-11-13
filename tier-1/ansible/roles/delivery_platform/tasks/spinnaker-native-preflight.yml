@@ -62,7 +62,7 @@
     that:
       - delivery_platform_spinnaker_backup_backend in ['s3', 'filesystem']
 
-- name: Require a dedicated preprovisioned file repository and its custody marker
+- name: Require a dedicated file repository and its custody marker
   ansible.builtin.assert:
     that:
       - delivery_platform_spinnaker_backup_filesystem_claim is match('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
@@ -71,7 +71,7 @@
       - delivery_platform_spinnaker_backup_filesystem_repository is match('^[a-z0-9][a-z0-9_-]{0,62}$')
       - delivery_platform_spinnaker_backup_filesystem_marker is match('^[A-Za-z0-9_-]{32,128}$')
       - delivery_platform_spinnaker_backup_filesystem_initialize is boolean
-    fail_msg: Supply a separate existing NAS PVC, one repository directory name and its commissioned marker identity.
+    fail_msg: Supply a separate NAS PVC (existing or explicitly owned static_nfs), a repository name and custody marker.
   when: delivery_platform_spinnaker_backup_backend == 'filesystem'
 
 - name: Require independent verified HTTPS object storage for S3 backups

@@ -1,42 +1,18 @@
-# Step 3c: Scoped workload collection
+# Step 5b: Scoped workload collection
 
-**Branch from:** [Step 3](README.md#step-3-deploy-and-verify-applications), option **3c**, after the application's
+**Branch from:** [Step 5](README.md#step-5-connect-the-selected-signals), option **5b**, after the application's
 private route and any selected public HTTPS branch work.
 **Change:** install scoped collection for the selected application's signals.
-**Return:** [Step 3](README.md#step-3-deploy-and-verify-applications) after source-to-query
+**Return:** [Step 6](README.md#step-6-rehearse-update-rollback-and-recovery) after source-to-query
 and authorization checks, then complete update/restore handoff.
 
 Connect application logs, metrics and distributed traces to the accepted Tier 1
 Observability interfaces. Security/audit evidence continues directly to Tier 0;
 this recipe creates neither another syslog server nor an authoritative archive.
 
-**Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
-**Prerequisites:** accepted [Observability](../stage-8-observability/README.md),
-an existing application namespace, CSI storage and enforced network policies.
-Application SDK instrumentation and its receiver configuration are application-owned.
-**Design:** [telemetry boundaries](../../01-architecture/11-operations/03-observability.md).
+<a id="figure-workload-collection"></a>
 
-## Main path
-
-1. [Prepare the selected sources](#step-1-prepare-the-selected-sources)
-2. [Install the scoped Collector](#step-2-install-the-scoped-collector)
-3. [Verify buffering and authorization](#step-3-verify-buffering-and-authorization)
-
-## Step 1: Prepare the selected sources
-
-For Linux VMs such as `lab-1`, use the [Linux source recipe](../stage-2-logging/procedures/sources.md).
-It installs Shared's native sender using Tier 2-owned inventory and source selections.
-Cluster OS/API evidence uses the [cluster security-event gate](../stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation),
-not the application analytics path below. Register missing sources explicitly.
-Application security/audit events must also enter a protected source, such as
-captured container stdout or an approved file stream, never only the SDK analytics path.
-
-For Kubernetes, prepare application instrumentation using the language's supported
-OTel SDK and its `otel-agent:4317` OTLP/gRPC destination. Enable emission after Step 2 has installed
-and qualified that Collector. This listener
-is plaintext within the same restricted namespace and allowed only by its network
-policy; no cross-tier or public plaintext listener is created. Services needing
-stronger intra-namespace separation require separate namespaces or authenticated receivers.
+## Expected outcome: scoped application collection
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":22,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -72,13 +48,54 @@ flowchart TB
   class Queue data
 ```
 
-**IaC:** Tier 2 [Collector recipe](../../../tier-2/ansible/playbooks/deployment/workload-telemetry.yml),
+**IaC:** *Figure: Two namespace-local Collectors buffer instrumented application signals and send them to private Tier
+1 intake with distinct client identities. Protected security evidence keeps its separate Tier 0 path.*
+Tier 2 [Collector recipe](../../../tier-2/ansible/playbooks/deployment/workload-telemetry.yml),
 [inputs](../../../tier-2/ansible/group_vars/workload_telemetry.yml.example) and
 [native chart values](../../../tier-2/ansible/roles/workload_telemetry/templates/values.yml.j2).
 Scope: two application-namespace Collector replicas, their queue PVCs and network policies.
 The application SDK, cluster, CSI class and Tier 1 gateway already exist.
 
-## Step 2: Install the scoped Collector
+**Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
+**Prerequisites:** accepted [Observability](../stage-8-observability/README.md),
+an existing application namespace, CSI storage and enforced network policies.
+Application SDK instrumentation and its receiver configuration are application-owned.
+**Design:** [telemetry boundaries](../../01-architecture/11-operations/03-observability.md).
+
+## Main path
+
+1. [Prepare the selected sources](#step-1-prepare-the-selected-sources)
+2. [Create the Collector inputs](#step-2-create-the-collector-inputs)
+3. [Configure destinations and scope](#step-3-configure-destinations-and-scope)
+4. [Prepare producer Secrets](#step-4-prepare-the-producer-secrets)
+5. [Render and review](#step-5-render-and-review)
+6. [Apply the reviewed Collector](#step-6-apply-the-reviewed-collector)
+7. [Enable application emission](#step-7-enable-application-emission)
+8. [Verify buffering and authorization](#step-8-verify-buffering-and-authorization)
+
+<a id="step-2-install-the-scoped-collector"></a>
+
+## Step 1: Prepare the selected sources
+
+For Linux VMs such as `lab-1`, use the [Linux source recipe](../stage-2-logging/procedures/sources.md).
+It installs Shared's native sender using Tier 2-owned inventory and source selections.
+Cluster OS/API evidence uses the [cluster security-event gate](../stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation),
+not the application analytics path below. Register missing sources explicitly.
+Application security/audit events must also enter a protected source, such as
+captured container stdout or an approved file stream, never only the SDK analytics path.
+
+For Kubernetes, prepare application instrumentation using the language's supported
+OTel SDK and its `otel-agent:4317` OTLP/gRPC destination. Enable emission after Step 6 has installed
+and qualified that Collector. This listener
+is plaintext within the same restricted namespace and allowed only by its network
+policy; no cross-tier or public plaintext listener is created. Services needing
+stronger intra-namespace separation require separate namespaces or authenticated receivers.
+
+
+## Step 2: Create the Collector inputs
+
+Review the [collection figure](#figure-workload-collection) against the selected namespace, queues and
+private Tier 1 endpoints before enabling application emission.
 
 From Tier 2's root, prepare private inputs in the accepted deployment environment:
 
@@ -94,19 +111,10 @@ Edit in **`<prefix>-tier-2/`**.
 - `ansible/group_vars/workload_telemetry.yml`: Application identity, authorized destinations, TLS and
   selected cluster context.
 
-Install the control-node requirements inside that deployment virtual environment:
+The native playbook prepares/checks its declared controller dependencies before render/apply.
+Use the prepared controller environment; pre-stage requirements before disconnected check-mode runs.
 
-Run from **`<prefix>-tier-2/`**.
-
-```bash
-python3 -m pip install -r ansible/requirements.txt
-```
-
-Run from **`<prefix>-tier-2/`** in the same environment:
-
-```bash
-ansible-galaxy collection install -r ansible/requirements.yml
-```
+## Step 3: Configure destinations and scope
 
 Edit **`ansible/group_vars/workload_telemetry.yml`**:
 
@@ -121,6 +129,8 @@ Edit **`ansible/group_vars/workload_telemetry.yml`**:
 Match the accepted Stage 8 NodePorts, DNS/server certificate names and
 gateway node CIDRs; a different cluster's `ClusterIP` is not a reachable endpoint.
 Allow only those destinations through network firewalls. Never expose them publicly.
+
+## Step 4: Prepare the producer Secrets
 
 Prepare these existing Secrets in the application namespace, using exactly one
 approved secret owner. Each contains `tls.crt`, `tls.key` and `ca.crt`:
@@ -138,6 +148,8 @@ If this is a new application scope, first render/review/reapply the correspondin
 receiver policy and verify that private listener. Keep search bootstrap disabled on an existing cluster.
 The Collector cannot create its remote listener, source CA or reader mapping.
 
+## Step 5: Render and review
+
 Run from **`<prefix>-tier-2/`**.
 
 ```bash
@@ -147,7 +159,9 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
 ```
 
 Review `secrets/workload-telemetry/otel-agent-values.yml` and native manifests.
-Set the explicit kubeconfig path, then apply:
+Set the explicit kubeconfig path.
+
+## Step 6: Apply the reviewed Collector
 
 Run from **`<prefix>-tier-2/`**.
 
@@ -163,12 +177,16 @@ The [network policies](../../../tier-2/ansible/roles/workload_telemetry/template
 allow application-to-Collector traffic, DNS and specified outbound gateway ports.
 They do not grant access to the Tier 0 archive.
 
+## Step 7: Enable application emission
+
 After Collector readiness, enable the prepared SDK configuration in the application and continue
-with Step 3. The supplied egress allowance selects `app.kubernetes.io/name: lab-app`;
+with Step 8. The supplied egress allowance selects `app.kubernetes.io/name: lab-app`;
 adapt that policy through its tier-owned template before enrolling differently labelled applications.
 The reference HTTP image does not gain SDK instrumentation from installing this chart.
 
-## Step 3: Verify buffering and authorization
+<a id="step-3-verify-buffering-and-authorization"></a>
+
+## Step 8: Verify buffering and authorization
 
 1. Emit numbered application logs, metrics and traces. Confirm correlation and the
    correct Tier 1 application scope; prove a different application's reader is denied.
@@ -181,7 +199,7 @@ Persistent queues protect selected exporter state, not every SDK buffer or faile
 disk. Two replicas do not replicate their queues, remove storage failure or guarantee
 zero loss. SDK retry, PVC recovery, capacity and outage limits require live tests. [2]
 
-Return to [Stage 10, Step 3](README.md#step-3-deploy-and-verify-applications).
+Return to [Stage 10, Step 6](README.md#step-6-rehearse-update-rollback-and-recovery).
 
 ## References
 

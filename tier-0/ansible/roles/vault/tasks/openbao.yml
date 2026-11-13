@@ -52,6 +52,7 @@
     data_volume_path: "{{ vault_data_dir }}"
     data_volume_label: openbao-data
     data_volume_expected_uuid: "{{ openbao_data_expected_uuid }}"
+    data_volume_uuid_input: openbao_data_expected_uuid
   when: openbao_data_device | length > 0
 
 - name: Create bounded OpenBao configuration and persistent directories

@@ -1,0 +1,13 @@
+---
+# Copy to ansible/group_vars/freeipa_ldap_reader.yml and pass with -e @path.
+# Schema: ansible/roles/freeipa_ldap_reader/defaults/main.yml and tasks/main.yml.
+# This is opt-in; existing externally managed readers need no account-bootstrap run.
+freeipa_ldap_reader_enabled: false
+freeipa_ldap_reader_name: keycloak
+freeipa_ldap_reader_base_dn: dc=lab,dc=example,dc=com
+# Use the installed primary's actual socket, not a guessed remote LDAP administrator.
+freeipa_ldap_reader_ldapi_socket: /run/slapd-LAB-EXAMPLE-COM.socket
+freeipa_ldap_reader_password_expiration: '20380119031407Z'
+# Load control_applications.yml plus its encrypted secret override in the same run.
+# The role verifies that its derived sysaccount DN matches control_applications_ldap_bind_dn.
+freeipa_ldap_reader_password: "{{ control_applications_ldap_bind_password }}"

@@ -67,8 +67,11 @@ extraConfig:
   - secret: {secretName: netbox-oidc}
 csrf:
   trustedOrigins: [{{ ('https://' ~ control_applications_hosts.netbox) | to_json }}]
-extraEnvs: &trust-env
+extraEnvs:
   - {name: REQUESTS_CA_BUNDLE, value: /trust/services/ca.crt}
+  - name: SUPERUSER_API_KEY
+    valueFrom:
+      secretKeyRef: {name: netbox-superuser, key: api_key, optional: true}
 extraVolumes: &trust-volumes
   - {name: db-ca, secret: {secretName: netbox-db-ca}}
   - {name: cache-ca, secret: {secretName: netbox-cache-tls, items: [{key: ca.crt, path: ca.crt}]}}
@@ -87,7 +90,8 @@ worker:
   enabled: true
   replicaCount: 1
   automountServiceAccountToken: false
-  extraEnvs: *trust-env
+  extraEnvs: &trust-env
+    - {name: REQUESTS_CA_BUNDLE, value: /trust/services/ca.crt}
   extraVolumes: *trust-volumes
   extraVolumeMounts: *trust-mounts
 housekeeping:

@@ -2,6 +2,12 @@
   "baseline": "2.16.0",
   "collections": [
     {
+      "name": "netbox.netbox",
+      "version": "3.23.0",
+      "requires_ansible": ">=2.15.0",
+      "source": "https://raw.githubusercontent.com/netbox-community/ansible_modules/v3.23.0/meta/runtime.yml"
+    },
+    {
       "name": "community.general",
       "version": "10.7.6",
       "requires_ansible": ">=2.15.0",

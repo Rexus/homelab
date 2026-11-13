@@ -1,10 +1,29 @@
 # Install the Tier 0 basic platform
 
+**Stage 4 first installation:** follow the [continuous main guide](../README.md), not this entire
+procedure afterward. This is the reusable cross-tier configuration and installation reference.
+Each phase is used only at its prerequisite point:
+
+| Work in this reference | Stage 4 caller | Required starting state |
+| --- | --- | --- |
+| Native Talos CNI/RBD settings | [Step 6](../README.md#step-6-append-image-access-and-cnistorage-patches) | Before new-node bootstrap; existing nodes retain their original IaC owner |
+| Platform input contract | [Step 11](../README.md#step-11-configure-the-platform-target) | Existing private API and selected client configuration |
+| Cilium render/apply | [Steps 12-13](../README.md#step-12-render-cilium-only) | Completed native node settings; no competing CNI |
+| Selected CSI path | [Step 15](../README.md#step-15-qualify-live-storage) | Working CNI and protected source collection |
+| Remaining platform/Flux | [Steps 16-18](../README.md#step-16-prepare-flux-and-bootstrap-secrets) | Accepted storage, reviewed source and bootstrap Secrets |
+
+Other tiers use the matching phases only when their owning stage calls them, with their own inputs,
+credentials and state. Retain already accepted work; do not restart bootstrap or repeat an installed
+component's first-install procedure to reach a later phase.
+
 Tier-local Ansible installs pinned Cilium, optional Ceph RBD or NFS CSI, cert-manager, Traefik,
 CloudNativePG and Flux charts, with the Barman Cloud plugin as an object/WAL backup
 option. Shared's reusable platform role executes the native
 charts and health gates; Tier 0 owns selections, values and cluster resources. Rendering contacts chart
 repositories but never the Kubernetes API. It is not an air-gapped chart cache.
+
+[Stage 4 Figure 2](../README.md#figure-2-basic-platform-services) shows the reference result with
+existing block CSI. Select and qualify storage before installing the remaining consumers.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** independent execution host and API access; completed Stage 1-3
@@ -265,7 +284,7 @@ Continue at action 10. For Tier 1/2, use that tier's selections; its inputs omit
 
 Complete the persistence, certificate/ingress and database checks below and
 [Flux acceptance](flux-sops.md#accept-reconciliation) for Tier 0. Return to
-[Stage 4, Step 3](../README.md#step-3-verify-operation-and-recovery) for protected collection and recovery acceptance.
+[Stage 4, action 19](../README.md#step-19-accept-operation-and-recovery) for protected collection and recovery acceptance.
 
 For another selected subset, change `cluster_platform_components` explicitly.
 Prerequisites for omitted products must already be accepted.

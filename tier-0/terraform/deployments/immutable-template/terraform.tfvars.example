@@ -2,7 +2,7 @@
 
 # Copy to: terraform/deployments/immutable-template/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/03-deployment/stage-9-development/step-2c-image-based-linux.md
+# Setup guide: docs/03-deployment/stage-9-development/step-15b-image-based-linux.md
 # VMID allocation: docs/02-conventions/vmid-convention.md
 # Shared values live in ../../common.tfvars.
 

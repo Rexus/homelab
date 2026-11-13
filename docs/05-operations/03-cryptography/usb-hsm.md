@@ -16,7 +16,7 @@ independent wrapping/recovery material and an accepted failure/capacity budget.
 | --- | --- |
 | `ansible/group_vars/hsm.yml`, inventory/host vars | Provider, physical serial, native middleware and assigned reader |
 | `ansible/group_vars/hsm_remoting.yml` | Optional endpoints, SSH pins, source-restricted clients and original SPKI; [native remoting](../../03-deployment/stage-3-trust/procedures/pkcs11-remoting.md) |
-| `ansible/group_vars/openbao_signing.yml`, independent `signing` environment | Optional API keys/clients and recovery; [signing API](../../03-deployment/stage-6-secrets/step-1d-openbao.md) |
+| `ansible/group_vars/openbao_signing.yml`, independent `signing` environment | Optional API keys/clients and recovery; [signing API](../../03-deployment/stage-6-secrets/step-11b-openbao.md) |
 
 <a id="table-of-contents"></a>
 

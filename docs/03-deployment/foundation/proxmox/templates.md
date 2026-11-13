@@ -7,24 +7,32 @@ For the first manual Linux image, use the independent workstation and Proxmox GU
 the generated repositories and API publisher are not prerequisites for this guide.
 
 One GUI disk-import workflow covers AlmaLinux, Rocky Linux and Talos. Choose the
-image below, then follow Steps 1-3. Talos-specific differences are explicit;
+image below, then follow the numbered actions. Talos-specific differences are explicit;
 there is no separate ISO installation. For repeatable API publication instead,
 use the [template lifecycle](../../../05-operations/01-hosting/templates/template-lifecycle.md).
-After manual creation, either retain manual ownership or
-[adopt the existing templates into Terraform](../../../05-operations/01-hosting/templates/template-lifecycle.md#adopt-existing-templates).
+On the Foundation path, create the first Linux template here and adopt it after bootstrap preparation.
+Standalone manual ownership is also valid; use the
+[lifecycle reference](../../../05-operations/01-hosting/templates/template-lifecycle.md#adopt-existing-templates)
+for later adoption or maintenance.
 Never let two Terraform states manage the same VMID or image file.
 
 ## Contents
 
-- [Select the image](#select-the-image)
-- [Step 1: Verify, unpack and upload](#step-1-verify-unpack-and-upload)
-- [Step 2: Create the VM shell and import the disk](#step-2-create-the-vm-shell-and-import-the-disk)
-- [Step 3: Convert, clone-test and approve](#step-3-convert-clone-test-and-approve)
+- [Step 1: Select the image](#step-1-select-the-image)
+- [Step 2: Verify the download](#step-2-verify-the-download)
+- [Step 3: Unpack and hash the image](#step-3-unpack-and-hash-the-image)
+- [Step 4: Upload the prepared file](#step-4-upload-the-prepared-file)
+- [Step 5: Create the VM and import its disk](#step-5-create-the-vm-and-import-its-disk)
+- [Step 6: Add initialization media and boot order](#step-6-add-initialization-media-and-boot-order)
+- [Step 7: Convert and create a disposable clone](#step-7-convert-and-create-a-disposable-clone)
+- [Step 8: Configure and qualify the clone](#step-8-configure-and-qualify-the-clone)
 - [Clone and guest-control checks](#clone-and-guest-control-checks)
 - [Cluster handoff](#cluster-handoff)
 - [References](#references)
 
-## Select the image
+<a id="select-the-image"></a>
+
+## Step 1: Select the image
 
 | Image | Download | Important selection |
 | --- | --- | --- |
@@ -71,16 +79,18 @@ The extension must also be present in the matching installer/upgrade schematic;
 adding it to a boot artifact alone is not the lifecycle contract.
 Keep artifacts independently of the factory/registry for Tier 0 recovery.
 
-## Step 1: Verify, unpack and upload
+<a id="step-1-verify-unpack-and-upload"></a>
 
-1. Verify the vendor checksum/signature for the **downloaded** artifact using the
-   vendor's procedure. A locally calculated hash is not proof of vendor origin.
-2. For Alma/Rocky, keep the verified `.qcow2`. For Talos, unpack `.raw.xz` with
-   7-Zip or `unxz`; upload the resulting **`.raw` only**, not the compressed archive.
-3. Calculate SHA256 for the exact file to upload. The `.raw.xz` digest cannot
-   verify the unpacked `.raw` bytes. In **Node > image storage > Import**, upload
-   the file or use the GUI URL transfer with its matching digest where offered.
-   Check the task result before continuing. [3]
+## Step 2: Verify the download
+
+On the **acquisition workstation**, verify the vendor checksum/signature for the **downloaded**
+artifact using the vendor's procedure. A locally calculated hash is not proof of vendor origin.
+Retain the artifact, verification material and source/release record for the later IaC catalog.
+
+## Step 3: Unpack and hash the image
+
+For Alma/Rocky, keep the verified `.qcow2` and calculate its SHA256. For Talos, unpack `.raw.xz`
+with 7-Zip or the block below. The `.raw.xz` digest cannot verify the unpacked `.raw` bytes.
 
 For a Bash workstation, from the directory containing the verified Talos download:
 
@@ -96,7 +106,20 @@ sha256sum nocloud-amd64.raw
 inspect it rather than overwriting it blindly. The optional
 [approved cache](../../../05-operations/02-software-intake/host-updates.md) is not required for initial import.
 
-## Step 2: Create the VM shell and import the disk
+## Step 4: Upload the prepared file
+
+**When reusing only the artifact preparation for IaC:** return after Steps 2–3 and stage its local
+file/checksum in the catalog. Do not perform the GUI upload/VM creation for an additional managed build.
+
+In **Proxmox > Node > image storage > Import**, upload the verified `.qcow2`; for Talos, use the
+resulting **`.raw` only**, not the compressed archive. Alternatively use the GUI URL transfer
+with its matching digest where offered. Do not upload the compressed `.raw.xz`.
+Check the upload task result before continuing. [3]
+An existing first manual upload is adopted later, not reuploaded.
+
+<a id="step-2-create-the-vm-shell-and-import-the-disk"></a>
+
+## Step 5: Create the VM and import its disk
 
 Select **Create VM**, enable **Advanced**, and leave **Start after created** off.
 Reserve an unused `9xxx` template ID using the [VMID quick reference](../../../02-conventions/vmid-convention.md).
@@ -125,8 +148,9 @@ For IaC publication, set the shared template bridge/VLAN under `all:`; the publi
 selects NIC and OS-specific controller defaults without per-image tuning. Optional
 overrides are listed in the [catalog reference](../../../05-operations/01-hosting/templates/template-lifecycle.md#catalog-fields-and-defaults).
 For an existing [SDN VNet](step-1c-sdn.md), set `bridge` to its ID and
-`vlan_id: null`. Complete that guide's **Datacenter > SDN > Apply** and VNet
-permission steps first. The publisher attaches the template; it does not create zones,
+`vlan_id: null`. Activate the VNet with **Datacenter > SDN > Apply** before this GUI import;
+the authorized GUI operator uses existing administrative access. Grant the publisher's VNet
+permissions later during bootstrap API setup. The publisher attaches the template; it does not create zones,
 VNets, port-isolation settings or firewall rules. Managed Linux and Kubernetes
 clones select their own attachments from tier-owned inputs.
 The base template starts at 10 GiB when the verified image fits; use a larger value
@@ -135,28 +159,37 @@ Templates and server VMs in every tier use fixed RAM with ballooning disabled.
 The Terraform VM modules set `memory.floating = 0` explicitly; size hosts for the
 configured guest RAM and HA failover capacity. [3][5]
 
-## Step 3: Convert, clone-test and approve
+<a id="step-3-convert-clone-test-and-approve"></a>
 
-1. In **Hardware**, remove any unused CD/DVD drive. For **all three images**,
-   retain/add a **CloudInit Drive**: **Hardware > Add >
-   CloudInit Drive**, bus **IDE**, slot **2**, on the selected live VM storage.
-   Retain IPv4 DHCP as the template network default; leave accounts/passwords unset.
-   In **Options > Boot Order**, enable `scsi0`
-   first; add a serial console if needed. Do not put site IPs, accounts or secrets in the template.
-2. With the image **unbooted**, select **Convert to template**, then create a
-   disposable full clone with its own VMID. Do not boot/configure the reusable template.
-3. On the **clone**, open **Cloud-Init > IP Config (net0)** and set its static IPv4/CIDR and gateway. For Talos,
-   leave **User, Password, SSH public keys, DNS and other fields at defaults**,
-   then regenerate the image if edited. The drive supplies **networking only**;
-   Talos machine configuration is applied separately over its API. [4] Boot and test
-   the clone's disk, agent and network; continue with the
-   [cluster procedure](../../stage-4-kubernetes/procedures/talos-terraform.md) for Talos configuration/bootstrap.
+## Step 6: Add initialization media and boot order
+
+In **Proxmox > VM > Hardware**, remove any unused CD/DVD drive. For **all three images**,
+retain/add a **CloudInit Drive**: **Hardware > Add > CloudInit Drive**, bus **IDE**, slot **2**,
+on the selected live VM storage. Retain IPv4 DHCP as the template network default;
+leave accounts/passwords unset. In **Options > Boot Order**, enable `scsi0` first;
+add a serial console if needed. Do not put site IPs, accounts or secrets in the template.
+
+## Step 7: Convert and create a disposable clone
+
+With the image **unbooted**, select **Convert to template**, then create a disposable **full clone**
+with its own unused VMID. Do not boot/configure the reusable template.
+
+## Step 8: Configure and qualify the clone
+
+On the **clone**, open **Cloud-Init > IP Config (net0)** and set its static IPv4/CIDR and gateway.
+For a Linux access test, add the approved test user's public key on this clone only.
+For Talos, leave **User, Password, SSH public keys, DNS and other fields at defaults**;
+regenerate the initialization image if edited. Its NoCloud drive supplies **networking only**. [4]
+Boot and perform the [clone checks below](#clone-and-guest-control-checks).
+
+Talos machine configuration/bootstrap belongs to [Stage 4](../../stage-4-kubernetes/procedures/talos-terraform.md)
+when that cluster is deployed. Do not jump to that installation to finish the initial Linux-template path.
 
 For EL packages or cleanup that require booting a builder, follow the
 [mutable Linux refresh](../../../05-operations/01-hosting/templates/template-lifecycle.md#mutable-linux-refresh); never capture a configured
 Talos node back into a base template. Disposable clone tests must not modify the template.
 
-For the initial foundation, continue with the [bootstrap execution host](../bootstrap/README.md):
+After the first manual Linux template passes, continue with the [bootstrap execution host](../bootstrap/README.md):
 clone the tested Linux template to prepare the machine that will run the remaining IaC.
 Do not capture that machine's credentials or state back into the reusable template.
 
@@ -167,7 +200,7 @@ The common import flow is the same for Linux and Talos. The Talos-specific chang
 are the raw image/Factory selections and OS-specific firmware/controller/agent requirements,
 not another wizard. Disabling ballooning is common to all server templates.
 
-After testing, Tier 0 promotes the VMID, title and source node in Shared's
+After managed publication and clone acceptance, Tier 0 promotes the VMID, title and source node in Shared's
 [consumer catalog](../../../08-reference/template-catalog.md). The consuming tier selects
 that VMID and matching firmware; the template ID is not allocated in every tier.
 Publication state belongs to Tier 0. A manually created template is not automatically
@@ -207,8 +240,8 @@ read -r -p "Disposable clone VMID: " CLONE_VMID
 qm agent "$CLONE_VMID" ping
 ```
 
-If the agent does not respond, check **inside the cloned Linux VM**, not on Proxmox
-or the deployment host:
+If the agent does not respond, inspect it through the **disposable clone's console**,
+not the reusable template or the deployment host:
 
 Run inside the **disposable cloned Linux VM**.
 
@@ -218,11 +251,11 @@ systemctl status qemu-guest-agent --no-pager
 ```
 
 These package checks apply to RPM-based guests; use the guest distribution's package
-query elsewhere. Install/start the missing agent through that guest's approved package
-path. To include it in an Enterprise Linux base image, use the existing
+query elsewhere. To include a missing agent in an Enterprise Linux base image, use the existing
 [template-refresh builder](../../../05-operations/01-hosting/templates/template-lifecycle.md#mutable-linux-refresh),
 which installs and starts the agent before publication. Do not boot or modify the
-published template directly. For Talos, use its Factory extension instead.
+published template directly. Do not repair a manually configured clone and assume the base image is fixed.
+For Talos, use its Factory extension instead.
 
 When the Proxmox agent option is enabled but the guest agent is unavailable,
 shutdown requests can time out. A fresh VM start is required after enabling the

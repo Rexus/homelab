@@ -5,24 +5,25 @@ dependencies are acceptable. For the repository's signing implementations and fa
 domains, use [key-protection choices](../08-cryptography/03-hsm-selection.md).
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Consumer["Service consumer"] -->|Scoped key operations| Role["Key-service interface"]
-  Role -.-> Software["Local operator custody"]
-  Role -.-> Hardware["Provider-managed custody"]
-  Software -.-> Recovery["Selected recovery contract"]
-  Hardware -.-> Recovery
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Consumer services
-  class Role,Software,Hardware control
-  class Recovery custody
+sequenceDiagram
+  participant Consumer as Service consumer
+  participant API as Accepted key-service interface
+  participant Custody as Selected key custodian
+  Consumer->>API: Request an authorized key operation
+  API->>Custody: Use the selected key and policy
+  alt Local operator custody
+    Note over Custody: Local authority owns key access and lifecycle
+  else Provider-operated custody
+    Note over Custody: Provider contract governs operation and recovery
+  end
+  Custody-->>API: Operation result
+  API-->>Consumer: Result within the service contract
+  Note over API,Custody: Recovery and external dependencies are separate design choices
 ```
 
 *Figure: Consumers retain a service contract while local or provider-operated key custody
-changes the implementation and recovery obligations. Dashed lines show alternatives.*
+changes operation and recovery obligations. The branches compare custody choices;
+they do not imply a supplied adapter or a network route to an offline root.*
 
 ## Local and cloud boundaries
 

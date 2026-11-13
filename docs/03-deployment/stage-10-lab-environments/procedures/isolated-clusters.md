@@ -22,6 +22,9 @@ command does not consume them. Do not replace existing nodes to match an `xs` pr
 
 ## Step 2: Deploy the first operator-owned cluster
 
+The [runtime figure](../README.md#figure-workload-runtimes) shows the Kubernetes selection and its
+authorized provisioning boundary. The [approval workflow](../README.md#figure-request-approval) precedes it.
+
 Follow [Tier 2 Kubernetes](../README.md#step-2-provision-the-workload-runtime) with
 its inventory, native image access, approved templates, unique allocations,
 private API and original state. Accept the cluster/add-ons before tenant access.

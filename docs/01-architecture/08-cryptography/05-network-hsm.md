@@ -38,12 +38,26 @@ block-beta
   class Appliances boundary
   class H1,H2,Admin custody
 ```
-*Figure: An authorized runtime uses a vendor client to reach a private HSM partition and optional HA member,
-with separate administration and offline recovery custody.*
+*Figure: A service uses a vendor client to reach its authorized partition on the right.
+An optional HA member belongs to the selected vendor model; offline recovery remains separate.*
 
-This is not the USB gateway service with different hardware. A network appliance
-can change client libraries, connection trust, partition ownership, recovery media
-and the failover mechanism. Luna, for example, provides client HA groups over
+Read the path from service to client to partition. The application requests an
+approved key operation; its configured client authenticates to the selected partition.
+Network reachability permits a connection, while client and partition policy determine
+which keys and operations it may use. Administration and recovery use separately
+controlled authority rather than the application's ordinary credentials.
+
+## Contents
+
+- [Components and boundaries](#components-and-boundaries)
+- [Client and partition authority](#client-and-partition-authority)
+- [Failure and recovery contract](#failure-and-recovery-contract)
+- [References](#references)
+
+## Client and partition authority
+
+A network appliance brings its own client libraries, connection trust, partition
+ownership, recovery media and failover mechanism. Luna, for example, provides client HA groups over
 compatible partitions; synchronization has product-specific conditions. [1]
 
 | Design concern | Required property |
@@ -66,6 +80,12 @@ Cloud-hosted providers require the separately assessed
 The selected application must support its partition's mechanisms and access model.
 The design specifies behavior for member/client loss, rejected operations and
 independent restore. No certification is inferred from the word HSM.
+
+The optional member in the figure improves availability only under that qualified
+contract. Key-provider availability does not recover the issuer's records or a signing
+application's state. Conversely, restoring application state is insufficient when its
+original key identity or partition credentials are unavailable. The recovery set must
+cover both sides independently of the failed service.
 
 The [network HSM procedure](../../03-deployment/stage-3-trust/step-1c-network-hsm.md)
 owns installation and acceptance steps.

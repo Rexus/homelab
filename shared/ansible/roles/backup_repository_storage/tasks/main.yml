@@ -1,0 +1,37 @@
+---
+- name: Validate the explicitly selected backup storage route
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Reset storage review output when the selected route changes
+  ansible.builtin.set_fact:
+    backup_repository_storage_render: ""
+    backup_repository_storage_documents: []
+
+- name: Prepare only the selected retained NFS repository resources
+  when: backup_repository_storage_volume.get('mode', 'existing') == 'static_nfs'
+  block:
+    - name: Resolve the bounded backup PV and PVC manifests
+      ansible.builtin.set_fact:
+        backup_repository_storage_render: "{{ lookup('ansible.builtin.template', 'resources.yml.j2') }}"
+        backup_repository_storage_documents: >-
+          {{ lookup('ansible.builtin.template', 'resources.yml.j2') | from_yaml_all | list }}
+
+    - name: Prepare private storage review output
+      ansible.builtin.file:
+        path: "{{ backup_repository_storage_output }}"
+        state: directory
+        mode: '0700'
+
+    - name: Store the native backup-only storage manifests
+      ansible.builtin.copy:
+        content: "{{ backup_repository_storage_render }}"
+        dest: "{{ backup_repository_storage_output }}/{{ backup_repository_storage_namespace }}-{{ backup_repository_storage_claim }}-storage.yml"
+        mode: '0600'
+
+    - name: Inspect ownership before creating any storage resources
+      ansible.builtin.include_tasks: inspect.yml
+      when: backup_repository_storage_action == 'apply'
+
+    - name: Create only absent resources without rewriting accepted storage
+      ansible.builtin.include_tasks: create.yml
+      when: backup_repository_storage_action == 'apply'

@@ -69,3 +69,14 @@
       device: "{{ data_volume_realpaths.results[0].stdout }}"
       uuid: "{{ data_volume_uuid_probe.stdout | trim }}"
       fstype: "{{ data_volume_fstype }}"
+
+- name: Show the optional UUID guard to retain in service inputs
+  ansible.builtin.debug:
+    msg:
+      - "{{ inventory_hostname }}: {{ data_volume_result.path }} is persistently mounted by UUID in /etc/fstab."
+      - "{{ data_volume_uuid_input }}: {{ data_volume_result.uuid }}"
+      - >-
+        Optional: save this guard in the selected service inputs; no manual mount is needed.
+        Different hosts need their own UUID values. For this tier's ansible/inventory/host_vars/<host>.yml overrides,
+        remove the same key from shared extra-vars files so those files do not override the host value.
+  when: data_volume_uuid_input | length > 0

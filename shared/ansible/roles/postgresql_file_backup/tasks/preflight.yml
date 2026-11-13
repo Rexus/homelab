@@ -7,6 +7,7 @@
       - postgresql_file_backup_target.cluster is match('^[a-z0-9][a-z0-9-]{0,39}$')
       - postgresql_file_backup_target.namespace is match('^[a-z0-9][a-z0-9-]*$')
       - postgresql_file_backup_target.claim is match('^[a-z0-9][a-z0-9-]*$')
+      - postgresql_file_backup_target.claim is not match('^' ~ postgresql_file_backup_target.cluster ~ '-[0-9]+(-wal)?$')
       - postgresql_file_backup_target.tls_secret is match('^[a-z0-9][a-z0-9-]*$')
       - postgresql_file_backup_target.image is match('^[^\s]+:17\.[0-9]+(@sha256:[a-f0-9]{64})?$')
       - postgresql_file_backup_target.source_id is match('^[a-zA-Z0-9/_-]+$')

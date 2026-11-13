@@ -4,12 +4,10 @@ Source control owns reviewed code and coordinates CI. Application delivery owns
 release/reconciliation. Infrastructure execution owns credentials and state.
 These are distinct functions even when one product exposes several interfaces.
 
-**Build:** [Stage 9: development platform](../../03-deployment/stage-9-development/README.md).
-**Operate:** [Development platform operations](../../05-operations/05-delivery.md).
-
 ## Contents
 
 - [Service arrangement](#service-arrangement)
+- [Build-job communication](#build-job-communication)
 - [Privileged CI](#privileged-ci)
 - [Identity and secrets](#identity-and-secrets)
 - [Failure and recovery](#failure-and-recovery)
@@ -20,39 +18,53 @@ These are distinct functions even when one product exposes several interfaces.
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  Source["Source control / reviewed code"]
-  CI["General CI / job compute"]
-  Delivery["Application delivery"]
-  Runtime["Authorized applications"]
-  Executor["Infrastructure execution<br/>Optional trusted CI"]
-  State[("Tier-owned inventory / state")]
-  Source -->|Build inputs| CI
-  Delivery -->|Retrieve approved definitions| Source
-  Delivery -->|Scoped changes| Runtime
-  Executor -->|Approved privileged code| Source
-  Executor -->|Execute changes| State
+  subgraph T1["Tier 1 / shared development"]
+    direction LR
+    subgraph Consumers["Separate execution scopes"]
+      direction TB
+      CI["General CI / job compute"]
+      Delivery["Application delivery"]
+      CI ~~~ Delivery
+    end
+    Source["Source control<br/>Reviewed code / release intent"]
+    Consumers -->|Read authorized definitions| Source
+  end
+  subgraph T0["Tier 0 / infrastructure authority"]
+    direction LR
+    Executor["Infrastructure execution<br/>Optional trusted CI"]
+    State[("Tier-owned inventory / state")]
+    Executor -->|Read / update original state| State
+  end
+  T1 ~~~ T0
+  Executor -->|Read approved privileged code| Source
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class CI,Delivery,Runtime services
-  class Executor control
+  class T1,CI,Delivery services
+  class Consumers boundary
+  class T0,Executor control
   class Source,State data
 ```
 
-*Figure: General CI builds reviewed code, delivery changes authorized applications, and separate
-infrastructure execution uses privileged code and tier-owned state.*
+*Figure: General CI and delivery retrieve definitions without acquiring infrastructure state.
+The Tier 0 executor retains original state and separately accepts privileged code.*
 
-The direct trusted CI path is an explicit opt-in described below.
+The reference source service is GitLab in Tier 1 Kubernetes. It consumes dedicated
+Tier 1 database, cache and repository VMs plus scoped object storage. Tier 1 owns
+the application and its data; the storage owner retains object-storage administration.
+The VM-hosted source-control variant satisfies the same service and recovery boundaries.
 
-| Function | Reference realization | Boundary |
-| --- | --- | --- |
-| Source control | GitLab application in Tier 1 Kubernetes, dedicated Tier 1 database/cache/repository VMs, scoped object storage | Application/dependency lifecycle remains distinct from Tier 0 storage administration |
-| General CI | Tier 1 runner manager with Kubernetes job pods | Ephemeral job compute, bounded resources and no infrastructure credentials |
-| Application delivery | Tier 1 Argo CD or Spinnaker | Selected application destinations, never Tier 0 infrastructure |
-| Control GitOps | Tier 0 Flux | Independently recoverable definitions, source trust and bootstrap keys |
-| Infrastructure CI | Separate Tier 0 runner VM | Original tier-local inventory/state and approved privileged code |
-| Lab environments | Tier 2 allocated runtime | Tenant access without hypervisor, Talos administrator or infrastructure-state access |
+General CI uses a Tier 1 runner manager and ephemeral job pods. Application delivery
+uses the separately selected Argo CD or Spinnaker controller; Tier 0 keeps Flux and
+its independently recoverable source trust and bootstrap keys. Their release behavior
+is explained in [controller patterns](02-controllers.md), rather than repeated here.
+
+Infrastructure CI uses a separate Tier 0 runner VM with original tier-local inventory
+and state. Its direct trusted CI path is an explicit opt-in described below.
+Tier 2 lab environments receive allocated runtime and tenant access without hypervisor,
+Talos administrator or infrastructure-state access.
 
 A Kubernetes runner provisions job pods, not an isolated Kubernetes cluster per
 job. The supplied runner uses the Tier 1 Services cluster; its namespace and
@@ -60,6 +72,36 @@ non-privileged job settings do not reserve isolated build nodes. Worker capacity
 build-node isolation and cluster lifecycle remain separate concerns. Untrusted
 builds require the [isolated execution boundary](../04-hosting/03-kubernetes.md#scheduling-and-capacity),
 not merely this runner installation. A source-control deployment is not a provisioning service.
+
+## Build-job communication
+
+The runner manager controls job-pod lifecycle. The job receives only its selected
+source and artifact access; the manager's Kubernetes permissions are not job credentials.
+
+```mermaid
+sequenceDiagram
+  participant Manager as Runner manager
+  participant Git as Source / CI service
+  participant Cluster as Tier 1 Kubernetes
+  participant Job as Ephemeral build job
+  Manager->>Git: Poll for an authorized job
+  Git-->>Manager: Selected job definition
+  Manager->>Cluster: Create bounded job pod
+  Cluster->>Job: Start approved job image
+  Job->>Git: Retrieve selected source revision
+  Job->>Job: Build / test with scoped access
+  Manager->>Git: Report job result
+  Manager->>Cluster: Remove job resources
+```
+
+*Figure: A manager polls for work and creates a bounded job pod, then reports the result
+and cleans up. Each job is a pod within the accepted cluster, not a new isolated cluster.*
+
+The supplied [runner values](../../../tier-1/ansible/roles/development_platform/templates/runner-values.yml.j2)
+and [access policy](../../../tier-1/ansible/roles/development_platform/templates/runner-support.yml.j2)
+separate manager access from job access. The Podman runner alternative changes job placement;
+it does not grant infrastructure credentials. Image-based Linux is a further image-lifecycle
+choice after accepting the selected build runtime.
 
 ## Privileged CI
 
@@ -108,3 +150,7 @@ owns that independence.
 GitLab/general runners and configures the direct-CI handover.
 [Lab environments](../../03-deployment/stage-10-lab-environments/README.md) consume the accepted
 platform without granting users its infrastructure authority.
+The [GitLab values](../../../tier-1/ansible/roles/development_platform/templates/gitlab-values.yml.j2)
+define the Kubernetes application's data interfaces; the deployment guide owns the VM alternative
+and joint recovery acceptance. [Development operations](../../05-operations/05-delivery.md)
+owns recurring access, maintenance and recovery work.

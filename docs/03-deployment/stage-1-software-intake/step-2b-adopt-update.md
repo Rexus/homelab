@@ -2,7 +2,7 @@
 
 **Branch from:** [Step 2](README.md#step-2-initialize-cache-inputs), option **2b**, for an existing pair.
 **Change:** refresh automation and reconcile the retained cache configuration/state.
-**Return:** [Step 5](README.md#step-5-test-the-selected-intake-path) after update adoption and cache reconciliation.
+**Return:** [Step 9](README.md#step-9-test-the-accepted-supply) after update adoption and cache reconciliation.
 
 Update the generated collection and reconcile the existing cache pair.
 Existing VMs, local inputs and original state stay in place.
@@ -64,8 +64,8 @@ Edit **`<prefix>-tier-2/ansible/group_vars/cache.yml`**. Compare with its refres
 
 | Setting | Review |
 | --- | --- |
-| `cache_squid_allowed_cidrs` | Keep existing approved clients; include bootstrap and Proxmox consumers, plus selected Windows clients for option 3b |
-| `cache_squid_allowed_domains` | Retain required repository/tool sources and redirect destinations; include the selected Windows sources for option 3b |
+| `cache_squid_allowed_cidrs` | Keep existing approved clients; include bootstrap and Proxmox consumers, plus selected Windows clients for option 7b |
+| `cache_squid_allowed_domains` | Retain required repository/tool sources and redirect destinations; include the selected Windows sources for option 7b |
 | `cache_squid_refresh_patterns` | Adopt the current example's source-respecting rules; remove old expiry/privacy/reload overrides |
 | `cache_squid_extra_options` | Review retained custom directives for policy/cache changes |
 
@@ -92,13 +92,13 @@ failover validation may move the VIP temporarily. Do not destroy caches, clear d
 
 <a id="5-return-to-the-numbered-path"></a>
 
-Return to [Stage 1, Step 5](README.md#step-5-test-the-selected-intake-path) to verify the cache
-and its consumers. Steps 6–7 reapply the retained bootstrap and Proxmox settings to adopt updated
+Return to [Stage 1, Step 9](README.md#step-9-test-the-accepted-supply) to verify the cache
+and its consumers. Steps 10–17 reapply the retained bootstrap and Proxmox settings to adopt updated
 package policy, then verify retrieval and bypass denial. Keep the accepted endpoint and bypass list.
 For recurring APT signature/hash failures, use the [diagnostic runbook](../../05-operations/02-software-intake/apt-refresh.md).
 A successful normal refresh needs no permanent `No-Cache` or pipelining override.
 
-Select [Stage 3, option 3b](../stage-3-trust/README.md#3b-verified-repository-and-artifact-publication--optional)
+Select [Stage 3, option 15b](../stage-3-trust/README.md#15b-verified-repository-and-artifact-publication-optional)
 when protected logging and the issuer are accepted. That installer owns setup registration, worker inputs,
 VM/disks, service setup and consumer cutover; no later-stage service is needed.
 If Stage 3 is already accepted, the option can be deployed directly from that numbered decision point.

@@ -1,27 +1,14 @@
-# Step 4b: Protected-log search copies
+# Step 14b: Protected-log search copies
 
-**Branch from:** [Step 4](README.md#step-4-publish-and-verify-read-only-views), option **4b**, after the
+**Branch from:** [Step 14](README.md#step-14-enroll-selected-sources), option **14b**, after the
 private projection listener and its scope policy are accepted.
 **Change:** export authorized copies into the existing search interface.
-**Return:** [Step 4](README.md#step-4-publish-and-verify-read-only-views) for reader-denial, replay and recovery tests.
+**Return:** [Step 15](README.md#step-15-verify-readers-continuity-and-recovery) for reader-denial, replay and recovery tests.
 Application-only search skips this exporter.
 
-**Working repositories:** `<prefix>-tier-0` publishes and exports approved copies;
-`<prefix>-tier-1` owns the existing authenticated ingestion and search workloads.
-Original evidence, NAS retention and backup authority remain in Tier 0.
+<a id="figure-protected-log-copy"></a>
 
-**Prerequisites:** accepted [logging checkpoints](../stage-2-logging/step-3c-nas-archive.md),
-an approved source catalogue, and [projection ingestion](procedures/observability-platform.md#approved-search-projections).
-The Tier 1 instructions and diagram describe the Kubernetes path. For dedicated VMs, implement and
-accept an equivalent scoped projection listener and reader policy in the project-owned service;
-use its configuration in place of the Tier 1 Kubernetes inputs below. Tier 0's publisher and
-exporter still require the compatible authenticated endpoint and the same acceptance checks.
-
-## Contents
-
-- [Step 1: Approve a copy](#step-1-approve-a-copy)
-- [Step 2: Install the scoped exporter](#step-2-install-the-scoped-exporter)
-- [Step 3: Verify access and recovery](#step-3-verify-access-and-recovery)
+## Expected outcome: approved search copy
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -58,7 +45,9 @@ flowchart BT
   class Copy,Original data
 ```
 
-**IaC:** Tier 0's [checkpoint publisher](../../../tier-0/ansible/roles/logging_archive)
+**IaC:** *Figure: Tier 0 filters a selected checkpoint into a read-only copy, then pushes it to the authenticated Tier
+1 search pipeline. Query users receive no path to mutate original evidence.*
+Tier 0's [checkpoint publisher](../../../tier-0/ansible/roles/logging_archive)
 creates the approved files; its [export recipe](../../../tier-0/ansible/playbooks/deployment/logging-export.yml)
 installs one container per selected scope using the [local inputs](../../../tier-0/ansible/group_vars/logging_export.yml.example).
 Tier 1's [existing pipeline](../../../tier-1/ansible/roles/observability_platform/templates/collector-config.yml.j2)
@@ -67,7 +56,27 @@ This figure covers one new `operations` export on `log-1`, not the entire loggin
 Arrows show checkpoint filtering, the read-only copy mount, push-only scoped mTLS and indexing,
 in that order. Query access remains in [Stage 8's reader view](README.md#step-4-publish-and-verify-read-only-views).
 
+**Working repositories:** `<prefix>-tier-0` publishes and exports approved copies;
+`<prefix>-tier-1` owns the existing authenticated ingestion and search workloads.
+Original evidence, NAS retention and backup authority remain in Tier 0.
+
+**Prerequisites:** accepted [logging checkpoints](../stage-2-logging/step-15a-nas-archive.md),
+an approved source catalogue, and [projection ingestion](procedures/observability-platform.md#approved-search-projections).
+The figure shows the Kubernetes path. Dedicated VMs use the supplied `observability_vm_log_scopes`
+projection listener and reader policy instead of Kubernetes chart inputs; reconcile the accepted
+VM services after editing that scope. Both paths require the same authenticated endpoint contract. Tier 0's publisher and
+exporter still require the compatible authenticated endpoint and the same acceptance checks.
+
+## Contents
+
+- [Step 1: Approve a copy](#step-1-approve-a-copy)
+- [Step 2: Install the scoped exporter](#step-2-install-the-scoped-exporter)
+- [Step 3: Verify access and recovery](#step-3-verify-access-and-recovery)
+
+
 ## Step 1: Approve a copy
+
+Approve the source, filtered copy and destination in the [protected-copy figure](#figure-protected-log-copy).
 
 In Tier 0's local `ansible/group_vars/logging_archive.yml`, select exact sources,
 reader group, approval record and fields:
@@ -86,7 +95,21 @@ Replace `pve01` with a source already registered in the receiver-owned catalogue
 `raw` and `message` are excluded unless explicitly selected with
 `content_approved: true`; review their entire content, not only their field names.
 This is field filtering, not automatic secret detection or semantic redaction.
-Reapply the [archive recipe](../stage-2-logging/step-3c-nas-archive.md) using its existing inputs.
+Reconcile the existing publisher after this edit. Run from **`<prefix>-tier-0/`**, using the
+collector's retained input/identity file (adjust the final path if the actual host file differs):
+
+```bash
+read -r -p 'Collector holding this approved copy (for example log-1): ' LOGGING_COLLECTOR
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
+  -i ansible/inventory/hosts.yml --limit "${LOGGING_COLLECTOR:?Select the existing collector}" \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/syslog.yml \
+  -e @ansible/group_vars/logging_archive.yml \
+  -e "@ansible/inventory/host_vars/$LOGGING_COLLECTOR.yml" \
+  ansible/playbooks/deployment/logging-archive.yml
+```
+
+The Stage 2 archive/mount is already commissioned. This reapply adds the selected projection;
+it does not create a new archive or repeat its storage preparation.
 Only newly checkpointed records enter a newly added scope. Historical backfill requires a separately reviewed
 offline export; never reset the original checkpoint cursor to create a search copy.
 
@@ -100,16 +123,15 @@ object for field queries such as `body.record.source`. Investigate
 
 ## Step 2: Install the scoped exporter
 
-1. In Tier 1's Observability inputs, define a matching `kind: projection` scope with
+1. In Tier 1's accepted Observability inputs, define a matching `kind: projection` scope with
    its dedicated client CA, NodePort and authorized `reader_backend_roles`.
 2. Prepare its receiver Secret and render/review/reapply the
-   [Tier 1 configuration](procedures/observability-platform.md#8-render-the-complete-platform). For an existing search
+   [Tier 1 reconciliation](procedures/observability-platform.md#reconcile-an-accepted-installation). For an existing search
    cluster, keep `observability_search_bootstrap: false`. Verify the selected private listener,
    source-IP/firewall path and server identity before enabling an exporter.
 3. Prepare a client certificate for this scope and a verified gateway hostname.
    The certificate must chain to that listener's client CA, not a general application CA.
-4. Copy the Tier 0 `logging_export.yml.example` to local `logging_export.yml`.
-   Set its endpoint and external credential paths; approve only that destination in the firewall.
+4. Continue with the Tier 0 input creation below; approve only its selected destination in the firewall.
 
 Switch from Tier 1 to the **Tier 0 root**, then create the settings:
 
@@ -176,7 +198,7 @@ file retention/pruning is installed by the exporter. Capacity and retention rema
 Removing read access cannot retract copies already indexed or downloaded: apply the selected Tier 1
 retention/deletion policy separately. Tier 1 index maintenance never changes Tier 0 originals.
 
-Return to [Stage 8, Step 4](README.md#step-4-publish-and-verify-read-only-views).
+Return to [Stage 8, Action 15](README.md#step-15-verify-readers-continuity-and-recovery).
 
 ## References
 

@@ -5,44 +5,11 @@ remains local to each service: a successful login is not permission to administe
 the platform. This domain supplies directory authority and federated access to the
 [platform architecture](../README.md).
 
-**Deploy:** [Identity](../../03-deployment/stage-5-identity/README.md).
-**Operate:** [Identity operations](../../05-operations/04-identity.md).
-
-## Table of contents
-
-- [Terminology](#terminology)
-- [Completed design](#completed-design)
-- [Service access](#service-access)
-- [Components and interfaces](#components-and-interfaces)
-- [Design choices](#design-choices)
-- [Administrative authentication](#administrative-authentication)
-- [Design constraints](#design-constraints)
-- [Detailed views](#detailed-views)
-- [Realization](#realization)
-
-## Terminology
-
-Identity and access management (IAM) is the overall capability, not the name of
-one VM or product. It includes identity lifecycle, authentication and access
-policy. [1] The reference separates these responsibilities:
-
-| Term | Meaning in this design | Reference realization |
-| --- | --- | --- |
-| Identity management (IdM) / directory authority | Maintain users, groups and enrolled hosts; supply directory, DNS and Kerberos services | FreeIPA primary and replica on dedicated VMs [3] |
-| Identity provider (IdP) | Authenticate subjects and provide identity information to relying applications [2] | Keycloak in Tier 0 Kubernetes [4] |
-| Single sign-on (SSO) | Reuse a sign-in session across participating services | IdP sessions and configured application integrations [4] |
-| Service authorization | Decide which actions an authenticated identity may perform | Each application or cluster's roles and policies |
-
-Keycloak acts as the IdP for the applications. Its connection to the directory is
-**LDAP user federation**. **Identity brokering** is a different integration:
-delegating authentication to another IdP, such as an upstream OIDC or SAML
-provider. [4] The terms are not interchangeable.
-
 ## Completed design
 
-This view expands **directory authority (IdM)** and **identity provider (IdP / SSO)**
-from the [capability map](../README.md#functional-structure). Ownership, runtime
-and service consumption are shown separately.
+Hosts use directory authority directly; applications use an identity provider
+(IdP) and retain their own permission mappings. The IdP depends on the directory,
+which remains outside the cluster it helps administrators access.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -91,26 +58,53 @@ flowchart TB
   class Data data
   class Hosts actor
 ```
-*Figure: Tier 1 and Tier 2 relying parties use the Tier 0 identity provider, which federates with the
-replicated directory; enrolled hosts use directory protocols.*
+*Figure: Tier 1 and Tier 2 applications rely on the Tier 0 IdP; its directory dependency is
+to the right. The directory pair replicates authority while enrolled hosts use directory protocols directly.*
 
-In the reference allocation, FreeIPA implements IdM on two dedicated Tier 0 VMs;
-Keycloak implements the IdP in the Tier 0 cluster. Their hosting and recovery
-remain separate. The IdP's database, TLS and directory failover are explicit
-integration requirements, not implied by a replica count or installed by this diagram.
+The figure separates ownership from access. Publishing an authentication endpoint
+to a consuming tier does not give that tier control of the directory or IdP runtime.
+The IdP's database, TLS and directory failover are explicit integration requirements;
+directory replication alone does not make application login highly available.
 
-FreeIPA retains one replicated identity CA under the offline root, as a sibling of
-the infrastructure issuer. Its certificate inventory and custody remain separate
-from the OpenXPKI portal; see the [CA design](../08-cryptography/01-certificate-authority.md).
+The directory retains one replicated identity CA under the offline root, as a sibling
+of the infrastructure issuer. Their certificate inventories and custody remain
+separate; see the [CA design](../08-cryptography/01-certificate-authority.md).
 
 Arrows identify logical consumers and dependencies, not every browser redirect
 or token exchange. [Service access](#service-access) expands
 the login interaction. Enrolled hosts consume directory services directly;
 applications consume the IdP and retain their own authorization.
 
+## Table of contents
+
+- [Completed design](#completed-design)
+- [Terminology](#terminology)
+- [Service access](#service-access)
+- [Components and interfaces](#components-and-interfaces)
+- [Design choices](#design-choices)
+- [Administrative authentication](#administrative-authentication)
+- [Design constraints](#design-constraints)
+- [Detailed views](#detailed-views)
+- [Realization](#realization)
+
+## Terminology
+
+Identity and access management (IAM) covers identity lifecycle, authentication and
+access policy. [1] In the figure, **identity management (IdM)** is directory authority:
+it maintains users, groups and enrolled hosts, and supplies DNS, directory and Kerberos
+services. An **identity provider (IdP)** authenticates subjects and supplies identity
+information to relying applications. [2] **Single sign-on (SSO)** reuses a sign-in
+session across participating services; each service still owns authorization. [4]
+
+The reference uses FreeIPA as the dedicated directory primary and replica, and
+Keycloak as the IdP in Tier 0 Kubernetes. [3][4] Keycloak's connection to the directory
+is **LDAP user federation**, configured read-only over verified LDAPS. The directory
+remains the source for users and groups. **Identity brokering** instead delegates
+authentication to another IdP, such as an upstream OIDC or SAML provider. [4]
+
 ## Service access
 
-Published services expose named application endpoints. For an OIDC-capable
+Published services expose named application endpoints. For an OpenID Connect (OIDC)-capable
 service, the IdP uses directory authority and the service applies
 its own authorization. This is a logical authentication scenario; exact token
 exchanges depend on the selected application integration.
@@ -138,7 +132,12 @@ sequenceDiagram
   end
 ```
 
-*Figure: A service delegates authentication to an identity provider and applies its own authorization.*
+*Figure: Authentication travels from the client through the IdP to directory authority; responses
+return to the client, then the service validates the login and applies its own authorization.*
+
+Read the final exchange as a second decision: an authenticated identity can still
+lack permission for the requested operation. Group claims and service roles need
+explicit mappings; an IdP session does not carry platform administration rights.
 
 The service endpoint may be reached through the shared edge proxy and application
 ingress. This does not publish its administrative interfaces. Direct directory
@@ -146,6 +145,12 @@ protocols, machine credentials and non-OIDC services use their own explicit
 integration contracts.
 
 ## Components and interfaces
+
+Give each client-facing interface a stable [service DNS name](../../02-conventions/service-dns.md),
+such as `sso.corp.example.com` for sign-in or `ldap.corp.example.com` for qualified directory access.
+Directory members keep their own host identities and protocol-specific discovery records.
+
+### Keep application access separate from control
 
 | Capability | Reference placement | Supplied interface |
 | --- | --- | --- |
@@ -161,6 +166,13 @@ network can host a deliberately selected front end; it is not the reference
 placement of the IdP. A published front end does not bridge networks or grant
 directory administration.
 
+### Keep dependencies recoverable
+
+The directory's independent runtime, the IdP's database and the service's own policy
+are separate state boundaries. Certificate trust, DNS/time and backup access must be
+available along their selected startup and recovery paths. Restoring the directory
+does not restore IdP sessions, client configuration or application permissions.
+
 | Boundary | Interface and connected function |
 | --- | --- |
 | Supplied to hosts | Directory enrollment, DNS, LDAP and Kerberos within the selected authority scope |
@@ -171,6 +183,11 @@ directory administration.
 | Consumed from operations | Independent recovery records, backup targets and access/audit visibility |
 
 ## Design choices
+
+Start with the authority contract: either deploy the dedicated directory pair or
+consume an existing approved authority. The latter must supply the required schema,
+protected directory endpoint, namespace ownership, availability and independent
+recovery. It replaces installation, not those obligations.
 
 | Decision | Variants | Consequence |
 | --- | --- | --- |
@@ -195,7 +212,7 @@ Hardware-backed OTP/PIV and phishing-resistant FIDO2/WebAuthn are explicit integ
 choices, with different supported protocols. Harden privileged users first and retain
 the separately authorized recovery path; selecting an identity service does not
 configure every application or eliminate bootstrap/recovery passwords.
-See [hardware authentication choices](../../03-deployment/stage-6-secrets/step-3b-hardware-authentication.md)
+See [hardware authentication choices](../../03-deployment/stage-6-secrets/step-21b-hardware-authentication.md)
 for supplied integration and acceptance boundaries.
 
 ## Design constraints
@@ -209,16 +226,20 @@ for supplied integration and acceptance boundaries.
 
 ## Detailed views
 
-- [Windows and AD-compatible integration](01-windows-integration.md) details the optional client extension.
-- [Service boundaries](../02-organization/README.md) defines shared and isolated authority consumption.
-- [Component allocation](../03-reference-platform.md#service-placement) locates IdM, the IdP and its database.
-- [Runtime flows](../README.md) connects authentication to complete service access.
+Use [Windows and AD-compatible integration](01-windows-integration.md) only when
+client requirements call for that extension. [Service boundaries](../02-organization/README.md)
+explains shared versus isolated authority consumption. For the selected products and
+hosting, [component allocation](../03-reference-platform.md#service-placement) locates
+the directory, IdP and database; the [platform overview](../README.md) places
+authentication in complete service access.
 
 ## Realization
 
 Implementation procedures: [directory authority](../../03-deployment/stage-5-identity/procedures/freeipa.md)
 and [IdP integration](../../03-deployment/stage-5-identity/README.md#step-2-deploy-identity-federation).
 Windows integration is an explicit project option, not a supplied domain installer.
+The [Identity stage](../../03-deployment/stage-5-identity/README.md) owns installation;
+[identity operations](../../05-operations/04-identity.md) owns routine access and recovery.
 
 ## References
 

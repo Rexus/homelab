@@ -1,16 +1,62 @@
-# Step 2c: Image-based Linux
+# Step 15b: Image-based Linux
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for image builders.
 Run repository scripts from this root; Tier 1 consumers keep their own workload definitions.
 
 <a id="image-based-linux-path"></a>
 
-**Branch from:** [Step 2](README.md#step-2-add-on-demand-build-execution), after the selected general runner
+**Branch from:** [Step 15](README.md#step-15-select-the-linux-image-lifecycle), after the selected general runner
 and its registry destination are accepted. This adds host-image lifecycle, not another runner alternative.
 **Change:** Use image-based hosts while Tier 0 retains template ownership.
-**Return:** [Step 3](README.md#step-3-authorize-ci-through-vault) for secret integration before infrastructure handover.
+**Return:** [Step 16](README.md#step-16-accept-protected-ci-authority-and-create-its-project) for secret integration before infrastructure handover.
 
 **Design:** [guest and image lifecycle variants](../../01-architecture/04-hosting/README.md).
+
+<a id="figure-image-publication"></a>
+
+## Expected outcome: initial image publication (3a)
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":16,"padding":8,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T1["Tier 1 / existing delivery services"]
+    CI["Existing CI and OCI registry<br/>Approved bootc OS image / recovery copy"]
+  end
+  subgraph T0["Tier 0 / initial image path (3a)"]
+    direction TB
+    subgraph Build[" "]
+      direction LR
+      Builder["1. rhel-10-immu-tmpl<br/>Proxmox builder stays mutable<br/>Pinned bootc-image-builder"]
+      Artifact[("2. Controller artifacts<br/>qcow2 + SHA256<br/>publication.yml")]
+      Builder -->|Create / fetch qcow2| Artifact
+    end
+    subgraph Publish[" "]
+      direction RL
+      Publisher["3. Existing template publisher<br/>Independent controller"]
+      Template["4. New Proxmox template<br/>Separate published image"]
+      Publisher -->|Publish disk| Template
+    end
+    Build -->|Review / merge generated catalog| Publish
+  end
+  CI -->|Approved image digest| T0
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  class Artifact data
+  class T1,CI services
+  class T0,Builder,Template control
+  class Build,Publish controlHeading
+```
+
+**IaC:** *Figure: The mutable builder produces a verified qcow2 for a separate template publisher. Route 3b instead
+switches and finalizes its own existing bootc-native candidate.*
+Tier 0 [builder inputs](../../../tier-0/terraform/deployments/immutable-template/terraform.tfvars.example)
+and [image-build recipe](../../../tier-0/ansible/playbooks/deployment/bootc-image.yml), followed by the
+[existing template publisher](../../../tier-0/terraform/deployments/templates/main.tf).
+The builder stays mutable; reviewed controller artifacts create a separate template. Workload clones are not created here.
+CI/image publication is an existing prerequisite or project integration, not installed by the builder recipe.
 
 **Coverage:** route **3a** builds an initial qcow2 from an approved bootable OCI image with the native
 `bootc-image-builder` container, fetches it to the controller and supplies the existing Terraform
@@ -130,55 +176,15 @@ In host mode only, the already bootc-native candidate itself can become a templa
 | **3a: initial disk**, `immutable_template_mode: image` | Tier 0 dedicated builder → native product container → verified qcow2 on controller → existing template publisher | Image-lifecycle acceptance below |
 | **3b: existing native host**, `immutable_template_mode: host` | Original bootc-native candidate → switch/reboot → cleanup → its original Terraform owner finalizes it | Image-lifecycle acceptance below |
 
-The figure shows **3a**, the default initial-image path. The
+The [publication figure](#figure-image-publication) shows **3a**, the default initial-image path. The
 [3b host-mode alternative](#existing-native-host) switches and finalizes its own already bootc-native candidate.
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":16,"padding":8,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T1["Tier 1 / existing delivery services"]
-    CI["Existing CI and OCI registry<br/>Approved bootc OS image / recovery copy"]
-  end
-  subgraph T0["Tier 0 / initial image path (3a)"]
-    direction TB
-    subgraph Build[" "]
-      direction LR
-      Builder["1. rhel-10-immu-tmpl<br/>Proxmox builder stays mutable<br/>Pinned bootc-image-builder"]
-      Artifact[("2. Controller artifacts<br/>qcow2 + SHA256<br/>publication.yml")]
-      Builder -->|Create / fetch qcow2| Artifact
-    end
-    subgraph Publish[" "]
-      direction RL
-      Publisher["3. Existing template publisher<br/>Independent controller"]
-      Template["4. New Proxmox template<br/>Separate published image"]
-      Publisher -->|Publish disk| Template
-    end
-    Build -->|Review / merge generated catalog| Publish
-  end
-  CI -->|Approved image digest| T0
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  class Artifact data
-  class T1,CI services
-  class T0,Builder,Template control
-  class Build,Publish controlHeading
-```
-
-**IaC:** Tier 0 [builder inputs](../../../tier-0/terraform/deployments/immutable-template/terraform.tfvars.example)
-and [image-build recipe](../../../tier-0/ansible/playbooks/deployment/bootc-image.yml), followed by the
-[existing template publisher](../../../tier-0/terraform/deployments/templates/main.tf).
-The builder stays mutable; reviewed controller artifacts create a separate template. Workload clones are not created here.
-CI/image publication is an existing prerequisite or project integration, not installed by the builder recipe.
-
-Figure: this workflow uses GitLab CI and the accepted registry destination. Harbor already belongs to
-Stage 7; it is not a later prerequisite. Other approved
+The [image-publication workflow](#figure-image-publication) uses GitLab CI and the accepted registry destination.
+Harbor already belongs to Stage 7; it is not a later prerequisite. Other approved
 sources follow the selected [artifact-supply design](../../01-architecture/10-delivery/01-artifact-supply.md).
 Approval and custody transfers do not imply live access. Custody uses
 offline transfer; host updates remain separate. If native Podman builds are needed, select and accept
-the [Podman runner](step-2b-podman-runner.md) at Step 2b; a generic Kubernetes runner alone does not supply
+the [Podman runner](step-14b-podman-runner.md) at Step 14b; a generic Kubernetes runner alone does not supply
 that build runtime.
 
 ## Template conversion flow
@@ -412,9 +418,9 @@ For **both routes**, create a disposable clone through its normal Terraform owne
 reference and normal cloud-init inputs. Verify first boot, intended OS/image, guest agent, unique
 machine/SSH identities and cloud-init behavior through managed Ansible/console checks; no manual
 guest SSH setup is part of either installer. Rehearse an image update, reboot, rollback and recovery
-from retained source/product/container and disk artifacts before accepting 2c.
+from retained source/product/container and disk artifacts before accepting 15b.
 
-**Return after image-lifecycle acceptance:** [Stage 9, Step 3](README.md#step-3-authorize-ci-through-vault).
+**Return after image-lifecycle acceptance:** [Stage 9, Step 16](README.md#step-3-authorize-ci-through-vault).
 Record unperformed first-boot/recovery tests separately from missing implementation. A successful
 disk build, checksum, publication or `bootc status` response alone does not establish those results.
 
@@ -458,7 +464,7 @@ keeps the previous deployment available.[4]
 - [Development platform](README.md)
 - [Container registry path](../stage-7-delivery/procedures/registry.md)
 - [Development platform path](step-1b-source-control-vm.md)
-- [Podman image runner guide](step-2b-podman-runner.md)
+- [Podman image runner guide](step-14b-podman-runner.md)
 - [Enterprise Linux template](../foundation/proxmox/templates.md)
 - [Proxmox planning guidelines](../../02-conventions/proxmox-conventions.md)
 - [Security principles](../../01-architecture/01-background/01-principles.md)

@@ -10,7 +10,7 @@ For verified publication, use [verified software intake operations](verified-pub
 | Owner | Inputs or procedure |
 | --- | --- |
 | **`<prefix>-tier-2/`** | `ansible/group_vars/cache.yml` for VIP, client networks, approved sources and storage; `ansible/inventory/hosts.yml` for targets |
-| **`<prefix>-tier-1/`** | `ansible/group_vars/intake.yml`: [verified publication](verified-publication.md), installed as the [Stage 3 option](../../03-deployment/stage-3-trust/step-3b-verified-intake.md) |
+| **`<prefix>-tier-1/`** | `ansible/group_vars/intake.yml`: [verified publication](verified-publication.md), installed as the [Stage 3 option](../../03-deployment/stage-3-trust/step-15b-verified-intake.md) |
 | Consumer's tier | Proxy/mirror inputs for that consumer; [Proxmox updates](host-updates.md), [APT troubleshooting](apt-refresh.md) |
 
 The cache controls transport; verified intake owns quarantine and publication after

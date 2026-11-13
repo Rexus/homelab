@@ -17,7 +17,7 @@ and [Stage 6: Secrets](../../03-deployment/stage-6-secrets/README.md).
 | **`<prefix>-tier-0/`** | `ansible/group_vars/hsm.yml`, provider/remoting inputs and original key records: [HSM operations](usb-hsm.md) |
 | **`<prefix>-tier-0/`**, Kubernetes Vault | `ansible/group_vars/control_applications.yml`, selected Secret owner and original unseal custody: [cluster Vault](../../03-deployment/stage-6-secrets/procedures/vault-kubernetes.md) |
 | **`<prefix>-tier-0/`**, VM Vault | `ansible/group_vars/vault.yml`, original inventory/state and protected API inputs: [VM audit/SSO reconciliation](../../03-deployment/stage-6-secrets/step-1b-vault-vm.md#step-4-configure-audit-and-sso) |
-| **`<prefix>-tier-0/`**, optional signing environment | `ansible/group_vars/openbao_signing.yml`, `ansible/inventory/signing.yml` and independent state: [signing API reconciliation and recovery](../../03-deployment/stage-6-secrets/step-1d-openbao.md#5-register-original-hsm-keys-and-workload-clients) |
+| **`<prefix>-tier-0/`**, optional signing environment | `ansible/group_vars/openbao_signing.yml`, `ansible/inventory/signing.yml` and independent state: [signing API reconciliation and recovery](../../03-deployment/stage-6-secrets/step-11b-openbao.md#5-register-original-hsm-keys-and-workload-clients) |
 | Credential-owning tier | Secret locations, consumers and rotation authority: [credential handling](secret-handling.md) |
 | Selected Ansible repository | Existing encrypted inputs and password custody: [Ansible Vault](ansible-vault.md) |
 
@@ -28,7 +28,7 @@ and [Stage 6: Secrets](../../03-deployment/stage-6-secrets/README.md).
 | Is the issuer healthy; how are certificates renewed or revoked? | [Certificate authority](certificate-authority.md) |
 | How is an issuer recovered? | [Issuer recovery](issuer-recovery.md) |
 | How are HSM replicas maintained or signing custody changed? | [USB HSM](usb-hsm.md), [hardware migration](hardware-migration.md) |
-| How are signing clients, PIN rotation and independent recovery checked? | [Signing API acceptance](../../03-deployment/stage-6-secrets/step-1d-openbao.md#6-accept-operation-and-independent-recovery); keep original key identity and snapshots separate from hardware backups |
+| How are signing clients, PIN rotation and independent recovery checked? | [Signing API acceptance](../../03-deployment/stage-6-secrets/step-11b-openbao.md#6-accept-operation-and-independent-recovery); keep original key identity and snapshots separate from hardware backups |
 | Which custody controls must remain in place? | [Security controls](security-controls.md) |
 | How is a password, token or encrypted input rotated? | [Credential handling](secret-handling.md), [Ansible Vault](ansible-vault.md) |
 | How are control-service copies scheduled and Vault snapshots authorized? | [Control backups](../06-resilience/backups/control-applications.md), [snapshot authentication](../06-resilience/recovery/vault-backup-auth.md) |

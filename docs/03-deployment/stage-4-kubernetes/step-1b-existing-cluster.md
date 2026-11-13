@@ -2,7 +2,8 @@
 
 **Branch from:** [Step 1](README.md#step-1-create-the-kubernetes-cluster), instead of creating a new cluster.
 **Change:** Consume an accepted cluster whose existing owner manages its nodes through IaC.
-**Return:** [Step 2](README.md#step-2-establish-the-basic-platform) after the checks below.
+**Return:** [Action 7](README.md#step-7-render-and-append-node-logging-patches) to render the actual
+node/source inputs, then action 11 for platform installation. New-node provisioning is skipped.
 **Working repository:** the consuming tier's `<prefix>-tier-0`, `<prefix>-tier-1` or `<prefix>-tier-2`.
 
 New clusters use the [Terraform/Talos path](procedures/talos-terraform.md).
@@ -58,8 +59,8 @@ and Kubernetes client versions from the [cluster prerequisites](procedures/talos
 
 1. Have the existing owner verify control-plane health, etcd recovery and physical failure placement.
 2. Confirm the supplied API and Talos configuration work from the deployment controller.
-3. Preserve the original inputs/state and use [Stage 4, Step 2](README.md#step-2-establish-the-basic-platform)
-   for the platform's native installers. Do not rerun new-cluster bootstrap on this cluster.
+3. Preserve the original inputs/state and render [Stage 4 action 7](README.md#step-7-render-and-append-node-logging-patches) for the actual nodes,
+   then continue at action 11 for the platform's native installers. Do not rerun new-cluster bootstrap on this cluster.
 
 For later API-server identity configuration, use the existing owner's qualified
 [SSO integration](../stage-5-identity/procedures/kubernetes-sso.md); retain the original

@@ -53,7 +53,7 @@ class DeploymentViews(unittest.TestCase):
     def test_deployment_resource_views_account_for_the_selected_starter_hosts(self):
         # Each row expands an actual input/inventory selection, not a second guest catalogue.
         cases = [
-            ("stage-2-logging/README.md", 0, "tier-0", "syslog", ["foundation_logging"]),
+            ("stage-2-logging/README.md", 1, "tier-0", "syslog", ["foundation_logging"]),
             ("stage-3-trust/README.md", 0, "tier-0", "foundation",
              ["issuing_ca", "identity_primary", "identity_replicas"]),
             ("stage-3-trust/step-1b-usb-hsm.md", 0, "tier-0", "hsm", ["hsm_gateways"]),
@@ -66,13 +66,13 @@ class DeploymentViews(unittest.TestCase):
             ("stage-7-delivery/README.md", 0, "tier-1", "kubernetes", ["talos_control_plane"]),
             ("stage-9-development/step-1b-source-control-vm.md", 0, "tier-1", "development",
              ["development_platform"]),
-            ("stage-9-development/step-2b-podman-runner.md", 0, "tier-1", "podman-runner", ["podman_runner"]),
-            ("stage-9-development/step-2c-image-based-linux.md", 0, "tier-0", "immutable-template",
+            ("stage-9-development/step-14b-podman-runner.md", 0, "tier-1", "podman-runner", ["podman_runner"]),
+            ("stage-9-development/step-15b-image-based-linux.md", 0, "tier-0", "immutable-template",
              ["immutable_template_builders"]),
             ("stage-7-delivery/procedures/edge-proxy.md", 0, "tier-2", "edge", ["edge_load_balancers"]),
-            ("stage-10-lab-environments/README.md", 1, "tier-2", "kubernetes", ["talos_control_plane"]),
-            ("stage-10-lab-environments/README.md", 1, "tier-2", "lab", ["lab"]),
-            ("stage-10-lab-environments/README.md", 1, "tier-0", "infrastructure-runner", ["infrastructure_runner"]),
+            ("stage-10-lab-environments/README.md", 0, "tier-2", "kubernetes", ["talos_control_plane"]),
+            ("stage-10-lab-environments/README.md", 0, "tier-2", "lab", ["lab"]),
+            ("stage-10-lab-environments/README.md", 0, "tier-0", "infrastructure-runner", ["infrastructure_runner"]),
             ("stage-1-software-intake/README.md", 0, "tier-2", "cache", ["cache"]),
         ]
         selections = {}

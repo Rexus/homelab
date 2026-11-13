@@ -21,8 +21,10 @@ replace them with the selected project values.
 | VM name-part order | `<role>-<n>` | Optional `<env>-<role>-<n>`; use [role abbreviations](#role-abbreviations). |
 | VM hostname length | Prefer 3–8 characters | Include hyphens and sequence; `boot-1`, `idm-1`, `api-gw-1`. |
 | Number format | `1`, `2`, `3` | First and subsequent instances. |
-| Internal service FQDN | `<role>.<env>.<internal-domain>` | Stable service endpoint. |
-| External service FQDN | `<role>.<env>.<external-domain>` | Selected published endpoint. |
+| Service DNS label | Prefer familiar 2–8 character labels | `ldap`, `idp`, `auth`, `git`, `proxy`, `db`, `nfs`; see [service DNS names](docs/auto-docs/02-conventions/service-dns.md). |
+| Internal service FQDN | `<service>.<internal-domain>` | Stable endpoint, such as `ldap.corp.example.com`. |
+| External service FQDN | `<service>.<external-domain>` | Selected published endpoint, such as `git.example.com`. |
+| Service scope | Optional `<service>.<env>.<domain>` or `<service>.<project>.<domain>` | Add only when needed to distinguish services. |
 | Template name | `<os>-<release>-tmpl` | Candidate suffix where selected. |
 
 The hostname length is a preference; DNS labels allow 63 octets. SDN IDs below have
@@ -30,6 +32,7 @@ a separate hard restriction. Template titles and Kubernetes object/release names
 keep their own conventions. Existing host keys require a deliberate
 [state and identity migration](docs/auto-docs/02-conventions/proxmox-conventions.md#existing-installations),
 not an automatic rename during refresh.
+Service labels identify interfaces; numbered VM names identify individual machines.
 
 ## Role abbreviations
 

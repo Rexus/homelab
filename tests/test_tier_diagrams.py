@@ -119,8 +119,8 @@ class DiagramConventions(TierRepositoryTestCase):
         for code in (overview[0], diagrams(root / "02-organization/01-tier-ownership.md")[0],
                      diagrams(root / "04-hosting/03-kubernetes.md")[0],
                      diagrams(root / "04-hosting/01-runtime.md")[0]):
-            self.assertIn("block-beta", code)
-            order = [code.index(f'T{tier}["') for tier in (2, 1, 0)]
+            self.assertRegex(code, r"(?m)^(?:block-beta|flowchart TB)$")
+            order = [re.search(rf'\bT{tier}(?:\[|\n)', code).start() for tier in (2, 1, 0)]
             self.assertEqual(order, sorted(order))
             self.assertNotIn("-->", code)
             self.assertNotIn("---", code)
@@ -148,11 +148,15 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn("Root -.-> Issuer", crypto)
         self.assertIn("Root -.-> Identity", crypto)
         controllers = diagrams(root / "10-delivery/02-controllers.md")[0]
-        self.assertIn("T2 ~~~ T1 ~~~ T0", controllers)
+        self.assertIn("flowchart BT", controllers)
+        self.assertIn("T0 ~~~ T1", controllers)
+        self.assertIn('T1 -- "Controller: approved application scope" --> T2', controllers)
         self.assertEqual(controllers.count('subgraph T0["'), 1)
         for name in ("08-cryptography/03-hsm-selection.md", "08-cryptography/05-network-hsm.md",
                      "08-cryptography/06-vault-seal.md"):
             for code in diagrams(root / name):
+                if "sequenceDiagram" in code:
+                    continue  # Request timelines do not repeat the complete custody placement map.
                 self.assertIn("block:T0", code, name)
                 self.assertRegex(code, r'(?i)offline (?:recovery|backup) custody', name)
         telemetry = diagrams(root / "11-operations/03-observability.md")[0]
@@ -194,6 +198,7 @@ class DiagramConventions(TierRepositoryTestCase):
         defaults = yaml.safe_load((tier / "ansible/roles/syslog_ng/defaults/main.yml").read_text())
         steps = diagrams(root / "README.md")
         self.assertEqual(len(steps), 3)
+        archive, provisioning, collection = steps
         for code in steps:
             self.assertIn("flowchart", code)
             self.assertIn('subgraph T0["', code)
@@ -203,20 +208,20 @@ class DiagramConventions(TierRepositoryTestCase):
             self.assertLess(code.index('subgraph T0['), code.index('subgraph PVE['))
             self.assertLess(code.index('subgraph PVE['), code.index(f'VM["{guest}<br/>'))
             self.assertNotRegex(code, r'(?m)^\s*space(?::\d+)?(?:\s|$)')
-        self.assertIn("Guarded filesystem<br/>UUID mount", steps[0])
+        self.assertIn("Guarded filesystem<br/>UUID mount", provisioning)
         self.assertIn('interface     = "scsi1"', hardware)
-        self.assertIn('scsi1 / local data disk', steps[0])
-        self.assertIn(f'TLS {defaults["syslog_ng_tls_port"]}', steps[1])
-        self.assertNotIn("log-2", steps[0])
-        self.assertIn('subgraph NAS["', steps[2])
-        self.assertIn('Existing NAS / independent custody', steps[2])
-        self.assertIn('subgraph Recovery["', steps[2])
-        self.assertIn('Existing Tier 0 recovery host', steps[2])
-        self.assertLess(steps[2].index('subgraph T1['), steps[2].index('subgraph T0['))
-        self.assertLess(steps[2].index('subgraph T0['), steps[2].index('subgraph Recovery['))
-        self.assertIn('    subgraph Recovery[', steps[2])
-        self.assertIn('Placement -->|Read-only NAS archive pull| Recovery', steps[2])
-        redundant = diagrams(root / "step-3b-redundant-intake.md")[0]
+        self.assertIn('scsi1 / local data disk', provisioning)
+        self.assertIn(f'TLS {defaults["syslog_ng_tls_port"]}', collection)
+        self.assertNotIn("log-2", provisioning)
+        self.assertIn('subgraph NAS["', archive)
+        self.assertIn('Existing NAS / independent custody', archive)
+        self.assertIn('subgraph Recovery["', archive)
+        self.assertIn('Existing Tier 0 recovery host', archive)
+        self.assertLess(archive.index('subgraph T1['), archive.index('subgraph T0['))
+        self.assertLess(archive.index('subgraph T0['), archive.index('subgraph Recovery['))
+        self.assertIn('    subgraph Recovery[', archive)
+        self.assertIn('Placement -->|Read-only NAS archive pull| Recovery', archive)
+        redundant = diagrams(root / "step-14b-redundant-intake.md")[0]
         self.assertIn('subgraph PVE1["', redundant)
         self.assertIn('subgraph PVE2["', redundant)
         self.assertIn(f'VM1["{guest}<br/>', redundant)
@@ -262,13 +267,14 @@ class DiagramConventions(TierRepositoryTestCase):
         recipes = "../../../tier-0/ansible/playbooks/deployment/"
         expected = {
             "README.md": [
+                [recipes + "logging-archive.yml", recipes + "logging-backup.yml"],
                 ["../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example",
-                 "../../../tier-0/ansible/inventory/hosts.yml.example"],
+                 "../../../tier-0/ansible/inventory/hosts.yml.example",
+                 recipes + "logging-storage.yml"],
                 [recipes + "foundation-logging.yml", recipes + "logging-producers.yml",
                  "../../../shared/ansible/roles/log_forwarder/tasks/main.yml"],
-                [recipes + "logging-archive.yml", recipes + "logging-backup.yml"],
             ],
-            "step-3b-redundant-intake.md": [[
+            "step-14b-redundant-intake.md": [[
                 "../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example",
                 "../../../tier-0/ansible/inventory/hosts.yml.example",
                 "../../../tier-0/ansible/group_vars/syslog.yml.example",

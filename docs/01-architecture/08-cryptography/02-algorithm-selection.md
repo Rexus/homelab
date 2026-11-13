@@ -5,7 +5,26 @@ and RSA-3072 when a consumer requires RSA. Choose by purpose, lifetime and compa
 the largest available key is rarely the best default.
 
 This is the project's engineering baseline, not a certification of a deployment.
-See [post-quantum readiness](07-post-quantum.md) and [HSM timings](../../08-reference/yubihsm-performance.md).
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+block-beta
+  columns 2
+  TLS["Protect traffic<br/>TLS and symmetric encryption"]
+  Sign["Prove identity / authorship<br/>Certificate and signature"]
+  Hash["Compare artifact content<br/>Hash and trusted manifest"]
+  Password["Verify a password<br/>Salted, costed KDF"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class TLS,Sign,Hash,Password control
+```
+*Figure: Four security purposes require different primitives. These are complementary operations,
+not interchangeable choices or stages in a request.*
+
+Start with the operation in the figure, then compare strengths within the relevant
+algorithm family. Finally check that the protocol, provider and actual consumers
+support the selected parameters. A larger modulus or curve cannot replace that
+compatibility check.
 
 ## Contents
 
@@ -14,22 +33,6 @@ See [post-quantum readiness](07-post-quantum.md) and [HSM timings](../../08-refe
 - [Apply the baseline](#apply-the-baseline)
 - [Review and rotation](#review-and-rotation)
 - [References](#references)
-
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Purpose["Security purpose"] --> TLS["Traffic confidentiality<br/>TLS and symmetric encryption"]
-  Purpose --> Sign["Identity or authorship<br/>Digital signature"]
-  Purpose --> Hash["Artifact comparison<br/>Hash and trusted manifest"]
-  Purpose --> Password["Password verification<br/>Salted, costed KDF"]
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Purpose actor
-  class TLS,Sign,Hash,Password control
-```
-*Figure: The security purpose determines whether to use encryption, signatures, hashing or a password
-verification function.*
 
 ## Choose the operation
 
@@ -75,6 +78,11 @@ under project control. Avoid new DSA, MD5 and SHA-1 signatures. [1][4][6]
 
 ## Apply the baseline
 
+The reference separates long-lived trust anchors from routine leaf keys. Root
+signing is infrequent and offline; the online issuer signs repeatedly; leaf keys
+belong to their service or client. The table records those different decisions,
+rather than asking every key to use the root's algorithm and size.
+
 | Purpose | Project default | Reason and boundary |
 | --- | --- | --- |
 | Offline root | RSA-4096 with SHA-384 | Infrequent signing; broad chain compatibility; offline custody |
@@ -107,7 +115,8 @@ through the documented rollover or
 Review this baseline when standards or vendor support change, a weakness is published,
 or the protected data lifetime changes. A short certificate lifetime does not erase
 previously captured encrypted traffic. Use the [post-quantum guide](07-post-quantum.md)
-for long-lived confidentiality.
+for long-lived confidentiality and [HSM timings](../../08-reference/yubihsm-performance.md)
+when qualifying the performance of a selected provider.
 
 ## References
 

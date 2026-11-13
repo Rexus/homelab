@@ -1,8 +1,5 @@
 # Kubernetes topology
 
-**Deploy:** [Kubernetes](../../03-deployment/stage-4-kubernetes/README.md).
-**Operate:** [Kubernetes operations](../../05-operations/01-hosting/kubernetes-and-labs.md).
-
 Each tier has an independent Kubernetes API, etcd quorum, administrative
 credentials and lifecycle state. Tiers separate authority; worker pools organize
 capacity within that authority. Talos is the supplied node OS, not the design goal.
@@ -12,37 +9,48 @@ storage, resource isolation, upgrades and recovery can meet their requirements.
 A container image alone is not a supported deployment model. Keep bootstrap,
 offline custody and outage visibility independent of the clusters they recover.
 
-## Table of contents
-
-- [Cluster boundaries](#cluster-boundaries)
-- [Scheduling and capacity](#scheduling-and-capacity)
-- [Availability and recovery](#availability-and-recovery)
-- [Implementation](#implementation)
-- [References](#references)
-
 ## Cluster boundaries
 
 ```mermaid
-block-beta
-  columns 4
-  Owner["Owning tier"] Runtime["Independent Kubernetes cluster"]:2 Dedicated["Outside Kubernetes"]
-  T2["Tier 2<br/>Workloads"] C2["Independent API and etcd<br/>Development / testing / labs"]:2 space
-  T1["Tier 1<br/>Shared platform"] C1["Independent API and etcd<br/>Source control / registry / delivery"]:2 space
-  T0["Tier 0<br/>Control"] C0["Independent API and etcd<br/>IdP / secrets / control services"]:2
-  Directory["Dedicated directory VM pair<br/>Directory federation"]
-  Custody["Separate offline root and recovery custody<br/>Outside Kubernetes and connected hosts"]:4
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":16,"padding":10,"wrappingWidth":350,"subGraphTitleMargin":{"top":2,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T2["Tier 2 / workload authority"]
+    C2["Workload cluster<br/>Independent API / etcd / credentials<br/>Development, testing and labs"]
+  end
+  subgraph T1["Tier 1 / shared-platform authority"]
+    C1["Platform cluster<br/>Independent API / etcd / credentials<br/>Source, registry and delivery services"]
+  end
+  subgraph T0["Tier 0 / infrastructure and trust authority"]
+    direction TB
+    subgraph Connected["Connected runtimes"]
+      direction LR
+      C0["Control cluster<br/>Independent API / etcd / credentials<br/>IdP, secrets and control services"]
+      Directory["Outside Kubernetes<br/>Dedicated directory VM pair<br/>Protected execution host"]
+      C0 ~~~ Directory
+    end
+    Custody["Offline root and recovery custody<br/>Outside connected hosts and clusters"]
+    Connected ~~~ Custody
+  end
+  T2 ~~~ T1 ~~~ T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Owner,Runtime,Dedicated,T2,T1,T0 boundary
+  class T2,T1 services
+  class T0,C0,Directory control
+  class Connected boundary
   class C2,C1 services
-  class C0,Directory control
   class Custody custody
 ```
 
-*Figure: Each tier has an independent cluster; directory VMs and offline custody remain outside Kubernetes.*
+*Figure: Each tier retains its own cluster authority. Tier 0 also owns dedicated directory and execution
+hosts; its offline custody sits outside every connected runtime.*
+
+Read each cluster as a complete administrative boundary, not a worker pool in one
+larger cluster. The node VMs sit inside Proxmox as shown in the
+[hosting view](01-runtime.md#completed-hosting-model); this figure expands cluster
+authority rather than physical host allocation.
 
 Network attachments follow purpose and exposure, not tier numbers. The examples
 use Control for Tier 0, application/Services for Tier 1, and lab for Tier 2;
@@ -53,6 +61,14 @@ FreeIPA remains on two dedicated Tier 0 VMs and supplies directory federation
 to the IdP, as shown in the [identity view](../09-identity/README.md). Offline root keys remain outside
 the clusters. The protected infrastructure runner is a Tier 0 execution host,
 not a general build pod or a Tier 1 delivery controller.
+
+## Table of contents
+
+- [Cluster boundaries](#cluster-boundaries)
+- [Scheduling and capacity](#scheduling-and-capacity)
+- [Availability and recovery](#availability-and-recovery)
+- [Implementation](#implementation)
+- [References](#references)
 
 ## Scheduling and capacity
 
@@ -103,6 +119,9 @@ The supplied roots support explicit node definitions and a `node-pool` label.
 They do not install an autoscaler, self-service controller, add-ons or applications.
 Delivery selection is independent: [controller patterns](../10-delivery/02-controllers.md).
 Installation: [common Kubernetes procedure](../../03-deployment/stage-4-kubernetes/procedures/kubernetes.md).
+The [Kubernetes deployment path](../../03-deployment/stage-4-kubernetes/README.md) joins node creation,
+platform services and acceptance; [operations](../../05-operations/01-hosting/kubernetes-and-labs.md)
+covers ongoing cluster and lab work.
 
 ## References
 

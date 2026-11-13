@@ -1,5 +1,30 @@
 # UniFi zone firewall
 
+Prepare the gateway, switch trunks and separated client networks before deploying guests.
+The controller and recovery path remain available independently of hosted platform services.
+
+<a id="figure-1-network-commissioning-path"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  Admin["Local privileged workstation"] --> Controller["Gateway / independent Network application"]
+  Controller --> Switch["Adopted switch and optional APs"]
+  Switch --> Hosts["Proxmox management and guest trunks"]
+  Switch --> Clients["Separate ordinary-client networks"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Admin,Clients actor
+  class Controller,Switch,Hosts control
+```
+
+**Manual:** **Figure 1: Network commissioning path.** Controller adoption precedes switch-port and
+VLAN/firewall configuration, establishing the host and client attachments used below.
+The [network inputs](../../../../shared/config/platform.tfvars) are references consumed by guest IaC,
+not a UniFi controller or switch installer. Ordinary clients remain Tier 2 / Edge;
+controller and physical-network administration remain Tier 0 / Control.
+
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for network policy.
 Configuration is applied in the network controller, not by a supplied IaC installer.
 
@@ -32,24 +57,7 @@ Kubernetes cluster or hosted identity service exists. [1]
 
 ## Step 1: Bring up the network
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Admin["Local privileged workstation"] --> Controller["Gateway / independent Network application"]
-  Controller --> Switch["Adopted switch and optional APs"]
-  Switch --> Hosts["Proxmox management and guest trunks"]
-  Switch --> Clients["Separate ordinary-client networks"]
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Admin,Clients actor
-  class Controller,Switch,Hosts control
-```
-
-**Manual:** controller adoption, switch ports and VLAN/firewall configuration below.
-The [network inputs](../../../../shared/config/platform.tfvars) are references consumed by guest IaC,
-not a UniFi controller or switch installer. Ordinary clients remain Tier 2 / Edge;
-controller and physical-network administration remain Tier 0 / Control.
+Follow the commissioning path in [Figure 1](#figure-1-network-commissioning-path):
 
 1. Commission the gateway and Network application using the selected model's
    procedure. Adopt switches/APs over a working management network before changing
@@ -68,7 +76,7 @@ controller and physical-network administration remain Tier 0 / Control.
    | DNS | Independent bootstrap resolver; the gateway resolver is valid when configured |
 
    Field locations vary by gateway/release; use that model's matching help.
-3. Configure the port path end to end, then apply the [zone policy](#map-the-architecture).
+3. Configure the port path end to end, then continue at **Step 2** for zone membership.
    Move one test port/client first; verify management access before cutting over uplinks. [4]
 
 | Port purpose | Assignment to verify |
@@ -153,8 +161,9 @@ Renaming old tier-prefixed zones does not itself preserve policy. Review their
 member networks and scoped rules before combining anything; retain separate
 zones whenever access requirements differ.
 
-Return to [foundation host/network preparation](../README.md#before-starting-hosts-and-networks)
-and continue with Proxmox host setup. Revisit these rules when a later capability
+Continue with [Proxmox host setup](../proxmox/README.md#first-deployment-order), then storage and
+the firewall acceptance checks in Foundation. The policy above is already applied; do not create
+the same rules again on the firewall page. Revisit these rules when a later capability
 adds a listener; stage membership does not automatically open network access.
 
 ## References

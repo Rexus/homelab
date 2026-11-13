@@ -1,5 +1,38 @@
 # Private cloud model
 
+This platform combines a place to run services with control over their identity,
+software supply, data and recovery. Local ownership and selected public services
+can coexist; the operating and recovery responsibilities must remain explicit.
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  Team["Service owners /<br/>users"] -->|Scoped<br/>interfaces| Local
+  subgraph Local["Privately operated platform"]
+    direction TB
+    Interface["Service /<br/>provisioning interfaces"]
+    Runtime["VM / application<br/>runtimes"]
+    Foundation["Identity / trust<br/>Data / operations<br/>Recovery"]
+    Interface ~~~ Runtime ~~~ Foundation
+  end
+  External["Optional external<br/>provider<br/>Accepted contract"]
+  Local -. Selected<br/>integration .-> External
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Local boundary
+  class Runtime,Interface services
+  class Foundation control
+  class Team,External actor
+```
+
+*Figure 1 - A private cloud offers reusable service interfaces backed by an
+operated foundation. The stack groups its functions; the boundary links show scoped
+use and an optional external integration, not internal call order, a supplied
+public-cloud installer or network permission.*
+
 ## Table of contents
 
 - [Purpose](#purpose)

@@ -27,6 +27,9 @@ Use [Tier 1 cluster IaC](../../../../tier-1/terraform/deployments/kubernetes) an
 
 ## Purpose
 
+The [Stage 7 runtime figure](../README.md#figure-platform-runtime) shows the three starter node VMs.
+This procedure creates or qualifies that runtime; controller installation follows separately in Stage 7 Step 2.
+
 Create the Tier 1 application cluster, then install its basic platform. The same
 [cluster implementation](../../stage-4-kubernetes/procedures/talos-terraform.md)
 is reused with tier-owned inventory, state and credentials. Tier 0 remains independent.

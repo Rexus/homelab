@@ -1,0 +1,13 @@
+---
+- name: Reuse the bounded native NAS repository storage route
+  ansible.builtin.include_role:
+    name: backup_repository_storage
+  vars:
+    backup_repository_storage_action: "{{ spinnaker_backup_storage_action | default('render') }}"
+    backup_repository_storage_kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    backup_repository_storage_context: "{{ delivery_platform_context }}"
+    backup_repository_storage_output: "{{ delivery_platform_output }}"
+    backup_repository_storage_owner: "delivery-platform/{{ delivery_platform_spinnaker_namespace }}/spinnaker"
+    backup_repository_storage_namespace: "{{ delivery_platform_spinnaker_namespace }}"
+    backup_repository_storage_claim: "{{ delivery_platform_spinnaker_backup_filesystem_claim }}"
+    backup_repository_storage_volume: "{{ delivery_platform_spinnaker_backup_storage }}"

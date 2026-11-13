@@ -4,35 +4,9 @@ Read this before assigning administration, sharing a service, or deciding that a
 project needs its own instance. Responsibility follows authority and potential impact;
 network placement and a successful login do not grant it.
 
-## Contents
+<a id="figure-shared-boundaries"></a>
 
-- [Responsibilities](#responsibilities)
-- [Shared service boundaries](#shared-service-boundaries)
-- [Shared or multiplied](#shared-or-multiplied)
-- [Environment model](#environment-model)
-- [Selected design](#selected-design)
-
-## Responsibilities
-
-These are responsibility boundaries, not a prescribed organizational hierarchy.
-One homelab operator may hold several roles; the credentials and permissions still differ.
-
-| Responsibility | Authority retained | Design to read before granting it |
-| --- | --- | --- |
-| Platform operator | Hosts, approved networks/images and protected execution | [Tier ownership](01-tier-ownership.md), [infrastructure control](../04-hosting/02-provisioning.md) |
-| Trust and identity administrator | Certificate policy, directory/federation and scoped credentials | [Trust](../08-cryptography/README.md), [Identity](../09-identity/README.md) |
-| Service or project owner | Application configuration, authorization, data and release decisions | The capability's design and recovery contract |
-| User or tenant | Only the granted service or isolated runtime scope | [Tenant isolation](../04-hosting/04-lab-environments.md) |
-| Recovery custodian | Independent copies, keys and authorized restoration | [Recovery boundaries](../11-operations/04-backup-recovery.md) |
-
-Trusted infrastructure CI extends the authority boundary to its dedicated project,
-GitLab control plane and administrators; [the selected CI design](../10-delivery/03-development-platform.md#privileged-ci)
-explains the consequence before that option is chosen.
-
-## Shared service boundaries
-
-A private cloud becomes easier to secure and operate when common trust services
-are shared instead of rebuilt in every project.
+## Shared interfaces, separate authority
 
 ```mermaid
 %%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -54,8 +28,45 @@ flowchart LR
   class Control,Identity,Trust,Evidence control
 ```
 
-*Figure: Applications consume shared interfaces for identity, trust and operational evidence under scoped
+*Figure 1 - Applications consume shared interfaces for identity, trust and operational evidence under scoped
 access.*
+
+## Contents
+
+- [Responsibilities](#responsibilities)
+- [Shared service boundaries](#shared-service-boundaries)
+- [Shared or multiplied](#shared-or-multiplied)
+- [Environment model](#environment-model)
+- [Selected design](#selected-design)
+
+## Responsibilities
+
+These are responsibility boundaries, not a prescribed organizational hierarchy.
+One homelab operator may hold several roles; the credentials and permissions still differ.
+
+| Responsibility | Authority retained |
+| --- | --- |
+| Platform operator | Hosts, approved networks/images and protected execution |
+| Trust and identity administrator | Certificate policy, directory/federation and scoped credentials |
+| Service or project owner | Application configuration, authorization, data and release decisions |
+| User or tenant | Only the granted service or isolated runtime scope |
+| Recovery custodian | Independent copies, keys and authorized restoration |
+
+[Tier ownership](01-tier-ownership.md) explains the impact of those grants.
+[Infrastructure control](../04-hosting/02-provisioning.md) describes protected execution;
+[tenant isolation](../04-hosting/04-lab-environments.md) and
+[recovery boundaries](../11-operations/04-backup-recovery.md) define their separate scopes.
+
+Trusted infrastructure CI extends the authority boundary to its dedicated project,
+GitLab control plane and administrators; [the selected CI design](../10-delivery/03-development-platform.md#privileged-ci)
+explains the consequence before that option is chosen.
+
+## Shared service boundaries
+
+A private cloud becomes easier to secure and operate when common trust services
+are shared instead of rebuilt in every project.
+
+See [Figure 1](#figure-shared-boundaries) for the participants and boundaries.
 
 Lines group interface roles; they do not imply unrestricted access between them.
 
@@ -63,12 +74,16 @@ These services give later projects a common base:
 
 | Shared service | What it gives other paths |
 | --- | --- |
-| DNS and private domain | stable names such as `identity-1.corp.example.com` or `secrets-1.internal.example.com` |
+| DNS and private domain | Stable service names such as `ldap.corp.example.com` and `git.corp.example.com`; individual servers retain separate names |
 | identity | one user and group authority for operators, services, and automation |
 | PKI | trusted certificates for internal TLS, mTLS, service identity, and device identity |
 | secret platform | controlled storage for long-lived secrets, tokens and service credentials; later dynamic credential paths |
 | Security Logging and Audit | Tier 0 protected evidence and traceability; submission does not grant read or deletion rights |
 | Observability | Tier 1 operational logs, metrics and distributed traces; approved evidence copies and scoped diagnostics |
+
+Use [familiar service DNS names](../../02-conventions/service-dns.md) for client-facing
+interfaces. The service name stays stable as hosting changes; `idm-1` identifies
+one directory server rather than the directory service as a whole.
 
 This is not only convenience. It also removes many weak defaults:
 

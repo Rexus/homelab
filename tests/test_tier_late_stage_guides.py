@@ -29,7 +29,7 @@ class LateStageGuideExecution(TierRepositoryTestCase):
     def test_projection_command_resolves_receiver_inputs_and_limits_the_target(self):
         for docs, root in self.guide_trees():
             repo = root / ("tier-0" if root == UPSTREAM else "verify-tier-0")
-            guide = docs / "stage-8-observability/step-4b-protected-log-search.md"
+            guide = docs / "stage-8-observability/step-14b-protected-log-search.md"
             command = next(block for block in code_blocks(guide, "bash")
                            if "ansible/playbooks/deployment/logging-export.yml" in block)
             command = "\n".join(line for line in command.splitlines()
@@ -73,7 +73,7 @@ class LateStageGuideExecution(TierRepositoryTestCase):
                           'if [[ "$1" == login ]]; then cat >/dev/null; fi\n', encoding="utf-8")
         podman.chmod(0o755)
         for docs, _ in self.guide_trees():
-            guide = docs / "stage-9-development/step-2b-podman-runner.md"
+            guide = docs / "stage-9-development/step-14b-podman-runner.md"
             pipeline = next(item for block in code_blocks(guide, "yaml")
                             if isinstance(item := yaml.safe_load(block), dict)
                             and "build_bootc_image" in item)

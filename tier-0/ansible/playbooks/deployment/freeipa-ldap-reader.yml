@@ -1,0 +1,15 @@
+---
+# Optional account bootstrap after identity-freeipa.yml completes, before Keycloak federation.
+- name: Prepare native LDAP collection tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: freeipa-ldap-reader
+    control_node_require_terraform: false
+
+- name: Bootstrap the explicitly selected directory reader on the installed primary
+  hosts: identity_primary
+  become: true
+  become_user: root
+  any_errors_fatal: true
+  roles:
+    - freeipa_ldap_reader

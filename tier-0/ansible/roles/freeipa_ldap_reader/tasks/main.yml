@@ -1,0 +1,159 @@
+---
+- name: Require explicit primary-local system-account inputs before changing the directory
+  ansible.builtin.assert:
+    that:
+      - freeipa_ldap_reader_enabled is sameas true
+      - groups.get('identity_primary', []) | length == 1
+      - inventory_hostname in groups.get('identity_primary', [])
+      - ansible_os_family == 'RedHat'
+      - freeipa_ldap_reader_name is match('^[a-z][a-z0-9-]{1,31}$')
+      - freeipa_ldap_reader_base_dn is match('^dc=[a-z0-9-]+(,dc=[a-z0-9-]+)+$')
+      - freeipa_ldap_reader_ldapi_socket is match('^/run/slapd-[A-Za-z0-9_.-]+\.socket$')
+      - freeipa_ldap_reader_password | length >= 20
+      - freeipa_ldap_reader_password_expiration is match('^[0-9]{14}Z$')
+      - >-
+        freeipa_ldap_reader_bind_dn ==
+        'uid=' ~ freeipa_ldap_reader_name ~ ',cn=sysaccounts,cn=etc,' ~ freeipa_ldap_reader_base_dn
+      - control_applications_ldap_bind_dn | default(freeipa_ldap_reader_bind_dn) == freeipa_ldap_reader_bind_dn
+      - control_applications_ldap_bind_password | default(freeipa_ldap_reader_password) == freeipa_ldap_reader_password
+    fail_msg: >-
+      Enable this opt-in route on the installed RedHat-family FreeIPA primary only.
+      Supply its actual /run/slapd-INSTANCE.socket, base DN, password and expiration.
+      The Keycloak bind DN/password must match; normal users and remote administrative binds are unsupported.
+  no_log: true
+
+- name: Require a future password expiration
+  ansible.builtin.assert:
+    that: >-
+      (freeipa_ldap_reader_password_expiration | to_datetime('%Y%m%d%H%M%SZ')) >
+      (now(utc=true, fmt='%Y%m%d%H%M%SZ') | to_datetime('%Y%m%d%H%M%SZ'))
+
+- name: Inspect the explicitly selected local directory socket
+  ansible.builtin.stat:
+    path: "{{ freeipa_ldap_reader_ldapi_socket }}"
+    follow: false
+  register: freeipa_ldap_reader_socket
+
+- name: Refuse an absent or substituted LDAP socket
+  ansible.builtin.assert:
+    that:
+      - freeipa_ldap_reader_socket.stat.exists
+      - freeipa_ldap_reader_socket.stat.issock | default(false)
+      - not freeipa_ldap_reader_socket.stat.islnk | default(false)
+
+- name: Prepare the native LDAP module runtime on the selected primary
+  ansible.builtin.package:
+    name: [python3-ldap, openldap-clients]
+    state: present
+
+- name: Select only the verified local socket
+  ansible.builtin.set_fact:
+    freeipa_ldap_reader_uri: "ldapi://{{ freeipa_ldap_reader_ldapi_socket | replace('/', '%2F') }}"
+
+- name: Verify the effective local EXTERNAL authority without a Directory Manager password
+  ansible.builtin.command:
+    argv: [ldapwhoami, -Q, -Y, EXTERNAL, -H, "{{ freeipa_ldap_reader_uri }}"]
+  changed_when: false
+  check_mode: false
+  register: freeipa_ldap_reader_whoami
+
+- name: Require the native root-to-Directory-Manager mapping
+  ansible.builtin.assert:
+    that: freeipa_ldap_reader_whoami.stdout | trim | lower | regex_replace('^dn:\s*', '') == 'cn=directory manager'
+    fail_msg: The selected local socket did not grant the installed FreeIPA primary's expected EXTERNAL authority.
+
+- name: Inspect and converge the bind-only directory reader
+  module_defaults:
+    community.general.ldap_search:
+      server_uri: "{{ freeipa_ldap_reader_uri }}"
+      sasl_class: external
+      referrals_chasing: disabled
+    community.general.ldap_entry:
+      server_uri: "{{ freeipa_ldap_reader_uri }}"
+      sasl_class: external
+      referrals_chasing: disabled
+    community.general.ldap_attrs:
+      server_uri: "{{ freeipa_ldap_reader_uri }}"
+      sasl_class: external
+      referrals_chasing: disabled
+  block:
+    - name: Verify the actual FreeIPA system-account container and inspect this name
+      community.general.ldap_search:
+        dn: "cn=sysaccounts,cn=etc,{{ freeipa_ldap_reader_base_dn }}"
+        scope: onelevel
+        filter: "(uid={{ freeipa_ldap_reader_name }})"
+        attrs: [uid, objectClass, memberOf, krbPrincipalName, uidNumber, gidNumber, homeDirectory, loginShell, aci]
+      register: freeipa_ldap_reader_existing
+
+    - name: Reject pre-existing POSIX, Kerberos or privileged group identities
+      ansible.builtin.assert:
+        that:
+          - freeipa_ldap_reader_existing.results | length <= 1
+          - item.dn | lower == freeipa_ldap_reader_bind_dn | lower
+          - item.objectClass | map('lower') | difference(['top', 'account', 'simplesecurityobject']) | length == 0
+          - item.objectClass | map('lower') | intersect(['account', 'simplesecurityobject']) | length == 2
+          - item.memberOf | default([]) | length == 0
+          - item.krbPrincipalName | default([]) | length == 0
+          - item.uidNumber | default([]) | length == 0
+          - item.gidNumber | default([]) | length == 0
+          - item.homeDirectory | default([]) | length == 0
+          - item.loginShell | default([]) | length == 0
+          - item.aci | default([]) | length == 0
+        fail_msg: Refusing to repurpose an existing identity; adopt a qualified bind-only sysaccount explicitly.
+      loop: "{{ freeipa_ldap_reader_existing.results }}"
+
+    - name: Verify an existing account's supplied password before any directory write
+      community.general.ldap_search:
+        bind_dn: "{{ freeipa_ldap_reader_bind_dn }}"
+        bind_pw: "{{ freeipa_ldap_reader_password }}"
+        dn: "{{ freeipa_ldap_reader_bind_dn }}"
+        scope: base
+        attrs: [uid]
+      when: freeipa_ldap_reader_existing.results | length == 1
+      no_log: true
+
+    # ldap_entry intentionally does not modify attributes/passwords of an existing entry.
+    - name: Create the system account without POSIX login or Kerberos principals
+      community.general.ldap_entry:
+        dn: "{{ freeipa_ldap_reader_bind_dn }}"
+        objectClass: [account, simpleSecurityObject]
+        attributes:
+          uid: "{{ freeipa_ldap_reader_name }}"
+          userPassword: "{{ freeipa_ldap_reader_password }}"
+          passwordExpirationTime: "{{ freeipa_ldap_reader_password_expiration }}"
+          nsIdleTimeout: '0'
+        state: present
+      no_log: true
+
+    - name: Grant only the attributes consumed by read-only Keycloak federation
+      community.general.ldap_attrs:
+        dn: "cn={{ item.container }},cn=accounts,{{ freeipa_ldap_reader_base_dn }}"
+        attributes:
+          aci: >-
+            (targetattr="{{ item.attributes }}")
+            (version 3.0; acl "{{ freeipa_ldap_reader_name }}-reader-{{ item.container }}";
+            allow (read,search,compare) userdn="ldap:///{{ freeipa_ldap_reader_bind_dn }}";)
+        state: present
+      loop:
+        - container: users
+          attributes: uid || cn || sn || givenName || mail || ipaUniqueID || objectClass || memberOf || nsAccountLock
+        - container: groups
+          attributes: cn || description || member || memberOf || objectClass || ipaUniqueID
+
+    - name: Verify the resulting credential can read the selected user and group containers
+      community.general.ldap_search:
+        bind_dn: "{{ freeipa_ldap_reader_bind_dn }}"
+        bind_pw: "{{ freeipa_ldap_reader_password }}"
+        dn: "cn={{ item }},cn=accounts,{{ freeipa_ldap_reader_base_dn }}"
+        scope: base
+        attrs: [cn]
+      loop: [users, groups]
+      when: not ansible_check_mode
+      no_log: true
+
+- name: Report the bind-only identity without exposing its password
+  ansible.builtin.debug:
+    msg: >-
+      Reader {{ freeipa_ldap_reader_bind_dn }} is ready for READ_ONLY federation.
+      Keep this DN and the same protected password in control_applications_ldap_bind_dn/password.
+      Existing passwords are never reset by this route.

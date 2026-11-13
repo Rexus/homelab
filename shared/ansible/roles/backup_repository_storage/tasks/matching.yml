@@ -1,0 +1,61 @@
+---
+- name: Reject unowned or changed existing claims without modifying them
+  ansible.builtin.assert:
+    that:
+      - item.metadata.get('annotations', {}).get('backup.homelab/owner') == backup_repository_storage_owner
+      - item.metadata.namespace == backup_repository_storage_namespace
+      - not item.metadata.get('deletionTimestamp')
+      - item.get('status', {}).get('phase', 'Pending') in ['Pending', 'Bound']
+      - item.spec.volumeName == expected.spec.volumeName
+      - item.spec.get('storageClassName', '') == ''
+      - item.spec.get('volumeMode', 'Filesystem') == 'Filesystem'
+      - item.spec.accessModes == expected.spec.accessModes
+      # The API canonicalizes BinarySI quantities, for example 1024Gi to 1Ti.
+      - item.spec.resources.requests.storage is match('^[1-9][0-9]*(Gi|Ti|Pi|Ei)$')
+      - >-
+        (item.spec.resources.requests.storage | regex_replace('i$', '') | ansible.builtin.human_to_bytes)
+        == (expected.spec.resources.requests.storage | regex_replace('i$', '') | ansible.builtin.human_to_bytes)
+      - not item.spec.get('selector')
+      - not item.spec.get('dataSource')
+      - not item.spec.get('dataSourceRef')
+      - not item.metadata.get('labels', {}).get('cnpg.io/cluster')
+      - item.get('status', {}).get('phase') != 'Bound' or backup_repository_storage_existing_volumes | length == 1
+    fail_msg: >-
+      Existing PVC is not this owner's exact backup contract. Select existing to qualify externally owned storage;
+      this role never adopts, resizes, replaces or repairs a claim.
+  vars:
+    expected: "{{ backup_repository_storage_documents[2] }}"
+  loop: "{{ backup_repository_storage_existing_claim.resources }}"
+  loop_control: {label: "{{ item.metadata.name }}"}
+
+- name: Reject unowned, released, rebound or changed existing volumes
+  ansible.builtin.assert:
+    that:
+      - item.metadata.get('annotations', {}).get('backup.homelab/owner') == backup_repository_storage_owner
+      - not item.metadata.get('deletionTimestamp')
+      - item.get('status', {}).get('phase', 'Available') in ['Available', 'Pending', 'Bound']
+      - item.spec.persistentVolumeReclaimPolicy == 'Retain'
+      - item.spec.get('storageClassName', '') == ''
+      - item.spec.get('volumeMode', 'Filesystem') == 'Filesystem'
+      - item.spec.capacity.keys() | list == ['storage']
+      - item.spec.capacity.storage is match('^[1-9][0-9]*(Gi|Ti|Pi|Ei)$')
+      - >-
+        (item.spec.capacity.storage | regex_replace('i$', '') | ansible.builtin.human_to_bytes)
+        == (expected.spec.capacity.storage | regex_replace('i$', '') | ansible.builtin.human_to_bytes)
+      - item.spec.accessModes == expected.spec.accessModes
+      - item.spec.mountOptions == expected.spec.mountOptions
+      # The API may omit readOnly=false; normalize that default without masking readOnly=true.
+      - >-
+        (item.spec.csi | combine({'readOnly': item.spec.csi.get('readOnly', false)})) == expected.spec.csi
+      - item.spec.get('claimRef', {}).get('name') == backup_repository_storage_claim
+      - item.spec.get('claimRef', {}).get('namespace') == backup_repository_storage_namespace
+      - not item.spec.claimRef.get('uid') or item.spec.claimRef.uid == existing_claim.get('metadata', {}).get('uid')
+      - item.get('status', {}).get('phase') != 'Bound' or backup_repository_storage_existing_claim.resources | length == 1
+    fail_msg: >-
+      Existing PV is not this owner's exact retained NAS contract. Never clear claimRef or rebind recovery storage;
+      use the existing route after storage-owner acceptance.
+  vars:
+    expected: "{{ backup_repository_storage_documents[1] }}"
+    existing_claim: "{{ backup_repository_storage_existing_claim.resources | first | default({}) }}"
+  loop: "{{ backup_repository_storage_existing_volumes }}"
+  loop_control: {label: "{{ item.metadata.name }}"}

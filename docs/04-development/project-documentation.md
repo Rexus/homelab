@@ -23,6 +23,8 @@ Generation must not require a team to author a second architecture before deploy
 
 Every repository README links to the architecture repository's platform standards:
 VM/DNS names, role abbreviations, domains, Proxmox tags and the selected network plan.
+Use the [service DNS convention](../02-conventions/service-dns.md) for familiar client-facing
+labels such as `ldap` or `git`; individual guests retain numbered inventory names.
 The root `platform-standards.md` records local choices; conventions such as VMID
 allocation are links to the maintained manual rather than copied rules.
 Replace the reference values with agreed standards; exact hosts and addresses remain

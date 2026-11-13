@@ -4,8 +4,13 @@
 
 **Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before production keys.
 **Change:** protect the issuer's original key in one local USB device.
-**Return:** [Step 1, action 2](README.md#step-1-prepare-issuer-and-key-custody) for the hardware-key CSR,
-then Step 2 signing. **Design:** [custody choices](../../01-architecture/08-cryptography/03-hsm-selection.md).
+**Return:** [action 10b](README.md#step-10-prepare-the-issuing-request) for the hardware-key CSR,
+then action 11 signing. **Design:** [custody choices](../../01-architecture/08-cryptography/03-hsm-selection.md).
+
+**First installation:** select custody at Stage 3 action 1; prepare the issuer through
+[actions 2-9](README.md#step-2-initialize-the-issuer-inputs), then execute this option
+from its first unfinished provider/key action at [10b](README.md#step-10-prepare-the-issuing-request).
+Retain the already installed inactive runtime and data mount; do not provision or initialize them again.
 
 ## Contents
 
@@ -139,7 +144,7 @@ PKCS#11 engine. It verifies the CSR signature/public-key match and fetches only 
 `hsm_issuer_csr_dest` on the controller. Existing CSRs are preserved and must match; a mismatch
 requires recovery. Disable the CSR flag after use and clear the injected PIN.
 
-Review the CSR against the retained original public-key record before Step 2. No key-generation
+Review the CSR against the retained original public-key record before action 11. No key-generation
 command exists in this hardware workflow.
 
 ## 5. Complete activation and acceptance
@@ -149,7 +154,7 @@ After device commissioning and original-key recovery qualification, set
 inputs. The ordinary issuer installer checks this before starting a PKCS#11-backed runtime;
 an inactive installation remains permitted. Factory credentials are not accepted for direct key operations.
 
-Return to Step 2 with the reviewed CSR. Install the signed public certificate and start the prepared
+Continue at [Stage 3, action 11](README.md#step-11-sign-the-approved-request-offline) with the reviewed CSR. Install the signed public certificate and start the prepared
 backend through the normal issuer certificate/runtime steps. Keep the original provider environment,
 protected signer secret and DataVault state. Use `deployment/hsm-token.yml` for hardware activation;
 the separate software token recipe checks a filesystem key.

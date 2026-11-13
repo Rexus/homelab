@@ -1,13 +1,13 @@
-# Step 3d: Retention-locked log archive
+# Step 15b: Retention-locked log archive
 
 Use qualified storage-enforced retention when retained versions must survive
-privileged deletion attempts. This can supplement the [NAS path](step-3c-nas-archive.md)
+privileged deletion attempts. This can supplement the [NAS path](step-15a-nas-archive.md)
 or supply the primary archive; it does not require moving Tier 0 intake into a cloud.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Branch from:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence), when protected versions must survive privileged deletion attempts.
+**Branch from:** [Step 15](README.md#step-15-protect-retained-records), when protected versions must survive privileged deletion attempts.
 **Change:** Qualify storage-enforced version retention and its custody/recovery boundary.
-**Return:** [Step 3](README.md#step-3-protect-and-verify-retained-evidence) to record actual lock and replica evidence.
+**Return:** [Step 16](README.md#step-16-verify-recovery-and-record-completion) to accept actual lock and replica evidence.
 **Design:** [choice B: locked retention](../../01-architecture/11-operations/02-log-retention.md).
 **Prerequisites:** working collection, independently administered WORM storage,
 approved retention/cost policy and separately protected recovery keys.
@@ -68,8 +68,8 @@ or protect records that never reached a completed archive checkpoint.
 
 ## Next
 
-Return to [Stage 2, Step 3](README.md#step-3-protect-and-verify-retained-evidence).
-Retain [NAS-backed recovery](step-3c-nas-archive.md) where useful; migrating to locks
+Return to [Stage 2, Step 16](README.md#step-16-verify-recovery-and-record-completion).
+Retain [NAS-backed recovery](step-15a-nas-archive.md) where useful; migrating to locks
 does not retroactively protect old mutable copies or justify deleting them early.
 
 ## References

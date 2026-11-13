@@ -2,6 +2,21 @@
 - name: Validate the bounded PostgreSQL file backup contract
   ansible.builtin.import_tasks: preflight.yml
 
+- name: Render or create only explicitly owned NAS repository storage
+  ansible.builtin.include_role:
+    name: backup_repository_storage
+  vars:
+    backup_repository_storage_action: "{{ postgresql_file_backup_action }}"
+    backup_repository_storage_kubeconfig: "{{ postgresql_file_backup_kubeconfig }}"
+    backup_repository_storage_context: "{{ postgresql_file_backup_context }}"
+    backup_repository_storage_output: "{{ postgresql_file_backup_output }}"
+    backup_repository_storage_owner: "postgresql-file-backup/{{ postgresql_file_backup_target.namespace }}/{{ postgresql_file_backup_target.cluster }}"
+    backup_repository_storage_namespace: "{{ postgresql_file_backup_target.namespace }}"
+    backup_repository_storage_claim: "{{ postgresql_file_backup_target.claim }}"
+    backup_repository_storage_volume: >-
+      {{ postgresql_file_backup_target.get('storage', {})
+         | combine({'volume_handle': postgresql_file_backup_target.volume_handle}) }}
+
 - name: Render native backup resources without cluster access
   ansible.builtin.file:
     path: "{{ postgresql_file_backup_output }}"
@@ -14,7 +29,7 @@
     dest: "{{ postgresql_file_backup_output }}/{{ postgresql_file_backup_target.cluster }}-files.yml"
     mode: "0600"
 
-- name: Qualify the existing NAS destination before applying jobs
+- name: Qualify the NAS destination before applying jobs
   ansible.builtin.include_tasks: storage.yml
   when: postgresql_file_backup_action == 'apply'
 

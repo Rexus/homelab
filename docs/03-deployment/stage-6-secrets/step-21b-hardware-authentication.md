@@ -1,13 +1,13 @@
-# Step 3b: Hardware-backed authentication
+# Step 21b: Hardware-backed authentication
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for identity integration.
 Enrollment and authentication policy use product procedures; no complete installer is supplied.
 
 <a id="hardware-backed-user-authentication"></a>
 
-**Branch from:** [Step 3](README.md#step-3-integrate-access-and-recovery), after directory and recovery access work.
+**Branch from:** [Step 21](README.md#step-21-accept-access-and-independent-recovery), after directory and recovery access work.
 **Change:** Add stronger operator authentication.
-**Return:** [Step 3](README.md#step-3-integrate-access-and-recovery) to continue with service access and recovery checks.
+**Return:** [Action 21](README.md#step-21-accept-access-and-independent-recovery) to continue with service access and recovery checks.
 
 **Design:** [identity and authentication](../../01-architecture/09-identity/README.md).
 

@@ -16,7 +16,13 @@ class BootstrapGuide(TierRepositoryTestCase):
             steps = ('## Step 1: Prepare hosts and networks',
                      '## Step 2: Create the first Linux template manually',
                      '## Step 3: Prepare the bootstrap execution host',
-                     '## Step 4: Publish and test VM templates')
+                     '## Step 4: Configure the template catalog',
+                     '## Step 5: Prepare the publication plan',
+                     '## Step 6: Apply the accepted plan',
+                     '## Step 7: Qualify disposable clones',
+                     '## Step 8: Test guest backup and restore',
+                     '## Step 9: Select the accepted Linux template',
+                     '## Step 10: Qualify selected HA and balancing')
             self.assertEqual([foundation.index(step) for step in steps],
                              sorted(foundation.index(step) for step in steps))
             self.assertIn('No API token, Terraform or GitLab is needed', foundation)
@@ -76,12 +82,14 @@ class BootstrapGuide(TierRepositoryTestCase):
                      'backup with both', 'independent offline storage',
                      'mountpoint -q /srv/tier0', '/srv/tier0/src/homelab',
                      'PROXMOX_VE_TMPDIR=/srv/tier0/tmp/proxmox-upload',
-                     'step-3e-bootstrap-offline.md', 'copy with `scp`', 'approved proxy/internal mirrors',
-                     'step-3c-bootstrap-home.md', 'before installing tools/cloning',
+                     'step-3e-bootstrap-offline.md', 'approved proxy/internal mirrors',
+                     'step-3c-bootstrap-home.md', 'before installing tools or copying artifacts',
                      'independently and include it in bootstrap VM backup jobs'):
             self.assertIn(term, guide)
         self.assertNotIn('$HOME/src', guide)
         self.assertNotIn('mkfs', guide)
+        offline = (UPSTREAM / 'docs/03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md').read_text()
+        self.assertIn('scp ', offline)
 
     @unittest.skipUnless(shutil.which('bash'), 'Requires Bash')
     def test_manual_command_blocks_parse_without_executing_them(self):

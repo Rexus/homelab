@@ -16,6 +16,7 @@ except ImportError:
     kubernetes_validate = None
 
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
+from backup_storage_api_support import BackupStorageAPI
 
 
 ROLE = UPSTREAM / "tier-1/ansible/roles/delivery_platform"
@@ -101,7 +102,8 @@ class SpinnakerReference(TierRepositoryTestCase):
         return subprocess.run(
             ["ansible-playbook", "-i", "localhost,", "ansible/playbooks/deployment/delivery-platform.yml",
              "-e", f"@{fixture}"], cwd=repo,
-            env=dict(os.environ, ANSIBLE_CONFIG=str(repo / "ansible/ansible.cfg")),
+            env=dict(os.environ, ANSIBLE_CONFIG=str(repo / "ansible/ansible.cfg"),
+                     CONTROL_NODE_COLLECTIONS_MODE="check"),
             capture_output=True, text=True, timeout=300,
         )
 
@@ -134,6 +136,76 @@ class SpinnakerReference(TierRepositoryTestCase):
                     delivery_platform_spinnaker_backup_filesystem_marker="offline-nas-custody-identity-000001",
                     delivery_platform_spinnaker_backup_s3_endpoint="",
                     delivery_platform_spinnaker_backup_ca_pem="", delivery_platform_spinnaker_backup_egress=[])
+
+    @unittest.skipUnless(NATIVE, "Requires native Ansible, Helm and Kustomize")
+    def test_owned_file_repository_renders_separate_scoped_storage_manifests(self):
+        values = self.filesystem_inputs() | {
+            "delivery_platform_spinnaker_backup_storage": {
+                "mode": "static_nfs", "server": "nas.lab.test", "share": "/backups/spinnaker",
+                "size": "100Gi", "volume_handle": "spinnaker-independent-backups"}}
+        result = self.run_role(Path(self.temp.name) / "project/unused", **values)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        output = Path(self.temp.name) / "render"
+        storage = list(yaml.safe_load_all((output / "spinnaker-spinnaker-nas-repository-storage.yml").read_text()))
+        self.assertEqual([obj["kind"] for obj in storage], ["Namespace", "PersistentVolume", "PersistentVolumeClaim"])
+        self.assertEqual(storage[1]["metadata"]["name"], "backup-spinnaker-spinnaker-nas-repository")
+        self.assertEqual(storage[1]["spec"]["persistentVolumeReclaimPolicy"], "Retain")
+        self.assertEqual(storage[1]["spec"]["claimRef"], {"name": "spinnaker-nas-repository", "namespace": "spinnaker"})
+        self.assertEqual(storage[2]["spec"]["storageClassName"], "")
+        for obj in storage:
+            if kubernetes_validate:
+                kubernetes_validate.validate(obj, "1.33.0", strict=True)
+        application = list(yaml.safe_load_all((output / "spinnaker-manifests.yml").read_text()))
+        storage_bytes = (output / "spinnaker-spinnaker-nas-repository-storage.yml").read_bytes()
+        self.assertIn("# Managed backup storage SHA256: " + hashlib.sha256(storage_bytes).hexdigest(),
+                      (output / "spinnaker-manifests.yml").read_text())
+        self.assertFalse(any(obj["kind"] == "PersistentVolume" for obj in application))
+        self.assertNotIn("TASK [backup_repository_storage : Inspect the accepted CSI driver", result.stdout)
+
+    @unittest.skipUnless(NATIVE, "Requires native Ansible, Helm and Kustomize")
+    def test_changed_managed_nas_source_invalidates_review_before_any_api_writes(self):
+        # Exercise the actual binding expression and approval task without replaying service installation.
+        storage = {"mode": "static_nfs", "server": "nas.lab.test", "share": "/backups/spinnaker",
+                   "size": "100Gi", "volume_handle": "spinnaker-independent-backups"}
+        api = BackupStorageAPI()
+        self.addCleanup(api.close)
+        config = Path(self.temp.name) / "offline-kubeconfig"
+        config.write_text(yaml.safe_dump(api.kubeconfig()))
+        native_tasks = yaml.safe_load((ROLE / "tasks/spinnaker-native.yml").read_text())
+        binding = next(task["ansible.builtin.set_fact"]["delivery_platform_spinnaker_render"]
+                       for task in native_tasks if "delivery_platform_spinnaker_render" in task.get("ansible.builtin.set_fact", {}))
+        bind_task = {"ansible.builtin.set_fact": {"delivery_platform_spinnaker_render": binding}}
+        guard = yaml.safe_load((ROLE / "tasks/spinnaker-native-validate.yml").read_text())[0]
+        prepare = {"ansible.builtin.include_role": {"name": "delivery_platform", "tasks_from": "spinnaker-backup-provision"}}
+        tasks = [prepare, bind_task, {"ansible.builtin.set_fact": {
+            "approved_digest": "{{ delivery_platform_spinnaker_render | hash('sha256') }}"}}]
+        for field, value in [("server", "other-nas.lab.test"), ("share", "/backups/other"),
+                             ("volume_handle", "other-nas-source")]:
+            tasks.append({"name": "Reject changed " + field, "vars": {
+                "delivery_platform_action": "apply", "delivery_platform_spinnaker_review_sha256": "{{ approved_digest }}",
+                "delivery_platform_spinnaker_backup_storage": storage | {field: value}},
+                "block": [prepare, bind_task, guard, {"kubernetes.core.k8s": {
+                    "kubeconfig": str(config), "validate_certs": True, "state": "present",
+                    "definition": {"apiVersion": "v1", "kind": "Namespace", "metadata": {"name": "must-not-be-created"}}}},
+                    {"ansible.builtin.fail": {"msg": "UNEXPECTED_APPROVAL"}}],
+                "rescue": [{"ansible.builtin.assert": {"that": [
+                    "ansible_failed_task.name == " + json.dumps(guard["name"]),
+                    "'Render and review' in ansible_failed_result.msg | default('')"]}}]})
+        play = Path(self.temp.name) / "review-guard.yml"
+        play.write_text(yaml.safe_dump([{"hosts": "localhost", "connection": "local", "gather_facts": False,
+            "vars": {"delivery_platform_output": str(Path(self.temp.name) / "render"),
+                     "delivery_platform_spinnaker_namespace": "spinnaker", "delivery_platform_spinnaker_backup_backend": "filesystem",
+                     "delivery_platform_spinnaker_backup_filesystem_claim": "spinnaker-nas-repository",
+                     "delivery_platform_spinnaker_backup_storage": storage,
+                     "spinnaker_native_application_render": "# Fixed application bytes; service/schema paths are tested separately\n",
+                     "spinnaker_native_accounts_render": "# Fixed account bytes\n"}, "tasks": tasks}]))
+        result = subprocess.run(["ansible-playbook", "-i", "localhost,", str(play)], capture_output=True, text=True, timeout=90,
+            env=dict(os.environ, ANSIBLE_ROLES_PATH=os.pathsep.join([str(ROLE.parent), str(UPSTREAM / "shared/ansible/roles")]),
+                     NO_PROXY="127.0.0.1,localhost", no_proxy="127.0.0.1,localhost"))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("rescued=3", result.stdout)
+        self.assertEqual(api.requests, [], "Review rejection must precede all cluster API access")
+        self.assertEqual(api.mutations, [])
 
     @unittest.skipUnless(NATIVE, "Requires native Ansible, Helm and Kustomize")
     def test_filesystem_backend_renders_existing_claim_without_s3_credentials_or_owned_storage(self):

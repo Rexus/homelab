@@ -1,5 +1,9 @@
 # Firewall policy
 
+Firewall policy turns a service dependency into permission for a specific new
+connection. The initiating source, receiving listener and enforcement point all
+matter; sharing a zone or successfully receiving a reply grants no broader access.
+
 ## Table of contents
 
 - [Prerequisites](#prerequisites)
@@ -64,6 +68,12 @@ including fabric management.*
 For example, DMZ → Services permits a named ingress proxy to its application
 backend; it does not permit arbitrary DMZ hosts to access every service.
 The [rule contracts](#rule-contracts) below define each label.
+
+Read the matrix in three steps: choose the initiator's row, find the destination's
+column, then resolve the label to a named endpoint rule. A `SERVICE` cell still
+needs a concrete consumer and listener. The published-request sequence in
+[Networking](README.md#service-reachability-and-publication) shows why replies
+belong to the accepted exchange rather than a blanket reverse-direction allow.
 
 † The current starter log receiver shares management VLAN 10. Permit only its
 authenticated intake listener from approved producers, not hardware access.

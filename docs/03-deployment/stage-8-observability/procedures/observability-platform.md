@@ -1,68 +1,49 @@
-# Observability Configuration
+# Observability configuration reference
 
-**Stage route:** [Stage 8, Step 1a](../README.md#step-1-prepare-the-runtime) uses actions 1–4;
-[Step 2](../README.md#step-2-deploy-the-signal-pipelines) uses actions 5–10 for the selected backup path.
-**Return:** to the owning step after those actions. Action 11 and the intake/reference sections support
-[Step 4's source and reader checks](../README.md#step-4-publish-and-verify-read-only-views).
-
-The Tier 1 `observability_platform` role owns native product values, source routing,
-OpenSearch policy/bootstrap and readiness checks. Shared executes the pinned charts.
-Start with the [Stage 8 main path](../README.md). All filled inputs and render outputs are private.
-
-**Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
+**First installation:** follow [Stage 8's numbered actions](../README.md#deployment-actions).
+The main guide owns input creation, Secret/SSO preparation, database-only preparation and the complete
+render/review/apply sequence. This page defines optional fields, identity contracts and later reconciliation.
+**Working repository:** `<prefix>-tier-1` (source: `tier-1/`). Preserve existing local inputs and state.
 
 ## Contents
 
-- [1. Create local inputs](#inputs-and-execution)
-- [2. Fill the site settings](#2-fill-the-site-settings)
-- [3. Prepare Secrets and trust](#secrets-and-trust)
-- [4. Register the SSO clients](#4-register-the-sso-clients)
-- [5. Render the initial installation](#install-and-verify)
-- [6. Review and apply database preparation](#6-review-and-apply-database-preparation)
-- [7. Commission the NAS backup destination](#7-commission-the-nas-backup-destination)
-- [8. Render the complete platform](#8-render-the-complete-platform)
-- [9. Apply the complete platform](#9-apply-the-complete-platform)
-- [10. Remove the initial search bootstrap setting](#10-remove-the-initial-search-bootstrap-setting)
-- [11. Connect sources and verify](#11-connect-sources-and-verify)
+- [Reconcile an accepted installation](#reconcile-an-accepted-installation)
+- [Inputs and execution](#inputs-and-execution)
+- [Secrets and trust](#secrets-and-trust)
 - [Private cross-cluster intake](#private-cross-cluster-intake)
 - [Approved search projections](#approved-search-projections)
 - [Storage and recovery](#storage-and-recovery)
 - [Verification](#verification)
 - [References](#references)
 
-<a id="inputs-and-execution"></a>
 <a id="step-1-create-and-edit-local-inputs"></a>
+<a id="2-fill-the-site-settings"></a>
+<a id="step-2-prepare-secrets-and-trust"></a>
+<a id="4-register-the-sso-clients"></a>
+<a id="install-and-verify"></a>
+<a id="step-3-install-and-verify"></a>
+<a id="5-render-the-initial-installation"></a>
+<a id="6-review-and-apply-database-preparation"></a>
+<a id="7-commission-the-nas-backup-destination"></a>
+<a id="8-render-the-complete-platform"></a>
+<a id="9-apply-the-complete-platform"></a>
+<a id="10-remove-the-initial-search-bootstrap-setting"></a>
+<a id="11-connect-sources-and-verify"></a>
 
-## 1. Create local inputs
+## Reconcile an accepted installation
 
-Source ownership remains in
-[`ansible/roles/observability_platform/`](../../../../tier-1/ansible/roles/observability_platform).
-Run from **`<prefix>-tier-1/`**, using the prepared deployment virtual environment.
+Edit the existing `ansible/group_vars/observability_platform.yml` and its encrypted private file.
+Retain `observability_search_bootstrap: false`, the existing database identities, selected backup mode
+and commissioned destination. Use [Action 10's render](../README.md#step-10-render-the-full-signal-and-query-stack),
+review, then [Action 11's apply](../README.md#step-11-apply-the-reviewed-full-stack).
+Do not repeat database preparation, initialize a new search cluster or recreate accepted resources.
+Those actions already include the control-node dependency precheck. Disconnected controllers use
+`CONTROL_NODE_COLLECTIONS_MODE=check` after pre-staging declared tooling.
 
-```bash
-umask 077
-cp -n ansible/group_vars/observability_platform.yml.example ansible/group_vars/observability_platform.yml
-cp -n ansible/group_vars/observability_platform_secrets.yml.example ansible/group_vars/observability_platform_secrets.yml
-```
+<a id="inputs-and-execution"></a>
 
-Existing files are preserved. Keep the two private files separate.
+## Input definitions
 
-## 2. Fill the site settings
-
-In **`<prefix>-tier-1/`**, edit `ansible/group_vars/observability_platform.yml` using the tables below.
-Fill credentials only in `ansible/group_vars/observability_platform_secrets.yml`.
-Preserve the reviewed native chart pins.
-
-| First edits | Required value |
-| --- | --- |
-| `observability_kubeconfig`, `observability_context` | Existing Tier 1 cluster and exact context |
-| `observability_storage_class`, `observability_database_storage_class` | Accepted live block classes, not NAS backup storage |
-| `observability_topology_key`, `observability_failure_domains` | Actual node label and three independently verified physical domains |
-| `observability_grafana_url`, `observability_dashboards_url`, `observability_oidc_issuer` | Actual HTTPS names and existing issuer |
-| `observability_log_scopes`, `observability_telemetry_cidrs`, `observability_egress` | Approved source identities, reader roles and exact network permissions |
-| `observability_backup_mode`, `observability_backup_files_phase` | NAS main path: `files`, initially `prepare` |
-
-Do not run this recipe and a delivery controller as concurrent owners of the same releases.
 
 | Input | Contract |
 | --- | --- |
@@ -75,7 +56,7 @@ Do not run this recipe and a delivery controller as concurrent owners of the sam
 | `observability_log_scopes` | Per-source name, application/projection kind, listener, NodePort and explicit reader backend roles |
 | `observability_telemetry_cidrs`, `observability_egress` | Observed source networks after routing/SNAT and exact IdP/API/kubelet destinations; replace the IdP ingress placeholder |
 | Database backup method | Scheduled verified full copies to a separate NAS file PVC, or the existing object/WAL option; [storage prerequisites](../../foundation/storage/README.md) install no gateway |
-| `observability_backup_mode`, `observability_backup_files_phase` | Fresh examples use `files` / `prepare`; [commission the NAS destination](../../../05-operations/06-resilience/backups/postgresql.md), then select `backup` to enable copies and continue installation |
+| `observability_backup_mode`, `observability_backup_files_phase` | Fresh examples use `files` / `prepare`; [commission the NAS destination](../../../05-operations/06-resilience/backups/postgresql.md#commission-the-nas), then select `backup` to enable copies and continue installation |
 | `observability_database_storage_class` | Explicit live Proxmox/Ceph-backed block class, independent of the NAS backup claim |
 | `observability_backup_destination`, `observability_backup_endpoint` | Object/WAL option only: Grafana database backup prefix and HTTPS S3-compatible endpoint, with scoped tenant keys and independent custody |
 | `observability_manage_secrets` | False by default; an existing secret owner supplies native Kubernetes Secrets |
@@ -101,30 +82,10 @@ Helm on the controller. No live Kubernetes cluster is required. Cached packages 
 be rendered directly with `helm template`. The regression suite exercises Shared's real
 HTTPS contract using a temporary loopback mirror, without external network access.
 
-Leave `observability_search_bootstrap: false` during database preparation.
-Step 8 enables it only for a **new empty** search cluster; Step 10 removes it after first acceptance.
-Never enable it for restart, scaling or recovery over existing data. [13]
 
 <a id="secrets-and-trust"></a>
-<a id="step-2-prepare-secrets-and-trust"></a>
 
-## 3. Prepare Secrets and trust
-
-In **`<prefix>-tier-1/`**, edit `ansible/group_vars/observability_platform_secrets.yml`:
-
-1. Set distinct private UUIDs for `observability_netdata_child_key` and `observability_netdata_peer_key`.
-2. Choose **3a**: keep `observability_manage_secrets: false` and provision the table's Secrets
-   through the existing controller; or **3b**: set it to `true` and fill `observability_secrets` here.
-3. Encrypt the completed file with the following command. Retain its decryption/recovery material independently.
-
-Both paths keep this file in the commands below: externally owned Kubernetes Secrets do not
-supply the two private Netdata inputs. Do not run both Secret owners.
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ansible-vault encrypt ansible/group_vars/observability_platform_secrets.yml
-```
+## Secret and trust contracts
 
 All names below are namespace-local. Certificates need the exact service names used by
 their clients in SANs. Use a separate client-signing authority per source scope; sharing
@@ -176,141 +137,6 @@ reader backend roles. Human login uses the existing Keycloak issuer through nati
 only signed `groups` claims map to reader roles. Data Prepper and the Dashboards backend
 retain separate basic service identities. Do not grant readers extra index-management or write roles.
 No anonymous UI or basic browser-login fallback is enabled. [9][10]
-
-## 4. Register the SSO clients
-
-In **Keycloak**, use the existing authorized identity-administration path.
-Provision the two confidential IdP clients with exact redirects:
-`<observability_dashboards_url>/auth/openid/login` and
-`<observability_grafana_url>/login/generic_oauth`. Include the intended client audience and
-immutable `sub` plus approved groups in tokens. OpenSearch validates issuer/audience and
-the provider TLS CA. Grafana verifies ID-token signatures, uses PKCE and permits only the
-configured operator group as `Viewer`; unmatched groups are denied. Grafana's endpoints
-follow the selected Keycloak realm; secure `SameSite=Lax` cookies permit OAuth callbacks. [11]
-Prepare the client, redirect and group settings from the
-[service SSO gate](../../stage-5-identity/procedures/service-sso.md) now.
-Run its live login/denial, provider-outage, cookie and signing-key-rotation tests in Step 11,
-after the UIs exist. Configuration alone is not a live-login test.
-
-Data Prepper receives literal credentials in its native pipeline Secret. The role reads
-externally owned ingestion Secrets on apply, or uses explicitly managed inputs. It does
-not depend on environment substitution unsupported by the selected native parser.
-Helm release state and render output therefore need secret-level custody.
-
-<a id="install-and-verify"></a>
-<a id="step-3-install-and-verify"></a>
-
-## 5. Render the initial installation
-
-For **NAS files**, keep `observability_backup_mode: files` and
-`observability_backup_files_phase: prepare`. Set `observability_database_storage_accepted: true`
-only after qualifying the live block class. The NAS claim is for backups, never live database disks.
-
-For **existing object/WAL backups**, select the accepted object contract instead and skip
-Steps 5–7; join Step 8. Do not use the NAS commissioning steps for that variant.
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/observability-platform.yml \
-  -e @ansible/group_vars/observability_platform.yml \
-  -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass \
-  -e observability_action=render
-```
-
-Expect private database-preparation output in `secrets/observability-platform/`.
-Rendering does not contact Kubernetes.
-
-## 6. Review and apply database preparation
-
-In **`<prefix>-tier-1/`**, review the rendered `grafana-db` resources, live block class,
-TLS identities and physical placement. Then apply those same inputs:
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/observability-platform.yml \
-  -e @ansible/group_vars/observability_platform.yml \
-  -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass \
-  -e observability_action=apply
-```
-
-Expect only `grafana-db`, not the complete signal/query stack. Ansible apply has no
-Terraform-style confirmation prompt. For approved unattended jobs, supply an Ansible Vault identity
-instead of `--ask-vault-pass`.
-
-## 7. Commission the NAS backup destination
-
-Complete [PostgreSQL NAS backup commissioning](../../../05-operations/06-resilience/backups/postgresql.md),
-using `grafana-db` in the selected Tier 1 namespace. Return here after verifying the retained
-backup PVC, actual NAS backing, database system identifier, repository marker and access.
-
-In **`<prefix>-tier-1/`**, edit `ansible/group_vars/observability_platform.yml`:
-
-- Fill `observability_backup_files.claim`, `volume_handle`, `system_identifier` and `marker`.
-- Set `observability_backup_files_accepted: true` only after those checks pass.
-- Change `observability_backup_files_phase` to `backup`.
-
-This selects backup copies on the separate NAS claim. It does not move `grafana-db` there.
-
-## 8. Render the complete platform
-
-In **`<prefix>-tier-1/`**, finish `ansible/group_vars/observability_platform.yml`:
-
-| Setting | Set only after |
-| --- | --- |
-| `observability_topology_key`, `observability_failure_domains` | Node labels match independently verified physical-host placement |
-| `observability_netdata_host_access_approved: true` | The selected node OS permits the reviewed Netdata host access |
-| `observability_network_policy_verified: true` | The CNI enforces the intended isolation |
-| `observability_search_kernel_verified: true` | Search nodes satisfy `vm.max_map_count >= 262144` |
-| `observability_search_bootstrap: true` | This is the first installation of a new, empty OpenSearch cluster |
-
-For any existing search data, leave the last flag **false**. The first-install setting derives
-the initial manager list; discovery uses the release's `opensearch-headless` Service. [13]
-
-Run from **`<prefix>-tier-1/`** with the completed inputs:
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/observability-platform.yml \
-  -e @ansible/group_vars/observability_platform.yml \
-  -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass \
-  -e observability_action=render
-```
-
-Review the private output: signal routing, scopes, node placement, persistence, ingress and read roles.
-It should now include the complete selected platform, not database preparation alone.
-
-## 9. Apply the complete platform
-
-Run from **`<prefix>-tier-1/`**, using the same reviewed inputs:
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/observability-platform.yml \
-  -e @ansible/group_vars/observability_platform.yml \
-  -e @ansible/group_vars/observability_platform_secrets.yml --ask-vault-pass \
-  -e observability_action=apply
-```
-
-Require successful workload, search membership/shard and database-backup checks.
-Investigate a failed gate before continuing; do not re-bootstrap an established search cluster.
-
-## 10. Remove the initial search bootstrap setting
-
-After the first green membership check, in **`<prefix>-tier-1/`**, set
-`observability_search_bootstrap: false` in `ansible/group_vars/observability_platform.yml`.
-Repeat Step 8's render, review the removal of the initial-manager list, then repeat Step 9's apply.
-Require readiness again. Never re-enable the flag for restart, scaling or recovery. [13]
-
-## 11. Connect sources and verify
-
-Continue at [Stage 8, Step 3](../README.md#step-3-connect-infrastructure-monitoring), then Step 4.
-Complete the live service SSO gate and verify scoped readers, denied access, failure/replay
-and clean-target recovery before acceptance.
-The [intake](#private-cross-cluster-intake), [search-copy](#approved-search-projections) and
-[recovery](#storage-and-recovery) contracts below remain in force.
-
 ## Private Cross-Cluster Intake
 
 | Signal | Private worker NodePort | Gateway port | Source identity |
@@ -323,7 +149,7 @@ These are configurable inputs, not a second inventory. Services use `externalTra
 Provide a reviewed private TCP load balancer with node-local endpoint health checks, or a
 client routing configuration that uses the private workers currently hosting gateway pods.
 A DNS list alone does not establish exporter failover. Keep this endpoint contract aligned
-with [Tier 2 workload collection](../../stage-10-lab-environments/step-3c-telemetry.md).
+with [Tier 2 workload collection](../../stage-10-lab-environments/step-5b-telemetry.md).
 
 Firewall rules admit only approved source CIDRs to the selected private worker NodePorts.
 No public edge route is created. Verify the CNI's NodePort/source-IP behavior against the
@@ -334,7 +160,7 @@ or ingress policy; native chart probes use its pod-local HTTP API. Ingestion its
 
 ## Approved Search Projections
 
-Tier 0 supplies the [approved-copy publisher and native Collector exporter](../step-4b-protected-log-search.md).
+Tier 0 supplies the [approved-copy publisher and native Collector exporter](../step-14b-protected-log-search.md).
 The Observability recipe does not install them or acquire original-archive access.
 Until the separate Tier 0 export recipe is installed and accepted, projection search
 is configured but receives no evidence copies.

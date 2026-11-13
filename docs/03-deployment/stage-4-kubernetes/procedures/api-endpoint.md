@@ -11,16 +11,7 @@ TLS passes through to Kubernetes; the gateways hold no cluster certificates,
 Talos credentials or higher-tier state. TCP checks remove unreachable backends;
 they do not prove API readiness or etcd quorum. [1][2]
 
-## Contents
-
-- [Prerequisites and site gates](#prerequisites-and-site-gates)
-- [Configure local inputs](#configure-local-inputs)
-- [Install the endpoint](#install-the-endpoint)
-- [Verify and hand over](#verify-and-hand-over)
-- [Maintenance and recovery](#maintenance-and-recovery)
-- [References](#references)
-
-## Prerequisites and site gates
+<a id="figure-1-independent-api-gateways"></a>
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -54,12 +45,23 @@ flowchart LR
   class Operator,Backend actor
 ```
 
-**IaC:** [gateway VM inputs](../../../../tier-0/terraform/deployments/cluster-endpoint/terraform.tfvars.example)
+**IaC:** **Figure 1: Independent API gateways.** [Gateway VM inputs](../../../../tier-0/terraform/deployments/cluster-endpoint/terraform.tfvars.example)
 create `api-gw-1` and `api-gw-2`; [endpoint inputs](../../../../tier-0/ansible/group_vars/cluster_endpoint.yml.example)
 and the [recipe](../../../../tier-0/ansible/playbooks/deployment/cluster-endpoint.yml) install the two native proxies
 and one selected VIP. Existing hypervisors and planned cluster addresses are context, not created
 by the endpoint role. Only one gateway owns this VIP at a time; both run HAProxy. Its VM pair does
 not establish fencing, storage independence or a healthy Kubernetes quorum.
+
+## Contents
+
+- [Prerequisites and site gates](#prerequisites-and-site-gates)
+- [Configure local inputs](#configure-local-inputs)
+- [Install the endpoint](#install-the-endpoint)
+- [Verify and hand over](#verify-and-hand-over)
+- [Maintenance and recovery](#maintenance-and-recovery)
+- [References](#references)
+
+## Prerequisites and site gates
 
 Prepare two physical placement targets, an approved Enterprise Linux template,
 storage, Proxmox API access and a private subnet before running the setup. The
@@ -98,6 +100,9 @@ Install the common and Tier 0 Ansible requirements as described in
 
 ### Step 1: Initialize and edit the gateway inputs
 
+Configure the gateways, VIP and separately owned backends in
+[Figure 1](#figure-1-independent-api-gateways). The cluster itself is deployed after this endpoint.
+
 From the generated Tier 0 repository root:
 
 Run from **`<prefix>-tier-0/`**.
@@ -128,8 +133,8 @@ VIPs/backends, colliding VIPs/VRIDs, and extra endpoint configuration fields.
 
 Start with the `control` endpoint, `tier: 0`, using the reserved Tier 0
 control-plane IPs. Set an independently resolvable DNS record such as
-`kubernetes.control.example.com` to this VIP. Set the consuming cluster's
-`cluster.endpoint` to `https://kubernetes.control.example.com:6443`; keep the
+`api.control.example.com` to this VIP. Set the consuming cluster's
+`cluster.endpoint` to `https://api.control.example.com:6443`; keep the
 certificate SANs and kubeconfig server name consistent with it. [1]
 
 Later, the same Tier 0 gateway pair may serve `tier: 1` or `tier: 2` endpoints.

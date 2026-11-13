@@ -1,12 +1,61 @@
 # Independent foundation monitoring
 
-**Stage route:** [Stage 6, Step 2](../README.md#step-2-add-operational-tools) prepares the host;
-[Step 4](../README.md#step-4-establish-independent-monitoring) installs monitoring and alerts.
+**Stage route:** [Action 12](../README.md#step-12-prepare-the-independent-monitoring-host) prepares the host;
+[action 20](../README.md#step-20-install-independent-monitoring-and-alerts) installs monitoring and alerts.
+For first installation, follow those continuous stage actions; this reusable procedure supplies detailed
+host-adoption, native configuration and recovery contracts. Already completed host/baseline work is retained.
 **Return:** complete the corresponding stage step after the checks below.
 
 Add critical health history, diagnostics, rule evaluation and alerts to the existing
 protected logging capability. This is the monitoring deployment in Stage 6, not a
 prerequisite for the earlier collector.
+
+<a id="figure-monitoring-runtime"></a>
+
+## Expected outcome: independent monitoring runtime
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T0["Tier 0 / Control"]
+    subgraph PVE["Existing Proxmox hosts"]
+      direction LR
+      subgraph Context["Existing / unchanged"]
+        direction TB
+        Cluster["Existing Tier 0<br/>Kubernetes"]
+        Existing["log-1<br/>Protected intake"]
+        Cluster ~~~ Existing
+      end
+      subgraph Project["mon-1 / managed monitoring VM"]
+        direction TB
+        Host["Native Netdata parent<br/>History / alerts"]
+        Disk[("OS and monitoring<br/>data disk")]
+        Host --- Disk
+      end
+      Context ~~~ Project
+    end
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  class Existing,Disk data
+  class T0,Host control
+  class Cluster services
+  class PVE,Context boundary
+  class Project replicas
+```
+
+**IaC:** *Figure: The managed monitor is a separate VM from Kubernetes and protected intake. Step 1 prepares its host;
+Steps 2-3 configure and install the monitoring service.*
+Tier 0's [foundation inputs](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
+optionally provision `mon-1` and its disk in the existing foundation state. Tier 0's
+[role](../../../../tier-0/ansible/roles/infrastructure_monitoring),
+[recipe](../../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) and local
+inputs own the subsequent service installation on that selected host. The log-host Terraform and cluster
+starters provide context only. An accepted existing host is an alternative to the managed VM.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** accepted [protected logging](../../stage-2-logging/README.md), approved
@@ -31,8 +80,9 @@ Protected `log-1` and optional `log-2` are rejected as monitoring targets by thi
 
 ## Step 1: Prepare the monitoring runtime
 
+Prepare only the host portion of the [monitoring-runtime figure](#figure-monitoring-runtime) in this step.
 Prepare the host now for [NetBox audit collection](netbox-audit.md).
-Netdata installation follows at Stage 6 Step 4; audit collection does not require Netdata yet.
+Netdata installation follows at Stage 6 action 20; audit collection does not require Netdata yet.
 
 Choose **1a: managed VM** below or **1b: accepted existing host**. Both must stay outside
 the observed Kubernetes clusters and separate from `log-1`/`log-2`.
@@ -47,7 +97,7 @@ In **`<prefix>-tier-0/`**, enable the commented `mon-1` entries in the existing 
 | --- | --- |
 | `terraform/deployments/foundation/terraform.tfvars` | Add the optional `mon-1` block; verify free VMID `411`, approved RedHat-family image, placement, `management` network and capacity |
 | `ansible/inventory/hosts.yml` | Replace only `infrastructure_monitoring.hosts: {}` with `hosts:` containing `mon-1: {}` |
-| `ansible/group_vars/foundation.yml` | Add its reserved `platform_host_ips.mon-1`, initially `10.10.10.60`; keep every issuer/directory address |
+| `ansible/group_vars/foundation.yml` | Add its reserved `platform_host_ips.mon-1`, initially `10.10.10.70`; keep every issuer/directory address |
 
 Do not pass a monitor-only `platform_host_ips` file to Terraform: its shallow YAML merge would
 replace the complete issuer/directory map. Keep all addresses in the existing foundation input.
@@ -96,7 +146,7 @@ to prepare this monitor, because its default Ansible recipe configures FreeIPA.
 
 Skip VM provisioning when independently managed capacity satisfies the same placement,
 storage/recovery and RedHat-family requirements. Register it in `infrastructure_monitoring` and create
-`ansible/host_vars/<monitor-host>.yml` with its actual `ansible_host` and SSH/sudo settings.
+`ansible/inventory/host_vars/<monitor-host>.yml` with its actual `ansible_host` and SSH/sudo settings.
 Retain its existing provisioning/state owner; do not also add it as a new foundation VM.
 Verify its baseline and approved software access, then rejoin below.
 
@@ -115,7 +165,7 @@ Run from **`<prefix>-tier-0/`**.
 umask 077
 cp -n ansible/group_vars/infrastructure_monitoring.yml.example ansible/group_vars/infrastructure_monitoring.yml
 cp -n ansible/group_vars/infrastructure_monitoring_secrets.yml.example ansible/group_vars/infrastructure_monitoring_secrets.yml
-mkdir -p ansible/host_vars
+mkdir -p ansible/inventory/host_vars
 ```
 
 Edit in **`<prefix>-tier-0/`**.
@@ -137,50 +187,11 @@ Run from **`<prefix>-tier-0/`**.
 ansible-vault encrypt ansible/group_vars/infrastructure_monitoring_secrets.yml
 ```
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T0["Tier 0 / Control"]
-    subgraph PVE["Existing Proxmox hosts"]
-      direction LR
-      subgraph Context["Existing / unchanged"]
-        direction TB
-        Cluster["Existing Tier 0<br/>Kubernetes"]
-        Existing["log-1<br/>Protected intake"]
-        Cluster ~~~ Existing
-      end
-      subgraph Project["mon-1 / managed monitoring VM"]
-        direction TB
-        Host["Native Netdata parent<br/>History / alerts"]
-        Disk[("OS and monitoring<br/>data disk")]
-        Host --- Disk
-      end
-      Context ~~~ Project
-    end
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class Existing,Disk data
-  class T0,Host control
-  class Cluster services
-  class PVE,Context boundary
-  class Project replicas
-```
-
-**IaC:** Tier 0's [foundation inputs](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
-optionally provision `mon-1` and its disk in the existing foundation state. Tier 0's
-[role](../../../../tier-0/ansible/roles/infrastructure_monitoring),
-[recipe](../../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) and local
-inputs own the subsequent service installation on that selected host. The log-host Terraform and cluster
-starters provide context only. An accepted existing host is an alternative to the managed VM.
-
 **Result:** a selected runtime that remains available during the required cluster outage.
 
 ## Step 2: Add critical health and history
+
+<a id="figure-monitoring-history"></a>
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -210,12 +221,15 @@ flowchart RL
   class Project replicas
 ```
 
-**IaC:** the [native configuration templates](../../../../tier-0/ansible/roles/infrastructure_monitoring/templates)
+**IaC:** *Figure: Selected infrastructure signals feed one native Netdata service, which keeps local history and
+evaluates health rules independently of Kubernetes.*
+the [native configuration templates](../../../../tier-0/ansible/roles/infrastructure_monitoring/templates)
 configure the parent, dbengine history, source jobs and metric bridge. The three monitoring
 functions share one Netdata service; they are not three extra VMs or backends.
 The existing receiver and cluster recipes do not install these services.
 
-1. Select a small dataset: host/storage/network health, source coverage, receiver queues,
+1. Select a small dataset for the [history and health functions](#figure-monitoring-history):
+   host/storage/network health, source coverage, receiver queues,
    evidence writes/replication, capacity, certificate expiry and cluster/API availability.
 2. Pin the native Netdata and go.d RPM builds from the approved signed repository.
    Add Redfish jobs with file-based credentials and validated TLS. The native Podman module
@@ -229,7 +243,7 @@ The existing receiver and cluster recipes do not install these services.
 
 Render the complete selected configuration before changing the host:
 
-For **1b: existing host**, append `-e "@ansible/host_vars/$MONITOR_HOST.yml"` to this render command
+For **1b: existing host**, append `-e "@ansible/inventory/host_vars/$MONITOR_HOST.yml"` to this render command
 and the Step 3 apply command. Managed `mon-1` needs no connection override file.
 
 Run from **`<prefix>-tier-0/`**.
@@ -250,6 +264,8 @@ Rendering is controller-local; it does not install the pictured services. Review
 private output and complete notification inputs in Step 3 before apply.
 
 ## Step 3: Enable and verify independent alerts
+
+<a id="figure-independent-alerts"></a>
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -281,7 +297,9 @@ flowchart RL
   class Project replicas
 ```
 
-**IaC:** the [native heartbeat recipe](../../../../tier-0/ansible/roles/infrastructure_monitoring/tasks/heartbeat.yml)
+**IaC:** *Figure: Health alerts and watchdog heartbeats leave Tier 0 for their authorized recipients. The external
+dead-man service detects missing monitor or archive heartbeats; it hosts no administrator.*
+the [native heartbeat recipe](../../../../tier-0/ansible/roles/infrastructure_monitoring/tasks/heartbeat.yml)
 installs the timer; the role also configures health rules and private `health_alarm_notify.conf`.
 The independent heartbeat runs only while `netdatacli ping`
 succeeds; it detects monitor loss, not the health of every source. Device/source freshness
@@ -291,7 +309,8 @@ can call its configured external watchdog; neither recipe installs that external
 The protected runtime stays on the right; heartbeat and alert traffic travels left
 through the external service to administrators outside that service boundary.
 
-1. Configure native Netdata rules and notification routing with independent credentials
+1. Configure the [independent alert paths](#figure-independent-alerts): native Netdata rules
+   and notification routing with independent credentials
    and an approved external notification path. Keep alert payloads
    minimal; notifications do not grant external access to sensitive raw logs.
 2. Review the completed notification/watchdog inputs before the apply below. If they changed after
@@ -320,7 +339,7 @@ sources, stalled evidence writes, capacity thresholds and monitoring-host loss. 
 hosted source control, normal SSO or secret services. Record alert delivery, acknowledgement authority,
 recovery and blind spots. The independent heartbeat must detect loss of the local detector.
 
-For **1b: existing host**, append `-e "@ansible/host_vars/$MONITOR_HOST.yml"` to both render/apply
+For **1b: existing host**, append `-e "@ansible/inventory/host_vars/$MONITOR_HOST.yml"` to both render/apply
 commands so its connection settings override the common inputs. For named environments, load the
 approved `all.<env>.yml` and complete `foundation.<env>.yml` after their base files.
 Keep the full foundation `platform_host_ips` map; a monitor-only override replaces that map, it does not merge it.
@@ -344,7 +363,7 @@ it is not a Terraform plan and has no additional confirmation prompt.
 Return to [Stage 6 acceptance](../README.md#capability-available). Later
 [Tier 1 Observability](../../stage-8-observability/README.md) adds shared diagnosis without
 taking ownership of foundation alerts or protected evidence. Its
-[infrastructure-monitoring step](../../stage-8-observability/step-3-infrastructure-monitoring.md)
+[infrastructure-monitoring step](../../stage-8-observability/step-13-infrastructure-monitoring.md)
 expands Netdata diagnostics and Proxmox/BMC coverage; Tier 0 retains local collection,
 credentials and critical alerts when Tier 1 is unavailable.
 
@@ -364,7 +383,7 @@ credentials and critical alerts when Tier 1 is unavailable.
 Only the metric bridge's CA/client certificate/key are mounted into its container. BMC and
 Proxmox credentials are not bridge inputs. The exporter binds loopback, so Tier 1 cannot
 request arbitrary management targets. Export filtering happens before OTLP transfer.
-See [infrastructure monitoring](../../stage-8-observability/step-3-infrastructure-monitoring.md) for
+See [infrastructure monitoring](../../stage-8-observability/step-13-infrastructure-monitoring.md) for
 coverage and [private intake](../../stage-8-observability/procedures/observability-platform.md#private-cross-cluster-intake)
 for the endpoint/firewall contract. Leave metric export disabled until that Stage 8 step.
 Protected search-copy export is a separate Stage 8 option, not a Stage 6 prerequisite.

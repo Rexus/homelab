@@ -160,7 +160,7 @@ the Kubernetes API. Review other grants separately. Keep the reader group and cl
 Continue at [API outage and recovery acceptance](kubernetes-sso.md#outage-and-recovery-acceptance)
 with these real human credentials and the retained X509 context. Only after those gates pass may Stage 6
 enable `control_applications_headlamp_api_oidc_accepted`. The CLI setup and offline checks do not prove
-live login, denial, outage or UI acceptance. Return to [Stage 5 Step 3](../README.md#step-3-accept-identity-and-human-sso).
+live login, denial, outage or UI acceptance. Return to [Stage 5 action 23](../README.md#step-23-accept-api-outage-and-independent-recovery).
 
 ## Offline verification
 

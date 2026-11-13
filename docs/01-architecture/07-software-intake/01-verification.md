@@ -4,45 +4,43 @@ Controlled staging adds a decision before software publication: acquire a candid
 verify its origin and bytes, assess it, then publish an identified accepted version.
 The proxy remains a transport policy service. The optional native worker realizes this design
 for RPM/APT repository subsets and selected files; it does not install an OCI vulnerability gate.
-The [current intake path](README.md) does not scan HTTPS tunnels or create snapshots.
-
-## Contents
-
-- [Placement and authority](#placement-and-authority)
-- [Acceptance policy](#acceptance-policy)
-- [Storage and failure behavior](#storage-and-failure-behavior)
-- [Evidence and operations](#evidence-and-operations)
-- [Implementation boundary](#implementation-boundary)
-- [References](#references)
+Staging makes the downloaded bytes available for inspection before any consumer can
+read them. The connected proxy path remains available separately and does not scan
+HTTPS tunnels or create snapshots.
 
 ## Placement and authority
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":12,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":12,"padding":8,"wrappingWidth":320,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart BT
-  Sources["Accepted external sources"]
-  subgraph T2["Tier 2 / DMZ"]
-    Proxy["Policy proxy / cache<br/>Existing intake support"]
+  subgraph Transport["Outbound request path / separate owners"]
+    direction LR
+    subgraph T2["Tier 2 / DMZ"]
+      Proxy["Policy proxy / cache<br/>Existing intake support"]
+    end
+    Sources["Accepted external sources"]
+    Proxy -- "Allowed requests" --> Sources
   end
   subgraph T1["Tier 1 / optional staged supply"]
     direction LR
     subgraph Intake["Isolated acquisition / assessment"]
-      direction TB
       Worker["Verify / scan / quarantine<br/>No Tier 0 credentials"]
     end
     Supply[("Approved publication<br/>Retained identified versions")]
-    Intake -->|Accepted candidate| Supply
+    Intake -- "Publish" --> Supply
   end
-  subgraph T0["Tier 0 / Control"]
-    direction TB
-    Consumer["Independent verification<br/>Selected updates"]
-    Retained[("Retained supply / recovery custody")]
-    Consumer --- Retained
+  subgraph T0["Tier 0 / independent update authority"]
+    direction LR
+    subgraph Connected["Connected consumer"]
+      Consumer["Independent verification<br/>Selected updates"]
+    end
+    Retained[("Retained supply<br/>Recovery custody<br/>Outside connected consumer")]
+    Connected ~~~ Retained
   end
-  T2 -->|Allowed requests| Sources
-  T1 -->|Acquire through proxy| T2
-  T0 -->|Pull selected version| T1
+  T1 -- "Worker: acquire through Tier 2 proxy" --> Transport
+  T0 -- "Consumer: pull selected publication" --> T1
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -53,17 +51,24 @@ flowchart BT
   class T2,Proxy edge
   class Supply data
   class T0,Consumer control
+  class Connected boundary
+  class Transport boundary
   class Retained custody
   class Sources actor
 ```
 
-*Figure: Optional verified intake acquires through the proxy, publishes accepted content and serves
-independent consumers.*
+*Figure: Tier 1 acquires through the Tier 2 proxy and publishes only accepted content. Tier 0 pulls
+selected versions and retains its own recovery supply outside the connected consumer. Boundary arrows
+name the worker's proxy and consumer's publication interfaces; supplier access grants no installation authority.*
 
 **Architecture:** the optional worker and publication interface have a separate
-[deployment path](../../03-deployment/stage-3-trust/step-3b-verified-intake.md).
-Publication is a scoped write; storage links mean custody. Other tiers can also consume
-approved publication. Tier-boundary arrows identify the supplier interface, not every service.
+[deployment path](../../03-deployment/stage-3-trust/step-15b-verified-intake.md).
+Publication is a scoped write; recovery custody is independent of this connected
+supplier path. No online route to offline material is implied. Other tiers can also
+consume approved publication.
+The [runtime gate](../../../tier-1/ansible/roles/software_intake/files/runtime/tasks/source.yml)
+and [publication tasks](../../../tier-1/ansible/roles/software_intake/files/runtime/tasks/publish.yml)
+implement acquisition, verification, assessment and promotion as separate steps.
 An existing repository product can provide these functions without a separate VM per check.
 One isolated worker is a valid starting point. In the single-host reference its outage pauses
 new intake and its publication endpoint; approved versions survive on disk and in independent
@@ -76,17 +81,26 @@ can promote automatically under reviewed policy, with exceptions held for review
 Tier 0 independently selects/verifies versions and retains recovery content without Tier 1/2.
 No online route reaches offline custody, and no lower tier initiates a privileged installation.
 
+## Contents
+
+- [Placement and authority](#placement-and-authority)
+- [Acceptance policy](#acceptance-policy)
+- [Storage and failure behavior](#storage-and-failure-behavior)
+- [Evidence and operations](#evidence-and-operations)
+- [Implementation boundary](#implementation-boundary)
+- [References](#references)
+
 ## Acceptance policy
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Candidate["Candidate from approved source"] --> Verify["Verify publisher / integrity"]
-  Verify --> Scan["Assess supported content<br/>malware scan"]
+flowchart LR
+  Candidate["Candidate bytes"] --> Verify["Verify publisher<br/>and integrity"]
+  Verify --> Scan["Assess supported content<br/>Malware scan"]
   Verify -->|Invalid / incomplete| Hold["Reject or hold for review"]
   Scan --> Policy{"Required checks passed?"}
   Scan -->|Detection / error| Hold
-  Policy -->|Yes| Publish["Publish identified accepted version"]
+  Policy -->|Yes| Publish["Publish identified<br/>accepted version"]
   Policy -->|No / incomplete| Hold
   Extension["Vulnerability assessment<br/>separate extension"] -.-> Policy
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
@@ -103,7 +117,10 @@ flowchart TB
 *Figure: Verified intake publishes only candidates that pass the selected checks; failed or incomplete checks
 cannot replace the last accepted version.*
 
-The vulnerability-assessment extension is not installed by the native worker.
+Read this gate from candidate to publication: every required check applies to the
+same sealed bytes. Rejection or an incomplete check takes the hold path rather than
+making a partial release visible. The vulnerability-assessment extension is not
+installed by the native worker.
 
 | Gate | Required decision | Failure |
 | --- | --- | --- |
@@ -141,7 +158,7 @@ restricted mount and growth through IaC. Only a verified new blank device is ini
 recognized existing data keeps its filesystem identity and is mounted by UUID. A missing declared
 volume or conflicting identity requires recovery rather than automatic replacement formatting.
 Publisher keys and HTTPS trust remain external inputs. See the
-[deployment inputs](../../03-deployment/stage-3-trust/step-3b-verified-intake.md#1-initialize-inputs).
+[deployment inputs](../../03-deployment/stage-3-trust/step-15b-verified-intake.md#1-initialize-inputs).
 
 Recheck content identity immediately before promotion and prevent modification between verification
 and publication. Consumers must never resolve a partially published snapshot. Quarantine full,
@@ -149,7 +166,8 @@ scanner failure, stale definitions or incomplete assessment stops new promotion;
 or replace the last accepted release. Approved repository availability has its own backup/service
 contract. A revoked or expired release may still be unusable: retention does not override trust policy.
 
-Ordinary proxy traffic remains a separate, unscanned path. Enforcing staged intake for Tier 0 means
+Ordinary [proxy traffic](README.md#cache-request-and-response) remains a separate, unscanned path.
+Enforcing staged intake for Tier 0 means
 commissioning its package repositories/artifact sources to use approved publication, then denying
 live-source bypass. Installing ClamAV beside Squid cannot enforce this over CONNECT. [6]
 
@@ -168,7 +186,7 @@ need severity-based alerts. A proxy denial alone is not a confirmed malicious ar
 
 ## Implementation boundary
 
-The optional [verified intake installer](../../03-deployment/stage-3-trust/step-3b-verified-intake.md)
+The optional [verified intake installer](../../03-deployment/stage-3-trust/step-15b-verified-intake.md)
 adds one Tier 1 Linux worker outside Kubernetes. DNF reposync and debmirror retain native repository
 layout/metadata; curl acquires bounded selected files. Vendor GPG tooling authenticates signing
 material, and a narrow format verifier binds copied indexes/packages to their metadata before

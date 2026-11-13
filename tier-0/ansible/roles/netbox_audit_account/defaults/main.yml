@@ -1,0 +1,13 @@
+---
+netbox_audit_account_enabled: false
+netbox_audit_account_url: "{{ netbox_audit_endpoint | default('') | regex_replace('/api/(core|extras)/object-changes/$', '') }}"
+netbox_audit_account_username: audit
+netbox_audit_account_permission: audit-object-changes
+netbox_audit_account_token_description: protected-change-ledger
+netbox_audit_account_password: ""
+netbox_audit_account_token_expires: ""
+netbox_audit_account_token_file: "{{ netbox_audit_token_file | default(lookup('ansible.builtin.env', 'NETBOX_AUDIT_TOKEN_FILE')) }}"
+netbox_audit_account_ca_file: "{{ netbox_audit_ca_file | default(lookup('ansible.builtin.env', 'NETBOX_AUDIT_CA_FILE')) }}"
+netbox_audit_account_admin_token: >-
+  {%- set credential = (control_applications_secrets | default({})).get('netbox/netbox-superuser', {}) -%}
+  {{ ('nbt_' ~ credential.api_key ~ '.' if credential.get('api_key', '') else '') ~ credential.get('api_token', '') }}

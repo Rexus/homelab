@@ -19,6 +19,8 @@ to identify supplied workflows, manual prerequisites and optional integrations.
 The diagrams map selected resources and existing dependencies to IaC; they are not live acceptance evidence.
 
 Use [Conventions](../02-conventions/README.md) when choosing names, tags, VMIDs or network allocations.
+Select [stable service DNS names](../02-conventions/service-dns.md) before preparing certificates,
+ingress/listeners and client URLs; machine hostnames remain separate.
 
 After completing a deployment path, check its entry and selected options in
 **`<prefix>-architecture/deployments.md`**. Use `- [x]` for completed installations
@@ -94,7 +96,7 @@ The [IaC capability map](#iac-capability-map) links each entry point to its sele
 For a new installation, follow this order. Existing infrastructure can satisfy a
 stage's verified prerequisites; a stage number is not a tier, network or state boundary.
 Stage 1 supplies controlled update access. Verified RPM/APT/artifact publication is
-[Stage 3 option 3b](stage-3-trust/README.md#3b-verified-repository-and-artifact-publication--optional),
+[Stage 3 option 15b](stage-3-trust/README.md#15b-verified-repository-and-artifact-publication-optional),
 after logging and issuance. OCI supply belongs to Stage 7; bootstrap supply stays independent.
 
 ## IaC capability map
@@ -106,24 +108,24 @@ use their dedicated scripts. Every command runs from the named repository root.
 | Repository | Entry point | Capability / when | Walkthrough |
 | --- | --- | --- | --- |
 | Tier 0 | `templates` | Foundation: approved source images | [Publication](../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow) |
-| Tier 0 | `template-refresh` | Foundation or maintenance: Linux image refresh | [Linux templates](foundation/proxmox/templates.md) |
-| Tier 0 | `syslog` | Stage 2: independent log hosts | [Protected logging, Steps 1-3](stage-2-logging/README.md) |
+| Tier 0 | `template-refresh` | Maintenance: staged Linux image refresh after source-template acceptance | [Staged Linux refresh](../05-operations/01-hosting/templates/template-refresh.md) |
+| Tier 0 | `syslog` | Stage 2: independent log hosts | [Protected logging, Steps 1–16](stage-2-logging/README.md) |
 | Tier 0 | `foundation` | Stages 3/5/6: issuer/directory resources and optional independent monitor | [Trust](stage-3-trust/README.md), [directory deployment](stage-5-identity/procedures/freeipa.md), [monitor provisioning](stage-6-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
 | Tier 0 | `hsm` | Stage 3 option: native USB/provider hosts; issuer binding and PKCS#11 remoting use their explicit recipes | [USB HSM option](stage-3-trust/step-1b-usb-hsm.md), [remoting](stage-3-trust/procedures/pkcs11-remoting.md) |
-| Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes, Steps 1-3](stage-4-kubernetes/README.md) |
+| Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes, Steps 1–19](stage-4-kubernetes/README.md) |
 | Tier 0 | `cluster-endpoint` | Before Stage 4/7/10: private independent API gateways | [API endpoint](stage-4-kubernetes/procedures/api-endpoint.md) |
 | Tier 0 | `vault` | Stage 6 option: dedicated secrets VM | [Vault VM option](stage-6-secrets/step-1b-vault-vm.md) |
-| Tier 0 | `vault` with separate `signing` inputs/environment, then `deployment/openbao-signing.yml` | Stage 6 option 1d: independent OpenBao guests/state and signing API; retains existing HashiCorp Vault | [Independent signing API](stage-6-secrets/step-1d-openbao.md) |
-| Tier 0 | `immutable-template` | Stage 9 option: image-based Linux builds | [Image-based Linux](stage-9-development/step-2c-image-based-linux.md) |
+| Tier 0 | `vault` with separate `signing` inputs/environment, then `deployment/openbao-signing.yml` | Stage 6 option 11b: independent OpenBao guests/state and signing API; retains existing HashiCorp Vault | [Independent signing API](stage-6-secrets/step-11b-openbao.md) |
+| Tier 0 | `immutable-template` | Stage 9 option: image-based Linux builds | [Image-based Linux](stage-9-development/step-15b-image-based-linux.md) |
 | Tier 0 | `infrastructure-runner` | Stage 9: dedicated trusted infrastructure CI VM | [Runner](stage-9-development/procedures/infrastructure-runner.md) |
 | Tier 0 | `ci-auth` | Stage 9: Vault JWT backend, bounded claims and policies; native Vault root | [Vault CI](stage-9-development/procedures/vault-ci.md) |
 | Tier 1 | `kubernetes` | Stage 7: shared platform cluster | [Platform runtime](stage-7-delivery/procedures/platform-cluster.md) |
-| Tier 1 | `intake` | Stage 3 option 3b: verified repository and artifact intake VM | [Verified intake](stage-3-trust/step-3b-verified-intake.md) |
+| Tier 1 | `intake` | Stage 3 option 15b: verified repository and artifact intake VM | [Verified intake](stage-3-trust/step-15b-verified-intake.md) |
 | Tier 1 | `development` | Stage 9 option: source-control VM | [Source-control VM](stage-9-development/step-1b-source-control-vm.md) |
 | Tier 1 | `development-data` | Stage 9: dedicated PostgreSQL, Redis and Gitaly VMs | [GitLab data services](stage-9-development/procedures/data-services.md) |
-| Tier 1 | `podman-runner` | Stage 9 option: general build runner | [Build runner](stage-9-development/step-2b-podman-runner.md) |
+| Tier 1 | `podman-runner` | Stage 9 option: general build runner | [Build runner](stage-9-development/step-14b-podman-runner.md) |
 | Tier 1 | `observability` | Stage 8 alternative: native dedicated VM products and guarded data disks | [Observability](stage-8-observability/README.md), [VM recipe](stage-8-observability/step-1b-dedicated-vms.md) |
-| Tier 2 | `cache` | Stage 1: controlled outbound software access | [Software intake, Step 4](stage-1-software-intake/README.md#step-4-deploy-the-cache-pair) |
+| Tier 2 | `cache` | Stage 1: controlled outbound software access | [Software intake, Step 8](stage-1-software-intake/README.md#step-8-deploy-the-cache-pair) |
 | Tier 2 | `edge` | Stages 7/10: public service entry | [Edge deployment](stage-7-delivery/procedures/edge-proxy.md) |
 | Tier 2 | `kubernetes` | Stage 10: workload cluster | [Workload runtime](stage-10-lab-environments/README.md#step-2-provision-the-workload-runtime) |
 | Tier 2 | `lab` | Stage 10: workload VM/LXC resources | [Workload runtime](stage-10-lab-environments/README.md#step-2-provision-the-workload-runtime) |
@@ -132,7 +134,7 @@ Entry points are not one-to-one with stages: the Tier 0 `foundation` root plans 
 selected issuer/directory guests together; service configuration follows its stage.
 Stages never rename state roots or authorize removal of earlier resources. Product
 integration is distinguished from supplied automation in the [support map](../08-reference/implementation-support.md).
-The HSM provider/remoting path does not install an application signing API. Stage 6 option 1d
+The HSM provider/remoting path does not install an application signing API. Stage 6 option 11b
 adds that independent service only when selected; its guide supplies the separate inventory,
 environment inputs, ceremony and API configuration commands.
 

@@ -1,5 +1,56 @@
 # Proxmox host networking
 
+Prepare a VLAN-aware guest trunk while preserving host-management access. The expanded
+fabric/storage layout below is an option for clustered hosts; the initial path needs only
+the verified `vmbr0` attachment described in Step 1.
+
+<a id="figure-1-separated-fabric-and-storage-paths"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  Switches["Managed switches or upstream fabric"]
+  subgraph Fabric["Fabric path"]
+    direction TB
+    FabricBond["bond0<br/>fabric bond<br/>MTU 1500"]
+    FabricBridge["vmbr0<br/>fabric bridge<br/>VLAN-aware<br/>MTU 1500"]
+    Management["Host-management IPs<br/>Proxmox UI, API, SSH"]
+    QuorumPrimary["corosync 1"]
+    Guests["access, identity, application,<br/>external_edge, cryptography guests"]
+    FabricBond --> FabricBridge
+    FabricBridge --> Management
+    FabricBridge --> QuorumPrimary
+    FabricBridge --> Guests
+  end
+  subgraph Storage["Storage path"]
+    direction TB
+    StorageBond["bond1<br/>storage bond<br/>MTU 9000"]
+    StorageBridge["vmbr1<br/>storage bridge<br/>VLAN-aware<br/>MTU 9000"]
+    QuorumSecondary["corosync 2<br/>often MTU 1500"]
+    CephPublic["ceph_public"]
+    CephCluster["ceph_cluster"]
+    StorageBond --> StorageBridge
+    StorageBridge --> QuorumSecondary
+    StorageBridge --> CephPublic
+    StorageBridge --> CephCluster
+  end
+  Switches --> FabricBond
+  Switches --> StorageBond
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Fabric boundary
+  class Switches,FabricBond,FabricBridge,StorageBond,StorageBridge,Management,QuorumPrimary,QuorumSecondary control
+  class Storage,CephPublic,CephCluster data
+```
+
+**Manual:** **Figure 1: Separated fabric and storage paths.** Normal platform VLANs use a fabric
+bond/bridge; Ceph and a second Corosync path use a separate storage bond/bridge on existing Tier 0 hosts.
+The [shared platform profile](../../../../shared/config/platform.tfvars) and
+[Tier 0 network inputs](../../../../tier-0/terraform/common.tfvars.example)
+reference prepared bridges; guest Terraform does not create these bonds or host fabrics.
+
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 
 **Design:** [network boundaries](../../../01-architecture/05-networking/README.md).
@@ -44,7 +95,8 @@ The initial path needs one VLAN-aware bridge, not every optional fabric below.
 3. Confirm the switch port's tagged/native behavior matches the host configuration.
    A management VLAN change needs a reviewed cutover; do not remove the only working route.
 4. Review pending network changes, then **Apply Configuration**. Verify GUI/console access
-   and a disposable guest's intended VLAN path before proceeding or repeating on other hosts.
+   and the switch-side trunk before repeating on other hosts. Qualify guest connectivity
+   on the first disposable clone later; no guest exists yet on a fresh host.
 
 Host IPs belong on the selected bridge/VLAN interface, not its slave NIC. Do not
 attach offline custody to connected trunks. Use the [validation checklist](#validation-checklist)
@@ -54,14 +106,14 @@ before declaring the path ready.
 
 | Selection | Continue with | Return after |
 | --- | --- | --- |
-| Direct guest bridge/VLAN | Keep `bridge = "vmbr0"` and the actual `vlan_id` in guest inputs | [Foundation Step 2](../README.md#step-2-create-the-first-linux-template-manually) |
-| SDN VNet attachments | [1c: SDN setup and activation](step-1c-sdn.md) | Activated VNets and matching switch trunks are checked |
-| Clustered hosts | [1b: Cluster/HA preparation](step-1b-cluster-ha.md) | Every eligible host has the same guest attachment |
+| Direct guest bridge/VLAN | Record `vmbr0` and the actual VLANs for later guest inputs | Host-network validation below |
 | Additional NIC capacity/resilience | [Bonds and bridges](#bonds-and-bridges) | Switch-side aggregation and host path are verified |
 | Direct full-mesh Ceph fabric | [OVS/RSTP alternative](#storage-fabric-ovsrstp) | Separate storage path, MTU and loop recovery are qualified |
 
 The remaining sections explain these choices and their constraints. They are not
 additional steps required for the single-bridge starting path.
+After validating the selected host paths, return to [Proxmox host setup, Step 5](README.md#step-5-select-optional-branches-before-adding-guests)
+to choose cluster/SDN once, then continue to Foundation storage/firewall acceptance.
 
 ## Purpose
 
@@ -115,55 +167,8 @@ On the Proxmox side, decide and document:
 For the first deployment, a switched VLAN-aware `vmbr0` at MTU 1500 is sufficient
 when capacity and availability requirements permit it. Keep management reachable;
 introduce bonds, separate storage and jumbo frames only after that path is verified.
-The diagram below is an expanded option, not a minimum hardware requirement.
-
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Switches["Managed switches or upstream fabric"]
-  subgraph Fabric["Fabric path"]
-    direction TB
-    FabricBond["bond0<br/>fabric bond<br/>MTU 1500"]
-    FabricBridge["vmbr0<br/>fabric bridge<br/>VLAN-aware<br/>MTU 1500"]
-    Management["Host-management IPs<br/>Proxmox UI, API, SSH"]
-    QuorumPrimary["corosync 1"]
-    Guests["access, identity, application,<br/>external_edge, cryptography guests"]
-    FabricBond --> FabricBridge
-    FabricBridge --> Management
-    FabricBridge --> QuorumPrimary
-    FabricBridge --> Guests
-  end
-  subgraph Storage["Storage path"]
-    direction TB
-    StorageBond["bond1<br/>storage bond<br/>MTU 9000"]
-    StorageBridge["vmbr1<br/>storage bridge<br/>VLAN-aware<br/>MTU 9000"]
-    QuorumSecondary["corosync 2<br/>often MTU 1500"]
-    CephPublic["ceph_public"]
-    CephCluster["ceph_cluster"]
-    StorageBond --> StorageBridge
-    StorageBridge --> QuorumSecondary
-    StorageBridge --> CephPublic
-    StorageBridge --> CephCluster
-  end
-  Switches --> FabricBond
-  Switches --> StorageBond
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Fabric boundary
-  class Switches,FabricBond,FabricBridge,StorageBond,StorageBridge,Management,QuorumPrimary,QuorumSecondary control
-  class Storage,CephPublic,CephCluster data
-```
-
-**Manual:** this host attachment example is configured on the existing Tier 0 Proxmox hosts.
-The [shared platform profile](../../../../shared/config/platform.tfvars) and
-[Tier 0 network inputs](../../../../tier-0/terraform/common.tfvars.example)
-reference prepared bridges; guest Terraform does not create these bonds or host fabrics.
-
-Figure: one strong clustered Proxmox pattern is to keep normal platform VLANs
-on a fabric bond and bridge, and keep Ceph plus a second Corosync path on a
-separate storage bond and bridge.
+[Figure 1](#figure-1-separated-fabric-and-storage-paths) is an expanded option,
+not a minimum hardware requirement.
 
 This is a connected-host pattern, including protected Tier 0 control systems.
 Offline `ceremony` and custody assets require separate isolated hosts/fabric;
@@ -262,7 +267,8 @@ ovs-appctl rstp/show
 
 Follow [Step 1c: SDN guest networks](step-1c-sdn.md) before attaching guests.
 The procedure owns VNet setup and Terraform attachment examples; the host underlay
-and validation checklist remain in this guide.
+and validation checklist remain in this guide. It is selected from Proxmox host setup after
+this underlay is ready; this reference is not another required visit to that workflow.
 
 ## Host-side VLANs
 

@@ -37,8 +37,8 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("storage/README.md", foundation)
         guide = (docs / "03-deployment/foundation/storage/README.md").read_text(encoding="utf-8")
         self.assertIn("06-data/README.md#storage-interfaces", guide)
-        self.assertIn("## Step 2a: Prepare NAS file storage", guide)
-        self.assertIn("## Step 2b: Qualify an object endpoint", guide)
+        self.assertIn("### 2a: Prepare NAS file storage", guide)
+        self.assertIn("### 2b: Qualify an object endpoint", guide)
         self.assertIn("does not deploy a storage gateway", guide)
         backups = (docs / "05-operations/06-resilience/backups/virtual-machines.md").read_text()
         self.assertIn('id="nas-file-target"', backups)
@@ -114,7 +114,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertRegex(intake, r"(?m)^- \[ \] Selected software-intake path accepted")
         self.assertRegex(intake, r"(?m)^  - \[ \] \*\*Path 1a:\*\* cache servers deployed")
         self.assertRegex(intake, r"(?m)^  - \[ \] \*\*Alternative 1b:\*\* existing approved supply")
-        for option in ("2b", "3b", "4b"):
+        for option in ("2b", "7b", "8b"):
             self.assertRegex(intake, rf"(?m)^    - \[ \] \*\*Option {option}:\*\*")
         self.assertIn("  - [ ] Consumers switched", checklist)
         self.assertIn("`- [x]`", checklist)
@@ -251,7 +251,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("03-deployment/stage-4-kubernetes/procedures/talos-terraform.md", tier0)
         self.assertIn("03-deployment/stage-4-kubernetes/README.md", tier0)
         self.assertIn("Kubernetes control cluster", tier0)
-        self.assertIn("current [Talos implementation]", tier0)
+        self.assertIn("[Talos reference]", tier0)
         self.assertLess(tier0.index(publisher), tier0.index("bash scripts/kubernetes-cluster.sh init"))
         self.assertLess(tier0.index("bash scripts/kubernetes-cluster.sh init"), tier0.index(setup))
         self.assertLess(tier0.index(publisher), tier0.index(setup))
@@ -279,8 +279,12 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("| Abbreviation | Full name | Comments |", content)
         self.assertIn("[role abbreviations](#role-abbreviations)", content)
         self.assertIn("| External domain | `example.com` |", content)
-        self.assertIn("<role>.<env>.<internal-domain>", content)
-        self.assertIn("<role>.<env>.<external-domain>", content)
+        self.assertIn("<service>.<internal-domain>", content)
+        self.assertIn("<service>.<external-domain>", content)
+        self.assertIn("Optional `<service>.<env>.<domain>`", content)
+        self.assertIn("Prefer familiar 2–8 character labels", content)
+        self.assertIn("docs/auto-docs/02-conventions/service-dns.md", content)
+        self.assertIn("numbered VM names identify individual machines", content)
         self.assertNotIn("## VMID ranges", content)
         self.assertNotIn("T C NN", content)
         self.assertNotIn("9000-9999", content)
@@ -377,9 +381,19 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             steps = re.findall(r"(?m)^## Step (\d+): ", content)
             self.assertGreaterEqual(len(steps), 2)
             self.assertEqual(steps, [str(n) for n in range(1, len(steps) + 1)])
-            for expected in ("## Main path", "```mermaid", "**Result:**",
-                             "## Capability available", "architecture/", "**Prerequisites:**"):
+            for expected in ("```mermaid", "architecture/", "**Prerequisites:**"):
                 self.assertIn(expected, content, stage)
+            self.assertRegex(content, r"(?m)^(?:\*\*(?:Result|Expected):\*\*|## Expected outcome:)", str(stage))
+            if stage.parent.name == "stage-2-logging":
+                self.assertIn("## Installation order", content)
+                self.assertIn("## Step 16: Verify recovery and record completion", content)
+                self.assertEqual(steps, [str(number) for number in range(1, 17)])
+            else:
+                self.assertRegex(content, r"(?m)^## (?:Main path|Installation order|Installation route|Deployment actions)$", stage)
+                if "## Capability available" not in content:
+                    completion = re.split(r"(?m)^## Step \d+:", content)[-1]
+                    self.assertIn("deployments.md", completion, str(stage))
+                    self.assertIn("recovery", completion.lower(), str(stage))
             for guide in stage.parent.glob("step-*.md"):
                 text = guide.read_text(encoding="utf-8")
                 route = re.match(r"step-(\d+)([a-z]?)-", guide.name)
@@ -393,7 +407,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                 else:
                     self.assertRegex(text, rf"\*\*Continue from:\*\* \[Stage \d+, Step {step}\]\(README\.md#step-{step}-")
                 self.assertIn("Return", text, guide)
-                self.assertIn(f"({guide.name})", content, guide)
+                self.assertRegex(content, rf"\({re.escape(guide.name)}(?:#[^)]*)?\)", str(guide))
                 self.assertIn(f"{stage.parent.name}/{guide.name}", project, guide)
         intake, logging, trust, cluster, identity, control, delivery, observability, development, workloads = (
             stage.read_text(encoding="utf-8") for stage in stages
@@ -402,21 +416,25 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("bootstrap/README.md", foundation)
         bootstrap = (docs / "03-deployment/foundation/bootstrap/README.md").read_text()
         self.assertIn("not itself a reachable Flux source", " ".join(bootstrap.split()))
-        self.assertIn("## Step 1: Provision the log host", logging)
+        self.assertIn("## Step 1: Initialize local inputs", logging)
+        self.assertIn("## Step 3: Provision the VM and attached disk", logging)
         self.assertIn("Hardware protection", trust)
-        self.assertIn("FreeIPA stays outside Kubernetes", identity)
+        self.assertIn("FreeIPA on dedicated VMs", identity)
         self.assertIn("kubernetes.md#cluster-foundation", cluster)
         self.assertIn("### 1a: Create the proxy/cache pair", intake)
         self.assertIn("### 1b: Use existing approved supply", intake)
-        self.assertLess(intake.index("## Step 5: Test the selected intake path"),
-                        intake.index("## Step 6: Connect the bootstrap host"))
-        self.assertLess(intake.index("## Step 6: Connect the bootstrap host"),
-                        intake.index("## Step 7: Connect Proxmox host updates"))
-        self.assertIn("## Step 3: Verify operation and recovery", cluster)
+        self.assertLess(intake.index("## Step 9: Test the accepted supply"),
+                        intake.index("## Step 10: Configure bootstrap intake"))
+        self.assertLess(intake.index("## Step 13: Verify bootstrap package and tool access"),
+                        intake.index("## Step 14: Configure Proxmox update inputs"))
+        self.assertIn("bootstrap-software-intake.yml", intake)
+        self.assertIn("ansible/playbooks/proxmox-hosts.yml", intake)
+        self.assertIn("apt-get -o APT::Update::Error-Mode=any update", intake)
+        self.assertIn("## Step 19: Accept operation and recovery", cluster)
         self.assertIn("control-applications.yml", control)
         self.assertIn("control_applications.yml.example", control)
         self.assertIn("Stage 9", delivery)
-        self.assertIn("Direct CI explicitly trusts", development)
+        self.assertIn("direct-CI trust decision", development)
         self.assertIn("not a deployed controller", " ".join(workloads.split()))
         self.assertIn("# Stage 8: Observability", observability)
         self.assertIn("step-1b-dedicated-vms.md", observability)

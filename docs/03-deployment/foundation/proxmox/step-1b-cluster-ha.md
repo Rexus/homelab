@@ -6,9 +6,9 @@
 
 **Branch from:** [Step 1](../README.md#step-1-prepare-hosts-and-networks), before guests exist.
 **Change:** Add clustered placement and tested failover.
-**Return:** [Step 1](../README.md#step-1-prepare-hosts-and-networks)
-after cluster/mobility preparation; finish storage and firewall checks before creating the first template.
-Complete guest HA enrollment and fault tests at [Step 4c](../README.md#4c-finish-selected-ha-and-balancing-options)
+**First return:** [host options](README.md#step-5-select-optional-branches-before-adding-guests)
+after cluster/mobility preparation; finish any selected SDN path, then Foundation storage/firewall checks.
+Complete guest HA enrollment and fault tests at [Foundation Step 10](../README.md#step-10-qualify-selected-ha-and-balancing)
 after a disposable clone exists, before leaving Foundation.
 
 **Design:** [compute availability](../../../01-architecture/04-hosting/README.md).
@@ -18,7 +18,7 @@ host is valid for a pilot. A cluster adds shared administration; HA must be
 configured separately for selected guests. Neither replaces backups.
 
 **Target: Proxmox VE 9+.** The selected path uses **9.2+ native HA and dynamic
-rebalancing**, not a second scheduler. ProxLB remains an [alternative](step-4c-proxlb.md).
+rebalancing**, not a second scheduler. ProxLB remains an [alternative](step-10b-proxlb.md).
 On 9.0/9.1, HA and affinity are available, but the native automatic load balancer is not. [7]
 
 **Yes: an HA-enrolled VM can restart on a surviving host after its original host dies.**
@@ -41,15 +41,15 @@ not automatically detected by guest-level HA. [2]
 
 ## Step 1: Prepare and join hosts
 
-Start with [host installation and preparation](README.md#first-deployment-order).
+The caller has already installed the hosts, verified DNS/time and prepared their underlay.
+Use those hosts; do not repeat installation/network activation. For an existing cluster,
+retain its accepted membership and run the status checks rather than recreating it.
 
 | Step | Action | Ready when |
 | --- | --- | --- |
-| 1. Plan | Choose final node names/IPs, Corosync links, and host capacity | Choices recorded in project docs |
-| 2. Install | Use compatible Proxmox releases; configure DNS/time and protected access | Every node works independently |
-| 3. Network | Follow [host networking](network.md); separate latency-sensitive Corosync from busy storage/migration traffic | Links tested before joining |
-| 4. Create | On the first node, use **Datacenter > Cluster > Create Cluster** and select the intended Corosync links | First node reports quorum |
-| 5. Join | Copy **Join Information**; use **Join Cluster** on each empty additional node | All intended nodes are members |
+| 1. Check inputs | Retain final node names/IPs, compatible releases and selected Corosync links; separate quorum traffic from busy storage/migration | Every node and selected link works independently |
+| 2. Create | On the first node, use **Datacenter > Cluster > Create Cluster** and select the intended Corosync links | First node reports quorum |
+| 3. Join | Copy **Join Information**; use **Join Cluster** on each empty additional node | All intended nodes are members |
 
 Joining replaces the node's cluster configuration. Do not join a host containing
 guests without a reviewed backup/migration plan. Prefer three hosts for reliable
@@ -82,13 +82,13 @@ in this repo is only a storage mapping: it does not build shared storage.
 Local replicated storage needs its own replication, recovery-point, and failure
 testing plan; copying a datastore name across nodes does not copy its data. [2][3]
 
-For SDN, complete [optional guest SDN](network.md#optional-sdn-for-guest-networks)
-on **every eligible node** now. An SDN zone is a network implementation group,
+If SDN was selected, its activation follows this cluster preparation from the host-options page;
+require that attachment on **every eligible node** before guest enrollment. An SDN zone is a network implementation group,
 not the architecture's DMZ/Services/Control firewall zone.
 
-**Before any guests exist:** return to [foundation prerequisites](../README.md#before-starting-hosts-and-networks)
-and finish storage/firewall checks before the manual template and bootstrap host.
-Continue below when a disposable clone is ready. Do not
+**Before any guests exist:** return to [host options](README.md#step-5-select-optional-branches-before-adding-guests)
+for any selected SDN activation, then finish Foundation storage/firewall checks.
+Resume at **Step 3 below** from Foundation Step 10 when a disposable clone is ready. Do not
 enroll an untested important guest merely to finish this page.
 
 <a id="enable-ha"></a>
@@ -126,7 +126,7 @@ Details and cautions are in the [scheduler reference](../../../08-reference/prox
 
 Native rebalancing applies to **HA-managed resources only** and respects HA rules.
 For this path, do not run ProxLB against the same guests. If ProxLB is selected
-for another scope, follow its [separate rollout and compatibility checks](step-4c-proxlb.md).
+for another scope, follow its [separate rollout and compatibility checks](step-10b-proxlb.md).
 The [worked failover example](failover.md) shows the directory pair
 before and after a node failure, including where recovery must wait.
 
@@ -134,9 +134,10 @@ before and after a node failure, including where recovery must wait.
 
 ## Step 5: Configure Terraform placement
 
-Use one reachable Proxmox API endpoint for the cluster and permissions covering
-the intended nodes, storage, and guests; see [API setup](api-access.md).
-The endpoint is not a placement selector. Keep a working alternate endpoint or
+Bootstrap already established a reachable, verified Proxmox API endpoint and scoped permissions.
+Reuse it; the endpoint is not a placement selector. The [API reference](api-access.md) is for changes,
+not another first-install permission setup.
+Keep a working alternate endpoint or
 independent API frontend for recovery; never host the only access path on the
 cluster being rebuilt. The provider does not select healthy target nodes. [4]
 
@@ -191,8 +192,9 @@ Offline mock tests cover the Terraform contract, not real failover. Recheck with
 the provider version locked by each consuming root. Keep the
 [backup and restore procedure](../../../05-operations/06-resilience/backups/virtual-machines.md) independent of HA.
 
-Return to [Foundation Step 4](../README.md#step-4-publish-and-test-vm-templates) for
-template/clone acceptance, then continue through its Stage 1 handoff.
+Return to [Foundation Step 10](../README.md#step-10-qualify-selected-ha-and-balancing)
+to finish the selected scheduler option and readiness record. Template publication/clone acceptance
+already passed; do not start them again.
 
 ## References
 

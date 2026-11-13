@@ -1,0 +1,70 @@
+---
+- name: Inspect the accepted CSI driver and exact caller namespace
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ backup_repository_storage_kubeconfig }}"
+    context: "{{ backup_repository_storage_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ item.api }}"
+    kind: "{{ item.kind }}"
+    name: "{{ item.name }}"
+  loop:
+    - {api: storage.k8s.io/v1, kind: CSIDriver, name: nfs.csi.k8s.io}
+    - {api: v1, kind: Namespace, name: "{{ backup_repository_storage_namespace }}"}
+  register: backup_repository_storage_prerequisites
+
+- name: Require the accepted NFS CSI and a usable caller namespace
+  ansible.builtin.assert:
+    that:
+      - backup_repository_storage_prerequisites.results[0].resources | length == 1
+      - not driver.metadata.get('deletionTimestamp')
+      - namespaces | length == 0 or not namespaces[0].metadata.get('deletionTimestamp')
+      - namespaces | length == 0 or namespaces[0].get('status', {}).get('phase', 'Active') == 'Active'
+    fail_msg: Install/accept NFS CSI first; do not reuse a terminating namespace.
+  vars:
+    driver: "{{ backup_repository_storage_prerequisites.results[0].resources | first | default({}) }}"
+    namespaces: "{{ backup_repository_storage_prerequisites.results[1].resources }}"
+
+- name: Read the exact repository claim without adopting it
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ backup_repository_storage_kubeconfig }}"
+    context: "{{ backup_repository_storage_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ backup_repository_storage_namespace }}"
+    name: "{{ backup_repository_storage_claim }}"
+  register: backup_repository_storage_existing_claim
+
+- name: Inspect volume identities before reserving a dedicated NAS export
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ backup_repository_storage_kubeconfig }}"
+    context: "{{ backup_repository_storage_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: PersistentVolume
+  register: backup_repository_storage_all_volumes
+
+- name: Resolve existing resources without clearing a retained binding
+  ansible.builtin.set_fact:
+    backup_repository_storage_existing_volumes: >-
+      {{ backup_repository_storage_all_volumes.resources
+         | selectattr('metadata.name', 'equalto', backup_repository_storage_documents[1].metadata.name) | list }}
+
+- name: Reject another PV using this NFS handle or dedicated export
+  ansible.builtin.assert:
+    that:
+      - item.spec.get('csi', {}).get('volumeHandle', '') != backup_repository_storage_volume.volume_handle
+      - >-
+        item.spec.get('csi', {}).get('driver') != 'nfs.csi.k8s.io' or
+        item.spec.csi.get('volumeAttributes', {}).get('server') != backup_repository_storage_volume.server or
+        item.spec.csi.get('volumeAttributes', {}).get('share') != backup_repository_storage_volume.share
+      - >-
+        item.spec.get('nfs', {}).get('server') != backup_repository_storage_volume.server or
+        item.spec.get('nfs', {}).get('path') != backup_repository_storage_volume.share
+    fail_msg: This NAS handle/share is already represented by another PV; use its accepted claim or a dedicated export.
+  loop: "{{ backup_repository_storage_all_volumes.resources }}"
+  loop_control: {label: "{{ item.metadata.name }}"}
+  when: item.metadata.name != backup_repository_storage_documents[1].metadata.name
+
+- name: Validate existing resource ownership and immutable storage contracts
+  ansible.builtin.import_tasks: matching.yml

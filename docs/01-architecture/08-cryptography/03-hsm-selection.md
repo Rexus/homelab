@@ -1,40 +1,20 @@
 # Key-protection options
 
 The choice is the key-custody boundary, not a compulsory sequence of products.
-Software providers, USB devices and network HSMs can expose cryptographic functions
+Software providers, USB devices and hardware security modules (HSMs) can expose cryptographic functions
 to an issuer or signing service, but provide different isolation and recovery properties.
 The parent [cryptography design](README.md) defines the supplied services;
 the [variant map](../02-organization/README.md#selected-design) relates this choice to other independent decisions.
 
 ## Table of contents
 
+- [Completed designs](#completed-designs): [A: Software](#a-software), [B: Single USB](#b-single-usb),
+  [C: Replicated USB gateways](#c-replicated-usb-gateways), [D: Network HSM](#d-network-hsm)
 - [Options A-D](#options-a-d)
-- [Completed designs](#completed-designs)
 - [Selection criteria](#selection-criteria)
 - [Assurance requirements](#assurance-requirements)
 - [Interfaces and limits](#interfaces-and-limits)
 - [References](#references)
-
-<a id="purpose"></a>
-<a id="use-and-scale-matrix"></a>
-<a id="how-to-read-the-matrix"></a>
-
-## Options A-D
-
-| Option | Design shape | Suitable purpose | Limit and operating responsibility |
-| --- | --- | --- | --- |
-| A: Software | Application keystore or software PKCS#11 provider; SoftHSM is an example [1] | Accepted software-custody deployment or interface rehearsal | Host access can expose key material; not hardware isolation |
-| B: Single USB | One authorized host and one local device, with a separate recovery arrangement | Offline custody, low-concurrency issuer or signing service | Host/device loss interrupts service; availability depends on restore |
-| C: Shared USB providers | Independent device hosts, restricted remoting and separately governed backups | Shared key operations with qualified reconnect/failover | Application sessions and approved key replication remain separate; not a native HSM cluster |
-| D: Network HSM | Authorized clients use appliance partitions through the vendor client/HA model | Shared hardware service with product-supported partitions and resilience | Separate management, client trust, backup and vendor compatibility obligations |
-
-B and C are both hardware-backed options. Pico HSM and YubiHSM 2 are device
-examples, not interchangeable security or certification claims. Their documented
-PKCS#11 and backup capabilities require validation against the selected firmware,
-mechanisms and consumer. [2][3]
-
-[USB gateway design](04-usb-hsm.md) details C. [Network HSM design](05-network-hsm.md)
-details D. An existing approved provider can satisfy any applicable option.
 
 ## Completed designs
 
@@ -51,15 +31,15 @@ dependencies. Application-state backups accompany the selected key-recovery meth
 block-beta
   columns 1
   block:T0
-    columns 2
-    T0Title["Tier 0 / platform key protection"]:2
+    columns 1
+    T0Title["Tier 0 / platform key protection"]
     block:Host
-      columns 1
-      HostTitle["Authorized service host"]
+      columns 2
+      HostTitle["Authorized service host"]:2
       Service["Issuer / signing service"]
+      Provider["Software key store<br/>or software provider"]
     end
-    Provider["Software key store<br/>or software provider"]
-    Recovery["Offline recovery custody / independently held backups<br/>Not an online root CA"]:2
+    Recovery["Offline recovery custody / independently held backups<br/>Not an online root CA"]
   end
   Service --> Provider
   Recovery -.-> Provider
@@ -147,7 +127,8 @@ block-beta
   class HostA,HostB replicas
   class TokenA,TokenB,Recovery custody
 ```
-*Figure: Each signing host uses its own USB HSM; offline recovery custody is independent of the active hosts.*
+*Figure: Each provider host uses its own USB HSM. Dashed transfers come from independent offline
+custody; the devices do not replicate keys or application state through this arrangement.*
 
 The service routes operations through a supported application integration; each
 gateway accesses only its local token. Service-level failover depends on validated
@@ -202,6 +183,30 @@ and failover follow the selected product's supported HA model. Independent backu
 and recovery material remain necessary for loss beyond the active members. [4]
 The [network HSM detail](05-network-hsm.md) defines the client, partition and failure
 contracts.
+
+<a id="purpose"></a>
+<a id="use-and-scale-matrix"></a>
+<a id="how-to-read-the-matrix"></a>
+
+## Options A-D
+
+The four figures change where key custody sits while retaining the issuer or
+signing service's outward contract. Compare the compromise boundary first, then
+the acceptable outage and independent restore. An existing approved provider can
+satisfy any applicable option.
+
+| Option | Design shape | Suitable purpose | Limit and operating responsibility |
+| --- | --- | --- | --- |
+| A: Software | Application keystore or software PKCS#11 provider; SoftHSM is an example [1] | Accepted software-custody deployment or interface rehearsal | Host access can expose key material; not hardware isolation |
+| B: Single USB | One authorized host and one local device, with a separate recovery arrangement | Offline custody, low-concurrency issuer or signing service | Host/device loss interrupts service; availability depends on restore |
+| C: Shared USB providers | Independent device hosts, restricted remoting and separately governed backups | Shared key operations with qualified reconnect/failover | Application sessions and approved key replication remain separate; not a native HSM cluster |
+| D: Network HSM | Authorized clients use appliance partitions through the vendor client/HA model | Shared hardware service with product-supported partitions and resilience | Separate management, client trust, backup and vendor compatibility obligations |
+
+B and C are both hardware-backed options. Pico HSM and YubiHSM 2 are device
+examples, not interchangeable security or certification claims. Their documented
+PKCS#11 and backup capabilities require validation against the selected firmware,
+mechanisms and consumer. [2][3] The [USB gateway design](04-usb-hsm.md) expands C;
+the [network HSM design](05-network-hsm.md) expands D.
 
 <a id="start-with-the-right-problem"></a>
 <a id="certification-and-reality"></a>

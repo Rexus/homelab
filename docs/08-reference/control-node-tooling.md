@@ -206,7 +206,7 @@ define package/collection bounds.
 
 | Dependency | Authoritative source / installation scope |
 | --- | --- |
-| OS commands | [Bootstrap Step 2a](../03-deployment/foundation/bootstrap/README.md#2a-install-through-approved-sources): Git, Bash, Python/pip, SSH, CA/curl/OpenSSL, archive/storage utilities, Terraform and `qemu-img`; [offline OS download/install](../03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md#1a-download-os-packages-and-reviewed-source) |
+| OS commands | [Bootstrap Step 6](../03-deployment/foundation/bootstrap/README.md#step-6-install-os-tools): Git, Bash, Python/pip, SSH, CA/curl/OpenSSL, archive/storage utilities, Terraform and `qemu-img`; [offline OS download/install](../03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md#1a-download-os-packages-and-reviewed-source) |
 | Optional home-directory migration | Pre-stage `rsync` and, on Enterprise Linux 10, `policycoreutils-python-utils` before restricting package access; included in the offline RPM download list for the [home-directory guide](../03-deployment/foundation/bootstrap/step-3c-bootstrap-home.md) |
 | Separate bootstrap workspace filesystem | Prepare `parted` and `xfsprogs` before creating the new data mount; follow [workspace disk preparation](../03-deployment/foundation/bootstrap/step-3a-bootstrap-storage.md) before copying artifacts or installing the full runtime |
 | Optional root-LVM expansion | EL10: pre-stage `lvm2`, `parted` and `xfsprogs`, included in the offline RPM list; the [existing-disk or new-PV guide](../03-deployment/foundation/bootstrap/step-3b-bootstrap-lvm.md) also lists Debian/Ubuntu package names |

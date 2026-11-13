@@ -22,10 +22,16 @@ link resolves to its retained data volume before updating local inputs; keep the
 ## Contents
 
 - [Step 1: Record live storage and select backup interfaces](#choose-the-native-interface)
-- [Step 2a: Prepare NAS file storage](#use-nas-file-storage)
-- [Step 2b: Qualify an object endpoint when required](#qualify-an-object-endpoint)
+- [Step 2: Commission the selected backup interface](#step-2-commission-the-selected-backup-interface)
+- [2a: NAS file storage](#use-nas-file-storage)
+- [2b: Object endpoint when required](#qualify-an-object-endpoint)
 - [Step 3: Verify recovery and return](#recovery-and-existing-installations)
 - [References](#references)
+
+**Foundation now:** record live-disk/Import IDs and commission the independent **VM backup target**.
+Keep the remaining consumer rows as interface choices for their own stages; do not install those
+applications or run their backup jobs from this prerequisite page. NAS exports, storage availability
+and recovery custody remain the storage owner's work; guest IaC consumes those accepted interfaces.
 
 <a id="choose-the-native-interface"></a>
 
@@ -36,17 +42,17 @@ link resolves to its retained data volume before updating local inputs; keep the
 2. Select a datastore accepting VM disks for live VM/CloudInit disks. The common
    `local` Import/ISO datastore is not automatically suitable; `local-zfs` is a
    separate datastore ID. Check every selected destination node.
-3. During [bootstrap Step 4](../bootstrap/README.md#step-4-configure-trust-credentials-and-platform-inputs),
+3. During [bootstrap Step 18](../bootstrap/README.md#step-18-configure-shared-platform-references),
    map those actual IDs into **Shared `config/platform.tfvars` → `proxmox_storage_classes`**.
    Keep Tier 0's **`templates/proxmox.yml` → `all.image_datastore_id`** pointed at Import storage.
-4. Select backup interfaces from the table. Follow **2a**, **2b**, or both as required
-   by the selected consumers. Commission each target before its first consumer;
-   unrelated foundation work need not wait for future application storage.
+4. Record selected backup interfaces from the table. For Foundation, follow **2a** for
+   the VM backup target or retain an accepted existing backup destination. **2b** is needed
+   only before an object-consuming application; it does not block the initial manual template.
 
 | Consumer | Interface used by the supplied implementation | Procedure |
 | --- | --- | --- |
 | VM/CT backup files | Proxmox-managed NAS NFS target; PBS remains a separate alternative | [Native NAS backup path](../../../05-operations/06-resilience/backups/virtual-machines.md#nas-file-target) |
-| Protected log archive | Direct encrypted SMB mount; local intake remains independent of the NAS | [NAS archive](../../stage-2-logging/step-3c-nas-archive.md) |
+| Protected log archive | Direct encrypted SMB mount; local intake remains independent of the NAS | [NAS archive](../../stage-2-logging/step-15a-nas-archive.md) |
 | Control recovery copies | Commissioned mounted file repository; read-only source views, separately encrypted backup copies | [Control backups](../../../05-operations/06-resilience/backups/control-applications.md) |
 | NetBox shared media | Existing RWX-capable Kubernetes storage, such as qualified NAS-backed CSI | [Application storage](../../stage-6-secrets/procedures/control-applications.md#dependencies-and-ownership) |
 | Keycloak, NetBox and Grafana database backups | Scheduled verified full backups to a separate NAS file PVC; existing object/WAL archive remains an explicit PITR option | [Database backup inputs](../../stage-6-secrets/procedures/control-applications.md#dependencies-and-ownership), [Grafana](../../stage-8-observability/procedures/observability-platform.md) |
@@ -63,9 +69,16 @@ for the selected NAS path; it leaves live database storage unchanged.
 If the required native interface is unavailable, stop at that prerequisite or
 select a separately documented application variant. Do not invent an endpoint.
 
-<a id="use-nas-file-storage"></a>
+## Step 2: Commission the selected backup interface
 
-## Step 2a: Prepare NAS file storage
+Choose **2a** for the Foundation VM-backup file target, or retain an accepted existing backup
+destination. Add **2b** only when a selected consumer needs its native object API.
+Both paths return at Step 3; future application-specific setup stays in the owning stage.
+
+<a id="use-nas-file-storage"></a>
+<a id="step-2a-prepare-nas-file-storage"></a>
+
+### 2a: Prepare NAS file storage
 
 1. Commission a dedicated export/share and capacity budget on the NAS. Assign
    only the producer, transfer or reader permissions needed by that dataset.
@@ -80,6 +93,12 @@ select a separately documented application variant. Do not invent an endpoint.
    mount must not redirect writes into an empty local directory. Keep log intake
    on local storage; NAS availability affects archive progress, not its listener.
 
+For **Foundation**, commission only the selected [Proxmox NAS backup target](../../../05-operations/06-resilience/backups/virtual-machines.md#nas-file-target)
+or record the accepted existing destination. Its live backup/restore check waits for
+[Foundation Step 8](../README.md#step-8-test-guest-backup-and-restore), after a disposable guest exists.
+The log archive, database backups and other mounts follow their linked consumer IaC later;
+do not manually mount them now or require their unavailable listeners/jobs to pass this page.
+
 Use the consumer procedure linked in Step 1 for exact share, mount, credential and
 backup inputs. Do not mount a generic NAS path and assume every application uses it.
 Continue at **Step 3**, or complete **2b** first if a selected consumer needs object storage.
@@ -91,8 +110,9 @@ and protect a separate recovery copy. Restic supports file repositories without
 an object-storage service. [3]
 
 <a id="qualify-an-object-endpoint"></a>
+<a id="step-2b-qualify-an-object-endpoint-when-required"></a>
 
-## Step 2b: Qualify an object endpoint when required
+### 2b: Qualify an object endpoint when required
 
 The storage owner supplies an existing private HTTPS endpoint, trusted CA, bucket
 names and distinct consumer keys. A supported NAS endpoint or Ceph RGW can meet
@@ -127,7 +147,8 @@ its data. If an earlier local experiment deployed a gateway, retain its original
 state and credentials until its consumers and data are explicitly migrated and
 verified. Removing a starter from the reference is not permission to destroy it.
 
-Return to [foundation host/network preparation](../README.md#before-starting-hosts-and-networks).
+Return to [Foundation Step 1](../README.md#step-1-prepare-hosts-and-networks), action **4: firewall acceptance**;
+host installation and network setup are already complete.
 The first disposable guest's [backup/restore test](../../../05-operations/06-resilience/backups/virtual-machines.md#quick-steps)
 is an acceptance gate before relying on this recovery path.
 

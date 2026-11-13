@@ -2,7 +2,7 @@
 # Add the approved existing host to an infrastructure_monitoring inventory group.
 # Pass this file explicitly; no Terraform or live discovery is performed by this recipe.
 infrastructure_monitoring_action: render
-infrastructure_monitoring_listen_address: 10.10.10.60
+infrastructure_monitoring_listen_address: 10.10.10.70
 infrastructure_monitoring_allow_from: 10.10.10.*
 infrastructure_monitoring_outside_observed_clusters: false
 infrastructure_monitoring_read_only_credentials_verified: false

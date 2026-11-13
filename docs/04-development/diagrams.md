@@ -23,6 +23,33 @@ ownership. Deployment views show the capability added by a step, not a new archi
 | How does a request proceed? | Flowchart or sequence | Arrows describe real interactions; sequence diagrams retain chronological order |
 | What does a deployment step add? | Content-sized nested flowchart | Retain tier, host/VM and storage boundaries; distinguish existing components from additions |
 
+### Start with the result
+
+Deployment guides show the expected result immediately after a short introduction,
+before long prerequisites, contents or configuration tables. Give that picture a
+stable figure anchor and a descriptive caption. Refer to it from the actions that
+create, configure or verify its components.
+
+When a later section adds a substantial capability, put its result figure at the
+start of that section. A reader should see the enhancement before its installation
+commands. Keep the base result and selectable alternatives separate; a small
+reusable procedure can refer to its caller's figure instead of repeating it.
+
+Architecture follows a related reading path: show the capability, explain how its
+participants communicate, then describe decisions and failure boundaries. Place
+detailed input/source links beside the relevant detail, after the explanation.
+Use block views for placement and sequence diagrams for request/response behavior;
+avoid an introductory catalog of links standing in for either explanation.
+
+### Read toward the dependency
+
+Use left-to-right flow for ordinary communication and dependencies: consumer on the
+left, provider or supporting authority to its right. Preserve higher-priority
+ownership, tier and protection-layer placement rules. Returned results, alerts and
+offline trust transfers retain their actual direction rather than being reversed
+to satisfy the page layout. Sequence participants follow the same consumer-to-provider
+order across the page; time still advances downward.
+
 Block diagrams support explicit placement through columns, spans and spaces. [1]
 Use them for placement maps and compact hosting views. Keep a flowchart when routing and nested
 relationships are clearer there. Nested headings and subgraph directions still
@@ -112,9 +139,9 @@ appropriate to the question. A capability is not a guest, and a deployment stage
 
 Each architecture page includes a figure that explains its subject. Introduce the
 main visual early, then use the surrounding text for decisions, constraints and
-details that the picture cannot express clearly. Add a short italic `Figure:`
-caption directly beneath each architecture figure: state what it shows and the
-meaning of its main relationships. Keep source and realization links nearby.
+details that the picture cannot express clearly. Add a short italic caption directly
+beneath each architecture figure, using `Figure:` or a numbered `Figure 1 -` prefix.
+State what it shows and the meaning of its main relationships. Keep source and realization links nearby.
 
 Deployment captions identify **IaC**, **Manual**, **Integration** or **Workflow** scope.
 Use an explicit `Project integration` boundary for services without an installer;
@@ -187,9 +214,28 @@ Palette tests require at least 4.5:1 contrast between box text and its fill, fol
 the normal-text threshold. [4] This is a colour-pair check, not a claim that all
 renderers or complete diagrams meet accessibility requirements.
 
+### Export a review copy
+
+With an accepted Mermaid CLI installation, render the Markdown directly; the
+native CLI extracts its diagram fences and creates SVGs beside the review copy. [3]
+Run from **the upstream checkout**:
+
+```bash
+mkdir -p .tmp/diagram-review
+mmdc --version
+mmdc -i docs/01-architecture/README.md -o .tmp/diagram-review/architecture-light.md -t default -b white
+mmdc -i docs/01-architecture/README.md -o .tmp/diagram-review/architecture-dark.md -t dark -b '#0d1117'
+```
+
+View the exports at normal and narrow reading widths, such as 1100 and 760 pixels.
+Keep the Markdown fences authoritative. For retained exports, record the CLI and
+Mermaid dependency versions from the prepared toolchain, browser/fonts, command,
+backgrounds, widths and inspected results. A parse pass does not establish correct
+placement, and local rendering does not establish GitHub rendering parity.
+
 ## References
 
-Sources checked 2026-10-19.
+Mermaid syntax, theming and CLI sources checked 2026-11-13; contrast reference checked 2026-10-19.
 
 1. [Mermaid: Block diagrams](https://mermaid.js.org/syntax/block.html)
 2. [Mermaid: Theming](https://mermaid.js.org/config/theming.html)

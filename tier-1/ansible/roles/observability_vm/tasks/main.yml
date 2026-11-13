@@ -38,6 +38,7 @@
     data_volume_fstype: "{{ observability_vm_data_fstype }}"
     data_volume_label: obs-data
     data_volume_expected_uuid: "{{ observability_vm_data_uuid }}"
+    data_volume_uuid_input: observability_vm_data_uuid
     data_volume_min_free_bytes: "{{ observability_vm_data_min_free_bytes }}"
 
 - name: Resolve host services and backend ordering

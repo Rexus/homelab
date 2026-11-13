@@ -15,19 +15,21 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             stage = docs / "03-deployment/stage-8-observability"
             overview = (stage / "README.md").read_text()
-            self.assertEqual(re.findall(r"(?m)^## Step (\d+):", overview), ["1", "2", "3", "4"])
+            self.assertIn("## Step 13: Extend infrastructure collection", overview)
             self.assertIn('id="step-3-publish-and-verify-read-only-views"', overview)
-            self.assertIn("infrastructure-monitoring.md", overview)
-            for name in ("Netdata", "Proxmox", "hardware sensors", "critical alerting in Tier 0"):
+            self.assertIn("(step-13-infrastructure-monitoring.md)", overview)
+            for name in ("Netdata", "Proxmox", "hardware sensors", "observability_netdata_host_access_approved"):
                 self.assertIn(name, overview)
-            guide = " ".join((stage / "step-3-infrastructure-monitoring.md").read_text().split())
-            for expected in ("Tier 0 owns Proxmox/BMC targets", "read-only", "Redfish", "IPMI",
-                             "separate identities, data volumes", "parent synchronization",
-                             "node-OS compatibility", "approved metrics", "cannot power-cycle",
-                             "Tier 1 unavailable", "missing signals"):
+            self.assertIn("critical alerting remain in Tier 0", " ".join(overview.split()))
+            guide = " ".join((stage / "step-13-infrastructure-monitoring.md").read_text().split())
+            for expected in ("owns infrastructure collection and credentials", "read-only", "Redfish", "IPMI",
+                             "No monitor VM, search cluster or diagnostic parent is created again",
+                             "approved metrics", "cannot mutate/power-cycle", "absent/stale sources are unknown",
+                             "Parent loss triggers supported reconnect/failover", "history catch-up is measured",
+                             "Tier 0 critical alerts still arrive while Tier 1"):
                 self.assertIn(expected.lower(), guide.lower())
-            for step in range(1, 4):
-                self.assertIn(f"## Step {step}:", guide)
+            for step in range(1, 6):
+                self.assertIn(f"## {step}.", guide)
             design = (docs / "01-architecture/11-operations/03-observability.md").read_text()
             for expected in ("## Infrastructure coverage", "Netdata remains part of Observability",
                              "No Tier 1 access", "raw Tier 0 Netdata views or Functions",

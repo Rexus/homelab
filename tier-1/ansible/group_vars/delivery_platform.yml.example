@@ -1,5 +1,6 @@
 ---
 # Local Tier 1 inputs; run deployment/delivery-platform.yml from this repository.
+# Service DNS: docs/02-conventions/service-dns.md
 delivery_platform_action: render
 delivery_platform_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
 delivery_platform_context: REPLACE_WITH_TIER1_CONTEXT
@@ -24,7 +25,7 @@ delivery_platform_argocd_repository_certificates: {}
 delivery_platform_argocd_destinations: []
 # Native Spinnaker supplies the pinned upstream base and provisions its dependencies.
 # Installation contract: docs/03-deployment/stage-7-delivery/step-2b-spinnaker.md.
-delivery_platform_spinnaker_host: spinnaker.internal.example.com
+delivery_platform_spinnaker_host: release.internal.example.com
 delivery_platform_spinnaker_mode: native
 delivery_platform_spinnaker_certificate_mode: preissued
 delivery_platform_spinnaker_storage_class: ""
@@ -35,7 +36,19 @@ delivery_platform_spinnaker_destinations: []
 delivery_platform_spinnaker_egress: []
 # Fresh installations select direct NAS files; omitting the selector retains legacy s3.
 delivery_platform_spinnaker_backup_backend: filesystem
-# Filesystem only: existing Bound NAS PVC with Retain PV, separate from data/staging.
+# Filesystem only: accepted existing NAS PVC, or explicitly owned static_nfs resources.
+# Defaults: Shared ansible/roles/backup_repository_storage/defaults/main.yml.
+# Static NFS fields: Shared ansible/roles/backup_repository_storage/tasks/preflight.yml.
+# NAS exports/quotas/permissions/custody remain external; size is PV/PVC binding capacity.
+delivery_platform_spinnaker_backup_storage: {mode: existing}
+# Replace the map above to create only a retained backup PV/PVC using accepted NFS CSI:
+# delivery_platform_spinnaker_backup_storage:
+#   mode: static_nfs
+#   server: nfs.internal.example.com
+#   share: /backups/spinnaker
+#   size: 100Gi
+#   volume_handle: nas-spinnaker-backups
+# Backup storage stays separate from live SQL/Redis and transient staging claims.
 delivery_platform_spinnaker_backup_filesystem_claim: spinnaker-nas-repository
 delivery_platform_spinnaker_backup_filesystem_repository: spinnaker
 # Retained identity in <repository>/.spinnaker-backup-repository; set before first apply.

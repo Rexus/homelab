@@ -1,0 +1,111 @@
+---
+- name: Validate the explicit account-bootstrap contract before API writes
+  ansible.builtin.include_tasks: preflight.yml
+
+- name: Converge only the audit permission and its nonadministrative reader
+  no_log: true
+  when: not ansible_check_mode
+  module_defaults:
+    netbox.netbox.netbox_permission:
+      netbox_url: "{{ netbox_audit_account_url }}"
+      netbox_token: ''
+      headers: {Authorization: "{{ netbox_audit_account_authorization }}"}
+      validate_certs: "{{ netbox_audit_account_ca_file }}"
+    netbox.netbox.netbox_user:
+      netbox_url: "{{ netbox_audit_account_url }}"
+      netbox_token: ''
+      headers: {Authorization: "{{ netbox_audit_account_authorization }}"}
+      validate_certs: "{{ netbox_audit_account_ca_file }}"
+    netbox.netbox.netbox_token:
+      netbox_url: "{{ netbox_audit_account_url }}"
+      netbox_token: ''
+      headers: {Authorization: "{{ netbox_audit_account_authorization }}"}
+      validate_certs: "{{ netbox_audit_account_ca_file }}"
+  block:
+    # Explicit native headers support v1 and v2 administrator tokens even with pynetbox 7.x.
+    - name: Create or retain the single view-only object-change permission
+      netbox.netbox.netbox_permission:
+        data:
+          name: "{{ netbox_audit_account_permission }}"
+          enabled: true
+          actions: [view]
+          object_types: [core.objectchange]
+          constraints: {}
+        state: present
+
+    - name: Create or retain the dedicated reader without resetting its existing password
+      netbox.netbox.netbox_user:
+        data:
+          username: "{{ netbox_audit_account_username }}"
+          password: "{{ netbox_audit_account_password if netbox_audit_account_user.json.count == 0 else omit }}"
+          is_active: true
+          groups: []
+          permissions: ["{{ netbox_audit_account_permission }}"]
+        state: present
+
+    - name: Prepare the private controller credential directory
+      ansible.builtin.file:
+        path: "{{ netbox_audit_account_token_file | dirname }}"
+        state: directory
+        mode: '0700'
+
+    - name: Create a read-only v2 token only when neither the remote token nor local file exists
+      netbox.netbox.netbox_token:
+        data:
+          user: "{{ netbox_audit_account_username }}"
+          description: "{{ netbox_audit_account_token_description }}"
+          write_enabled: false
+          expires: "{{ netbox_audit_account_token_expires }}"
+        state: present
+      when: not netbox_audit_account_local.stat.exists
+      register: netbox_audit_account_created
+
+    - name: Require the one-time v2 plaintext before writing the new credential
+      ansible.builtin.assert:
+        that:
+          - netbox_audit_account_created.token.version | int == 2
+          - netbox_audit_account_created.token.key | length > 0
+          - netbox_audit_account_created.token.token | default('', true) | length > 0
+          - netbox_audit_account_created.token.write_enabled is sameas false
+        fail_msg: The server did not return a new read-only v2 credential; recover explicitly without rotating another token.
+      when: not netbox_audit_account_local.stat.exists and not ansible_check_mode
+
+    - name: Save the one-time plaintext privately without overwriting an existing controller credential
+      ansible.builtin.copy:
+        content: >-
+          {{ 'nbt_' ~ netbox_audit_account_created.token.key ~ '.' ~ netbox_audit_account_created.token.token }}
+        dest: "{{ netbox_audit_account_token_file }}"
+        mode: '0600'
+        force: false
+      diff: false
+      when: not netbox_audit_account_local.stat.exists and not ansible_check_mode
+
+- name: Verify the saved credential through the same GET-only endpoint used by the collector
+  ansible.builtin.uri:
+    url: "{{ netbox_audit_account_url }}/api/core/object-changes/?limit=1"
+    headers:
+      Authorization: "Bearer {{ lookup('ansible.builtin.file', netbox_audit_account_token_file) | trim }}"
+    ca_path: "{{ netbox_audit_account_ca_file }}"
+    validate_certs: true
+    follow_redirects: none
+    use_netrc: false
+    status_code: 200
+  when: not ansible_check_mode
+  no_log: true
+
+- name: Show the collector handoff without printing credentials
+  ansible.builtin.debug:
+    msg: >-
+      Read-only core.objectchange credential saved at {{ netbox_audit_account_token_file }}.
+      Set NETBOX_AUDIT_TOKEN_FILE to this path and netbox_audit_auth_scheme=Bearer for
+      deployment/netbox-audit.yml. The collector receives no administrative token.
+      Back up the private file; the server cannot return its plaintext again.
+  when: not ansible_check_mode
+
+- name: Show the validated account-bootstrap preview
+  ansible.builtin.debug:
+    msg: >-
+      Inputs and existing authority checked. Apply would ensure the dedicated
+      {{ netbox_audit_account_username }} reader, view-only core.objectchange permission,
+      and private credential at {{ netbox_audit_account_token_file }}. No account or token changed.
+  when: ansible_check_mode

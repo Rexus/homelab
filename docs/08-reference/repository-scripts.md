@@ -361,12 +361,12 @@ their `.deployment-setups`; see [setup ownership](../04-development/generated-re
 | `syslog` | Tier 0 VMs/disks, guarded filesystem/UUID mount and isolated TLS receiver; accepted certificate files are inputs, with HA/WORM outside this installer | [Protected logging](../03-deployment/stage-2-logging/README.md) |
 | `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../03-deployment/stage-7-delivery/procedures/edge-proxy.md) |
 | `cache` | Tier 2 ordinary cache pair or larger set for controlled outbound access | [Software intake](../03-deployment/stage-1-software-intake/README.md) |
-| `intake` | Tier 1 verified RPM/APT and selected-artifact publication with managed VM/disks and UUID-mounted data volume; Stage 3 option 3b | [Verified intake](../03-deployment/stage-3-trust/step-3b-verified-intake.md) |
+| `intake` | Tier 1 verified RPM/APT and selected-artifact publication with managed VM/disks and UUID-mounted data volume; Stage 3 option 15b | [Verified intake](../03-deployment/stage-3-trust/step-15b-verified-intake.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../03-deployment/stage-9-development/step-1b-source-control-vm.md) |
-| `vault` | Stage 6 dedicated HashiCorp Vault; optional independent OpenBao signing uses a separate named environment/state, never the original Vault guests | [Vault VM deployment](../03-deployment/stage-6-secrets/step-1b-vault-vm.md), [signing option](../03-deployment/stage-6-secrets/step-1d-openbao.md) |
+| `vault` | Stage 6 dedicated HashiCorp Vault; optional independent OpenBao signing uses a separate named environment/state, never the original Vault guests | [Vault VM deployment](../03-deployment/stage-6-secrets/step-1b-vault-vm.md), [signing option](../03-deployment/stage-6-secrets/step-11b-openbao.md) |
 | `observability` | Optional Tier 1 native gateway, metrics, search and query products with guarded data disks; separate from Kubernetes and Tier 0 evidence | [Observability VM alternative](../03-deployment/stage-8-observability/step-1b-dedicated-vms.md) |
-| `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../03-deployment/stage-9-development/step-2b-podman-runner.md) |
-| `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../03-deployment/stage-9-development/step-2c-image-based-linux.md) |
+| `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../03-deployment/stage-9-development/step-14b-podman-runner.md) |
+| `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../03-deployment/stage-9-development/step-15b-image-based-linux.md) |
 | `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../03-deployment/foundation/proxmox/templates.md) |
 | `hsm` | Tier 0 native USB/provider host pool, original-key issuer binding and optional native restricted PKCS#11 remoting; physical key custody and application HA remain separate | [USB HSM host-pool option](../03-deployment/stage-3-trust/step-1b-usb-hsm.md) |
 | `lab` | general-purpose lab guests | this reference and the local inventory |

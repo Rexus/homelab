@@ -23,7 +23,9 @@ class ReaderRoles(TierRepositoryTestCase):
                 self.assertEqual((root / link).resolve(), expected)
             for document in [*root.glob("stage-*/**/*.md"), *root.glob("foundation/**/*.md"),
                              *root.glob("stage-1-software-intake/**/*.md")]:
-                opening = "\n".join(document.read_text(encoding="utf-8").splitlines()[:22])
+                content = document.read_text(encoding="utf-8")
+                # Result figures can precede context; execution ownership must precede commands.
+                opening = re.split(r"(?m)^```(?:bash|sh|shell|powershell|hcl|yaml)\b", content, maxsplit=1)[0]
                 if (document.relative_to(root).as_posix().startswith("foundation/bootstrap/") and
                         "**Run on `boot-1`**" in opening):
                     # Manual host preparation can precede checkout/generation of any tier repository.
@@ -37,8 +39,8 @@ class ReaderRoles(TierRepositoryTestCase):
                 ("stage-6-secrets/step-1b-vault-vm.md", "tier-0"),
                 ("stage-8-observability/step-1b-dedicated-vms.md", "tier-1"),
                 ("stage-9-development/step-1b-source-control-vm.md", "tier-1"),
-                ("stage-9-development/step-2b-podman-runner.md", "tier-1"),
-                ("stage-9-development/step-2c-image-based-linux.md", "tier-0"),
+                ("stage-9-development/step-14b-podman-runner.md", "tier-1"),
+                ("stage-9-development/step-15b-image-based-linux.md", "tier-0"),
                 ("stage-7-delivery/procedures/edge-proxy.md", "tier-2"),
             ):
                 content = (root / relative).read_text(encoding="utf-8")
@@ -77,13 +79,13 @@ class ReaderRoles(TierRepositoryTestCase):
         root = UPSTREAM / "docs/01-architecture"
         overview = (root / "README.md").read_text()
         for target in ("03-reference-platform.md", "01-background/README.md", "02-organization/README.md",
-                       "04-hosting/03-kubernetes.md", "06-data/README.md", "10-delivery/README.md"):
+                       "04-hosting/README.md", "06-data/README.md", "10-delivery/README.md"):
             self.assertIn(f"({target})", overview)
         capabilities = overview.split("## Capabilities\n", 1)[1].split(
             "## How the platform works together\n", 1)[0]
-        for capability in ("Hosting and orchestration", "Connectivity and firewall policy", "Storage contracts",
-                           "Identity and access", "Cryptography", "Delivery lifecycle", "Operations and resilience"):
-            self.assertIn(f"[{capability}]", capabilities)
+        for chapter in ("04-hosting", "05-networking", "06-data", "07-software-intake",
+                        "08-cryptography", "09-identity", "10-delivery", "11-operations"):
+            self.assertIn(f"({chapter}/README.md)", capabilities)
         for principle in ("Zero trust", "scalability"):
             self.assertIn(principle, capabilities)
         self.assertIn("Read to make a decision", overview)
@@ -111,17 +113,17 @@ class ReaderRoles(TierRepositoryTestCase):
         overview = (root / "README.md").read_text()
         capability_map = overview.split("## Functional structure\n", 1)[1].split(
             "## Capabilities\n", 1)[0]
-        self.assertIn("block-beta\n  columns 5", capability_map)
-        self.assertIn('Control["Control"]:2', capability_map)
+        self.assertIn("flowchart TB", capability_map)
+        self.assertIn('subgraph Control["Control / connected systems"]', capability_map)
         for ordered in (('T2["Tier 2', 'T1["Tier 1', 'T0["Tier 0'),
-                        ('Edge["Edge', 'Application["Application', 'Control["Control')):
+                        ('Edge["Edge', 'Workloads["Application', 'Control["Control')):
             positions = [capability_map.index(label) for label in ordered]
             self.assertEqual(positions, sorted(positions))
-        control = capability_map.split('T0["Tier 0', 1)[1].split('Custodians[', 1)[0]
-        for capability in ('IdM["Directory', 'IdP["Identity provider',
-                           'PKI["Certificate', 'Secrets["Secrets'):
+        control = capability_map.split('T0["Tier 0', 1)[1].split('Offline[', 1)[0]
+        for capability in ('Directory authority', 'Identity provider',
+                           'Certificate issuance', 'SSO / secrets'):
             self.assertIn(capability, control)
-        self.assertIn("Outside connected layers", capability_map)
+        self.assertIn("Outside connected runtimes", capability_map)
         identity = (root / "09-identity/README.md").read_text()
         for expected in ("## Terminology", "Identity and access management (IAM)",
                          "LDAP user federation", "Identity brokering", "Tier 0 / Control layer",

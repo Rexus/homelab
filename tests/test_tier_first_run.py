@@ -83,7 +83,7 @@ class NativeFirstRun(unittest.TestCase):
         commands = [block for block in blocks if 'ansible-playbook "${logging_inputs[@]}"' in block]
         inventory = self.root / 'ansible/inventory'
         variables = self.root / 'ansible/group_vars'
-        hosts = self.root / 'ansible/host_vars'
+        hosts = inventory / 'host_vars'
         for directory in (inventory, variables, hosts):
             directory.mkdir(parents=True)
         (inventory / 'hosts.yml').write_text((UPSTREAM / 'tier-0/ansible/inventory/hosts.yml.example').read_text())
@@ -111,7 +111,16 @@ class NativeFirstRun(unittest.TestCase):
         cases = [(inputs + command, f'{host}\nansible/group_vars/{setup}.yml\n{self.root}/public\n',
                   'ansible/playbooks/deployment/logging-producers.yml')
                  for host, setup in (('log-1', 'syslog'), ('ca-1', 'foundation')) for command in commands]
-        archive = (UPSTREAM / 'docs/03-deployment/stage-2-logging/step-3c-nas-archive.md').read_text()
+        installation = (UPSTREAM / 'docs/03-deployment/stage-2-logging/README.md').read_text()
+        first_producer = [block for block in re.findall(r'```bash\n(.*?)```', installation, re.S)
+                          if 'ansible/playbooks/deployment/logging-producers.yml --limit log-1' in block]
+        self.assertEqual(len(first_producer), 2, 'First-source preparation and installation stay executable in-page')
+        for block in first_producer:
+            self.assertIn('-e @ansible/group_vars/all.yml -e @ansible/group_vars/syslog.yml', block)
+            self.assertIn('-e @ansible/inventory/host_vars/log-1.yml', block)
+            cases.append((block, f'{self.root}/requests\n',
+                          'ansible/playbooks/deployment/logging-producers.yml'))
+        archive = (UPSTREAM / 'docs/03-deployment/stage-2-logging/step-15a-nas-archive.md').read_text()
         for variable, host, recipe in (('LOGGING_COLLECTOR', 'log-1', 'logging-archive'),
                                        ('LOGGING_RECOVERY_HOST', 'recovery', 'logging-backup')):
             block = next(block for block in re.findall(r'```bash\n(.*?)```', archive, re.S)

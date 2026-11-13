@@ -1,8 +1,9 @@
 # Variable definitions (this repository): terraform/deployments/ci-auth/variables.tf
+# Service DNS: docs/02-conventions/service-dns.md
 
 # This root configures Vault, not Proxmox. Run from Tier 0 with independently authorized Vault access.
 accept_trusted_ci = false
-gitlab_issuer    = "https://gitlab.internal.example.com"
+gitlab_issuer    = "https://git.internal.example.com"
 vault_audience  = "https://vault.internal.example.com"
 projects = {
   tier0-infrastructure = {

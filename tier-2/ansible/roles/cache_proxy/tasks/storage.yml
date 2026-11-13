@@ -7,6 +7,7 @@
     data_volume_fstype: "{{ cache_squid_data_fstype }}"
     data_volume_label: cache-data
     data_volume_expected_uuid: "{{ cache_squid_data_uuid }}"
+    data_volume_uuid_input: cache_squid_data_uuid
     data_volume_min_free_bytes: "{{ cache_squid_data_min_free_bytes }}"
     data_volume_wait_timeout: "{{ cache_squid_data_device_wait_timeout }}"
     data_volume_mount_options: >-

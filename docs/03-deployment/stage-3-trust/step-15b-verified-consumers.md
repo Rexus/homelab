@@ -1,10 +1,10 @@
-# Step 3b: Connect a consumer to verified publication
+# Step 15b: Connect a consumer to verified publication
 
-**Branch from:** [Step 3](README.md#step-3-enable-and-verify-routine-issuance), within option **3b**,
-after [first accepted intake](step-3b-verified-intake.md#5-run-and-inspect-the-first-intake).
+**Branch from:** [Step 15](README.md#step-15-select-additional-integrations), within the verified-intake option,
+after [first accepted intake](step-15b-verified-intake.md#5-run-and-inspect-the-first-intake).
 **Change:** configure a selected existing consumer through its owning tier's Ansible.
 **Return:** [Stage 3 completion](README.md#capability-available) after acceptance and
-[worker scheduling](step-3b-verified-intake.md#6-connect-consumers-and-schedule-intake).
+[worker scheduling](step-15b-verified-intake.md#6-connect-consumers-and-schedule-intake).
 
 **Working repository:** the consumer's `<prefix>-tier-0`, `<prefix>-tier-1` or `<prefix>-tier-2`.
 Run all commands from that repository on the deployment controller. Tier 1 owns publication,
@@ -81,7 +81,7 @@ The existing global proxy is preserved; exact selected internal sources bypass i
 
 1. Verify every enabled feed has accepted supply and native publisher verification remains enabled.
 2. Independently deny direct WAN bypass. In a disposable test, loss of publication must fail clearly.
-3. For bootstrap, select the existing [mirror-mode recipe](../stage-1-software-intake/step-6-bootstrap-consumer.md#2b-native-mirrors-or-disconnected-supply)
+3. For bootstrap, select the existing [mirror-mode recipe](../stage-1-software-intake/procedures/bootstrap-consumer.md#2b-native-mirrors-or-disconnected-supply)
    after native repository and tool supply is commissioned.
 4. Record old and new selections. Restore a previous accepted input and reapply using the
    [rollback guidance](../../05-operations/02-software-intake/verified-publication.md).

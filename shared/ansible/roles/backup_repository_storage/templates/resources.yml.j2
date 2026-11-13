@@ -1,0 +1,51 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ backup_repository_storage_namespace | to_json }}
+  annotations:
+    backup.homelab/owner: {{ backup_repository_storage_owner | to_json }}
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ ('backup-' ~ backup_repository_storage_namespace ~ '-' ~ backup_repository_storage_claim) | to_json }}
+  annotations:
+    backup.homelab/owner: {{ backup_repository_storage_owner | to_json }}
+  labels:
+    app.kubernetes.io/managed-by: homelab-backup-storage
+spec:
+  capacity: {storage: {{ backup_repository_storage_volume.size | to_json }}}
+  accessModes: [ReadWriteMany]
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [hard, nfsvers=4.1]
+  claimRef:
+    namespace: {{ backup_repository_storage_namespace | to_json }}
+    name: {{ backup_repository_storage_claim | to_json }}
+  csi:
+    driver: nfs.csi.k8s.io
+    volumeHandle: {{ backup_repository_storage_volume.volume_handle | to_json }}
+    readOnly: false
+    volumeAttributes:
+      server: {{ backup_repository_storage_volume.server | to_json }}
+      share: {{ backup_repository_storage_volume.share | to_json }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ backup_repository_storage_claim | to_json }}
+  namespace: {{ backup_repository_storage_namespace | to_json }}
+  annotations:
+    backup.homelab/owner: {{ backup_repository_storage_owner | to_json }}
+  labels:
+    app.kubernetes.io/managed-by: homelab-backup-storage
+spec:
+  accessModes: [ReadWriteMany]
+  volumeMode: Filesystem
+  storageClassName: ""
+  volumeName: {{ ('backup-' ~ backup_repository_storage_namespace ~ '-' ~ backup_repository_storage_claim) | to_json }}
+  resources: {requests: {storage: {{ backup_repository_storage_volume.size | to_json }}}}

@@ -1,11 +1,11 @@
-# Step 1d: Optional independent OpenBao signing API
+# Step 11b: Optional independent OpenBao signing API
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 
-**Branch from:** [Step 1](README.md#step-1-deploy-the-secret-service), after PKI,
+**Branch from:** [Step 11](README.md#step-11-select-an-independent-signing-service), after PKI,
 the selected hardware provider, identity and protected logging.
 **Change:** Add an independent HSM-backed signing API with separate state and recovery custody.
-**Return:** [Stage 6, Step 2](README.md#step-2-add-operational-tools) after signing,
+**Return:** [Stage 6, action 12](README.md#step-12-prepare-the-independent-monitoring-host) after signing,
 independent recovery and human SSO checks pass.
 HashiCorp Vault with Shamir remains the initial secret-service path. This advanced option creates an
 independent OpenBao service for applications that need a REST signing API. It never migrates Vault.
@@ -13,36 +13,9 @@ An already accepted, independent OpenBao service can enter at action 4 without p
 Use `--tags openbao-signing` at action 5 for API-only reconciliation without installing a controller CLI
 or recovery executable. Its server owner must already have installed the declared plugin and audit devices.
 
-## Table of contents
+<a id="figure-openbao-signing"></a>
 
-- [Prerequisites and boundaries](#prerequisites-and-boundaries)
-- [1. Select independent guests and state](#1-select-independent-guests-and-state)
-- [2. Supply accepted artifacts and provider configuration](#2-supply-accepted-artifacts-and-provider-configuration)
-- [3. Deploy and perform the human ceremony](#3-deploy-and-perform-the-human-ceremony)
-- [4. Configure audit and human access](#4-configure-audit-and-human-access)
-- [5. Register original HSM keys and workload clients](#5-register-original-hsm-keys-and-workload-clients)
-- [6. Accept operation and independent recovery](#6-accept-operation-and-independent-recovery)
-- [References](#references)
-
-## Prerequisites and boundaries
-
-| Input | Required acceptance |
-| --- | --- |
-| Controller | Linux Ansible controller, accepted collections and OpenSSL; setup `openbao-signing` prepares/checks these |
-| Runtime | Fresh Alma/Rocky/RHEL x86-64 guests, accepted OS packages, DNS, preissued server TLS and controller CA |
-| Network | Restricted API/cluster ports; accepted private endpoint preserving authenticated client source addresses for CIDR checks; no balancer is installed here |
-| Hardware | Qualified YubiHSM 2 or PicoHSM devices, original keys and selected local-provider or remoting inputs; action 3 installs the guest client for `openbao` |
-| Original keys | Existing non-exportable signing objects, original public PEM files and independently recorded SHA256 DER SPKI pins |
-| Custody | Original Shamir shares, independent encrypted snapshots/input exports and vendor-native hardware key recovery |
-
-The native PKCS11 KMS plugin is a separate executable. The installer registers it through OpenBao's
-declarative `plugin "kms"` stanza with an executable checksum and absolute library alias; API catalog
-registration cannot substitute for this KMS declaration. [1] Versions are pinned in
-[role defaults](../../../tier-0/ansible/roles/vault/defaults/main.yml), with explicit accepted artifact paths.
-External Keys is a recent stable integration; a stable release is not evidence of an audited hardware
-deployment. Release fixes include external-key CSR selection and delegated signing failures. [2][3]
-
-This figure shows the selected three-member realization; it is configuration, not live acceptance.
+## Expected outcome: independent signing service
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -82,7 +55,9 @@ flowchart TB
   class Raft replicas
 ```
 
-**IaC:** existing [Vault VM root](../../../tier-0/terraform/deployments/vault/main.tf),
+**IaC:** *Figure: The selected three-member OpenBao service has per-member Raft storage and an existing hardware key
+domain. Raft replicates service state, while HSM key recovery stays separate.*
+existing [Vault VM root](../../../tier-0/terraform/deployments/vault/main.tf),
 [installer](../../../tier-0/ansible/playbooks/deployment/vault-vm.yml),
 [OpenBao tasks](../../../tier-0/ansible/roles/vault/tasks/openbao.yml), and
 [API play](../../../tier-0/ansible/playbooks/deployment/openbao-signing.yml).
@@ -93,7 +68,42 @@ This is a placement view: each member uses its local Raft disk and qualified PKC
 the [signing sequence](../../01-architecture/08-cryptography/04-usb-hsm.md#request-and-response)
 shows authenticated request/result flow. Offline custody has no normal network route.
 
+## Table of contents
+
+- [Prerequisites and boundaries](#prerequisites-and-boundaries)
+- [1. Select independent guests and state](#1-select-independent-guests-and-state)
+- [2. Supply accepted artifacts and provider configuration](#2-supply-accepted-artifacts-and-provider-configuration)
+- [3. Deploy and perform the human ceremony](#3-deploy-and-perform-the-human-ceremony)
+- [4. Configure audit and human access](#4-configure-audit-and-human-access)
+- [5. Register original HSM keys and workload clients](#5-register-original-hsm-keys-and-workload-clients)
+- [6. Accept operation and independent recovery](#6-accept-operation-and-independent-recovery)
+- [References](#references)
+
+## Prerequisites and boundaries
+
+| Input | Required acceptance |
+| --- | --- |
+| Controller | Linux Ansible controller, accepted collections and OpenSSL; setup `openbao-signing` prepares/checks these |
+| Runtime | Fresh Alma/Rocky/RHEL x86-64 guests, accepted OS packages, DNS, preissued server TLS and controller CA |
+| Network | Restricted API/cluster ports; accepted private endpoint preserving authenticated client source addresses for CIDR checks; no balancer is installed here |
+| Hardware | Qualified YubiHSM 2 or PicoHSM devices, original keys and selected local-provider or remoting inputs; action 3 installs the guest client for `openbao` |
+| Original keys | Existing non-exportable signing objects, original public PEM files and independently recorded SHA256 DER SPKI pins |
+| Custody | Original Shamir shares, independent encrypted snapshots/input exports and vendor-native hardware key recovery |
+
+The native PKCS11 KMS plugin is a separate executable. The installer registers it through OpenBao's
+declarative `plugin "kms"` stanza with an executable checksum and absolute library alias; API catalog
+registration cannot substitute for this KMS declaration. [1] Versions are pinned in
+[role defaults](../../../tier-0/ansible/roles/vault/defaults/main.yml), with explicit accepted artifact paths.
+External Keys is a recent stable integration; a stable release is not evidence of an audited hardware
+deployment. Release fixes include external-key CSR selection and delegated signing failures. [2][3]
+
+The [signing-service figure](#figure-openbao-signing) shows the selected three-member realization;
+it is configuration, not live acceptance.
+
+
 ## 1. Select independent guests and state
+
+Keep the guests, per-member data and recovery custody in the [selected signing scope](#figure-openbao-signing).
 
 Keep the existing Vault environment untouched. Prepare a separate `signing` environment using the same
 root and original state authority. Run on the **controller, `<prefix>-tier-0/`**:

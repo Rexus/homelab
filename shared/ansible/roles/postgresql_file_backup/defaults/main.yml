@@ -4,3 +4,6 @@ postgresql_file_backup_kubeconfig: ""
 postgresql_file_backup_context: ""
 postgresql_file_backup_output: ""
 postgresql_file_backup_target: {}
+# target.storage defaults to existing; static_nfs adds server/share/size and uses target.volume_handle.
+# Storage defaults: Shared ansible/roles/backup_repository_storage/defaults/main.yml.
+# Static NFS fields: Shared ansible/roles/backup_repository_storage/tasks/preflight.yml.

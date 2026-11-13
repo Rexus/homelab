@@ -135,7 +135,7 @@ not silently removed or treated as exactly-once delivery.
 | --- | --- |
 | Healthy control | All expected records arrive with valid source identity; establish the normal latency and count baseline |
 | Abrupt receiver process loss | Kill the approved disposable receiver process without a graceful flush; observe restart/replay and reconcile accepted records |
-| Physical host/power loss | Remove one approved failure domain under the [redundant-intake contract](../../03-deployment/stage-2-logging/step-3b-redundant-intake.md); a guest reboot is not this test |
+| Physical host/power loss | Remove one approved failure domain under the [redundant-intake contract](../../03-deployment/stage-2-logging/step-14b-redundant-intake.md); a guest reboot is not this test |
 | Network or archive outage | Isolate only the approved test path; measure spool/replay and NAS/backup lag. Main path retains within its configured buffers, not until application-level archive acknowledgement; reconcile and report the exposed tail |
 | Bounded queue/storage exhaustion | Use a capped test volume/quota, never fill a live filesystem; observe independent alerts and the declared reject/backpressure policy |
 | Tier 1, cluster and SSO unavailable | Intake, authorized evidence reads and independent notifications continue within the selected failure envelope |
@@ -238,7 +238,7 @@ not a passed prevention test. For B, a privileged identity that can bypass the s
 retention requirement blocks that claim. A change in role holders or required deletion
 protection requires renewed acceptance, not just a renamed record.
 
-Return to [Stage 2 acceptance](../../03-deployment/stage-2-logging/README.md#step-3-protect-and-verify-retained-evidence).
+Return to [Stage 2, Step 16](../../03-deployment/stage-2-logging/README.md#step-16-verify-recovery-and-record-completion).
 Repeat after material transport, queue/flush, storage, backup, retention or identity changes.
 
 ## References

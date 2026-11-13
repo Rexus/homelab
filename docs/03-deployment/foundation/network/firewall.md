@@ -7,19 +7,29 @@ Guest-specific inputs remain in the consuming tier; gateway changes are operator
 [firewall contracts](../../../01-architecture/05-networking/01-firewall-policy.md).
 **Prerequisites:** local console recovery and the approved endpoint/port policy.
 
-## Step 1: Preserve recovery and define rules
+**Already applied the gateway policy in the UniFi workflow?** Retain that configuration and
+continue at [Step 5: acceptance checks](#step-5-verify-accepted-paths). Steps 1–4 are for an
+unconfigured or changed policy, not another mandatory application of the same rules.
 
-1. Export the current configuration and test local recovery access.
-2. Inventory routing, NAT/VPN rules, gateway services, and IPv6.
-3. Record every required source, destination, protocol and port in the project policy.
-   Use the [rule contracts](../../../01-architecture/05-networking/01-firewall-policy.md#rule-contracts).
+<a id="step-1-preserve-recovery-and-define-rules"></a>
 
-## Step 2: Apply a pilot policy
+## Step 1: Preserve recovery access
 
-1. Create the selected endpoint/port objects in the gateway's policy editor.
-2. Add those scoped allows before terminal denies. Keep console access open.
-3. Apply to one pilot subnet; test same-zone, gateway-local and IPv6 paths as well
-   as routed traffic. Use the [UniFi field guide](unifi.md#apply-the-policy) for that platform.
+Export the current gateway configuration and test local console/recovery access before changes.
+
+## Step 2: Record the required flows
+
+Inventory routing, NAT/VPN rules, gateway services and IPv6. Record every required source,
+destination, protocol and port in the project policy, using the
+[rule contracts](../../../01-architecture/05-networking/01-firewall-policy.md#rule-contracts).
+
+<a id="step-2-apply-a-pilot-policy"></a>
+
+## Step 3: Configure scoped rules
+
+In the **gateway policy editor**, create the selected endpoint/port objects and scoped allows
+before terminal denies. Keep console access open. The [UniFi field reference](unifi.md#apply-the-policy)
+explains that platform's fields; it is not another commissioning workflow to repeat.
 
 ### Proxmox guest interfaces
 
@@ -34,7 +44,14 @@ before enabling filtering. Cache guests also need their accepted proxy and VRRP
 paths. Keep console access and test one pilot guest first. The NIC change does
 not install those rules or enable the cluster firewall.
 
-## Step 3: Verify and continue
+## Step 4: Apply to a pilot subnet
+
+Apply the selected gateway policy to one pilot subnet. Preserve management access and test
+same-zone, gateway-local and IPv6 paths as well as routed traffic before expanding the rollout.
+
+<a id="step-3-verify-and-continue"></a>
+
+## Step 5: Verify accepted paths
 
 Run the relevant checks below from approved and unapproved source networks.
 Record actual results rather than treating rule names as proof.
@@ -57,10 +74,14 @@ identity, ingress and hosted runners are not Foundation acceptance prerequisites
 | denied IPv4 path tested with IPv6 | also denied, or IPv6 unavailable by design |
 | connected system seeking an offline-custody route | no path exists |
 
+## Step 6: Record and continue
+
 After pilot checks pass, export the reviewed configuration, move the remaining selected
 networks and remove temporary access. Keep policy in project architecture and exports/test
 evidence in project operating records. Return to
-[foundation host/network preparation](../README.md#before-starting-hosts-and-networks).
+[Foundation Step 2: manual Linux template](../README.md#step-2-create-the-first-linux-template-manually).
+Do not repeat gateway commissioning or host installation. Later guest-dependent rules/tests stay
+with the owning deployment; their services do not need to exist for Foundation acceptance.
 
 ## References
 

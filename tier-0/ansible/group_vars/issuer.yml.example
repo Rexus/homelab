@@ -1,5 +1,6 @@
 # Copy to ansible/group_vars/issuer.yml; pass with --ansible-vars.
 # Input contract and production bundle: docs/08-reference/openxpki.md
+# Service DNS: docs/02-conventions/service-dns.md
 openxpki_deployment_id: infrastructure-ca-1
 openxpki_data_mount: /srv/openxpki
 # Stable identity of the dedicated scsi1 disk in the ca-1 Terraform inputs.
@@ -14,7 +15,8 @@ openxpki_package_versions:
   openxpki-cgi-session-driver: REPLACE_WITH_EXACT_PACKAGE_VERSION
   openxpki-i18n: REPLACE_WITH_EXACT_PACKAGE_VERSION
 openxpki_realm: infrastructure
-openxpki_portal_fqdn: "{{ platform_fqdn }}"
+# Issue the portal certificate for this service name; the host identity remains ca-1.
+openxpki_portal_fqdn: "ca.{{ platform_domain }}"
 openxpki_listen_address: "{{ ansible_host }}"
 openxpki_admin_networks: [10.10.10.0/24]
 openxpki_publication_networks: [10.0.0.0/8]

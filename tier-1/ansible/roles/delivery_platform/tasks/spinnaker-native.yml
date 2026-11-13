@@ -16,6 +16,12 @@
 - name: Check native reference inputs before generating resources
   ansible.builtin.import_tasks: spinnaker-native-preflight.yml
 
+- name: Render the optional owned NAS storage contract without cluster changes
+  ansible.builtin.include_tasks: spinnaker-backup-provision.yml
+  vars:
+    spinnaker_backup_storage_action: render
+  when: delivery_platform_spinnaker_backup_backend == 'filesystem'
+
 - name: Prepare private reproducible native source output
   ansible.builtin.file:
     path: "{{ spinnaker_native_directory }}/base"
@@ -98,7 +104,12 @@
 
 - name: Bind the complete native reference and destination contracts to one review output
   ansible.builtin.set_fact:
-    delivery_platform_spinnaker_render: "{{ spinnaker_native_application_render }}\n---\n{{ spinnaker_native_accounts_render }}"
+    # The comment binds separate owned-storage bytes without admitting cluster-scoped kinds to application apply.
+    delivery_platform_spinnaker_render: >-
+      {{ spinnaker_native_application_render ~ '\n---\n' ~ spinnaker_native_accounts_render
+         ~ ('\n# Managed backup storage SHA256: ' ~ (backup_repository_storage_render | hash('sha256')) ~ '\n'
+            if delivery_platform_spinnaker_backup_backend == 'filesystem'
+               and delivery_platform_spinnaker_backup_storage.get('mode', 'existing') == 'static_nfs' else '') }}
     spinnaker_native_generated_secrets: {}
     delivery_platform_spinnaker_spec:
       namespace: "{{ delivery_platform_spinnaker_namespace }}"

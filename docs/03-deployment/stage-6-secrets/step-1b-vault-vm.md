@@ -7,28 +7,13 @@ Run repository scripts from this root; paths below are repository-relative.
 
 **Branch from:** [Step 1](README.md#step-1-deploy-the-secret-service), instead of deploying the cluster instance.
 **Change:** Use the supplied VM-based secret-service deployment.
-**Return:** [Step 1](README.md#step-1-deploy-the-secret-service) for secret-service acceptance before the operational tools and access checks.
+**Return:** [Action 9](README.md#step-9-install-independent-recovery-copies) for scheduled recovery copies and the common acceptance gates; do not run the Kubernetes installation.
 
 **Design:** [secret-service responsibilities](../../01-architecture/08-cryptography/README.md).
 
-## Table of contents
+<a id="figure-vault-vm"></a>
 
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [Step 1: Configure inputs](#configuration)
-- [IaC used for this](#iac-used-for-this)
-- [Step 2: Deploy](#plan-and-deploy)
-- [Step 3: Initialize and unseal](#operator-bootstrap)
-- [Step 4: Configure audit and SSO](#step-4-configure-audit-and-sso)
-- [After deployment](#after-deployment)
-- [Later hardening](#later-hardening)
-- [Read more](#read-more)
-- [References](#references)
-
-## Purpose
-
-Use this guide after identity, DNS, and PKI are available to
-deploy Vault as the shared secret-platform service.
+## Expected outcome: dedicated Vault runtime
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -59,13 +44,34 @@ flowchart LR
   class Recovery custody
 ```
 
-**IaC:** Tier 0 [VM inputs](../../../tier-0/terraform/deployments/vault/terraform.tfvars.example)
+**IaC:** *Figure: The VM installer leaves Vault sealed on its local Raft disk. Authorized custodians initialize and
+unseal it using independently retained recovery material.*
+Tier 0 [VM inputs](../../../tier-0/terraform/deployments/vault/terraform.tfvars.example)
 and [Vault recipe](../../../tier-0/ansible/playbooks/deployment/vault-vm.yml).
 Initialization, unseal and independent share custody are manual operations after installation.
 
-Figure: Vault is deployed after the identity and PKI layer exists and
-becomes the handoff point from first-run secrets to the long-term secret
-platform.
+## Table of contents
+
+- [Purpose](#purpose)
+- [Prerequisites](#prerequisites)
+- [Step 1: Configure inputs](#configuration)
+- [IaC used for this](#iac-used-for-this)
+- [Step 2: Deploy](#plan-and-deploy)
+- [Step 3: Initialize and unseal](#operator-bootstrap)
+- [Step 4: Configure audit and SSO](#step-4-configure-audit-and-sso)
+- [After deployment](#after-deployment)
+- [Later hardening](#later-hardening)
+- [Read more](#read-more)
+- [References](#references)
+
+## Purpose
+
+Use this guide after identity, DNS, and PKI are available to
+deploy Vault as the shared secret-platform service.
+
+
+The [dedicated Vault figure](#figure-vault-vm) shows the sealed service installed after identity and PKI.
+Initialization, audit/SSO configuration and recovery acceptance follow in separate numbered steps.
 
 <a id="before-you-start"></a>
 
@@ -170,6 +176,8 @@ and Proxmox tags.
 <a id="plan-and-deploy"></a>
 
 ## Step 2: Deploy
+
+Check the selected VM and local Raft placement against the [Vault runtime figure](#figure-vault-vm).
 
 Prepare the TLS files and local inputs above, then deploy:
 

@@ -2,8 +2,70 @@
 
 **Working repository:** `<prefix>-tier-1`.
 **Branch from:** [Step 2](README.md#step-2-select-and-qualify-delivery).
-**Return:** to Step 2 controller acceptance, then Step 3 artifact supply.
+**Return:** after configuring this choice, [Action 3](README.md#step-3-choose-the-secret-owner);
+qualify the installed controller at [Action 7](README.md#step-7-accept-controller-authorization-and-recovery).
 **Change:** install native Spinnaker release pipelines instead of Argo CD application GitOps.
+
+Install the release services and their SQL/Redis state in the accepted Tier 1 cluster.
+The reference below selects a commissioned NAS file repository for independent backup exports.
+
+<a id="figure-spinnaker-installation"></a>
+
+## Expected outcome: Spinnaker with file backups
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":40,"padding":12,"wrappingWidth":380,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T1["Tier 1 delivery / Kubernetes / spinnaker namespace"]
+    direction TB
+      Apps["8 Deployments / 7 Envoy TLS sidecars<br/>clouddriver, deck, echo, fiat<br/>front50, gate, orca, rosco"]
+      SQL["spinnaker-mysql / 1 StatefulSet<br/>5 schemas: clouddriver, echo, fiat, front50, orca<br/>1 retained data PVC"]
+      Redis["spinnaker-redis / 1 StatefulSet<br/>AOF persistence / 1 retained data PVC"]
+      Init["spinnaker-databases<br/>1 SQL provisioning Job"]
+      subgraph Recovery["Backup export resources"]
+        direction LR
+        Backup["spinnaker-backup / 1 CronJob<br/>spinnaker-backup-verify / 1 Job<br/>SQL then RDB then restic; Envoy per pod<br/>Existing spinnaker-nas-repository PVC"]
+        Stage[("1 backup staging PVC<br/>Not an independent copy")]
+        Backup -.->|"Staging attachment"| Stage
+      end
+      Apps -->|"5 services / SQL TLS"| SQL
+      Apps -->|"Authenticated Redis / verified TLS"| Redis
+      Init -->|"Schema-local users / TLS"| SQL
+      SQL -->|"SQL export / TLS"| Recovery
+      Redis -->|"RDB export / TLS"| Recovery
+  end
+  subgraph T0["Tier 0 / Existing service interfaces only"]
+    direction LR
+    NAS[("Existing NAS / backup file area<br/>Dedicated spinnaker restic directory<br/>Retained PV / direct file interface")]
+    IdP["Existing Keycloak / OIDC<br/>Spinnaker client and group claims"]
+    NAS ~~~ IdP
+  end
+  T1 -->|"Gate to Keycloak / OIDC HTTPS / client credential"| T0
+  T1 -->|"Encrypted restic files / node NFS"| T0
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class T1,Apps,Backup,Init services
+  class Recovery runtime
+  class T0,IdP control
+  class SQL,Redis,Stage,NAS data
+```
+
+**IaC:** *Figure: Eight application services use one MySQL and one Redis instance. Backup exports reach the existing
+NAS through a commissioned file repository; staging is not an independent copy.*
+[Tier 1 inputs](../../../tier-1/ansible/group_vars/delivery_platform.yml.example),
+[native reference](../../../tier-1/ansible/roles/delivery_platform/tasks/spinnaker-native.yml),
+[persistence](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/persistence.yml.j2),
+[backup resources](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/backup.yml.j2)
+and [staged apply](../../../tier-1/ansible/roles/delivery_platform/tasks/spinnaker-native-apply.yml).
+The view shows application and export resources after repository commissioning;
+the transient filesystem commissioning Job runs before data services start.
+**Prerequisites:** [existing NAS storage](../foundation/storage/README.md#use-nas-file-storage)
+and Keycloak retain their existing owners. Only the commissioned file PVC and OIDC
+interface are consumed, never Tier 0 control credentials. No NAS gateway is added.
+
 **Prerequisites:** accepted Tier 1 cluster, storage, private DNS, Traefik,
 preissued TLS Secrets and Keycloak. An independently commissioned cert-manager issuer
 is an explicit alternative, not a prerequisite silently supplied by OpenXPKI.
@@ -54,72 +116,18 @@ decision when upstream changes SQL engines, auth/configuration, Redis client TLS
 packaging or supported Kubernetes versions. Argo CD remains a separate explicit
 alternative; `none` selects Harbor only.
 
-The fresh example and following realization select **`filesystem` on an existing
+The fresh example and [installation figure](#figure-spinnaker-installation) select **`filesystem` on an existing
 NAS backup file area**; they show configured resources, not live acceptance. The
 role retains `s3` when older inputs omit the selector; that is a separate storage
 choice under [backup storage](#choose-backup-storage). Cluster ingress/DNS,
 the NAS PVC and leaf certificates are existing prerequisites. The installer commissions
 the selected repository from the inputs below.
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":40,"padding":12,"wrappingWidth":380,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T1["Tier 1 delivery / Kubernetes / spinnaker namespace"]
-    direction TB
-      Apps["8 Deployments / 7 Envoy TLS sidecars<br/>clouddriver, deck, echo, fiat<br/>front50, gate, orca, rosco"]
-      SQL["spinnaker-mysql / 1 StatefulSet<br/>5 schemas: clouddriver, echo, fiat, front50, orca<br/>1 retained data PVC"]
-      Redis["spinnaker-redis / 1 StatefulSet<br/>AOF persistence / 1 retained data PVC"]
-      Init["spinnaker-databases<br/>1 SQL provisioning Job"]
-      subgraph Recovery["Backup export resources"]
-        direction LR
-        Backup["spinnaker-backup / 1 CronJob<br/>spinnaker-backup-verify / 1 Job<br/>SQL then RDB then restic; Envoy per pod<br/>Existing spinnaker-nas-repository PVC"]
-        Stage[("1 backup staging PVC<br/>Not an independent copy")]
-        Backup -.->|"Staging attachment"| Stage
-      end
-      Apps -->|"5 services / SQL TLS"| SQL
-      Apps -->|"Authenticated Redis / verified TLS"| Redis
-      Init -->|"Schema-local users / TLS"| SQL
-      SQL -->|"SQL export / TLS"| Recovery
-      Redis -->|"RDB export / TLS"| Recovery
-  end
-  subgraph T0["Tier 0 / Existing service interfaces only"]
-    direction LR
-    NAS[("Existing NAS / backup file area<br/>Dedicated spinnaker restic directory<br/>Retained PV / direct file interface")]
-    IdP["Existing Keycloak / OIDC<br/>Spinnaker client and group claims"]
-    NAS ~~~ IdP
-  end
-  T1 -->|"Gate to Keycloak / OIDC HTTPS / client credential"| T0
-  T1 -->|"Encrypted restic files / node NFS"| T0
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T1,Apps,Backup,Init services
-  class Recovery runtime
-  class T0,IdP control
-  class SQL,Redis,Stage,NAS data
-```
-**IaC:** [Tier 1 inputs](../../../tier-1/ansible/group_vars/delivery_platform.yml.example),
-[native reference](../../../tier-1/ansible/roles/delivery_platform/tasks/spinnaker-native.yml),
-[persistence](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/persistence.yml.j2),
-[backup resources](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/backup.yml.j2)
-and [staged apply](../../../tier-1/ansible/roles/delivery_platform/tasks/spinnaker-native-apply.yml).
-The view shows application and export resources after repository commissioning;
-the transient filesystem commissioning Job runs before data services start.
-**Prerequisites:** [existing NAS storage](../foundation/storage/README.md#use-nas-file-storage)
-and Keycloak retain their existing owners. Only the commissioned file PVC and OIDC
-interface are consumed, never Tier 0 control credentials. No NAS gateway is added.
 
 ## Step 1: Prepare Local Inputs
 
-From the **Tier 1 root**, create the local settings without replacing existing inputs:
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
-```
+Use the existing local settings created by [Stage 7 Action 2](README.md#step-2-create-and-configure-the-selected-controller).
+This page supplies the Spinnaker-specific contract; it creates no second input file.
 
 Edit in **`<prefix>-tier-1/`**.
 
@@ -128,7 +136,7 @@ Edit in **`<prefix>-tier-1/`**.
 
 Edit `ansible/group_vars/delivery_platform.yml` using the table below. Set the
 existing Tier 1 kubeconfig/context explicitly; keep `delivery_platform_install_harbor: false`
-for this controller-only pass. Both delivery branches return to Stage 7 Step 3.
+for this controller-only pass. Both delivery branches return to Stage 7 Action 3 before installation.
 
 Follow the [common installer prerequisites](procedures/delivery-installer.md#prerequisites)
 and populate the ignored local copy of
@@ -263,29 +271,36 @@ This native reference does not register remote Tier 2 clusters or Tier 0 targets
 ## Choose Backup Storage
 
 The fresh example sets `delivery_platform_spinnaker_backup_backend: filesystem`.
-Existing inputs keep `s3` when the selector is omitted. Both modes consume already
-commissioned storage interfaces, export SQL/RDB through the staging PVC, encrypt with restic,
+Existing inputs keep `s3` when the selector is omitted. Both modes consume commissioned
+storage interfaces, export SQL/RDB through the staging PVC, encrypt with restic,
 then verify all repository data before removing successful staging. [7]
 
 | Backend | Required existing storage and inputs |
 | --- | --- |
-| `filesystem` | Dedicated NAS export/dataset via a preprovisioned PVC in the Spinnaker namespace; inputs below |
+| `filesystem` | Dedicated NAS export/dataset via a managed or accepted existing PVC in the Spinnaker namespace; inputs below |
 | `s3` (default) | Native HTTPS object endpoint, private bucket/prefix, public CA and scoped key; existing `backup_s3_endpoint`, `backup_s3_bucket`, `backup_s3_region`, `backup_s3_prefix`, `backup_ca_pem` and `backup_egress` inputs retain their meaning (all prefixed `delivery_platform_spinnaker_`) |
 
 ### Direct NAS File Repository
 
-The storage owner commissions a dedicated NAS NFS export or NAS-backed file CSI
-volume, outside the cluster's data lifecycle, and creates its namespace, PV and PVC
-before apply. The role requires a Bound filesystem claim, an exact PV claim binding,
+The storage owner commissions a dedicated NAS NFS export outside the cluster's data lifecycle.
+In **Tier 1 `ansible/group_vars/delivery_platform.yml`**, choose the claim route:
+
+- **New claim:** set `delivery_platform_spinnaker_backup_storage.mode: static_nfs` and its `server`,
+  `share`, `size`, unique `volume_handle`. The accepted NFS CSI driver must be installed.
+  The normal render/apply lifecycle creates only its namespace and retained, prebound backup PV/PVC.
+- **Accepted existing claim:** keep `delivery_platform_spinnaker_backup_storage: {mode: existing}`;
+  preserve the existing storage owner and claim. A NAS-backed file CSI volume is also accepted here.
+
+The role requires a Bound filesystem claim, an exact PV claim binding,
 `Retain` reclaim policy and a writable NFS/CSI source. It rejects local/hostPath PVs;
 the operator must verify a CSI driver's actual remote NAS backing. The role never
-creates, formats or deletes the NAS volume. It can initialize only an absent child
+formats or deletes the NAS volume. It can initialize only an absent child
 repository when explicitly enabled; existing repositories are validated. [8]
 
 | Full input prefix: `delivery_platform_spinnaker_backup_` | Filesystem value |
 | --- | --- |
 | `backend` | `filesystem` |
-| `filesystem_claim` | Existing PVC name, distinct from SQL, Redis and `spinnaker-backup` staging |
+| `filesystem_claim` | Managed or accepted existing PVC name, distinct from SQL, Redis and `spinnaker-backup` staging |
 | `filesystem_repository` | One directory name under the PVC root; default `spinnaker`; no slashes or traversal |
 | `filesystem_marker` | Exact 32-128 character ASCII alphanumeric/underscore/hyphen identity in `<repository>/.spinnaker-backup-repository` |
 | `filesystem_initialize` | `false` by default; explicitly select `true` only for a new, absent repository directory |
@@ -344,7 +359,11 @@ does not establish independent failure domains, immutable retention or recovery 
 
 ## Step 3: Render, Review and Install
 
-Use the [common render command](procedures/delivery-installer.md#render-and-apply).
+Check the selected workload, persistence and export scope against the
+[Spinnaker installation figure](#figure-spinnaker-installation) before running the staged installer.
+
+For first installation, use [Stage 7 Actions 3-6](README.md#step-3-choose-the-secret-owner) in order.
+The main page supplies Secret-owner, render, checksum and apply commands; this section explains their output.
 Native rendering is offline: the supplied base, product configuration, dependencies
 and scoped target contracts are all included. The output directory contains:
 
@@ -372,7 +391,8 @@ Apply rebuilds and checks
 the checksum before cluster access, validates credential fields and OIDC discovery,
 and then executes this dependency order:
 
-1. In filesystem mode validate the existing NAS PVC/PV binding and retention first.
+1. In filesystem mode prepare explicitly managed backup PV/PVC resources, or retain the accepted existing claim;
+   validate the actual binding and retention before repository jobs.
    Check StorageClass, preissued TLS Secrets (or explicit ready issuer and cert-manager
    CRDs), Traefik CRD/ingress class and server version before resource changes.
 2. Create selected namespaces; provision explicitly owned credentials, public trust
@@ -418,7 +438,7 @@ Keep bootstrap sources independent until GitLab source migration is accepted.
 When following this paragraph from Stage 9, return to
 [GitLab acceptance](../stage-9-development/procedures/gitlab.md#acceptance-and-recovery) after the
 selected pipeline/worker installation. The following Stage 7 return is for initial controller commissioning.
-**Return:** [Step 3](README.md#step-3-connect-approved-artifact-supply).
+**Return after initial acceptance:** [Stage 7 Action 8](README.md#step-8-select-and-configure-artifact-supply).
 
 ## Maintenance and Recovery
 

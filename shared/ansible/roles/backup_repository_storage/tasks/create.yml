@@ -1,0 +1,46 @@
+---
+- name: Create only the absent caller namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ backup_repository_storage_kubeconfig }}"
+    context: "{{ backup_repository_storage_context | default(omit, true) }}"
+    validate_certs: true
+    definition: "{{ backup_repository_storage_documents[0] }}"
+    state: present
+    force: false
+  when: backup_repository_storage_prerequisites.results[1].resources | length == 0
+
+- name: Reserve only the absent retained PV for this exact claim
+  kubernetes.core.k8s:
+    kubeconfig: "{{ backup_repository_storage_kubeconfig }}"
+    context: "{{ backup_repository_storage_context | default(omit, true) }}"
+    validate_certs: true
+    definition: "{{ backup_repository_storage_documents[1] }}"
+    state: present
+    force: false
+  when: backup_repository_storage_existing_volumes | length == 0
+
+- name: Create only the absent backup repository claim
+  kubernetes.core.k8s:
+    kubeconfig: "{{ backup_repository_storage_kubeconfig }}"
+    context: "{{ backup_repository_storage_context | default(omit, true) }}"
+    validate_certs: true
+    definition: "{{ backup_repository_storage_documents[2] }}"
+    state: present
+    force: false
+  when: backup_repository_storage_existing_claim.resources | length == 0
+
+- name: Require binding before the consumer qualifies NAS custody
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ backup_repository_storage_kubeconfig }}"
+    context: "{{ backup_repository_storage_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ backup_repository_storage_namespace }}"
+    name: "{{ backup_repository_storage_claim }}"
+  register: backup_repository_storage_bound
+  until: >-
+    backup_repository_storage_bound.resources | length == 1 and
+    backup_repository_storage_bound.resources[0].get('status', {}).get('phase') == 'Bound'
+  retries: 60
+  delay: 5

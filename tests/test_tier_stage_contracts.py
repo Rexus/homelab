@@ -73,7 +73,7 @@ class StageContracts(TierRepositoryTestCase):
             self.assertEqual(len(stages), 10)
             for stage in stages:
                 content = stage.read_text()
-                opening = content.split("## Main path", 1)[0]
+                opening = re.split(r"(?m)^## Step \d+:", content, maxsplit=1)[0]
                 self.assertIn("**Automation:**", opening, str(stage))
                 self.assertIn("implementation-support.md#stage-coverage", opening, str(stage))
             support = (docs / "08-reference/implementation-support.md").read_text()
@@ -90,16 +90,20 @@ class StageContracts(TierRepositoryTestCase):
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             software = (docs / "03-deployment/stage-3-trust/procedures/software-pki.md").read_text()
             self.assertIn('id="complete-identity-and-acceptance"', software)
-            self.assertIn("## Step 5: Accept the issuer and continue", software)
-            self.assertIn("In Stage 5", software)
-            self.assertIn("not a Stage 3 acceptance dependency", software)
+            self.assertIn("(../README.md)", software)
+            issuer = (docs / "03-deployment/stage-3-trust/README.md").read_text()
+            self.assertIn("## Step 14: Accept issuance and recovery", issuer)
+            self.assertIn("sibling FreeIPA CA ceremony in Stage 5", issuer)
+            prerequisites = issuer.split("**Prerequisites:**", 1)[1].split("**Working repository:**", 1)[0]
+            self.assertNotIn("stage-5-identity", prerequisites)
+            self.assertIn("../stage-4-kubernetes/README.md", issuer)
             migration = docs / "05-operations/03-cryptography/hardware-migration.md"
             self.assertTrue(migration.is_file())
             self.assertFalse((docs / "01-architecture/cryptography/hardware-migration.md").exists())
             self.assertIn('id="qualify-and-roll-over"', migration.read_text())
             alternative = (docs / "03-deployment/stage-8-observability/step-1b-dedicated-vms.md").read_text()
-            self.assertIn("README.md#step-3-connect-infrastructure-monitoring", alternative)
-            self.assertIn("Do not run Step 2's Kubernetes installer on these VMs", alternative)
+            self.assertIn("README.md#step-13-extend-infrastructure-collection", alternative)
+            self.assertIn("Skip the main guide's Kubernetes Actions 2-12", alternative)
             self.assertIn("tasks/netdata.yml", alternative)
             self.assertRegex(alternative, r"(?m)^\| Diagnostic parents \| `otel-1`, `otel-2` \|")
             self.assertRegex(alternative, r"(?m)^\| Diagnostic children \| `metric-1/2`, `search-1/2/3` \|")

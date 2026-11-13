@@ -7,3 +7,5 @@ hvac>=2.3.0,<3.0.0
 cryptography>=43.0.0
 proxmoxer>=2.3.0,<3.0.0
 requests>=2.32.0,<3.0.0
+# Optional NetBox audit-account bootstrap runs native modules on the controller.
+pynetbox>=7.5.0,<8

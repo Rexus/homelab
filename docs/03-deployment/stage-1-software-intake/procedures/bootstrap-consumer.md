@@ -1,9 +1,10 @@
-# Step 6: Connect the bootstrap host to accepted software intake
+# Reconfigure bootstrap software intake
 
 <a id="connect-the-bootstrap-host-to-accepted-software-intake"></a>
 
-**Continue from:** [Stage 1, Step 6](README.md#step-6-connect-the-bootstrap-host).
-**Return:** [Step 7](README.md#step-7-connect-proxmox-host-updates) after the selected consumer path passes.
+For first installation, stay on [Stage 1, Steps 10–17](../README.md#step-10-configure-bootstrap-intake).
+Use this reusable procedure when changing the accepted route later or recovering its configuration.
+Return to the requesting task after verification; no cache VM or bootstrap recreation is required.
 
 Configure the manually created `boot-1` after the Stage 1 supply is accepted.
 Use an internal policy proxy or commissioned native mirrors for subsequent updates;
@@ -11,7 +12,7 @@ temporary acquisition access is not the permanent update path.
 
 **Working repository:** `<prefix>-tier-0`, on `boot-1` itself. The sibling Shared repository supplies
 the reusable tasks. This local play creates no guest, inventory entry or Terraform state.
-**Prerequisites:** the [prepared bootstrap environment](../foundation/bootstrap/README.md),
+**Prerequisites:** the [prepared bootstrap environment](../../foundation/bootstrap/README.md),
 its accepted Ansible installation and `community.general` collection, sudo access, working DNS/CA trust,
 and a tested Stage 1 endpoint reachable from the bootstrap network.
 
@@ -28,7 +29,7 @@ and a tested Stage 1 endpoint reachable from the bootstrap network.
 ## 1. Verify the software source
 
 From `boot-1`, verify the chosen source using the
-[explicit proxy retrieval and policy checks](README.md#step-5-test-the-selected-intake-path),
+[explicit proxy retrieval and policy checks](../README.md#step-5-test-the-selected-intake-path),
 or the commissioned native-mirror checks. Continue when approved retrieval and access policy work.
 
 ## 2. Configure the local inputs
@@ -111,7 +112,7 @@ Use hostnames or IPs without `http://`, `https://` or a path.
 ### 2b. Native mirrors or disconnected supply
 
 Commission and test native client configurations first, using the
-[offline preparation workflow](../foundation/bootstrap/step-3e-bootstrap-offline.md#use-approved-sources-after-bootstrap)
+[offline preparation workflow](../../foundation/bootstrap/step-3e-bootstrap-offline.md#use-approved-sources-after-bootstrap)
 for retained artifacts and tool configuration. Then set:
 
 ```yaml
@@ -127,7 +128,7 @@ Retain verified package signatures, TLS trust, provider lockfiles and independen
 ## 3. Apply the local configuration
 
 Use the accepted Ansible installation; activate the venv only if that installation path was selected.
-Verify [bootstrap sudo access](../foundation/bootstrap/README.md#verify-sudo-access) first.
+Verify [bootstrap sudo access](../../foundation/bootstrap/README.md#verify-sudo-access) first.
 For disconnected execution, source the prepared `offline.env`.
 The precheck below validates installed collections without attempting acquisition:
 
@@ -146,10 +147,10 @@ only explicitly selected DNF source sections are edited; publisher-key choices r
 The play uses sudo through `become: true`; no password prompt is needed with authorized
 passwordless sudo. Add `--ask-become-pass` (`-K`) only when sudo requires an account password.
 
-**IaC:** Tier 0 [inputs](../../../tier-0/ansible/group_vars/bootstrap.yml.example) and
-[local play](../../../tier-0/ansible/playbooks/deployment/bootstrap-software-intake.yml);
-Shared [package proxy tasks](../../../shared/ansible/roles/baseline/tasks/repository_proxy.yml)
-and [shell proxy tasks](../../../shared/ansible/roles/baseline/tasks/shell_proxy.yml).
+**IaC:** Tier 0 [inputs](../../../../tier-0/ansible/group_vars/bootstrap.yml.example) and
+[local play](../../../../tier-0/ansible/playbooks/deployment/bootstrap-software-intake.yml);
+Shared [package proxy tasks](../../../../shared/ansible/roles/baseline/tasks/repository_proxy.yml)
+and [shell proxy tasks](../../../../shared/ansible/roles/baseline/tasks/shell_proxy.yml).
 Configuration is applied locally with sudo, without enrolling `boot-1` as a managed guest.
 
 <a id="4-verify-and-retire-temporary-egress"></a>
@@ -181,31 +182,31 @@ For Debian/Ubuntu, use this block instead:
 sudo apt-get -o APT::Update::Error-Mode=any update
 ```
 
-Repeat the [explicit retrieval and policy checks](README.md#step-5-test-the-selected-intake-path) from the bootstrap network.
+Repeat the [explicit retrieval and policy checks](../README.md#step-5-test-the-selected-intake-path) from the bootstrap network.
 Verify required pip, Git, Terraform and artifact access with their commissioned configurations.
-Approve the [default pinned Git collection sources](../../08-reference/control-node-tooling.md#collection-sources).
+Approve the [default pinned Git collection sources](../../../08-reference/control-node-tooling.md#collection-sources).
 Only when selecting Galaxy, also run its
-[API and artifact download check](../../08-reference/control-node-tooling.md#galaxy-through-a-policy-proxy);
+[API and artifact download check](../../../08-reference/control-node-tooling.md#galaxy-through-a-policy-proxy);
 the cache must allow both destinations even when a collection is already installed.
 A login-shell proxy alone does not configure every tool or CI service.
 HTTPS Git remotes normally use these proxy variables; SSH remotes need their own permitted SSH path. [4]
 
 **Expected:** approved package and tool retrieval succeeds. Stop if any required source fails.
-Review [repository-specific verification settings](../../08-reference/proxy-cache.md#consumer-verification-and-failure-behavior)
+Review [repository-specific verification settings](../../../08-reference/proxy-cache.md#consumer-verification-and-failure-behavior)
 before accepting the path; global defaults cannot override a deliberately weakened repository entry.
 
 ## 6. Retire temporary egress
 
 Remove the temporary bootstrap WAN allowance using the approved
-[firewall rules](../../01-architecture/05-networking/01-firewall-policy.md#rule-contracts).
+[firewall rules](../../../01-architecture/05-networking/01-firewall-policy.md#rule-contracts).
 Repeat **5**'s retrieval checks and the direct-WAN denial check from Stage 1.
 This play changes no firewall rules.
 
 **Accepted:** updates use the selected internal supply with direct-WAN bypass denied.
 Keep the independent full-VM backup, ignored inputs and offline recovery bundle; the accepted
 cache/mirrors must not become prerequisites for recovering `boot-1`.
-Return to [Stage 1, Step 7](README.md#step-7-connect-proxmox-host-updates) to connect Proxmox hosts
-before completing the stage.
+Return to the requesting maintenance/cutover task. During first installation, the equivalent
+actions remain on [the main page](../README.md#step-10-configure-bootstrap-intake).
 
 ## Stop or restore the previous configuration
 

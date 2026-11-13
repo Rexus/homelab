@@ -12,7 +12,7 @@ class ProxmoxGuides(TierRepositoryTestCase):
             ha = (docs / "03-deployment/foundation/proxmox/step-1b-cluster-ha.md").read_text()
             for term in ("Proxmox VE 9+", "9.2+ native HA", "fenced", "cold restart",
                          "HA-managed resources only", "does not create the host cluster",
-                         "(failover.md)", "08-reference/proxmox-ha.md", "(step-4c-proxlb.md)"):
+                         "(failover.md)", "08-reference/proxmox-ha.md", "(step-10b-proxlb.md)"):
                 self.assertIn(term, ha)
             reference = (docs / "08-reference/proxmox-ha.md").read_text()
             for field in ("Max. Restart", "Max. Relocate", "Failback", "Auto-Rebalance",
@@ -21,7 +21,7 @@ class ProxmoxGuides(TierRepositoryTestCase):
                           "Imbalance Threshold", "Hold Duration", "Minimum Imbalance Improvement",
                           "Rebalancing Method", "Disarm"):
                 self.assertIn(field, reference)
-            alternative = (docs / "03-deployment/foundation/proxmox/step-4c-proxlb.md").read_text()
+            alternative = (docs / "03-deployment/foundation/proxmox/step-10b-proxlb.md").read_text()
             self.assertIn("plb_ignore_<purpose>", alternative)
             self.assertIn("does **not** enroll guests", alternative)
             self.assertIn("--dry-run", alternative)

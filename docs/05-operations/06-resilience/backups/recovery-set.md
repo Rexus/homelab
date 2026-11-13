@@ -41,7 +41,7 @@ owners, versions, backup IDs/times and integrity records. Record unused capabili
   Record compatible recovery points; etcd is not a persistent-volume backup.
 - [ ] **Selected hardware signing:** original public SPKI/object/serial records, approved provider/plugin
   artifacts and native device-recovery material under independent custody. For the optional
-  [signing API](../../../03-deployment/stage-6-secrets/step-1d-openbao.md#6-accept-operation-and-independent-recovery),
+  [signing API](../../../03-deployment/stage-6-secrets/step-11b-openbao.md#6-accept-operation-and-independent-recovery),
   retain its separate state, shares, snapshot and policy inputs; application snapshots do not contain HSM keys.
 - [ ] **Protected evidence:** log archives, integrity/source catalogues and the independent offline
   reader/key kit. A disposable search index is not the retained security record.

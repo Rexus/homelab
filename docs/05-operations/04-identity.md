@@ -88,7 +88,7 @@ instead of describing that project as ordinary Tier 1 application automation.
    reviewed groups. Configure each application's group/role mapping; a successful OIDC login
    alone grants no permission. Verify one permitted action and an unrelated denied action.
 2. For developers, bind only the intended source project, namespace, runner and
-   [approved log scope](../03-deployment/stage-8-observability/step-4b-protected-log-search.md).
+   [approved log scope](../03-deployment/stage-8-observability/step-14b-protected-log-search.md).
    Keep shared administrative accounts and credentials out of routine work.
 3. Test a new login, the intended operation and another team's denied operation; record exact
    group/role mappings and the service-specific revocation procedure in project administration.

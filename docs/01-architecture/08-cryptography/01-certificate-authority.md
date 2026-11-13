@@ -1,23 +1,9 @@
 # Certificate authority design
 
-**Deploy:** [Cryptographic trust](../../03-deployment/stage-3-trust/README.md).
-**Operate:** [Cryptographic trust operations](../../05-operations/03-cryptography/README.md).
-
-The infrastructure CA supplies certificate policy, issuance history, renewal and
-revocation independently of identity, Kubernetes and the secret service. The reference
-uses OpenXPKI Community on Tier 0 `ca-1` as the permanent infrastructure issuer and
-certificate portal. A separately controlled offline root establishes the hierarchy;
-FreeIPA retains its own identity CA. Vault remains a secret service, not the intended
-replacement for this issuer.
-
-## Contents
-
-- [Trust hierarchy](#trust-hierarchy)
-- [Service boundaries](#service-boundaries)
-- [Enrollment and publication](#enrollment-and-publication)
-- [Custody and recovery](#custody-and-recovery)
-- [Alternatives and realization](#alternatives-and-realization)
-- [References](#references)
+The infrastructure certificate authority (CA) turns approved names and public keys
+into certificates, with issuance history, renewal and revocation. An offline root
+authorizes online issuers; routine issuance then runs independently of identity,
+Kubernetes and the secret service.
 
 ## Trust hierarchy
 
@@ -34,8 +20,8 @@ block-beta
     T0Title["Tier 0 / CA authority and custody"]:2
     Hosts["Host / identity certificates"]
     Services["Infrastructure certificates"]
-    Identity["Identity issuing CA<br/>Replicated directory runtime"]
-    Infrastructure["Infrastructure issuing CA<br/>Dedicated issuer runtime"]
+    Identity["Identity issuing CA<br/>Directory authority"]
+    Infrastructure["Infrastructure issuing CA<br/>Independent runtime"]
     Root["Offline root CA / separate custody<br/>Authorized subordinate signing; no network route"]:2
   end
   Infrastructure --> Services
@@ -52,8 +38,8 @@ block-beta
   class Root custody
   class Services,Hosts services
 ```
-*Figure: The offline root signs sibling identity and infrastructure issuers; each signs certificates for its
-own consumers.*
+*Figure: The offline root authorizes two sibling issuers. Upward arrows represent certificate
+signing, so neither routine issuance nor shared root trust grants access to the other issuer.*
 
 These arrows represent certificate signing, not network connections. The directory
 pair replicates one identity CA; it does not create an unrelated issuer per host.
@@ -61,18 +47,32 @@ External signing uses FreeIPA's two-phase CA installation interface. [1]
 The infrastructure portal manages infrastructure-issuer records; sharing a root
 does not combine FreeIPA's certificate inventory or administration with that portal.
 
+## Contents
+
+- [Trust hierarchy](#trust-hierarchy)
+- [Service boundaries](#service-boundaries)
+- [Enrollment and publication](#enrollment-and-publication)
+- [Custody and recovery](#custody-and-recovery)
+- [Alternatives and realization](#alternatives-and-realization)
+- [References](#references)
+
 ## Service boundaries
 
-| Function | Reference placement | Boundary |
+The infrastructure issuer applies policy, the signing provider holds its key, and
+the portal exposes authorized certificate workflows. Enrollment adapters translate
+client protocols into a restricted issuer interface. Publication exposes signed
+public objects to verifiers without exposing the key or administrative workflows.
+
+| Function | Intended placement | Boundary |
 | --- | --- | --- |
-| Offline trust | Separately controlled ceremony system; clca | Root key, CA database, subordinate signing and root CRLs; no routine online service [2] |
-| Infrastructure issuance | OpenXPKI backend and portal on Tier 0 `ca-1` / Control | Approved profiles, requests, approvals and certificate lifecycle |
-| Application state | Local MariaDB and protected configuration on `ca-1` | Issuance/workflow history and sessions are recoverable with the signing identity |
-| Identity issuance | FreeIPA on dedicated Tier 0 `idm-1` / `idm-2` VMs | Its own supported CA custody and replication, separate from OpenXPKI |
-| Enrollment adapter | Separate service on `ca-1` when selected | ACME-to-authenticated-RPC translation; no CA policy or root authority |
+| Offline trust | Separately controlled ceremony system | Root key, CA database, subordinate signing and root CRLs; no routine online service [2] |
+| Infrastructure issuance | Independent Tier 0 / Control runtime | Approved profiles, requests, approvals and certificate lifecycle |
+| Application state | Issuer-owned database and protected configuration | Issuance/workflow history and sessions are recoverable with the signing identity |
+| Identity issuance | Dedicated Tier 0 directory runtime | Its own supported CA custody and replication, separate from the infrastructure issuer |
+| Enrollment adapter | Separate service at the issuer, when selected | ACME-to-authenticated-RPC translation; no CA policy or root authority |
 | Public trust objects | Stable Tier 0 publication endpoint, optionally independently mirrored | Signed CA certificates and fresh CRLs only; no signing key or portal administration |
 
-OpenXPKI starts and recovers using local database/configuration, bootstrap resolution,
+The infrastructure issuer starts and recovers using local database/configuration, bootstrap resolution,
 independent administration and its selected key provider. It does not require FreeIPA,
 Keycloak, Vault, cluster ingress or Tier 1/2 services. Optional federated portal login
 retains independently tested recovery access.
@@ -82,25 +82,66 @@ retains independently tested recovery access.
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
-  Operator["Authorized<br/>certificate operator"] -->|Request, approve<br/>renew, revoke| Portal["Tier 0<br/>CA portal"]
-  Clusters["Tier 0 / 1 / 2 cert-manager<br/>Separate authorized identities"] -->|ACME| Bridge["Enrollment adapter<br/>acme2certifier reference"]
-  Portal --> Issuer["Infrastructure<br/>issuing service"]
-  Bridge -->|Authenticated RPC<br/>Restricted profiles| Issuer
-  Issuer -->|Selected signing<br/>interface| Keys["Software or<br/>hardware custody"]
-  Issuer -->|Signed certificates<br/>and CRLs| Publication["Public trust-object<br/>endpoint"]
-  Clients["Certificate verifiers"] -->|Retrieve<br/>public objects| Publication
+  subgraph Access["Separate consumer interfaces"]
+    direction TB
+    Portal["Operator portal"]
+    Bridge["Optional enrollment adapter<br/>Qualified integration"]
+    Publication["Public trust-object endpoint<br/>Certificates and CRLs"]
+  end
+  subgraph Authority["Tier 0 / infrastructure issuer"]
+    direction TB
+    Issuer["Issuance policy<br/>and lifecycle"]
+    Records[("Issuer records")]
+    Issuer -->|Persist| Records
+  end
+  Portal -->|Authorized workflow| Issuer
+  Bridge -->|Authenticated RPC| Issuer
+  Issuer -->|Publish signed objects| Publication
+  Issuer -->|Permitted signing| Keys["Selected key provider<br/>Software or hardware custody"]
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Operator,Clusters,Clients actor
-  class Portal,Issuer control
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Access boundary
+  class Authority,Portal,Issuer control
   class Bridge,Publication services
   class Keys custody
+  class Records data
 ```
-*Figure: Operators and cluster clients use separate enrollment paths to the infrastructure issuer, which signs
-through its selected provider and publishes trust objects for verifiers.*
+*Figure: Portal and adapter requests enter issuer policy; signing depends on the provider to the
+right. Signed trust objects return to a separate publication interface for certificate verifiers.*
+
+The placement view separates access from authority. The sequence below follows one
+authorized leaf request; an operator portal and an automated adapter both reach
+issuer policy through their selected interface. The adapter is optional, separately
+qualified integration work, not an endpoint supplied by the baseline portal installer.
+
+```mermaid
+sequenceDiagram
+  participant Client as Certificate consumer
+  participant Entry as Portal or enrollment adapter
+  participant Issuer as Infrastructure issuer
+  participant Provider as Signing provider
+  rect rgba(57, 115, 102, 0.12)
+  Client->>Entry: Authenticated request and public-key CSR
+  Entry->>Issuer: Request through authorized interface
+  Issuer->>Issuer: Check identity, names, profile and required approval
+  Issuer->>Provider: Sign using approved issuer key
+  Provider-->>Issuer: Signature or explicit error
+  Issuer->>Issuer: Retain issuance and workflow records
+  Issuer-->>Entry: Issued certificate and chain, or failure
+  Entry-->>Client: Enrollment result
+  end
+```
+*Figure: The consumer receives a certificate only after issuer authorization and successful signing;
+the root key is absent from this routine workflow.*
+
+Each tier's enrollment clients contact the infrastructure issuer directly. Renewal
+follows the selected enrollment contract; it does not grant broader names or profiles.
+Verifiers retrieve published CA certificates and fresh certificate revocation lists
+(CRLs) independently of this issuance exchange.
 
 Community enrollment includes SCEP, EST and RPC; native ACME is Enterprise-only. [3]
 The acme2certifier OpenXPKI handler supplies a possible Community ACME adapter, not
@@ -135,12 +176,20 @@ CA or overwrite issuance/revocation state. Image rollback is not database rollba
 
 ## Alternatives and realization
 
+The reference uses OpenXPKI Community as the permanent infrastructure issuer and
+portal, with local MariaDB state and clca for offline root ceremonies. FreeIPA retains its own identity CA
+as the root's sibling issuer. HashiCorp Vault remains a secret service. These choices
+realize the distinct roles in the trust hierarchy rather than replacing one another.
+
 An existing independently operated CA, another qualified issuer or Enterprise native
 ACME can satisfy the same outward contract. Selecting one changes the integration,
 not tier ownership or root custody. The reference OS/package exception and Community
 boundaries belong to the [issuer deployment contract](../../03-deployment/stage-3-trust/procedures/issuer.md).
 The [support map](../../08-reference/implementation-support.md) records installer coverage;
 [CA operations](../../05-operations/03-cryptography/certificate-authority.md) owns maintenance evidence.
+
+Follow [Cryptographic trust](../../03-deployment/stage-3-trust/README.md) for installation
+and [cryptographic trust operations](../../05-operations/03-cryptography/README.md) for ongoing tasks.
 
 ## References
 

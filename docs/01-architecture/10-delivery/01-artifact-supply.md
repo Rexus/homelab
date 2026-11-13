@@ -4,33 +4,52 @@ Source control owns definitions and proposed changes. The registry owns promoted
 artifacts. A distribution layer accelerates pulls but is not the authority for
 which artifact is approved.
 
-[Controlled software intake](../07-software-intake/README.md) covers repository proxy/cache
-access, retained mirrors and offline supply, including updates consumed by Tier 0.
-An HTTP cache is not an OCI registry or a release-promotion authority.
-[Artifact verification](../07-software-intake/01-verification.md) defines optional pre-publication checks and
-quarantine; registry storage or a successful scan alone does not approve a release.
+## Contents
+
+- [Components and variants](#components-and-variants)
+- [Availability and dependencies](#availability-and-dependencies)
+- [References](#references)
 
 ## Components and variants
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
-  Source["Source control / build runners"] --> Registry["Approved registry authority"]
-  Registry --> Direct["Direct consumers"]
-  Registry --> Distribution["Optional distribution acceleration"]
-  Distribution --> Fleet["Cluster / host fleet"]
-  Registry --> Images["OS images and template inputs"]
+  subgraph Clients["Authorized clients"]
+    direction TB
+    Source["Build /<br/>publication job"]
+    Direct["Runtime /<br/>image builder"]
+    Source ~~~ Direct
+  end
+  Registry["Approved<br/>registry<br/>authority"]
+  Clients -->|Publish<br/>candidate| Registry
+  Clients -->|Pull approved<br/>version| Registry
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Registry,Distribution services
-  class Images data
-  class Source,Direct,Fleet actor
+  class Clients boundary
+  class Registry data
+  class Source,Direct actor
 ```
 
-*Figure: Builds publish to an approved registry, which serves consumers and image inputs directly or
-distributes artifacts through optional acceleration.*
+*Figure: Client-boundary links represent candidate publication by the build job and approved-version
+pulls by the runtime or image builder, with separate registry permissions. These are requests to the
+registry authority; candidate publication does not approve a release.*
+
+The direct supply path gives each artifact a version identity that the release policy
+can select. Builds need scoped publication rights; runtimes and image builders need
+only their authorized pull scope. The registry retains content and enforces access,
+while promotion policy determines which version a consumer may use.
+
+External package caches, retained mirrors and offline supply belong to
+[controlled software intake](../07-software-intake/README.md), including Tier 0 updates
+and OS/template inputs. An HTTP cache is not an OCI (Open Container Initiative) registry.
+[Artifact verification](../07-software-intake/01-verification.md) can add checks and quarantine
+before publication; neither registry storage nor a successful scan approves a release.
+
+The following choices change service ownership or distribution. They do not change
+the distinction between artifact identity, approval and authorized retrieval.
 
 | Option | Design | Reference example | Trade-off |
 | --- | --- | --- | --- |
@@ -41,6 +60,10 @@ distributes artifacts through optional acceleration.*
 An existing registry is valid for any compatible consumer. The reference products
 are examples, not required stages. C does not replace B's artifact authority.
 Kubernetes and image-based Linux can consume all suitable variants.
+
+In C, consumers use the separately commissioned distribution layer to accelerate
+retrieval of content from B's authoritative registry. It adds operating responsibility;
+it does not select approved versions or replace retained recovery copies.
 
 <a id="maturity-and-dependencies"></a>
 

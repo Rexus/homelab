@@ -1,85 +1,39 @@
-# Deploy the identity authority
+# FreeIPA authority contract
 
-Deploy the dedicated FreeIPA primary and CA-enabled replica outside Kubernetes.
-Keycloak is a later service in the Tier 0 cluster, not part of this recipe.
+<a id="deploy-the-identity-authority"></a>
+<a id="contents"></a>
+<a id="1-initialize-the-existing-foundation-inputs"></a>
+<a id="2-add-the-directory-hosts-without-removing-the-issuer"></a>
+<a id="3-provision-the-pair"></a>
+<a id="4-connect-logging-before-installing-the-realm"></a>
+<a id="5-select-the-csr-phase-and-bootstrap-dns"></a>
+<a id="6-load-the-bootstrap-passwords"></a>
+<a id="7-generate-the-pending-identity-ca-request"></a>
+<a id="8-sign-the-csr-offline"></a>
+<a id="9-select-completion-with-the-approved-public-chain"></a>
+<a id="10-complete-the-primary-then-the-replica"></a>
+<a id="11-verify-replication-and-recovery"></a>
+
+Use [Stage 5, actions 1-11](../README.md#step-1-select-and-initialize-the-directory-path) for the
+continuous first installation. The existing foundation root owns both issuer and directory resources.
+This reference describes the CA/adoption interface, not another provisioning workflow.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Design:** [identity authority](../../../01-architecture/09-identity/README.md),
-[CA hierarchy](../../../01-architecture/08-cryptography/01-certificate-authority.md).
-**Prerequisites:** accepted logging/trust, independent SSH/DNS/time, supported Linux
-image, repository access and protected bootstrap passwords.
-
-## Contents
-
-- [Step 1: Configure and provision the pair](#step-1-configure-and-provision-the-pair)
-- [External CA integration gate](#external-ca-integration-gate)
-- [Step 2: Generate and sign the identity CA request](#step-2-generate-and-sign-the-identity-ca-request)
-- [Step 3: Complete the primary and replica](#step-3-complete-the-primary-and-replica)
-- [Existing domains and alternatives](#existing-domains-and-alternatives)
-- [IaC ownership](#iac-ownership)
-- [References](#references)
-
-## Step 1: Configure and provision the pair
 
 <a id="before-you-start"></a>
 <a id="what-you-configure"></a>
+<a id="step-1-configure-and-provision-the-pair"></a>
+<a id="step-2-generate-and-sign-the-identity-ca-request"></a>
+<a id="step-3-complete-the-primary-and-replica"></a>
 
-### 1. Initialize the existing foundation inputs
+## First-install locations
 
-Initialize local inputs, using the same context/state used for the issuer in Stage 3:
-
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-bash scripts/init-local-files.sh --setup foundation
-```
-
-Retain the same `--env` flag on every command if the issuer used a named environment.
-
-### 2. Add the directory hosts without removing the issuer
-
-In **`<prefix>-tier-0/`**, add `idm-1` and `idm-2` to the existing foundation desired guest map, inventory
-and IP map. Do not replace the map with an identity-only file: that would remove
-an already-managed `ca-1`. Select the supported Enterprise Linux image for the
-directory pair, not the Debian CA-specific image. Place replicas on independent
-failure domains and provide stable forward/reverse DNS before installation.
-Edit the local files, retaining the issuer and existing allocations:
-
-| Tier 0 file | Set |
+| Work | Stage action |
 | --- | --- |
-| `terraform/deployments/foundation/terraform.tfvars` | Keep all existing `vm_instances`; select the approved EL image, VMIDs, storage and distinct placement for `idm-1/2` |
-| `ansible/inventory/hosts.yml` | `idm-1` under `identity_primary`, `idm-2` under `identity_replicas`; preserve `issuing_ca` |
-| `ansible/group_vars/all.yml` | Actual `platform_domain`, SSH account and hostname decoration |
-| `ansible/group_vars/foundation.yml` | Reserved `platform_host_ips.idm-1/2`, realm/domain and the DNS/CA fields below; retain `ca-1` |
-| `terraform/common.tfvars` | Actual `network_zones.identity` private attachment and subnet/gateway or applied SDN lookup |
-
-### 3. Provision the pair
-
-Review Terraform's displayed whole-state plan, then enter `yes` to provision:
-
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-bash scripts/deploy.sh foundation --terraform-only
-```
-
-Add `--plan-only` only for a preview. Approved unattended VM provisioning can
-use `--auto-approve`; directory installation and root signing remain separate.
-
-### 4. Connect logging before installing the realm
-
-Before the CA/realm installation, register both hosts through
-[Stage 2 source forwarding](../../stage-2-logging/procedures/sources.md). Verify their OS
-security events at Tier 0, then add the actual identity/audit files as they appear.
-The FreeIPA recipe does not install the separate log-forwarding role.
-
-Keep `root_ca` empty in the connected inventory. It is no longer a child of
-`foundation`; the identity recipe targets only `identity`. The issuer and offline
-root are never configured by the directory deployment.
-
-Use an internal subdomain such as `internal.example.com`, distinct from the public
-website. DNS forwarders, firewall policy and supported software sources must already
-work; the [Software intake capability](../../stage-1-software-intake/README.md) supplies the optional proxy/cache path.
+| Select owner, initialize, edit and provision | [1-3](../README.md#step-1-select-and-initialize-the-directory-path) |
+| OS forwarding and CA/DNS/password inputs | [4-6](../README.md#step-4-connect-the-new-directory-hosts-to-protected-logging) |
+| Public CSR and authorized signing pause | [7-8](../README.md#step-7-generate-the-pending-identity-ca-request) |
+| Public-chain completion and replica acceptance | [9-11](../README.md#step-9-select-completion-with-the-approved-chain) |
 
 ## External CA integration gate
 
@@ -106,141 +60,20 @@ The recipe maps the selected phase to `ipaserver_external_ca` and
 `ipaserver_external_cert_files_from_controller`; the upstream role performs the
 native installation. These inputs do not rechain an existing installed domain.
 
-## Step 2: Generate and sign the identity CA request
-
-### 5. Select the CSR phase and bootstrap DNS
-
-Set `foundation_freeipa_ca_mode: external` and
-`foundation_freeipa_external_phase: csr` in local foundation vars. Inject the
-bootstrap passwords through the controller or an
-[Ansible-only secret override](../../../05-operations/03-cryptography/ansible-vault.md).
-
-Edit **`<prefix>-tier-0/ansible/group_vars/foundation.yml`**, preserving its IP map and other fields:
-
-```yaml
-baseline_disable_ipv6: false
-foundation_freeipa_ca_mode: external
-foundation_freeipa_external_phase: csr
-foundation_freeipa_external_cert_files: []
-```
-
-Set DNS forwarding in that same file: retain automatic forwarders only if the
-host resolver is the approved bootstrap resolver, or set
-`foundation_freeipa_auto_forwarders: false` and the actual
-`foundation_freeipa_dns_forwarders` address list. Do not point the initial
-installation only at the directory DNS service being created.
-
-### 6. Load the bootstrap passwords
-
-In the protected execution shell, supply the bootstrap passwords without history:
-
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-read -r -s -p 'FreeIPA Directory Manager password: ' FREEIPA_DM_PASSWORD; echo
-read -r -s -p 'FreeIPA administrator password: ' FREEIPA_ADMIN_PASSWORD; echo
-export FREEIPA_DM_PASSWORD FREEIPA_ADMIN_PASSWORD
-```
-
-Keep the exact values in independent recovery custody. Remove any conflicting
-placeholder assignments from `.env.local`; the deployment helper loads that file.
-
-### 7. Generate the pending identity CA request
-
-Run the directory recipe against the already-provisioned guests:
-
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-bash scripts/deploy.sh foundation --ansible-only
-```
-
-**Expected:** the recipe prepares identity hosts, generates the primary's CSR and fetches it
-as `secrets/identity/<primary-fqdn>-ipa.csr`, distinct across environments. Primary health checks, replica installation
-and final health checks are deliberately deferred.
-
-### 8. Sign the CSR offline
-
-Verify the CSR identity and constraints, then use the separate
-[offline root ceremony](../../stage-3-trust/procedures/offline-root.md).
-Return only the signed identity CA certificate and public chain. Preserve the
-primary's pending installation and private key; never regenerate it to retry a transfer.
-
-## Step 3: Complete the primary and replica
-
-### 9. Select completion with the approved public chain
-
-Verify the signed certificate matches the pending CSR/key, approved subject,
-subordinate constraints and expected root. Set the local phase to `complete`
-and populate `foundation_freeipa_external_cert_files` with absolute controller
-certificate/chain paths. Keep the same realm, hosts, passwords and state context.
-
-In **`<prefix>-tier-0/ansible/group_vars/foundation.yml`**, replace the phase and certificate list:
-
-```yaml
-foundation_freeipa_external_phase: complete
-foundation_freeipa_external_cert_files:
-  - /REPLACE_WITH_ABSOLUTE_APPROVED_IDENTITY_CA_CERTIFICATE_PATH
-  - /REPLACE_WITH_ABSOLUTE_PUBLIC_ROOT_OR_CHAIN_PATH
-```
-
-### 10. Complete the primary, then the replica
-
-Resume with the same command:
-
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-bash scripts/deploy.sh foundation --ansible-only
-```
-
-**Expected:** the upstream role completes the primary. Only after `ipactl status` and
-`ipa ping` pass does the CA-enabled replica install serially.
-
-### 11. Verify replication and recovery
-
-Verify directory and DNS replication, certificate issuance on **both** hosts,
-matching identity CA chain and loss of either host. Record the result before
-continuing to [identity federation](../README.md#step-2-deploy-identity-federation). A passing service check
-alone does not prove CA replication or failure recovery.
-
-For routine read-only service/API checks:
-
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-bash scripts/deploy.sh foundation --recipe maintenance
-```
-
 ## Existing domains and alternatives
 
-**Existing directory:** verify its LDAPS name/chain, user/group search bases, restricted
-reader, DNS/time, directory availability and independent recovery. Keycloak's supplied
-federation uses the FreeIPA LDAP schema; qualify that contract before substituting another
-directory product. Retain the existing owner, realm and recovery credentials, skip guest/realm
-installation, then continue at [identity federation](../README.md#step-2-deploy-identity-federation).
+An accepted existing directory retains its original realm, owner and recovery credentials. Verify
+LDAPS server name/chain, user/group search bases, a restricted reader, DNS/time, availability and
+independent recovery. The supplied federation uses FreeIPA schema; qualify another product explicitly.
+Select **1b** in the stage and continue at [action 12](../README.md#step-12-select-the-existing-cluster-and-identity-provider-inputs).
 
-**New internally rooted FreeIPA alternative:** complete Step 1, then set
-`foundation_freeipa_ca_mode: internal` in local `ansible/group_vars/foundation.yml`.
-Keep `baseline_disable_ipv6: false`, configure the bootstrap DNS forwarders and supply the
-protected passwords as in Step 2 actions 5–6. Skip the external CSR/signing actions.
+A **fresh internally rooted pair** selects **1c** before installation. Use `foundation_freeipa_ca_mode: internal`,
+keep IPv6 localhost, accepted bootstrap DNS and protected passwords, then run the same native identity
+recipe once. Skip external CSR/signing; verify CA replication and independent recovery. This retains
+FreeIPA's internal root rather than the sibling-CA design. Changing a live domain's mode is not a migration.
 
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-bash scripts/deploy.sh foundation --ansible-only
-```
-
-The upstream roles install the primary and replica in that order. Complete Step 3 action 11's
-replication and recovery checks, then rejoin identity federation. This option retains FreeIPA's
-internal root rather than the selected sibling-CA design. Never switch an existing domain's mode expecting
-the installer to migrate it. Rechaining, renewal and recovery require a separately
-tested migration with backups and rollback.
-
-Local state remains `.terraform/state/foundation/<env>/terraform.tfstate`.
-Environment overlays replace local allocations, not inventory ownership. Follow
-[environment isolation](../../../08-reference/repository-scripts.md#environment-isolation)
-for a disposable rehearsal; never create another state owner for the live issuer.
+Local state remains `.terraform/state/foundation/<env>/terraform.tfstate`. Environment inputs never
+create a second writer for an accepted issuer or directory. Rechaining requires tested migration/rollback.
 
 ## IaC ownership
 

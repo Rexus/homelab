@@ -17,6 +17,8 @@
       - postgresql_file_backup_claim.resources[0].status.phase == 'Bound'
       - postgresql_file_backup_claim.resources[0].spec.get('volumeMode', 'Filesystem') == 'Filesystem'
       - postgresql_file_backup_claim.resources[0].metadata.get('labels', {}).get('cnpg.io/cluster', '') == ''
+      - not postgresql_file_backup_claim.resources[0].metadata.get('deletionTimestamp')
+      - postgresql_file_backup_claim.resources[0].spec.get('volumeName', '') | length > 0
     fail_msg: Commission a separate NAS backup PVC, never a CNPG data/WAL claim.
 
 - name: Read the destination volume's actual CSI source
@@ -36,4 +38,11 @@
       - postgresql_file_backup_volume.resources[0].spec.csi.driver == 'nfs.csi.k8s.io'
       - postgresql_file_backup_volume.resources[0].spec.csi.volumeHandle == postgresql_file_backup_target.volume_handle
       - postgresql_file_backup_volume.resources[0].spec.persistentVolumeReclaimPolicy == 'Retain'
+      - postgresql_file_backup_volume.resources[0].get('status', {}).get('phase') == 'Bound'
+      - postgresql_file_backup_volume.resources[0].spec.get('volumeMode', 'Filesystem') == 'Filesystem'
+      - not postgresql_file_backup_volume.resources[0].metadata.get('deletionTimestamp')
+      - not postgresql_file_backup_volume.resources[0].spec.csi.get('readOnly', false) | bool
+      - postgresql_file_backup_volume.resources[0].spec.get('claimRef', {}).get('uid') == postgresql_file_backup_claim.resources[0].metadata.uid
+      - postgresql_file_backup_volume.resources[0].spec.get('claimRef', {}).get('name') == postgresql_file_backup_target.claim
+      - postgresql_file_backup_volume.resources[0].spec.get('claimRef', {}).get('namespace') == postgresql_file_backup_target.namespace
     fail_msg: The backup destination must be the exact commissioned retained NFS CSI volume.

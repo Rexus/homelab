@@ -7,7 +7,7 @@ Approved IDs and titles come from the [shared template catalog](../../08-referen
 loaded by the shared helper; only workload selections and service tags belong here.
 
 The first optional Tier 1 deployment is
-[Stage 3, option 3b: verified software intake](../../03-deployment/stage-3-trust/README.md#3b-verified-repository-and-artifact-publication--optional),
+[Stage 3, option 15b: verified software intake](../../03-deployment/stage-3-trust/README.md#15b-verified-repository-and-artifact-publication-optional),
 after logging and trust are accepted. Complete its worker and selected consumer cutover before
 leaving Stage 3; it needs no Tier 1 cluster. The main platform runtime arrives at
 [Delivery](../../03-deployment/stage-7-delivery/README.md), followed by Observability
@@ -37,14 +37,14 @@ scope before planning a rollout.
 
 ## Getting started
 
-Start at [Stage 7, Step 1](../../03-deployment/stage-7-delivery/README.md#step-1-create-the-platform-runtime)
+Start at [Stage 7, Step 1](../../03-deployment/stage-7-delivery/README.md#step-1-create-or-accept-the-tier-1-runtime)
 from **`<prefix>-tier-1/`**. Its cluster procedure owns initialization, configuration, saved-plan
 apply, credentials and basic-platform installation; `init` alone installs nothing.
 For an existing cluster, verify the same readiness gates without bootstrapping another one,
 then continue through Delivery and Observability before Stage 9's development-platform installation.
 
 The [source-control VM](../../03-deployment/stage-9-development/step-1b-source-control-vm.md)
-and [Podman runner](../../03-deployment/stage-9-development/step-2b-podman-runner.md) remain alternatives.
+and [Podman runner](../../03-deployment/stage-9-development/step-14b-podman-runner.md) remain alternatives.
 
 These are operator-run workflows, not
 workload-user access to Tier 0 credentials. For VM mobility, confirm the

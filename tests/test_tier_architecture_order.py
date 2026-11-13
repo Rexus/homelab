@@ -53,7 +53,7 @@ class ArchitectureOrder(TierRepositoryTestCase):
                 figures = re.findall(r"```mermaid\s*\n.*?\n```\s*\n([^\n]+)", text, re.S)
                 self.assertTrue(figures, str(current))
                 for caption in figures:
-                    self.assertTrue(caption.startswith("*Figure: "), f"{current}: {caption}")
+                    self.assertRegex(caption, r"^\*Figure(?: \d+ -|:) \S", f"{current}: {caption}")
 
     def test_overview_shows_capability_map_before_navigation_tables(self):
         text = (UPSTREAM / "docs/01-architecture/README.md").read_text(encoding="utf-8")

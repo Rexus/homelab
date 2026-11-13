@@ -26,8 +26,12 @@ platform_host_ips:
 # Terraform's scsi1 data disk; the shared role guards creation and persists a UUID-based mount.
 syslog_ng_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
 syslog_ng_data_fstype: xfs
-# Leave empty for a new blank disk. Pin the original UUID for an existing/restored volume.
-# With multiple receivers, put each explicit UUID/device override in its own inventory host variables.
+# Leave empty for a new blank disk; Ansible persists the verified UUID mount automatically.
+# Optional identity guard after preparation: copy the printed syslog_ng_data_uuid line here for one receiver.
+# Multiple receivers: remove this entry, even when empty, from this file and other -e/--ansible-vars files.
+# Save each pin in ansible/inventory/host_vars/<receiver>.yml, beside inventory/hosts.yml.
+# deploy.sh passes this file with -e, which overrides host vars; ansible/host_vars is not auto-loaded here.
+# Recovery uses the original filesystem UUID; see the guide before adopting a restored volume.
 syslog_ng_data_uuid: ""
 syslog_ng_data_mount: /srv/security-logging
 # IaC installs/starts firewalld when managed; use the actual intake-interface zone.

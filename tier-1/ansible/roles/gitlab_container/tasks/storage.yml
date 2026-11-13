@@ -7,6 +7,7 @@
     data_volume_path: "{{ gitlab_home }}"
     data_volume_label: gitlab-data
     data_volume_expected_uuid: "{{ gitlab_data_expected_uuid }}"
+    data_volume_uuid_input: gitlab_data_expected_uuid
     data_volume_min_free_bytes: "{{ gitlab_data_min_free_bytes }}"
   when: gitlab_data_device | length > 0
 

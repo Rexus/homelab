@@ -4,6 +4,49 @@ Prepare the hosts and the execution machine, then import or publish tested VM te
 Complete this path before **Stage 1: Software intake**. Foundation is a prerequisite,
 not a numbered capability stage.
 
+<a id="figure-foundation-ready"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  Admin["Privileged<br/>workstation<br/>Console / recovery"]
+  subgraph T0["Tier 0 / foundation"]
+    direction TB
+    subgraph Connected["Control / prepared infrastructure"]
+      direction LR
+      subgraph Execute["Prepared execution host"]
+        direction TB
+        Tools["Git / Terraform<br/>Ansible / SSH"]
+        Workspace[("Repositories / artifacts<br/>Local inputs / state")]
+        Tools ~~~ Workspace
+      end
+      Hosts["Proxmox API<br/>VM storage<br/>Approved templates"]
+      Execute -->|Verified HTTPS<br/>Scoped API access| Hosts
+    end
+    Recovery["Independent recovery inputs<br/>Bootstrap backup / state / keys"]
+    Connected ~~~ Recovery
+  end
+  Admin -->|Authorized SSH| T0
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class T0,Hosts control
+  class Connected,Execute runtime
+  class Admin actor
+  class Workspace data
+  class Recovery custody
+```
+
+**Workflow:** **Figure 1: Foundation ready for IaC.** The [bootstrap steps](bootstrap/README.md)
+prepare the execution host; [template publication](../../../tier-0/terraform/deployments/templates/main.tf)
+manages the accepted catalog after the first manual template. The figure groups logical control
+interfaces, not physical hosting: the execution host may be `boot-1` or an accepted Linux host.
+The workstation arrow reaches only the authorized execution-host SSH interface. Recovery inputs
+are separately retained and qualified; the preparation path does not install a backup service.
+
 For planned teardown and a new installation, use [resource retirement](../../05-operations/01-hosting/provisioning.md).
 For an existing environment lost to failure, use [backup recovery](../../05-operations/06-resilience/README.md) with its original state.
 
@@ -18,7 +61,13 @@ For an existing environment lost to failure, use [backup recovery](../../05-oper
 - [Step 1: Prepare hosts and networks](#step-1-prepare-hosts-and-networks)
 - [Step 2: Create the first Linux template manually](#step-2-create-the-first-linux-template-manually)
 - [Step 3: Prepare the bootstrap execution host](#step-3-prepare-the-bootstrap-execution-host)
-- [Step 4: Publish and test VM templates](#step-4-publish-and-test-vm-templates)
+- [Step 4: Configure the template catalog](#step-4-configure-the-template-catalog)
+- [Step 5: Prepare the publication plan](#step-5-prepare-the-publication-plan)
+- [Step 6: Apply the accepted plan](#step-6-apply-the-accepted-plan)
+- [Step 7: Qualify disposable clones](#step-7-qualify-disposable-clones)
+- [Step 8: Test guest backup and restore](#step-8-test-guest-backup-and-restore)
+- [Step 9: Select the accepted Linux template](#step-9-select-the-accepted-linux-template)
+- [Step 10: Qualify selected HA and balancing](#step-10-qualify-selected-ha-and-balancing)
 - [Foundation ready](#foundation-ready)
 
 <a id="step-1-prepare-compute-and-templates"></a>
@@ -27,7 +76,8 @@ For an existing environment lost to failure, use [backup recovery](../../05-oper
 
 ## Step 1: Prepare hosts and networks
 
-Complete these in order. Existing infrastructure is valid after the same checks.
+Prepare the host/network side of [Figure 1](#figure-foundation-ready) in this order.
+Existing infrastructure is valid after the same checks.
 
 | Order | Action | Complete when |
 | --- | --- | --- |
@@ -36,16 +86,21 @@ Complete these in order. Existing infrastructure is valid after the same checks.
 | 3 | [Select live storage and an independent backup destination](storage/README.md) | Actual datastore IDs and recovery access are recorded |
 | 4 | [Apply and test firewall policy](network/firewall.md) | Required paths work and unauthorized paths fail |
 
-After host action **2**, choose the host/network paths below, then finish storage/firewall actions **3–4**.
+The first three Foundation steps route separate host, manual-template and bootstrap workflows.
+Complete each linked workflow once; the managed-publication actions then continue directly on this page.
+The Proxmox host guide routes the host choices below during action **2**; do not repeat them here.
+Finish storage/firewall actions **3–4** afterward.
 HA enrollment and failure testing need a disposable guest later in this Foundation path; cluster membership
 alone does not establish HA. Retain persistent local host logs from first boot until Stage 2 can collect them.
 Object storage is needed before its first consuming application, not for these initial steps.
+If the gateway guide already applied the policy, use the firewall guide's acceptance checks;
+do not rebuild the same rules.
 
 | Path / option | Action now | Continue |
 | --- | --- | --- |
 | 1a: single host | Use one prepared host; no cluster or automatic failover | Storage/firewall checks above, then Step 2 |
-| 1b: cluster | [Join empty hosts and prepare HA](proxmox/step-1b-cluster-ha.md) | Storage/firewall checks, then Step 2; enroll/test a disposable guest in Step 4 |
-| 1c: SDN, optional with either host path | [Create and apply VNets, Steps 1–3](proxmox/step-1c-sdn.md) | Storage/firewall checks above, then Step 2; finish SDN authorization after bootstrap in Step 3 |
+| 1b: cluster | [Join empty hosts and prepare HA](proxmox/step-1b-cluster-ha.md) | Storage/firewall checks, then Step 2; enroll/test a disposable guest in Step 10 |
+| 1c: SDN, optional with either host path | [Create and apply VNets, Steps 1–3](proxmox/step-1c-sdn.md) | Storage/firewall checks above, then Step 2; finish SDN attachment inputs after bootstrap in Step 3 |
 
 <a id="step-1-create-the-first-linux-template-manually"></a>
 
@@ -54,11 +109,8 @@ Object storage is needed before its first consuming application, not for these i
 Use the [VMID quick reference](../../02-conventions/vmid-convention.md) before reserving
 template or guest IDs; its allocation plan applies to Terraform-managed VMs and containers too.
 
-Follow [VM templates: Steps 1–3](proxmox/templates.md):
-
-1. Download and verify one approved Linux cloud image; unpack it before uploading.
-2. Create the unbooted VM in Proxmox, import its disk and add the CloudInit drive.
-3. Convert it to a template and test a disposable clone.
+Follow the [manual VM template workflow](proxmox/templates.md) from image selection through
+the disposable-clone checks. It owns the GUI import sequence; do not publish through Terraform yet.
 
 One AlmaLinux or Rocky Linux template is sufficient for the bootstrap VM. An accepted
 existing Linux template is also valid. Add Talos and other candidates in Step 4 below.
@@ -69,21 +121,25 @@ No API token, Terraform or GitLab is needed for this first manual template.
 
 ## Step 3: Prepare the bootstrap execution host
 
-Follow [Bootstrap execution host: Steps 1–4](bootstrap/README.md) without skipping ahead.
+The [bootstrap execution-host view](bootstrap/README.md#figure-1-bootstrap-execution-host)
+shows the reference workspace, tools and protected API access prepared by this step.
+This establishes the execution-host side of [Figure 1](#figure-foundation-ready).
+Follow [Bootstrap execution host](bootstrap/README.md) without skipping ahead.
 That guide provides the VM, tooling, repository generation, SSH key and API setup.
 
-Choose workspace **3a or 3b**, optionally **3c**, then acquisition **3d or 3e** at bootstrap Step 2.
-Finish that guide's SSH/trust Steps 3–4 before **3f** below. An accepted existing execution host
+The bootstrap guide routes workspace **3a or 3b**, optional **3c**, and acquisition **3d or 3e**
+at their actual decision points. Finish its SSH/trust/input actions before **3f** below.
+An accepted existing execution host
 can use the same tooling/trust path without creating another VM.
 
 | Path / option | Detailed guide | Rejoin |
 | --- | --- | --- |
-| 3a: separate workspace, main | [Prepare the attached data disk](bootstrap/step-3a-bootstrap-storage.md) | Bootstrap Step 2, create workspace directories |
-| 3b: LVM root instead | [Expand the existing disk or add an LVM PV](bootstrap/step-3b-bootstrap-lvm.md) | Bootstrap Step 2, create workspace directories; skip separate-mount actions |
-| 3c: home on data disk, optional after 3a | [Bind-mount home](bootstrap/step-3c-bootstrap-home.md) | Bootstrap Step 2, before repositories/keys are created |
-| 3d: connected tools, main | [Install approved tools and generate repositories](bootstrap/README.md#2a-install-git-terraform-and-ansible) | Bootstrap Step 3 |
-| 3e: offline tools instead | [Prepare, transfer and install the bundle](bootstrap/step-3e-bootstrap-offline.md) | Bootstrap Step 3 |
-| 3f: manage hosts | [Initialize host management](../../05-operations/01-hosting/README.md), then [API trust and credentials](proxmox/api-access.md) | SDN Step 4 if 1c was selected; then Foundation Step 4 |
+| 3a: separate workspace, main | [Prepare the attached data disk](bootstrap/step-3a-bootstrap-storage.md) | Bootstrap storage/home decision, then tool acquisition |
+| 3b: LVM root instead | [Expand the existing disk or add an LVM PV](bootstrap/step-3b-bootstrap-lvm.md) | Bootstrap tool acquisition; skip separate-mount/home actions |
+| 3c: home on data disk, optional after 3a | [Bind-mount home](bootstrap/step-3c-bootstrap-home.md) | Bootstrap tool acquisition, before repositories/environments are created |
+| 3d: connected tools, main | [Install approved tools and generate repositories](bootstrap/README.md#2a-install-git-terraform-and-ansible) | Bootstrap execution-key setup |
+| 3e: offline tools instead | [Prepare, transfer and install the bundle](bootstrap/step-3e-bootstrap-offline.md) | Bootstrap execution-key setup |
+| 3f: manage hosts | [Initialize and verify existing-host management](../../05-operations/01-hosting/README.md) | SDN attachment inputs if 1c was selected; then Foundation Step 4 |
 
 | Location | Configure before continuing |
 | --- | --- |
@@ -96,8 +152,9 @@ can use the same tooling/trust path without creating another VM.
 **Gate:** verified API TLS and independent console/recovery access must work. A VM on
 Proxmox cannot be the only means of recovering Proxmox. Keep approved package/artifact
 access independent of the cache deployed in Stage 1.
-Test recovery of the original state and credentials on the independent execution path
-before provisioning; guest backup/restore is tested on the first disposable clone in Step 4.
+Verify recovery of inputs, tools and credentials on the independent execution path before provisioning.
+For existing roots, retain and recover their original state too; a fresh root has no state yet.
+Protect new state after each operation. Guest backup/restore is tested on a disposable clone in Step 8.
 
 <a id="2a-connect-bootstrap-to-proxmox-host-management"></a>
 
@@ -105,17 +162,20 @@ before provisioning; guest backup/restore is tested on the first disposable clon
 
 Once `boot-1` and the generated Tier 0 repository are ready, follow
 [Manage existing Proxmox hosts from bootstrap](../../05-operations/01-hosting/README.md).
-Its numbered steps initialize the local files, register `hypervisors`, authorize the execution
-key and verify SSH/Ansible access. The registered hosts already exist; this does not deploy VMs.
+Complete that guide's **Steps 1–5**, then return here rather than selecting its later maintenance tasks.
+Those actions initialize host-management files, register `hypervisors`, authorize the execution
+key and verify SSH/Ansible access. The template files, API CA trust and token were already prepared
+in the bootstrap workflow: retain them. The registered hosts already exist; this does not deploy VMs.
 
-If **1c** was selected, finish [SDN Step 4](proxmox/step-1c-sdn.md#step-4-authorize-and-connect-iac) now.
+If **1c** was selected, finish [SDN attachment inputs](proxmox/step-1c-sdn.md#step-4-authorize-and-connect-iac) now.
 Return here for **Step 4**. After Stage 1 establishes the selected software-supply route, use
 [Proxmox update access](../../05-operations/02-software-intake/host-updates.md) to configure and test host
 updates through it. Host-management tasks use SSH; `deploy.sh foundation` provisions CA/directory VMs.
 
 <a id="step-3-publish-and-test-vm-templates"></a>
+<a id="step-4-publish-and-test-vm-templates"></a>
 
-## Step 4: Publish and test VM templates
+## Step 4: Configure the template catalog
 
 **Run on:** the bootstrap execution host, from generated **Tier 0**. An existing accepted
 privileged Linux workstation can perform the same role. No hosted runner is required.
@@ -124,13 +184,10 @@ Before adding a Talos build, select its [version contract](proxmox/templates.md#
 The complete reference through Stage 5 uses an approved exact **1.13.x** release; choosing the
 newest Factory entry does not establish compatibility with the later platform/SSO recipes.
 
-Run from **`<prefix>-tier-0/`** on the protected execution host.
-
-```bash
-bash scripts/proxmox-templates.sh init
-```
-
-`init` preserves existing files. Configure the selected builds before planning:
+The bootstrap workflow already ran `proxmox-templates.sh init` and configured `.env.local`.
+Use those files; no second initialization or credential setup is needed.
+For entry from an already prepared execution host with no template catalog, run
+`bash scripts/proxmox-templates.sh init` once from **`<prefix>-tier-0/`**.
 
 Edit in **`<prefix>-tier-0/`**.
 
@@ -156,7 +213,15 @@ The [field reference](../../05-operations/01-hosting/templates/template-lifecycl
 contains optional settings; fixed RAM, 1500-MTU NICs, NIC firewall and OS-specific
 controller defaults do not need repeating for every build.
 
-### 4a: Adopt existing templates or uploaded images
+<a id="step-5a5b-prepare-the-publication-plan"></a>
+
+## Step 5: Prepare the publication plan
+
+Choose **5a** for adoption or **5b** for entirely new resources. Both continue at **Step 6**.
+
+<a id="4a-adopt-existing-templates-or-uploaded-images"></a>
+
+### 5a: Adopt existing templates or uploaded images
 
 This is the normal first-run path after creating the manual template:
 
@@ -167,10 +232,12 @@ bash scripts/proxmox-templates.sh import --env-file .env.local
 ```
 
 `import` creates a **saved adoption plan**; imports are written to state only at apply.
-Missing resources may still be creations. Continue with **Apply and qualify** below. Do not replace this saved
+Missing resources may still be creations. Continue at **Step 6**. Do not replace this saved
 adoption plan with a normal plan before applying it.
 
-### 4b: Publish an entirely new catalog
+<a id="4b-publish-an-entirely-new-catalog"></a>
+
+### 5b: Publish an entirely new catalog
 
 Use this alternative only when none of the catalogued templates or uploaded files exists:
 
@@ -180,58 +247,58 @@ Run from **`<prefix>-tier-0/`** on the protected execution host.
 bash scripts/proxmox-templates.sh plan --env-file .env.local
 ```
 
-Continue with **Apply and qualify** below.
+Continue at **Step 6**.
 
 <a id="3c-review-apply-and-qualify"></a>
+<a id="apply-and-qualify"></a>
 
-### Apply and qualify
+## Step 6: Apply the accepted plan
 
-After either **4a** or **4b**, complete all actions below.
+Inspect imports and every hardware/disk change in the saved plan. Stop on unexpected
+replacement/deletion; correct the catalog and repeat **5a** or **5b** first.
+Keep the catalog, platform profile and execution target unchanged until apply.
+The saved plan and its `.context` file belong together; regenerate an older plan
+without this context file rather than applying it with changed inputs.
 
-1. Inspect imports and every hardware/disk change in the saved plan. Stop on unexpected
-   replacement/deletion; correct the catalog and repeat **4a** or **4b** first.
-   Keep the catalog, platform profile and execution target unchanged until apply.
-   The saved plan and its `.context` file belong together; regenerate an older plan
-   without this context file rather than applying it with changed inputs.
-2. Apply the accepted saved plan. This command applies a previously reviewed plan;
-   do not rely on another approval prompt.
+Apply the accepted saved plan. This command applies a previously reviewed plan;
+do not rely on another approval prompt.
 
-   Run from **`<prefix>-tier-0/`** on the protected execution host.
+Run from **`<prefix>-tier-0/`** on the protected execution host.
 
-   ```bash
-   bash scripts/proxmox-templates.sh apply --env-file .env.local
-   ```
+```bash
+bash scripts/proxmox-templates.sh apply --env-file .env.local
+```
 
-   **Expected:** publication completes successfully. Stop on errors before continuing.
-3. Verify fixed RAM and empty template accounts, from **`<prefix>-tier-0/`**:
+**Expected:** publication, fixed-RAM/account policy checks and Shared catalog synchronization succeed.
+The command performs those checks; a separate `verify` or fresh `plan` is not required on this path.
+Stop on errors and retain the existing state; use the
+[interrupted-publication procedure](../../05-operations/01-hosting/templates/template-lifecycle.md#interrupted-publication)
+before retrying. A later policy-only check is available with `proxmox-templates.sh verify --env-file .env.local`.
 
-   ```bash
-   bash scripts/proxmox-templates.sh verify --env-file .env.local
-   ```
+## Step 7: Qualify disposable clones
 
-   `verify` checks RAM/accounts, not clone networking or image boot.
-   An optional drift check should produce a no-change plan:
+Use [clone and guest-control checks](proxmox/templates.md#clone-and-guest-control-checks)
+on each new or changed candidate. Check disks, network, guest control and operator access.
+Qualify its firmware, CloudInit and guest-agent settings. A previously accepted unchanged image
+needs no second manual import; this check qualifies what Step 6 actually published.
 
-   Run from **`<prefix>-tier-0/`** on the protected execution host.
+## Step 8: Test guest backup and restore
 
-   ```bash
-   bash scripts/proxmox-templates.sh plan --env-file .env.local
-   ```
+[Back up and restore a disposable clone](../../05-operations/06-resilience/backups/virtual-machines.md#quick-steps),
+including required data disks. Use the backup destination commissioned during host/storage preparation;
+do not create another storage service. Record the result before relying on that recovery path.
 
-4. [Boot and qualify disposable clones](proxmox/templates.md#clone-and-guest-control-checks).
-   Check disks, network, guest control and operator access. Qualify the
-   selected template firmware, CloudInit and guest-agent settings.
-5. [Back up and restore a disposable clone](../../05-operations/06-resilience/backups/virtual-machines.md#quick-steps),
-   including required data disks. Record the result before relying on that backup path.
-6. Successful apply updates **Shared's `templates/proxmox-catalog.tfvars`**. After clone
-   acceptance, edit its `default_linux_vm_template_id` to the tested Linux VMID:
+## Step 9: Select the accepted Linux template
 
-   ```hcl
-   default_linux_vm_template_id = 9101
-   ```
+Successful apply updated **Shared's `templates/proxmox-catalog.tfvars`**. After clone acceptance,
+edit that file in **`<prefix>-shared/`** and set `default_linux_vm_template_id` to the tested Linux VMID:
 
-   `9101` is the Rocky example; select the actual tested catalog entry. Apply preserves
-   this selection. Talos is not the default image for Linux services.
+```hcl
+default_linux_vm_template_id = 9101
+```
+
+`9101` is the Rocky example; select the actual tested catalog entry. Future publication preserves
+this selection. Talos is not the default image for Linux services.
 
 **IaC:** Tier 0 owns the [publication inputs](../../../tier-0/templates/proxmox.yml.example),
 [script](../../../tier-0/scripts/proxmox-templates.sh),
@@ -240,18 +307,26 @@ Shared holds [consumer references](../../../shared/templates/proxmox-catalog.tfv
 Adoption leaves the bootstrap VM outside Terraform and retains existing boot disks;
 intentional image replacement uses [boot-disk maintenance](../../05-operations/01-hosting/templates/template-disk.md).
 
-### 4c: Finish selected HA and balancing options
+<a id="4c-finish-selected-ha-and-balancing-options"></a>
 
-For **1b**, enroll the disposable test VM and complete the [HA failover exercise](proxmox/failover.md).
-Use native rebalancing by default. If a different balancer is selected, qualify
-[ProxLB](proxmox/step-4c-proxlb.md) now, with one placement authority per guest. Return to the readiness checks below.
-For **1a**, skip this option; no automatic host failover is claimed.
+## Step 10: Qualify selected HA and balancing
 
-### 4d: Refresh a Linux image before publishing — optional
+For **1a**, skip to Foundation ready below; no automatic host failover is claimed.
 
-For a mutable Linux candidate, follow [template refresh](../../05-operations/01-hosting/templates/template-refresh.md),
-then repeat **4a/4b** and clone qualification above. Direct verified image publication remains valid;
-this does not apply to Talos. Return to the readiness checks below.
+For **1b**, resume [HA setup at guest enrollment](proxmox/step-1b-cluster-ha.md#enable-ha).
+Hosts, cluster membership, storage and network eligibility were already prepared: do not reinstall or rejoin them.
+Complete enrollment, the selected scheduler and the disposable-guest failover checks, then return here.
+The [worked failure example](proxmox/failover.md) explains the expected behavior; it does not require
+deploying the later directory service now.
+
+### 10a: Native scheduler — main path
+
+Retain the native rebalancing policy qualified in HA setup. Continue at Foundation ready below.
+
+### 10b: ProxLB — alternative scheduling scope
+
+[Qualify the selected scope](proxmox/step-10b-proxlb.md) with no competing placement authority.
+Continue at Foundation ready below; critical HA guests retain their native recovery authority.
 
 <a id="capability-available"></a>
 
@@ -270,3 +345,14 @@ Neither capability waits for FreeIPA or Kubernetes.
 
 This completes the compute portion of the
 [reference platform](../../01-architecture/03-reference-platform.md#service-placement).
+
+<a id="4d-refresh-a-linux-image-before-publishing--optional"></a>
+
+## Later Linux image refresh
+
+For package/guest-agent changes after a source template is accepted, use
+[staged Linux refresh](../../05-operations/01-hosting/templates/template-refresh.md).
+It needs an accepted clone source and approved package access for its builder, and owns that
+builder/template in its **separate `template-refresh` state**. Qualify the new clones and update Shared's
+consumer selection there; do not also import that template into the publication state.
+This is later maintenance, not a second required Foundation publication. Talos uses verified new-image publication.

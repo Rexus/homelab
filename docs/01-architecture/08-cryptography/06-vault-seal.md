@@ -4,14 +4,59 @@ A seal protects the secret service's startup key material. It is separate from
 offline root custody, the PKI signing provider, and application-secret authorization.
 The reference product is Vault; alternative implementations need their own compatibility review.
 
-Vault consumes the selected provider; the reference HSM service starts independently
-of Vault. [HSM-backed key generation and private-key operations](04-usb-hsm.md#authority-and-transport)
-are a separate consumer integration, not a consequence of choosing a seal pattern.
+For provider-backed seals, the secret service consumes the selected provider;
+the reference HSM service starts independently of Vault. Hardware-backed key generation
+and private-key operations use a [separate consumer integration](04-usb-hsm.md#authority-and-transport).
+
+<a id="recommended-oss-architecture"></a>
+
+## Seal placement
+
+The selected runtime can be the Tier 0 cluster or a dedicated secret-service host.
+The initial S1 reference keeps startup under custodian control without an online
+seal-provider dependency.
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+block-beta
+  columns 1
+  block:T0
+    columns 1
+    T0Title["Tier 0 / S1: Shamir seal"]
+    block:Runtime
+      columns 2
+      B["Secret service<br/>Selected control runtime"]
+      Data["Persistent service state"]
+    end
+    Custody["Offline recovery custody<br/>Independently held Shamir shares and recovery records"]
+  end
+  B --> Data
+  Custody -.-> B
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class T0 control
+  class T0Title controlHeading
+  class Runtime runtime
+  class Data data
+  class Custody custody
+```
+*Figure: S1 retains persistent service state and separately held unseal shares. The upward dashed
+link is an authorized custody transfer during unseal or recovery, not an online provider connection.*
+
+The service's persistent state and its unseal material have separate custody and
+recovery responsibilities. A data restore still needs the selected startup material;
+holding shares alone does not restore lost service data. The seal also does not
+replace application authentication, access policy or audit.
 
 ## Table of contents
 
-- [Pattern choices](#pattern-choices)
 - [Seal placement](#seal-placement)
+- [Pattern choices](#pattern-choices)
+- [Transit dependency](#transit-dependency)
 - [Recovery contract](#recovery-contract)
 - [Realization](#realization)
 - [References](#references)
@@ -25,6 +70,9 @@ are a separate consumer integration, not a consequence of choosing a seal patter
 
 ## Pattern choices
 
+Select one startup contract for the main service. S2 and S3 replace the S1 unseal
+path with a qualified provider dependency; they do not add signing authority.
+
 | Pattern | Function | Consequence |
 | --- | --- | --- |
 | S1: Shamir | Authorized custodians supply unseal shares | Simple independent bootstrap; restart/recovery needs an operator process |
@@ -34,58 +82,29 @@ are a separate consumer integration, not a consequence of choosing a seal patter
 S1 is the default reference. Both VM and Kubernetes installers expose S2 configuration;
 S3 consumes a qualified licensed provider package/image and credential interface through
 [the seal deployment option](../../03-deployment/stage-6-secrets/step-1c-seal-integration.md).
-These selections are not automatic
-upgrades applied by the existing role. Device choice is independent:
-[key-protection options A-D](03-hsm-selection.md).
+These selections are not automatic upgrades applied by the existing role. Device
+choice is independent: [key-protection options A-D](03-hsm-selection.md).
 
-<a id="recommended-oss-architecture"></a>
+## Transit dependency
 
-<a id="transit-dependency"></a>
-
-## Seal placement
-
-The selected runtime can be the Tier 0 cluster or a dedicated secret-service host.
-The provider group shows alternatives, not two simultaneously required services:
-S1 has no online seal provider; S2 uses A; S3 uses its qualified native provider.
-Solid arrows are dependencies; the dashed link is authorized offline recovery.
+S2 moves routine unseal to an independent service A. The main service B uses a
+scoped credential and verified provider connection; B's ordinary secret consumers
+do not acquire that credential or direct authority over A.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
-  block:T0
-    columns 2
-    T0Title["Tier 0 / secret-service startup and recovery"]:2
-    block:Runtime
-      columns 1
-      B["Main secret service B<br/>Selected control runtime"]
-      Data["Persistent service state"]
-    end
-    block:Provider
-      columns 1
-      A["S2: Transit service A<br/>Independent unseal provider"]
-      Hardware["S3: Qualified native provider"]
-    end
-    Custody["Offline recovery custody<br/>S1: Shamir shares; S2/S3: independent recovery material"]:2
+sequenceDiagram
+  participant B as Main secret service B
+  participant A as Independent Transit A
+  rect rgba(57, 115, 102, 0.12)
+  A->>A: Start and recover independently of B
+  B->>B: Load persistent state in sealed condition
+  B->>A: Authorized seal operation over verified TLS
+  A-->>B: Operation result or explicit failure
+  B->>B: Unseal only after successful completion
   end
-  B --> Data
-  B --> A
-  B --> Hardware
-  Custody -.-> B
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0,Provider control
-  class T0Title controlHeading
-  class Runtime runtime
-  class Data data
-  class Custody,Hardware custody
 ```
-*Figure: The secret service retains state and uses the selected seal pattern: Shamir unseal, an independent
-Transit provider, or a qualified native provider; recovery custody is offline.*
+*Figure: Under S2, B's startup request travels to A on the right and its result returns to B.
+A must already be usable through an independent startup and recovery path.*
 
 A has a narrowly scoped purpose, audit and independent recovery. B's restart
 depends on A under S2, so A cannot depend on B's secrets or unavailable hosted platform.

@@ -1,8 +1,9 @@
 # GitLab Data Services
 
-**Stage route:** [Stage 9, Step 1a](../README.md#step-1-deploy-source-control-and-sso), before the GitLab chart.
-**Return:** after the chart-input handoff, continue with [GitLab installation](gitlab.md).
-After GitLab is installed, finish [joint recovery checks](#backups-and-recovery), then return to Stage 9 Step 1.
+**First installation:** follow [Stage 9 Steps 2-13](../README.md#step-2-initialize-the-data-service-inputs).
+This reusable procedure defines the data/package/object-storage contracts and later reconciliation.
+For an accepted installation retain its existing VM/state owner, credentials and backup repository;
+use only the selected render/apply or recovery action, not new VM provisioning.
 
 **Working repository:** `<prefix>-tier-1`; upstream implementation: `tier-1/`.
 This procedure supplies PostgreSQL, Redis and Gitaly on dedicated VMs for the
@@ -23,7 +24,7 @@ The data VMs' encrypted recovery copies use a separate file/SFTP repository.
 - [2. Select the data hosts](#2-select-the-data-hosts)
 - [3. Provision only the VMs](#3-provision-only-the-vms)
 - [4. Prepare object storage](#prepare-object-storage)
-- [5. Install controller dependencies](#render-and-apply)
+- [Controller dependencies](#render-and-apply)
 - [6. Match the chart and package](#6-match-the-chart-and-package)
 - [7. Prepare private credentials](#7-prepare-private-credentials)
 - [8. Render data-service configuration](#8-render-data-service-configuration)
@@ -33,6 +34,9 @@ The data VMs' encrypted recovery copies use a separate file/SFTP repository.
 - [References](#references)
 
 ## Support and ownership
+
+The [source-control figure](../README.md#figure-source-control) places these dedicated data VMs beside
+the GitLab chart and existing object API. This procedure prepares the data services before chart installation.
 
 | Component | Supplied realization | Boundary |
 | --- | --- | --- |
@@ -214,31 +218,16 @@ Storage custody must separately protect and copy historical data. [2][5]
 
 Continue at Step 5 with the tenant key pairs, not the privileged provisioning profile.
 
-<a id="render-and-apply"></a>
 <a id="step-3-render-and-apply-data-services"></a>
 
-## 5. Install controller dependencies
+<a id="render-and-apply"></a>
 
-Native package downloads honor the existing
-[intake proxy inputs](../../../08-reference/proxy-cache.md#how-other-paths-use-it);
-approve the package host and any redirect destinations before installation.
+## Controller dependencies
 
-Use **the prepared deployment virtual environment**, from **`<prefix>-tier-1/`**.
-Install the tier and role-local collections from approved sources:
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ansible-galaxy collection install -r ansible/requirements.yml
-ansible-galaxy collection install -r ansible/roles/development_data/requirements.yml
-```
-
-Install the Python dependencies in that same environment, from **`<prefix>-tier-1/`**:
-
-```bash
-python3 -m pip install -r ansible/requirements.txt
-python3 -m pip install 'boto3>=1.35' netaddr
-```
+The native deployment entry point checks/prepares its declared collections and controller Python
+clients before render/apply. Reuse the accepted controller environment; do not repeat manual Galaxy
+or pip installation. Pre-stage declared dependencies before disconnected
+`CONTROL_NODE_COLLECTIONS_MODE=check` runs.
 
 ## 6. Match the chart and package
 
@@ -258,12 +247,14 @@ In **`<prefix>-tier-1/`**, complete `ansible/group_vars/development_data.yml`:
 | Field in `ansible/group_vars/development_data.yml` | Required value |
 | --- | --- |
 | `development_data_chart_app_version`, `development_data_package_*` | Matching signed EL9 CE package, exact URL/checksum and verified signing key/fingerprint |
-| `development_data_endpoints`, `development_data_client_cidrs` | Real DNS names and only the cluster clients that reach these VMs |
+| `development_data_endpoints`, `development_data_client_cidrs` | Stable service DNS names (`db`, `kv`, `repo`) and only the cluster clients that reach these VMs |
 | `development_data_ca_src`, `development_data_tls`, PostgreSQL client certificate/key paths | Preissued leaf material; no CA private key |
 | `development_data_backup_transport`, `development_data_backup_repository` | Commissioned SFTP repositories or NAS shares; live data stays on VM block disks |
 | `development_data_backup_filesystem` | Per-host mount/source/type, UID/GID, independent marker and `manage_mount: true`; CIFS also needs private `credentials_src` |
 | `development_data_backup_*_src`, `development_data_backup_custody_accepted` | Independently retained encryption/transport material and verified custody |
 
+Point each [service DNS name](../../../02-conventions/service-dns.md) at its selected data VM;
+include that name in the server certificate's DNS SANs. Inventory retains `db-1`, `kv-1` and `repo-1`.
 Require commissioned TLS, permitted client CIDRs and a usable backup destination before apply.
 Use the accepted signed package repository/proxy, including required redirect hosts.
 
@@ -400,8 +391,8 @@ component snapshots need a coordinated maintenance recovery point for joint use.
 Verify SSO, denied access, push/hooks, LFS/artifacts, jobs and audit delivery after
 restore. Installation and offline parsing do not establish live acceptance.
 
-Return to [Stage 9, Step 1 acceptance](../README.md#step-1-deploy-source-control-and-sso),
-then continue with Step 2. Do not reinstall GitLab after these joint recovery checks.
+Return to [Stage 9, Step 14](../README.md#step-14-select-and-install-general-build-execution)
+after the joint source-control acceptance. Do not reinstall GitLab after these joint recovery checks.
 
 ## References
 

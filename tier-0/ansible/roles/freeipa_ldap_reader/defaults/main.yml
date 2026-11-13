@@ -1,0 +1,9 @@
+---
+freeipa_ldap_reader_enabled: false
+freeipa_ldap_reader_name: keycloak
+freeipa_ldap_reader_base_dn: ""
+freeipa_ldap_reader_ldapi_socket: ""
+freeipa_ldap_reader_password: ""
+freeipa_ldap_reader_password_expiration: ""
+freeipa_ldap_reader_bind_dn: >-
+  uid={{ freeipa_ldap_reader_name }},cn=sysaccounts,cn=etc,{{ freeipa_ldap_reader_base_dn }}

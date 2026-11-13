@@ -57,6 +57,9 @@ platform_hostname: >-
       else inventory_hostname
     )
   }}
+# These settings form numbered machine identities, such as idm-1.
+# Set service URLs/FQDNs in the owning service's inputs.
+# Service DNS: docs/02-conventions/service-dns.md
 platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
 
 # Setup-specific group vars own platform_host_ips. Keep this file focused on

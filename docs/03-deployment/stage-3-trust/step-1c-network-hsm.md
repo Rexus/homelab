@@ -6,9 +6,14 @@
 
 **Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before production keys.
 **Change:** use an accepted network appliance and an explicitly selected native client on the issuer.
-**Return:** [Step 1, action 2](README.md#step-1-prepare-issuer-and-key-custody) for runtime and original-key
-CSR preparation, then Step 2 signing.
+**Return:** [action 10b](README.md#step-10-prepare-the-issuing-request) for runtime and original-key
+CSR preparation, then action 11 signing.
 **Design:** [network HSM boundaries](../../01-architecture/08-cryptography/05-network-hsm.md).
+
+**First installation:** select custody at Stage 3 action 1; prepare the issuer through
+[actions 2-9](README.md#step-2-initialize-the-issuer-inputs), then execute this option
+from its first unfinished provider/key action at [10b](README.md#step-10-prepare-the-issuing-request).
+Retain the already installed inactive runtime and data mount; do not provision or initialize them again.
 
 ## Contents
 
@@ -85,7 +90,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.y
 ## 4. Qualify issuance and recovery
 
 Use the [existing-key CSR operation](step-1d-single-usb.md#4-create-a-csr-from-the-existing-key)
-before Step 2. After certificate installation, use the supplied
+before action 11. After certificate installation, use the supplied
 [hardware-token activation](step-1d-single-usb.md#5-complete-activation-and-acceptance)
 and original public-key check; the software token recipe checks a filesystem key.
 

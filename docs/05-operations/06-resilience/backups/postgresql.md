@@ -144,7 +144,12 @@ kubectl --context "$SOURCE_CONTEXT" -n "$PRODUCT_NAMESPACE" get cluster "$CLUSTE
 
 ## How to commission the backup-only NAS area?
 
-The custodian creates a private, retained, **backup-only** NFS CSI PV/PVC in each product namespace.
+The custodian supplies a private, retained, **backup-only** export for each product. Select
+`storage.mode: static_nfs` in that product's `*_backup_files` destination to let its installer render/create
+the dedicated PV/PVC; set `server`, `share` and `size`, retaining the destination's `volume_handle`.
+The accepted `nfs.csi.k8s.io` driver is required. With `storage: {mode: existing}`, the custodian supplies
+the Bound PV/PVC and automation only qualifies it. Managed resources use `Retain`, exact prebinding and
+ownership/source guards; the installer does not adopt an unrelated volume or change an existing source.
 Use separate exports/credentials or enforce equivalent server-side per-database isolation; a claim name
 or NFS AUTH_SYS UID alone is not a security boundary. No NAS administrator credential enters the Job.
 Prepare ownership for container UID/GID `26:26`, restrictive directory permissions and qualified
@@ -155,11 +160,12 @@ For each destination map, set:
 
 | Key | Value |
 | --- | --- |
-| `claim` | Existing namespace-local backup PVC, e.g. `keycloak-db-backups` |
+| `claim` | Namespace-local backup PVC, e.g. `keycloak-db-backups`; managed or accepted existing |
 | `volume_handle` | Exact bound PV `spec.csi.volumeHandle`; provisioner must be `nfs.csi.k8s.io`, reclaim policy `Retain` |
 | `system_identifier` | Actual source `status.systemID`, quoted as a string |
 | `marker` | Independently generated random 24-128 character alphanumeric/underscore/hyphen token |
 | `schedule` | Five-field native CronJob schedule in UTC, e.g. `0 2 * * *`; not CNPG's six-field object schedule |
+| `storage` | `{mode: existing}`, or `mode: static_nfs` with `server`, `share`, `size`; see [the exact schema](../../../../shared/ansible/roles/backup_repository_storage/tasks/preflight.yml) |
 
 On the verified **new empty authorized NAS directory**, as its custodian, create `pending/`, `completed/`
 and `.postgresql-backup-source`. The marker is exactly three LF-terminated lines:

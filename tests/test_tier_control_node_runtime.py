@@ -126,7 +126,9 @@ class NativeControllerRuntime(unittest.TestCase):
     def test_dependency_check_and_ansible_check_refuse_missing_clients_before_deployment(self):
         # An absent local distribution makes this deterministic even on a fully prepared controller.
         tasks = yaml.safe_load(PYTHON.read_text())
-        tasks[0]['vars']['control_node_python_catalog'][1]['requirements'] = ['homelab-missing-client>=1.0']
+        client = next(item for item in tasks[0]['vars']['control_node_python_catalog']
+                      if item['collection'] == 'community.hashi_vault')
+        client['requirements'] = ['homelab-missing-client>=1.0']
         fixture = self.root / 'missing.yml'
         fixture.write_text(yaml.safe_dump(tasks, sort_keys=False))
         for mode, dry_run in (('check', False), ('auto', True)):
@@ -146,7 +148,9 @@ class NativeControllerRuntime(unittest.TestCase):
 
     def test_broken_import_fails_even_with_satisfied_distribution_metadata(self):
         tasks = yaml.safe_load(PYTHON.read_text())
-        tasks[0]['vars']['control_node_python_catalog'][2]['imports'] = ['homelab_broken_crypto_import']
+        client = next(item for item in tasks[0]['vars']['control_node_python_catalog']
+                      if item['collection'] == 'community.crypto')
+        client['imports'] = ['homelab_broken_crypto_import']
         fixture = self.root / 'broken-import.yml'
         fixture.write_text(yaml.safe_dump(tasks, sort_keys=False))
         status, output = self.run_python(['community.crypto'], tasks=fixture)

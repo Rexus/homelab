@@ -6,9 +6,9 @@ Consuming tiers own their guest-network inputs.
 
 **Branch from:** [Step 1](../README.md#step-1-prepare-hosts-and-networks), before attaching guests.
 **Change:** use VLAN-backed SDN VNets instead of direct bridge/VLAN guest attachments.
-**Return:** [Step 1](../README.md#step-1-prepare-hosts-and-networks)
-after activation; finish storage/firewall checks before creating the first template.
-API authorization and local inputs follow at [Step 3f](../README.md#3f-connect-bootstrap-to-proxmox-host-management),
+**Return:** [host options](README.md#step-5-select-optional-branches-before-adding-guests)
+after activation; finish the selected host options and storage/firewall checks before the first template.
+API authorization and local inputs follow during [Foundation Step 3](../README.md#step-3-prepare-the-bootstrap-execution-host),
 before template IaC and Foundation completion.
 **Design:** [network placement](../../../01-architecture/05-networking/README.md).
 
@@ -18,7 +18,7 @@ before template IaC and Foundation completion.
 - [Step 1: Create the VLAN zones](#step-1-create-the-vlan-zones)
 - [Step 2: Create the VNets](#step-2-create-the-vnets)
 - [Step 3: Activate SDN on the nodes](#step-3-activate-sdn-on-the-nodes)
-- [Step 4: Authorize and connect IaC](#step-4-authorize-and-connect-iac)
+- [Step 4: Configure IaC attachments](#step-4-configure-iac-attachments)
 - [DNS with an existing gateway](#dns-with-an-existing-gateway)
 - [Return to the main path](#return-to-the-main-path)
 - [References](#references)
@@ -150,16 +150,22 @@ in Proxmox before attaching templates or guests. The template publisher's Terraf
    configuration alone is not evidence that it is active on a host.
 
 **First installation, before the bootstrap host/token exists:** return now to
-[foundation prerequisites](../README.md#before-starting-hosts-and-networks), then the manual template and bootstrap host.
-Complete Step 4 below when configuring API access and local inputs on that host.
+[host options](README.md#step-5-select-optional-branches-before-adding-guests), then Foundation storage/firewall,
+the manual template and bootstrap host. Resume at Step 4 below from Foundation 3f,
+after API permissions and local host-management files are ready.
 
-## Step 4: Authorize and connect IaC
+<a id="step-4-authorize-and-connect-iac"></a>
 
-1. Grant automation [SDN use](api-access.md#6-grant-bridge-vlan-or-sdn-use-to-the-group)
-   on each selected VNet. A `vmbr0` grant does not carry over to an SDN VNet;
-   privilege-separated tokens also need matching token ACLs.
-2. Test a disposable guest's address, gateway, DNS and permitted connectivity.
-3. Update the owning repository's attachment values before provisioning normal guests.
+## Step 4: Configure IaC attachments
+
+Bootstrap API setup already granted and verified the selected VNet's `SDN.Use`/`SDN.Audit`.
+Retain those ACLs. For adoption of a newly selected VNet, complete the
+[scoped network grant](api-access.md#6-grant-bridge-vlan-or-sdn-use-to-the-group) first;
+a `vmbr0` grant does not carry over, and separated tokens need matching token ACLs.
+
+Edit the attachment inputs below. Their first disposable-clone check belongs to
+[Foundation Step 7](../README.md#step-7-qualify-disposable-clones); this metadata edit itself
+neither provisions a guest nor changes existing NICs.
 
 **Edit existing entries**, not a second map assignment. For explicit settings,
 replace the `identity` entry inside **Tier 0's `terraform/common.tfvars` → `network_zones`**:
@@ -235,9 +241,9 @@ so the selected resolver can resolve that domain as well.
 ## Return to the main path
 
 After **Datacenter > SDN > Apply** succeeds and the VNet checks pass, return to
-[foundation prerequisites](../README.md#before-starting-hosts-and-networks) for storage/firewall acceptance
-before creating the first template.
-Complete Step 4 above when the bootstrap host/API token exists. If templates are
+[host options](README.md#step-5-select-optional-branches-before-adding-guests), then storage/firewall acceptance.
+Complete Step 4 above after bootstrap API setup; return directly to Foundation catalog editing afterward.
+If templates are
 already managed, return directly to [Foundation Step 4](../README.md#step-4-publish-and-test-vm-templates)
 to review their attachment change. Changing SDN configuration alone does not update guest NICs.
 

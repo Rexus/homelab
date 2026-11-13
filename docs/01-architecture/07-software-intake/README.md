@@ -5,8 +5,58 @@ repositories, images and update sources. A policy proxy restricts destinations;
 an HTTP cache reduces eligible repeated downloads. Neither function approves an
 artifact or replaces a retained repository mirror.
 
-**Deploy:** [Software intake](../../03-deployment/stage-1-software-intake/README.md).
-**Operate:** [Software intake operations](../../05-operations/02-software-intake/README.md).
+## Connected proxy design
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph Consumers["Update consumers"]
+    direction TB
+    Workloads["Workload<br/>update clients"]
+    Platform["Platform<br/>update clients"]
+    Control["Infrastructure<br/>update clients"]
+    Workloads ~~~ Platform ~~~ Control
+  end
+  subgraph T2["Tier 2 / DMZ"]
+    direction TB
+    Proxy["Policy proxy /<br/>HTTP cache"]
+    Cache[("Rebuildable<br/>cached objects")]
+    Proxy -. Disposable<br/>storage .-> Cache
+  end
+  Sources["Approved<br/>sources"]
+  Consumers -->|Proxy<br/>requests| T2
+  T2 -->|Source<br/>requests| Sources
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Consumers boundary
+  class Workloads,Platform services
+  class T2,Proxy edge
+  class Control control
+  class Cache data
+  class Sources actor
+```
+
+*Figure: Separately owned update clients request the policy proxy inside Tier 2; the upstream
+boundary link represents that proxy's requests to approved external sources. The proxy uses
+the rebuildable cache below it; cached objects confer neither approval nor recovery custody.*
+
+**Architecture (A):** requests target the proxy interface, not other Tier 2 services.
+The consumer group aggregates separate owners, not a shared subnet or runtime.
+The [Squid policy template](../../../tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2)
+and [cache inputs](../../../tier-2/ansible/group_vars/cache.yml.example) realize the proxy boundary.
+Offline recovery supply remains outside this connected path.
+
+Firewall rules allow selected consumers to the proxy listener, deny direct WAN
+bypass, and restrict the proxy's upstream access. Proxy ACLs combine source CIDRs,
+destination domains and permitted ports. The reference is one common policy for
+all permitted clients; a stricter Tier 0 policy needs a separately scoped endpoint
+or approved mirror-only route, not a claim that one broad allow-list varies by tier.
+Domain access is not repository-path, package or version approval. [1]
 
 ## Contents
 
@@ -19,64 +69,6 @@ artifact or replaces a retained repository mirror.
 - [Realization](#realization)
 - [References](#references)
 
-## Connected proxy design
-
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":24}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart BT
-  subgraph T2["Tier 2"]
-    direction RL
-    subgraph DMZ["DMZ / outbound supply"]
-      direction TB
-      Proxy["Policy proxy / HTTP cache"]
-      Cache[("Rebuildable cached objects")]
-      Proxy --- Cache
-    end
-    Workloads["Workload update clients<br/>Services"]
-    Workloads --> Proxy
-  end
-  subgraph T1["Tier 1 / Services"]
-    Platform["Platform update clients"]
-  end
-  subgraph T0["Tier 0 / Control"]
-    direction TB
-    Control["Infrastructure update clients"]
-    Recovery["Recovery supply<br/>Offline / retained artifacts"]
-    Control ~~~ Recovery
-  end
-  Sources["Approved external sources"]
-  T0 ~~~ T1
-  T1 -->|Proxy requests| T2
-  T0 -->|Proxy requests| T2
-  T2 -->|Allowed source requests| Sources
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T2,T1,Workloads,Platform services
-  class DMZ,Proxy edge
-  class T0,Control control
-  class Recovery custody
-  class Cache data
-  class Sources actor
-```
-
-*Figure: Consumers in each tier pull through the policy proxy to approved sources; offline recovery supply is
-separate.*
-
-**Architecture (A):** requests target the proxy interface, not other Tier 2 services.
-The storage line represents disposable cache data; offline custody has no implied route.
-
-Firewall rules allow selected consumers to the proxy listener, deny direct WAN
-bypass, and restrict the proxy's upstream access. Proxy ACLs combine source CIDRs,
-destination domains and permitted ports. The reference is one common policy for
-all permitted clients; a stricter Tier 0 policy needs a separately scoped endpoint
-or approved mirror-only route, not a claim that one broad allow-list varies by tier.
-Domain access is not repository-path, package or version approval. [1]
-
 ## Cache request and response
 
 The client is any machine using approved software supply; it need not belong to
@@ -88,28 +80,39 @@ sequenceDiagram
   participant Client as Update client
   participant Proxy as Policy proxy/cache
   participant Source as Approved repository
-  Client->>Proxy: Request package or metadata
-  Proxy->>Proxy: Check client and destination policy
-  alt HTTPS CONNECT
-    Proxy->>Source: Open allowed tunnel
-    Note over Client,Source: Client-to-source TLS<br/>Encrypted payload is not cached
-    Client->>Source: Fetch through tunnel
-    Source-->>Client: Encrypted response through tunnel
-  else Potentially cacheable HTTP
-    alt Fresh cache hit
-      Proxy-->>Client: Return cached response
-    else Response absent or requires revalidation
-      Proxy->>Source: Fetch or conditionally revalidate
-      Source-->>Proxy: Content or freshness response
-      Proxy->>Proxy: Apply cache and privacy rules
-      Proxy-->>Client: Return response
+  Client->>Proxy: HTTP request or CONNECT to source:443
+  Proxy->>Proxy: Check client, destination and port policy
+  alt Denied by policy
+    Proxy-->>Client: Deny request without opening source connection
+  else Allowed request
+    alt HTTPS CONNECT
+      Proxy->>Source: Open permitted TCP connection
+      Source-->>Proxy: Connection established
+      Proxy-->>Client: 200 Connection Established
+      Note over Client,Source: Client-to-source TLS through the tunnel<br/>Encrypted payload is not cached or scanned
+      Client->>Source: Fetch package / metadata through tunnel
+      Source-->>Client: Encrypted response through tunnel
+    else Potentially cacheable HTTP
+      alt Fresh cache hit
+        Proxy-->>Client: Return cached response
+      else Response absent or requires revalidation
+        Proxy->>Source: Fetch or conditionally revalidate
+        Source-->>Proxy: Content or freshness response
+        Proxy->>Proxy: Apply cache and privacy rules
+        Proxy-->>Client: Return response
+      end
     end
+    Client->>Client: Verify trusted metadata / package signatures
   end
-  Client->>Client: Verify repository/package signatures
 ```
 
 *Figure: Approved HTTPS requests use an opaque tunnel; reusable HTTP responses may be
 cached or revalidated. The client verifies publisher signatures in both cases.*
+
+The first decision is access policy; a denial never becomes a cache lookup or a
+source fetch. Once CONNECT succeeds, the client verifies the source's TLS identity
+and software authenticity itself. A cache hit can save a transfer, but cannot
+establish that the response is an approved release. [1][2]
 
 ## Supply choices
 
@@ -123,7 +126,7 @@ B is the stronger fit when Tier 0 must consume only retained, approved releases
 without depending on live public repositories. Synchronization and promotion are
 separate operations; downloading into a mirror does not itself approve a release.
 An existing mirror is valid. The repository supplies A and an optional
-[verified RPM/APT and artifact publication path](../../03-deployment/stage-3-trust/step-3b-verified-intake.md)
+[verified RPM/APT and artifact publication path](../../03-deployment/stage-3-trust/step-15b-verified-intake.md)
 for B. C still requires a prepared, independently verified offline supply bundle.
 
 ## Transport and integrity

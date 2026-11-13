@@ -7,6 +7,8 @@ when an existing application needs remote PKCS#11 access. It does not change iss
 require the issuer to use a network service. Complete the selected extension before returning to
 [Step 1b](../step-1b-usb-hsm.md#3-verify-the-complete-service).
 
+<a id="figure-1-restricted-provider-remoting"></a>
+
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
@@ -37,7 +39,7 @@ flowchart TB
   class Recovery custody
 ```
 
-**IaC:** the existing [HSM VM inputs](../../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example)
+**IaC:** **Figure 1: Restricted provider remoting.** The existing [HSM VM inputs](../../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example)
 own `hsm-1/2` and native USB attachment. The [server play](../../../../tier-0/ansible/playbooks/deployment/hsm-remote.yml),
 [client play](../../../../tier-0/ansible/playbooks/deployment/hsm-remote-client.yml) and
 [role](../../../../tier-0/ansible/roles/hsm_remote) configure native transport on these accepted hosts/accounts.
@@ -80,6 +82,9 @@ explicitly; distro package releases may differ. RPC compatibility across differe
 is not assumed. Version checks supplement the native end-to-end acceptance test. [2]
 
 ## 2. Declare the transport and client inputs
+
+Map the accepted hosts and existing client account in
+[Figure 1](#figure-1-restricted-provider-remoting) to the inputs below.
 
 Copy `ansible/group_vars/hsm_remoting.yml.example` to a protected local `hsm_remoting.yml` and
 edit it before deployment. The [role defaults](../../../../tier-0/ansible/roles/hsm_remote/defaults/main.yml)

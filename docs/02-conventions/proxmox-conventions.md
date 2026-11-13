@@ -240,21 +240,13 @@ See [refresh ownership](../04-development/generated-repositories.md#refresh-and-
 
 ### Service DNS names
 
-VM names identify individual guests. Service FQDNs identify stable endpoints
-and omit the VM instance number. Record the internal and external domains,
-service patterns, and role abbreviation definitions in the project's
-`platform-standards.md`.
+Use a stable, familiar service endpoint such as `ldap.corp.example.com` or
+`git.corp.example.com`; keep numbered names such as `idm-1` for individual guests.
+The [service DNS convention](service-dns.md) owns short labels, domain/scope patterns
+and protocol-specific identity requirements.
 
-The reference internal pattern is `<role>.<env>.<internal-domain>`, such as
-`idp.prod.corp.example.com`. The external pattern can use the external domain,
-such as `idp.prod.example.com`. Production remains explicit in these service
-examples even when the VM naming convention omits its environment marker.
-
-Current guest automation still forms host FQDNs from the VM name and
-`platform_domain`. It does not create service DNS records, ingress routes, or
-certificates from the naming document. Configure these separately, pointing
-each service name at its approved endpoint; an external domain does not by
-itself authorize public exposure.
+Guest automation still forms host FQDNs from the VM name and `platform_domain`.
+It does not derive service DNS records, ingress routes or certificates from this document.
 
 ### VM tags
 

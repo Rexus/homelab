@@ -1,4 +1,4 @@
-# Step 2b: Podman build runner
+# Step 14b: Podman build runner
 
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
 Run repository scripts from this root; paths below are repository-relative.
@@ -10,12 +10,42 @@ Existing installations retain their network values until an explicit migration.
 
 <a id="podman-image-runner-guide"></a>
 
-**Branch from:** [Step 2](README.md#step-2-add-on-demand-build-execution), when choosing general build execution.
+**Branch from:** [Step 14](README.md#step-14-select-and-install-general-build-execution), when choosing general build execution.
 **Change:** Use a Podman-based general runner, not the protected Tier 0 runner.
-**Return:** [Step 2](README.md#step-2-add-on-demand-build-execution) for bounded-job acceptance and
-the optional image-lifecycle choice, then Step 3 Vault authorization.
+**Return:** [Step 15](README.md#step-15-select-the-linux-image-lifecycle) after bounded-job acceptance;
+the optional Step 15 image-lifecycle choice, then Steps 16-17 protected CI/Vault authority.
 
 **Design:** [build and execution boundaries](../../01-architecture/10-delivery/README.md).
+
+<a id="figure-podman-runner"></a>
+
+## Expected outcome: general Podman runner
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph T1["Tier 1 / general build execution"]
+    direction LR
+    subgraph PVE["Existing Proxmox / delivery_edge DMZ"]
+      Runner["runner-1<br/>Podman / GitLab Runner"]
+    end
+    Existing["Existing source control / OCI registry"]
+    Runner -->|Scoped jobs / artifact publication| Existing
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class T1,PVE boundary
+  class Runner edge
+  class Existing services
+```
+
+**IaC:** *Figure: The delivery-edge runner consumes scoped jobs and publishes artifacts to existing services. It holds
+no Tier 0 infrastructure credentials.*
+Tier 1 [runner inputs](../../../tier-1/terraform/deployments/podman-runner/terraform.tfvars.example)
+and [runner recipe](../../../tier-1/ansible/playbooks/deployment/podman-runner.yml).
+Registration requires explicit local credentials; this runner has no Tier 0 authority.
 
 ## Table of contents
 
@@ -42,29 +72,8 @@ the supplied Kubernetes GitLab chart does not enable one.
 
 ## What this deploys
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  subgraph T1["Tier 1 / general build execution"]
-    direction LR
-    subgraph PVE["Existing Proxmox / delivery_edge DMZ"]
-      Runner["runner-1<br/>Podman / GitLab Runner"]
-    end
-    Existing["Existing source control / OCI registry"]
-    Runner -->|Scoped jobs / artifact publication| Existing
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class T1,PVE boundary
-  class Runner edge
-  class Existing services
-```
+The [Podman runner figure](#figure-podman-runner) shows this general runner's placement and scoped service access.
 
-**IaC:** Tier 1 [runner inputs](../../../tier-1/terraform/deployments/podman-runner/terraform.tfvars.example)
-and [runner recipe](../../../tier-1/ansible/playbooks/deployment/podman-runner.yml).
-Registration requires explicit local credentials; this runner has no Tier 0 authority.
 
 This path has dedicated IaC:
 
@@ -213,8 +222,8 @@ runner secret, or external secret system.
    A Shell executor runs trusted jobs on its host; it is not an untrusted-code sandbox.
 
 Add `--plan-only` for preview or `--auto-approve` for an approved unattended job.
-Return to [Stage 9 Step 2](README.md#step-2-add-on-demand-build-execution) for runner acceptance
-and the 2c image-lifecycle decision. If selecting 2c, the image-build example below prepares its source.
+Return to [Stage 9 Step 14](README.md#step-2-add-on-demand-build-execution) for runner acceptance
+and the 15b image-lifecycle decision. If selecting 15b, the image-build example below prepares its source.
 
 ## Bootc image project
 
@@ -345,7 +354,7 @@ when selected in Stage 7; it can receive builds directly without a GitLab-regist
 
 - [Development platform path](step-1b-source-control-vm.md)
 - [Container registry path](../stage-7-delivery/procedures/registry.md)
-- [Image-based Linux path](step-2c-image-based-linux.md)
+- [Image-based Linux path](step-15b-image-based-linux.md)
 - [Enterprise Linux template](../foundation/proxmox/templates.md)
 
 ## References

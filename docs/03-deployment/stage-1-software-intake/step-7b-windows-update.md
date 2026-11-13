@@ -1,11 +1,11 @@
-# Step 3b: Optional Windows Update access
+# Step 7b: Optional Windows Update access
 
-**Branch from:** [Step 3](README.md#step-3-configure-the-cache-deployment), option **3b**.
+**Branch from:** [Step 7](README.md#step-7-select-windows-update-scope), option **7b**.
 **Change:** extend cache policy for an existing externally managed Windows consumer.
 **Working repository:** `<prefix>-tier-2/` for the cache; Windows client policy is managed separately.
-**Choose before:** [Step 4](README.md#step-4-deploy-the-cache-pair) for a new pair, or before
+**Choose before:** [Step 8](README.md#step-8-deploy-the-cache-pair) for a new pair, or before
 [Step 2b reconciliation](step-2b-adopt-update.md#3-reconcile-the-existing-cache) for an existing pair.
-**Return:** deploy or reconcile the cache, complete [Step 5](README.md#step-5-test-the-selected-intake-path),
+**Return:** deploy or reconcile the cache, complete [Step 9](README.md#step-9-test-the-accepted-supply),
 then validate the Windows consumer below before accepting this option.
 
 This option consumes an **existing Windows endpoint-management service**. That owner supplies and
@@ -71,14 +71,14 @@ CONNECT tunnels, without TLS inspection, content scanning or caching. Eligible p
 be cached, subject to source and cache policy; neither a cache hit nor domain access verifies or approves a
 release. Windows retains its publisher and update integrity checks; do not disable them. [5]
 
-For a new pair, return to [Step 4](README.md#step-4-deploy-the-cache-pair). For an existing pair, retain
+For a new pair, return to [Step 8](README.md#step-8-deploy-the-cache-pair). For an existing pair, retain
 its inputs and state and continue [Step 2b](step-2b-adopt-update.md);
 the `--ansible-only` reconciliation applies these edits. For separately owned existing supply, agree the
 equivalent source/client restrictions with its owner; no Tier 2 cache configuration is implied.
 
 ## 3. Configure the Windows consumer
 
-After deployment or reconciliation and the general Step 5 checks, have the existing management owner
+After deployment or reconciliation and the general Step 9 checks, have the existing management owner
 apply these inputs to a representative **Windows device** through its approved management system.
 Use that system's policy-as-code or unattended deployment workflow; this guide supplies the interface
 contract, not local guest preparation commands:
@@ -117,7 +117,7 @@ device/time with Squid access logs for the actual content requests and with fire
 service exception. Verify allowed destinations work and an unapproved destination and direct-WAN bypass
 are denied; also verify unauthorized client networks cannot use the proxy. Test both signed-in and
 unattended service contexts when both are required. A browser request, a successful CONNECT, or the
-generic Step 5 test alone does not prove Windows Update or DO is using the intended route.
+generic Step 9 test alone does not prove Windows Update or DO is using the intended route.
 
 For a range check, select an approved, reachable **HTTP** content URL that supports ranges. On the
 **Windows device**, substitute the actual proxy and URL when prompted:

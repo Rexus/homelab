@@ -1,13 +1,17 @@
 # Install Tier 0 control applications
 
-**Stage route:** [Stage 6, Step 1a](../README.md#step-1-deploy-the-secret-service) installs Vault;
-[Step 2](../README.md#step-2-add-operational-tools) installs NetBox/Headlamp separately.
+**Stage route:** [Stage 6, actions 2-10](../README.md#step-2-reuse-the-control-application-inputs) installs Vault;
+[actions 13-19](../README.md#step-13-configure-netbox-and-its-private-inputs) install NetBox/Headlamp separately.
 **Return:** to the selected step for its ceremony and acceptance checks. Keycloak belongs to
 [Stage 5](../../stage-5-identity/README.md#step-2-deploy-identity-federation); do not reinstall it here.
 
 Render or install Keycloak, Vault, NetBox and Headlamp with tier-owned product
 configuration and Shared's native Helm/Kubernetes execution. Select products by
 stage; an install does not grant operational acceptance or transfer directory authority.
+
+Use the [Stage 6 runtime figure](../README.md#figure-control-applications) for Vault and operator tools,
+or the [Stage 5 federation figure](../../stage-5-identity/README.md#figure-identity-federation) for Keycloak.
+Select only the products owned by the calling stage step before rendering.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** accepted Stage 4 networking/storage/ingress, CNPG, external TLS
@@ -48,24 +52,20 @@ use normal readiness. There is no second installer in the empty Flux application
 retain one reconciliation owner per resource.
 
 <a id="configure-inputs"></a>
+<a id="step-1-edit-the-application-inputs"></a>
 
-## Step 1: Edit the application inputs
+## Product input contract
 
-From Tier 0, prepare local inputs:
+The continuous first-install commands live in the owning stage. Use the same accepted
+`ansible/group_vars/control_applications.yml` and private Secret input throughout; select products
+one at a time without removing prior service settings.
 
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-cp -n ansible/group_vars/control_applications.yml.example ansible/group_vars/control_applications.yml
-```
-
-Edit in **`<prefix>-tier-0/`**.
-
-- `ansible/group_vars/control_applications.yml`: Component selection, cluster context, TLS/SSO, database and
-  backup-phase inputs.
-
-Edit **`ansible/group_vars/control_applications.yml`**, not the `.example` file.
-Preserve previously accepted Stage 5 identity settings; select only the components being installed.
+| Work | Authoritative installation action |
+| --- | --- |
+| Keycloak, database and selected backup | [Stage 5, actions 12-20](../../stage-5-identity/README.md#step-12-select-the-existing-cluster-and-identity-provider-inputs) |
+| Sealed cluster Vault, then audit/SSO after human ceremony | [Stage 6, actions 2-10](../README.md#step-2-reuse-the-control-application-inputs) |
+| NetBox and its own database/backup | [Stage 6, actions 13-17](../README.md#step-13-configure-netbox-and-its-private-inputs) |
+| Headlamp after accepted API OIDC | [Stage 6, action 19](../README.md#step-19-install-headlamp-after-api-sso-acceptance) |
 
 | Field to edit | Required value |
 | --- | --- |
@@ -102,38 +102,16 @@ terminate TLS at ingress and use cluster-internal HTTP; qualify network isolatio
 | `control_applications_traefik_crd_accepted` | `false`; Keycloak/Vault require the existing CRD provider and verified upstream transport |
 
 <a id="secrets-and-certificates"></a>
+<a id="step-2-prepare-secrets-and-certificates"></a>
 
-## Step 2: Prepare Secrets and certificates
+## Secrets and certificates
 
-The [private input example](../../../../tier-0/ansible/group_vars/control_applications_secrets.yml.example)
-lists every required namespace/name and key. For an existing Secret controller, create
-the listed Secrets through that owner and keep `control_applications_manage_secrets: false`.
-For explicit bootstrap ownership, create a private file:
-
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-umask 077
-mkdir -p secrets
-cp -n ansible/group_vars/control_applications_secrets.yml.example secrets/control-applications.yml
-```
-
-Edit in **`<prefix>-tier-0/`**.
-
-- `secrets/control-applications.yml`: Follow the private-input/encryption steps below for secret values.
-
-Fill only selected products in `secrets/control-applications.yml` and set its
-`control_applications_manage_secrets: true`. Then encrypt it:
-
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-ansible-vault encrypt secrets/control-applications.yml
-```
-
-Retain independently held decryption/recovery material. Render never
-contacts Kubernetes or applies Secrets. Output files are private even when values
-only contain Secret references.
+The private input example lists all namespace/name/key entries. The first selected product
+creates an encrypted private file; later products edit that same file. Only enable
+`control_applications_manage_secrets` for its selected installer owner. An accepted existing
+Secret controller remains an alternative; it must supply the same nonempty fields before apply.
+No unseal share or root key belongs in these inputs. Keep decryption and TLS renewal/recovery
+custody independent of the service being installed.
 
 | Secret | Certificate/data contract |
 | --- | --- |
@@ -144,7 +122,7 @@ only contain Secret references.
 | `<product>-db-replication` | Issued client TLS leaf/key with CN `streaming_replica` and client-auth usage [3] |
 | `<product>-db-backup` | Object/WAL option only: scoped object credentials and backup endpoint CA |
 | `netbox-config` | Operator-held 50+ character `secret_key` and JSON `api_token_peppers`; retain old peppers during rotation |
-| `netbox-superuser` | Independent `username`, `password`, `email`, `api_token` recovery account |
+| `netbox-superuser` | Independent `username`, `password`, `email`; fresh v2 API bootstrap also uses a 12-character alphanumeric `api_key` and private plaintext `api_token`. Retain both; existing accounts are not rotated |
 | `netbox-oidc` | `oidc.yaml` containing `SOCIAL_AUTH_OIDC_SECRET`, identical to the existing `netbox` client |
 | `netbox-cache` | Private `valkey.conf` with TLS-only listener, AOF, and `requirepass` matching `password` |
 | `netbox-cache-tls` | Server leaf/key for `netbox-cache` plus CA; clients verify TLS |
@@ -156,51 +134,20 @@ independent custody/SOPS or an already accepted secret controller. This path doe
 not generate a CA/key, request a certificate through future Vault, or initialize Vault.
 
 <a id="render-and-apply"></a>
+<a id="step-3-render-and-apply"></a>
 
-## Step 3: Render and apply
+## Execution contract
 
-Use the prepared deployment virtual environment and Tier 0 requirements. From the
-**Tier 0 root**, render the selected components:
+The stage supplies exact `control-applications.yml` render/apply commands. Rendering has no
+cluster mutation; inspect private `secrets/control-applications/` before explicit `action=apply`.
+Apply has no additional confirmation prompt. Managed Secrets use the same encrypted file and
+Vault password/identity for both commands; existing-owner mode omits those arguments.
 
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/control-applications.yml \
-  -e @secrets/control-applications.yml --ask-vault-pass \
-  -e control_applications_action=render
-```
-
-Review native workloads, CNPG/backup resources, ingress, required Secret names,
-storage and RBAC. Then explicitly apply reviewed inputs:
-
-Run from **`<prefix>-tier-0/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/control-applications.yml \
-  -e @secrets/control-applications.yml --ask-vault-pass \
-  -e control_applications_action=apply
-```
-
-Apply creates/gates database Secrets, Clusters and the selected backup resources, waits for each
-database and authenticated TLS cache before installing application Helm releases. The role checks the
-first post-install physical backup. A manifest render proves neither controllers
-nor live services work. Do not apply these inputs against another tier's cluster.
-
-When using externally owned Secrets, omit `-e @secrets/control-applications.yml --ask-vault-pass`
-from both commands. No Ansible confirmation prompt is provided: `action=apply` is the explicit gate.
-For NAS database backups, stop after the `prepare` pass, complete
-[backup commissioning](../../../05-operations/06-resilience/backups/postgresql.md), then edit
-`control_applications_backup_files_phase: backup` and the verified claim/marker fields
-before repeating render/review/apply. A prepare-only pass has not installed the dependent application.
-Commission each database separately: NetBox's claim, marker and system identifier differ from Keycloak's.
-Vault/Headlamp-only runs do not use the database preparation phase. Keep database commissioning separate
-from those installations; a mixed selection containing Keycloak/NetBox still pauses the whole batch.
-
-For Vault, continue with [initialization/unseal and configuration](vault-kubernetes.md#operator-ceremony).
-For NetBox/Headlamp, complete service/backup verification below, then
-[NetBox audit collection](netbox-audit.md) and [Stage 6 Step 3](../README.md#step-3-integrate-access-and-recovery).
+For a files-mode database, `prepare` creates only that database. After external per-database
+NAS commissioning, `backup` enables the file jobs and dependent application. Vault/Headlamp-only
+selections do not use that database phase. A mixed batch containing Keycloak/NetBox pauses the
+whole batch, so keep installation selections separate. Rendering alone proves neither live
+readiness nor first backup/restore success.
 
 ## Persistence and recovery
 

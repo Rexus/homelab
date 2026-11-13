@@ -2,7 +2,7 @@
 
 # Copy to: terraform/deployments/podman-runner/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/03-deployment/stage-9-development/step-2b-podman-runner.md
+# Setup guide: docs/03-deployment/stage-9-development/step-14b-podman-runner.md
 # Shared values live in ../../common.tfvars.
 # VMID allocations: docs/02-conventions/vmid-convention.md
 

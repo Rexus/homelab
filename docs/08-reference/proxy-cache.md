@@ -121,7 +121,7 @@ Never force caching through expiry/privacy/reload overrides; repository metadata
 Each consumer selects `repository_proxy_enabled`, `repository_proxy_url` and optionally
 `repository_proxy_fqdn` in its own `ansible/group_vars/all.yml` or `all.<env>.yml`.
 Use `repository_proxy_ip` only for a temporary hosts entry before independent DNS works;
-consumer URLs contain no subnet prefix. Follow [bootstrap Step 6](../03-deployment/stage-1-software-intake/step-6-bootstrap-consumer.md)
+consumer URLs contain no subnet prefix. Follow [bootstrap Step 6](../03-deployment/stage-1-software-intake/procedures/bootstrap-consumer.md)
 and the [Proxmox host procedure](../05-operations/02-software-intake/host-updates.md) for existing hosts.
 
 | Consumer | Behavior |
@@ -189,7 +189,7 @@ later OpenSearch reads only approved copies and is not an update-access dependen
 
 ## Validation
 
-[Stage 1, Step 5](../03-deployment/stage-1-software-intake/README.md#step-5-test-the-selected-intake-path)
+[Stage 1, Step 9](../03-deployment/stage-1-software-intake/README.md#step-9-test-the-accepted-supply)
 owns manual acceptance from permitted/forbidden source networks: approved retrieval,
 unapproved-destination denial, direct-WAN denial and HTTP cache-hit checks when caching is selected.
 Acceptance requires that direct WAN bypass fails.

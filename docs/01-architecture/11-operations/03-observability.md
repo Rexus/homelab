@@ -1,8 +1,5 @@
 # Observability and telemetry
 
-**Deploy:** [Observability](../../03-deployment/stage-8-observability/README.md).
-**Operate:** [Observability operations](../../05-operations/06-resilience/observability.md).
-
 Observability uses **logs, metrics and distributed traces** to understand and
 diagnose the running system. These are telemetry signals, not three mandatory
 agents or VMs. A Collector can handle separate signal pipelines. [1]
@@ -34,13 +31,14 @@ flowchart TB
   subgraph T1["Tier 1 / Observability"]
     direction TB
     subgraph Cluster["Platform Kubernetes / separate workloads"]
+      direction LR
       Gateway["Telemetry gateways"]
       Metrics["Metrics backend<br/>Metrics query UI"]
       Search["Log / trace search<br/>Analysis UI"]
-      Diagnostics["Live infrastructure diagnostics"]
+      Diagnostics["Live platform / workload diagnostics"]
       Gateway -->|Metrics| Metrics
       Gateway -->|Application logs / traces| Search
-      Diagnostics ~~~ Metrics
+      Diagnostics ~~~ Gateway
     end
   end
   subgraph T0["Tier 0 / Security Logging and Audit"]
@@ -64,19 +62,31 @@ flowchart TB
 *Figure: Application telemetry feeds Tier 1 metrics and search, while security and audit submissions go to
 Tier 0.*
 
+Applications and tier-local agents submit approved telemetry to gateways using the
+OpenTelemetry Protocol (OTLP). Separate pipelines route metrics to metrics storage
+and application logs/traces through ingestion to search. Correlation uses trusted
+service/resource identity, timestamps and request/trace IDs; it does not require
+unrestricted database-to-database access. OTLP does not imply that every backend
+accepts the same protocol. [1][2]
+
+Critical syslog and audit submissions from every tier go directly to Tier 0; there is no
+second Tier 1 critical-syslog service. The smaller view below follows an approved
+search copy across that boundary. Search copies cannot be edited back into the
+original archive. [Security logging](01-protected-logging.md) owns that contract.
+
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart BT
   subgraph T1["Tier 1 / Observability"]
     Search["Scoped log search"]
   end
-  subgraph T0[" "]
-    direction TB
+  subgraph T0["Tier 0 / original evidence and export authority"]
+    direction RL
     Original[("Original evidence")]
-    Projection["Tier 0 / approved projection"]
+    Projection["Approved projection<br/>Permitted sources / fields"]
     Original -->|Select permitted fields| Projection
   end
-  Projection -->|Optional copies| Search
+  T0 -->|Optional approved copies| T1
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -86,17 +96,28 @@ flowchart BT
   class Original data
 ```
 
-*Figure: Tier 0 retains original evidence and can export approved field-limited copies to Tier 1 search.*
+*Figure: Tier 0 selects permitted sources and fields before export. Tier 1 searches the
+derived copy; it has no path to modify or delete original evidence through that interface.
+The inter-tier arrow carries only the approved projection, not unrestricted archive access.*
 
-Critical syslog and audit submissions from every tier go directly to Tier 0; there is no
-second Tier 1 critical-syslog service. Search copies cannot be edited back into the
-original archive. [Security logging](01-protected-logging.md) owns that contract.
-
-Correlation uses trusted service/resource identity, timestamps and request/trace IDs.
-It does not require unrestricted database-to-database access. OTLP is the telemetry
-transport, not a promise that every backend accepts the same protocol. [1][2]
+The Tier 0 [projection writer](../../../tier-0/ansible/roles/logging_archive/files/logging_projection.py)
+and [export role](../../../tier-0/ansible/roles/logging_export/tasks/main.yml) implement
+source-side selection. The Tier 1 [pipeline template](../../../tier-1/ansible/roles/observability_platform/templates/collector-config.yml.j2)
+keeps application signals and approved security projections in separate scopes.
 
 ## Components and placement
+
+The reference runs collection, metrics storage, search and UIs as separate workloads
+in the existing Tier 1 Kubernetes cluster. Gateways send metrics to VictoriaMetrics
+and logs/traces through Data Prepper to OpenSearch. Grafana queries metrics and keeps
+dashboard state in PostgreSQL; OpenSearch Dashboards queries search data. The UIs
+are separate from the signal stores; UI access alone does not grant retention administration.
+
+Netdata supplies live diagnostics through native child/parent streaming, separate
+from OTLP. An explicit Prometheus scrape/export bridge can feed selected metrics
+into the Collector and VictoriaMetrics; native streaming does not perform that
+forwarding automatically. [5][14] The next section separates infrastructure and
+platform/workload diagnostic domains.
 
 | Function | Reference | Placement |
 | --- | --- | --- |
@@ -114,13 +135,9 @@ VictoriaMetrics and OpenSearch have documented Kubernetes/operator deployment
 paths. That supports the placement choice, not an automatic production-readiness
 claim. Qualify releases, components, storage and upgrade/failure behavior. [6][7][8]
 
-Netdata remains part of Observability, not only foundation monitoring. Its selected
-metric path uses native child/parent streaming, separate from OTLP. An explicit
-Prometheus scrape/export bridge can feed selected metrics into the Collector and
-VictoriaMetrics; native streaming does not perform that forwarding automatically. [5][14]
-Grafana supplies the selected metrics dashboards; OpenSearch Dashboards supplies
-log/trace analysis. A separate SigNoZ/ClickHouse, Loki or Tempo stack is not part of
-this reference. Other products remain explicit alternatives.
+Netdata remains part of Observability, not only foundation monitoring. A separate
+SigNoZ/ClickHouse, Loki or Tempo stack is not part of this reference. Other products
+remain explicit alternatives.
 
 ## Infrastructure coverage
 
@@ -151,7 +168,7 @@ Only the approved metric projection crosses into Tier 1 history/query services.
 That derived copy is intentional; it is not another hardware poller, a raw Tier 0
 diagnostic view or a failover parent for Tier 0. Configure each domain's own recovery.
 
-The [infrastructure monitoring deployment](../../03-deployment/stage-8-observability/step-3-infrastructure-monitoring.md)
+The [infrastructure monitoring deployment](../../03-deployment/stage-8-observability/step-13-infrastructure-monitoring.md)
 selects host versus API collection, sensor support and acceptance tests. Device
 coverage is explicit: an absent or stale sensor is unknown, not evidence of health.
 
@@ -216,11 +233,11 @@ Test cross-tenant isolation using hostile labels and direct API queries, not onl
 ## Realization
 
 [Security Logging and Audit](../../03-deployment/stage-2-logging/README.md) comes first.
-[Independent monitoring](../../03-deployment/stage-8-observability/step-3-infrastructure-monitoring.md)
+[Independent monitoring](../../03-deployment/stage-8-observability/step-13-infrastructure-monitoring.md)
 keeps foundation visibility outside cluster outages.
 [Observability deployment](../../03-deployment/stage-8-observability/README.md)
 adds Netdata diagnostics, infrastructure coverage, gateways, both backends and UIs;
-[workload collection](../../03-deployment/stage-10-lab-environments/step-3c-telemetry.md)
+[workload collection](../../03-deployment/stage-10-lab-environments/step-5b-telemetry.md)
 connects applications.
 
 Tier-owned native release inputs realize this design. Project GitOps folders are
@@ -230,6 +247,8 @@ the [implementation map](../../08-reference/implementation-support.md) records t
 The owning Tier 1 [release inputs](../../../tier-1/ansible/group_vars/observability_platform.yml.example)
 and [installer templates](../../../tier-1/ansible/roles/observability_platform/templates)
 define the selected pipelines, replica settings, UI database and network policy.
+[Observability operations](../../05-operations/06-resilience/observability.md) owns
+recurring signal, access, capacity and recovery checks.
 
 ## References
 

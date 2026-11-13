@@ -3,10 +3,12 @@
 # Reference guide: docs/03-deployment/stage-6-secrets/step-1b-vault-vm.md
 # Schema/defaults: ansible/roles/vault/defaults/main.yml
 # Post-unseal API fields: ansible/roles/control_applications/defaults/main.yml
+# Service DNS: docs/02-conventions/service-dns.md
 
 platform_host_ips:
   vault-1: 10.20.21.40
 
+# Advertised API/cluster addresses and Raft joins retain each member's certificate identity.
 vault_api_addr: "https://vault01.example.internal:8200"
 vault_cluster_addr: "https://vault01.example.internal:8201"
 vault_node_id: "vault01"

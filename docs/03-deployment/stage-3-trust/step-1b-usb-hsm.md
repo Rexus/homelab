@@ -6,20 +6,11 @@
 
 **Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before production keys.
 **Change:** prepare independently managed USB provider hosts for a selected signing application.
-**Return:** [Step 1, action 2](README.md#step-1-prepare-issuer-and-key-custody) for the issuer runtime
-and original hardware-key CSR, then Step 2 signing.
+**Return:** [action 10b](README.md#step-10-prepare-the-issuing-request) for the issuer runtime
+and original hardware-key CSR, then action 11 signing.
 **Design:** [USB services and endpoint variants](../../01-architecture/08-cryptography/04-usb-hsm.md).
 
-## Contents
-
-- [Supplied automation and prerequisites](#supplied-automation-and-prerequisites)
-- [1. Prepare the service hosts](#1-prepare-the-service-hosts)
-- [2. Integrate the application and endpoint](#2-integrate-the-application-and-endpoint)
-- [3. Verify the complete service](#3-verify-the-complete-service)
-- [Maintenance](#maintenance)
-- [References](#references)
-
-## Supplied automation and prerequisites
+<a id="figure-1-usb-provider-hosts-and-custody"></a>
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -54,10 +45,26 @@ flowchart TB
   class Token1,Token2,Custody custody
 ```
 
-**IaC:** [HSM VM inputs](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example) and
+**IaC:** **Figure 1: USB provider hosts and custody.** [HSM VM inputs](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example) and
 [deployment recipe](../../../tier-0/ansible/playbooks/deployment/hsm-gateways.yml) own the two-host
 starter, USB attachment and provider installation. Hardware and key custody already exist.
 This view adds no signing application, key replication or VIP; shared transport is selected at action 2.
+
+**First installation:** select custody at Stage 3 action 1; prepare the issuer through
+[actions 2-9](README.md#step-2-initialize-the-issuer-inputs), then execute this option
+from its first unfinished provider/key action at [10b](README.md#step-10-prepare-the-issuing-request).
+Retain the already installed inactive runtime and data mount; do not provision or initialize them again.
+
+## Contents
+
+- [Supplied automation and prerequisites](#supplied-automation-and-prerequisites)
+- [1. Prepare the service hosts](#1-prepare-the-service-hosts)
+- [2. Integrate the application and endpoint](#2-integrate-the-application-and-endpoint)
+- [3. Verify the complete service](#3-verify-the-complete-service)
+- [Maintenance](#maintenance)
+- [References](#references)
+
+## Supplied automation and prerequisites
 
 Terraform provisions the selected VMs and attaches approved USB devices through native bpg
 `usb` blocks. Ansible installs the selected packages and native configuration, starts local
@@ -82,6 +89,9 @@ establish application HA. For separate YubiHSM and PicoHSM devices, start with
 Tier 1 and Tier 2 consumers, public edge and Kubernetes are not prerequisites for these Tier 0 hosts.
 
 ### 1. Prepare the service hosts
+
+Configure the two hosts and local device attachments in
+[Figure 1](#figure-1-usb-provider-hosts-and-custody) before selecting any shared transport.
 
 Initialize local files from **`<prefix>-tier-0/`**:
 
@@ -147,7 +157,7 @@ one dedicated token containing the original signing key. There is no object-leve
 session migration, VIP or automatic replay. Clients explicitly select endpoints and reestablish sessions.
 
 For an application signing API, use the separately selected
-[OpenBao external-key option](../stage-6-secrets/step-1d-openbao.md) after its prerequisites.
+[OpenBao external-key option](../stage-6-secrets/step-11b-openbao.md) after its prerequisites.
 Its API policy and persistent state are separate from PKCS#11 transport. Existing independent
 tokens are not a replicated key domain, and the transport does not make an application highly available.
 Record that later option and finish Stage 3's selected provider/remoting checks here;

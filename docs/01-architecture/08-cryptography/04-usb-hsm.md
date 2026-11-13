@@ -1,41 +1,8 @@
 # USB-backed key services
 
-Read this before selecting shared hardware custody for PKI, secrets or development signing.
+USB-backed providers hold keys for authorized PKI and application signing operations.
 A local issuer, remote PKCS#11 client and signing API use different authority and failure
 contracts, even when they use the same hardware.
-
-**Deploy:** [USB provider pool](../../03-deployment/stage-3-trust/step-1b-usb-hsm.md) or
-[single-device issuer](../../03-deployment/stage-3-trust/step-1d-single-usb.md).
-**Operate:** [hardware custody and recovery](../../05-operations/03-cryptography/usb-hsm.md).
-
-## Contents
-
-- [Initial scope](#initial-scope)
-- [Shared interfaces](#shared-interfaces)
-- [Request and response](#request-and-response)
-- [Hardware compatibility](#hardware-compatibility)
-- [Failure and recovery](#failure-and-recovery)
-- [Implementation](#implementation)
-- [References](#references)
-
-<a id="first-deployment"></a>
-
-## Initial scope
-
-The initial reference separates four responsibilities:
-
-| Responsibility | Initial choice and consequence |
-| --- | --- |
-| Root custody | Offline root CA and independent recovery custody |
-| Online issuance | Original issuer key through a qualified local provider; device-loss recovery is accepted before consumers depend on it |
-| Secrets | HashiCorp Vault with default Shamir unseal and independently held shares; an HSM-backed issuer does not require an HSM-backed Vault seal |
-| Shared signing | Optional remote key access or signing API for explicit consumers; PKI, application signing and seal keys retain distinct identities and permissions |
-
-This limits the initial PKI/Vault dependency chain. The [Trust stage](../../03-deployment/stage-3-trust/README.md)
-owns installation order and qualification; shared interfaces are added only for a selected consumer need.
-
-Device initialization, key creation and wrapped-key recovery are controlled custody
-operations; ordinary deployment preserves keys.
 
 <a id="topology"></a>
 <a id="endpoint-variants"></a>
@@ -44,7 +11,7 @@ operations; ordinary deployment preserves keys.
 ## Shared interfaces
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":22,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   Clients["Explicitly authorized consumers<br/>Issuer, application or development signer"]
   subgraph T0["Tier 0 / Control / optional shared custody"]
@@ -54,7 +21,7 @@ flowchart TB
       subgraph API["Optional signing API"]
         direction TB
         Policy["Authentication, key policy<br/>and audit"]
-        State[("Replicated application state")]
+        State[("Signing API state")]
         Policy --> State
       end
       subgraph Pool["Device hosts / pinned endpoints"]
@@ -87,6 +54,12 @@ flowchart TB
 *Figure: Consumers select a policy-enforcing signing API or authorized PKCS#11 access;
 device hosts and application state have separate recovery responsibilities. Both interfaces are optional.*
 
+Read the figure as two consumer contracts. A trusted application can own the
+PKCS#11 sessions and policy itself, or use a signing API that checks identity,
+operation and key policy on its behalf. Both paths ultimately use a selected
+provider host and its local device. Neither path transfers HSM administration
+or infrastructure-issuer authority to ordinary development jobs.
+
 | Interface | Consumer responsibility | Reference realization |
 | --- | --- | --- |
 | Local PKCS#11 | Issuer owns policy and uses one qualified device | OpenXPKI and its local provider |
@@ -106,16 +79,45 @@ an opt-in backend only; it installs neither that application nor a complete VIP/
 Its health and session checks must follow that application's supported HA model.
 The supplied SSH remoting path uses pinned member endpoints rather than this scaffold.
 
+## Contents
+
+- [Shared interfaces](#shared-interfaces)
+- [Initial scope](#initial-scope)
+- [Request and response](#request-and-response)
+- [Hardware compatibility](#hardware-compatibility)
+- [Failure and recovery](#failure-and-recovery)
+- [Implementation](#implementation)
+- [References](#references)
+
+<a id="first-deployment"></a>
+
+## Initial scope
+
+The shared service is an explicit extension of local custody. The initial reference
+keeps these four responsibilities separate so the issuer can start and recover
+without the secret service or an optional signing API:
+
+| Responsibility | Initial choice and consequence |
+| --- | --- |
+| Root custody | Offline root CA and independent recovery custody |
+| Online issuance | Original issuer key through a qualified local provider; device-loss recovery is accepted before consumers depend on it |
+| Secrets | HashiCorp Vault with default Shamir unseal and independently held shares; an HSM-backed issuer does not require an HSM-backed Vault seal |
+| Shared signing | Optional remote key access or signing API for explicit consumers; PKI, application signing and seal keys retain distinct identities and permissions |
+
+The [Trust stage](../../03-deployment/stage-3-trust/README.md) owns installation order
+and qualification; shared interfaces are added only for a selected consumer need.
+Device initialization, key creation and wrapped-key recovery are controlled custody
+operations; ordinary deployment preserves keys.
+
 ## Request and response
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","signalColor":"#627581","actorTextColor":"#1f2937","actorBkg":"#eef2f6","actorBorder":"#64748b"}}}%%
 sequenceDiagram
   participant App as Authorized application
   participant API as Optional signing API
   participant Host as Selected device host
   participant Token as Local USB HSM
-  rect rgb(248, 250, 252)
+  rect rgba(57, 115, 102, 0.12)
     App->>API: Authenticate and sign using permitted key
     API->>API: Check identity, operation and key policy
     API->>Host: Qualified PKCS#35;11 session
@@ -129,6 +131,10 @@ sequenceDiagram
 
 *Figure: The signing workflow returns a result without exporting the private key. A broken session
 produces an error; transport cannot determine whether retrying an operation is safe.*
+
+The return path matters: a disconnected session can leave the caller unsure whether
+the device completed an operation. Safe retries and key/version checks belong to
+the selected application integration, not to a generic TCP or HTTP health check.
 
 <a id="hsm-mode"></a>
 
@@ -176,6 +182,11 @@ the [Secrets stage](../../03-deployment/stage-6-secrets/README.md) owns the opti
 HashiCorp Vault remains the reference secret store. Its Enterprise PKCS#11 seal/managed-key
 features are separate from the open-source API option; see [seal choices](06-vault-seal.md).
 No implicit product migration, key replication or generic load-balancer HA is supplied.
+
+Follow the [USB provider pool](../../03-deployment/stage-3-trust/step-1b-usb-hsm.md) or
+[single-device issuer](../../03-deployment/stage-3-trust/step-1d-single-usb.md) procedure
+for the selected arrangement. [Hardware custody and recovery](../../05-operations/03-cryptography/usb-hsm.md)
+owns subsequent operation.
 
 ## References
 

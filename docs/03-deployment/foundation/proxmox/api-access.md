@@ -5,16 +5,24 @@ Complete this after installing verified CA trust on the [bootstrap host](../boot
 This procedure does not deploy guests.
 
 **Working repository:** `<prefix>-tier-0` for bootstrap inputs (source: `tier-0/`).
-**Run Steps 1–3 on:** a Proxmox host as an authorized administrator.
-**Run Step 4 on:** the bootstrap host, in the owning generated tier.
+**Run Steps 1–10 on:** a Proxmox host as an authorized administrator.
+**Continue at Step 11 on:** the bootstrap host, in the owning generated tier.
 **Design:** [protected provisioning](../../../01-architecture/04-hosting/02-provisioning.md).
 
 ## Contents
 
 - [Before starting](#prerequisites)
-- [Create platform automation access](#create-platform-automation-access)
-- [Validate access](#validate-access)
-- [Use the token](#use-the-token)
+- [1. Create roles](#step-1-create-the-roles)
+- [2. Create the automation group](#step-2-create-the-automation-group)
+- [3. Grant VM scope](#step-3-grant-vm-scope)
+- [4. Grant live-storage scope](#step-4-grant-live-storage-scope)
+- [5. Grant image-publishing scope](#step-5-grant-image-publishing-scope)
+- [6. Grant node-read scope](#step-6-grant-node-read-scope)
+- [7a/7b. Grant network scope](#step-7-grant-network-scope)
+- [8. Create the user](#step-8-create-the-user)
+- [9. Create the token](#step-9-create-the-token)
+- [10. Validate effective permissions](#step-10-validate-effective-permissions)
+- [11. Continue with local inputs](#step-11-continue-with-local-inputs)
 - [Existing or privilege-separated tokens](#existing-or-privilege-separated-tokens)
 - [Role patterns for teams](#role-patterns-for-teams)
 - [References](#references)
@@ -44,14 +52,15 @@ a personal administrator token for routine deployments. [1]
 
 <a id="tls-gate"></a>
 
-**TLS gate:** complete [bootstrap CA trust and caller verification](../../../05-operations/01-hosting/proxmox-tls.md)
-on the execution host before using the token. Supplied provider roots set
+**TLS gate:** [Bootstrap Step 14](../bootstrap/README.md#step-14-trust-the-proxmox-api) already installed
+and verified API trust on the execution host. Retain that accepted trust; do not repeat its installation. Supplied provider roots set
 `insecure = false`; entry points reject bypass flags. Existing projects must review
 retained local provider edits too. Neither FreeIPA nor platform PKI is required first. [5]
 
-## Create Platform Automation Access
+<a id="create-platform-automation-access"></a>
+<a id="step-1-create-the-roles-and-group"></a>
 
-### Step 1: Create the roles and group
+## Step 1: Create the roles
 
 **Run on a Proxmox host.** Create these once; reuse accepted existing roles/groups.
 The matching GUI pages are **Datacenter > Permissions > Roles** and **Groups**.
@@ -85,6 +94,8 @@ pveum role add PlatformTemplateUpload --privs "Datastore.AllocateTemplate"
 
 <a id="2-create-the-automation-group"></a>
 
+## Step 2: Create the automation group
+
 Run on **the selected Proxmox host as an authorized root operator**.
 
 ```bash
@@ -111,9 +122,10 @@ pveum role modify PlatformAutomationNetwork --append 1 --privs "SDN.Audit"
 
 This changes every ACL using that role; it preserves the existing privileges and scope.
 
-### Step 2: Grant only the selected resource paths
-
+<a id="step-2-grant-only-the-selected-resource-paths"></a>
 <a id="3-grant-vm-permissions-to-the-group"></a>
+
+## Step 3: Grant VM scope
 
 **VMs:** the current Terraform model uses explicit VMIDs without pool placement:
 
@@ -128,6 +140,8 @@ Cloning still needs access to the source template. [1]
 
 <a id="4-grant-storage-permissions-to-the-group"></a>
 
+## Step 4: Grant live-storage scope
+
 **Live storage:** enter an actual datastore ID; repeat for every approved disk/CloudInit target:
 
 Run on **the selected Proxmox host as an authorized root operator**.
@@ -136,6 +150,8 @@ Run on **the selected Proxmox host as an authorized root operator**.
 read -r -p "Live VM datastore ID (for example local-zfs): " VM_DATASTORE
 pveum acl modify "/storage/$VM_DATASTORE" --groups platform-automation --roles PlatformAutomationStorage
 ```
+
+## Step 5: Grant image-publishing scope
 
 **Tier 0 images:** enter the actual Import datastore selected by
 `all.image_datastore_id` in Tier 0's `templates/proxmox.yml`, such as `local` or `cephfs`.
@@ -157,6 +173,8 @@ not upload them, but an adoption plan can include creation of missing files.
 
 <a id="5-grant-proxmox-node-read-access-to-the-group"></a>
 
+## Step 6: Grant node-read scope
+
 **Node:** repeat for each allowed destination and source-template node:
 
 Run on **the selected Proxmox host as an authorized root operator**.
@@ -168,10 +186,16 @@ pveum acl modify "/nodes/$PVE_NODE" --groups platform-automation --roles Platfor
 
 <a id="6-grant-bridge-vlan-or-sdn-use-to-the-group"></a>
 
-**Network:** choose **2a or 2b** below for each selected attachment. Local bridge grants
+<a id="step-7a7b-grant-network-scope"></a>
+
+## Step 7: Grant network scope
+
+**Network:** choose **7a or 7b** below for each selected attachment. Local bridge grants
 do not authorize an SDN VNet. GUI equivalent: **Datacenter > Permissions > Add > Group Permission**. [1][2]
 
-#### 2a: Direct bridge/VLAN attachment
+<a id="2a-direct-bridgevlan-attachment"></a>
+
+### 7a: Direct bridge/VLAN attachment
 
 Use the narrowest prepared path. This example allows VLAN 10 on `vmbr0`:
 
@@ -182,9 +206,11 @@ pveum acl modify /sdn/zones/localnetwork/vmbr0/10 --groups platform-automation -
 ```
 
 For an intentional bridge-wide grant, use `/sdn/zones/localnetwork/vmbr0`.
-Repeat for the actual selected VLANs, then continue at **Step 3**.
+Repeat for the actual selected VLANs, then continue at **Step 8**.
 
-#### 2b: Existing SDN VNet
+<a id="2b-existing-sdn-vnet"></a>
+
+### 7b: Existing SDN VNet
 
 For VNet `edge` in zone `dmz`:
 
@@ -196,9 +222,11 @@ pveum acl modify /sdn/zones/dmz/edge --groups platform-automation --roles Platfo
 
 Repeat for every selected VNet, including stopped templates' attachments. Complete
 [SDN activation](step-1c-sdn.md#step-3-activate-sdn-on-the-nodes) before use,
-then continue at **Step 3**. Subnet lookup uses the same scoped role's `SDN.Audit`.
+then continue at **Step 8**. Subnet lookup uses the same scoped role's `SDN.Audit`.
 
-### Step 3: Create the user and token
+<a id="step-3-create-the-user-and-token"></a>
+
+## Step 8: Create the user
 
 <a id="7-create-the-automation-user-and-assign-the-group"></a>
 
@@ -210,6 +238,8 @@ pveum user modify automation@pve --groups platform-automation
 ```
 
 <a id="8-create-the-api-token"></a>
+
+## Step 9: Create the token
 
 The established group-managed bootstrap example inherits this dedicated user's
 permissions. Adding the user to other groups also expands this token's permissions. [1]
@@ -224,7 +254,9 @@ pveum user token add automation@pve provision --privsep 0 --comment "Platform pr
 Use separate credentials when job/tier scope differs. For a privilege-separated token,
 use the [matching ACL procedure](#existing-or-privilege-separated-tokens) before validation.
 
-## Validate access
+<a id="validate-access"></a>
+
+## Step 10: Validate effective permissions
 
 **Still on the Proxmox host**, inspect the actual token ID and actual resource paths.
 The commands contain no token secret:
@@ -259,12 +291,16 @@ A plan can pass read checks without proving later upload/NIC-write permission.
 Investigate a 403 at its exact path; do not broaden the grant to `/`.
 After provisioning, test permitted and denied operations on disposable guests. [1]
 
-## Use the token
+<a id="use-the-token"></a>
+<a id="step-4-set-inputs-on-the-bootstrap-host"></a>
 
-### Step 4: Set inputs on the bootstrap host
+## Step 11: Continue with local inputs
 
-Return to [Bootstrap Step 4](../bootstrap/README.md#step-4-configure-trust-credentials-and-platform-inputs)
-to initialize **Tier 0** and edit its ignored **`.env.local`**.
+For first installation, return directly to [Bootstrap Step 16](../bootstrap/README.md#step-16-initialize-template-inputs)
+to initialize **Tier 0**, edit `.env.local`, configure Shared and protect recovery inputs.
+The API roles, scoped ACLs and token are complete; do not create them again.
+
+The remaining examples are for adding another consuming tier later, not extra first-install tasks.
 
 For another consuming tier, create that tier's file if absent, from its repository root:
 
@@ -297,9 +333,8 @@ before Linux clones are created.
 | Packer | Uses `PROXMOX_URL=https://pve01.example.internal:8006/api2/json` and its separate build inputs |
 
 Terraform endpoints use the HTTPS root, **without `/api2/json`**. [3][4]
-After the bootstrap host's remaining Shared profile and recovery checks, return to
-[Foundation Step 3f](../README.md#3f-connect-bootstrap-to-proxmox-host-management)
-for existing-host management and selected SDN authorization, then continue to template publication.
+The bootstrap workflow owns the remaining first-install inputs and handoff to host management.
+Do not skip directly to a guest deployment from this permission procedure.
 Do not deploy the `foundation` Linux setup merely to validate this token.
 
 ## Existing or privilege-separated tokens
@@ -309,7 +344,7 @@ are the intersection; token ACLs cannot expand the owning user's rights. [1]
 Retain the selected privilege-separation mode; changing a role does not change it.
 
 For a separated token, mirror each selected VM, node, datastore and attachment grant
-from Step 2 using `--tokens 'automation@pve!provision'` instead of `--groups`.
+from Steps 3–7 using `--tokens 'automation@pve!provision'` instead of `--groups`.
 For example, the Tier 0 Import datastore and an allowed VNet:
 
 Run on **the selected Proxmox host as an authorized root operator**.

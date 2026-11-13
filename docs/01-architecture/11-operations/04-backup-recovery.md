@@ -18,26 +18,35 @@ after loss or compromise. Both need explicit owners and independently usable cre
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Source["Protected service<br/>Data and configuration"] -->|"Back up"| Backup[("Independent backup")]
-  Backup -->|"Offsite copy"| Offsite[("Offsite recovery copy")]
-  Operator["Recovery operator"] -->|"Restore to approved target"| Target["Isolated recovery target"]
+  subgraph Copies["Independent retained copies"]
+    direction TB
+    Backup -->|"Offsite copy"| Offsite[("Offsite recovery copy")]
+  end
+  Operator["Recovery operator"] -->|"Authorize restore"| Target["Isolated recovery target"]
   Backup -->|"Recovery set"| Target
   Offsite -->|"If required"| Target
   Custody["Independent custody<br/>Keys, credentials and tools"] -.->|"Recovery access"| Target
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class Source,Target services
+  class Copies boundary
   class Backup,Offsite data
   class Operator actor
   class Custody custody
 ```
 
-*Figure: Independent and offsite copies supply an isolated recovery target, with an operator and separately
-held keys, credentials and tools providing recovery access.*
+*Figure: An isolated target is restored from the selected independent or offsite copy.
+Recovery also requires operator authority and separately held keys, credentials and tools.*
 
-Recovery inputs and copies must remain accessible when the protected service or its normal identity path is unavailable.
+The figure shows recovery dependencies. Product-aware capture creates the selected
+recovery set; the independent and offsite paths preserve copies
+under their own custody. Restoration needs both a usable copy and independent access
+to the tools and keys that make it readable. Those inputs must remain accessible when
+the protected service or its normal identity path is unavailable.
 
 ## Recovery boundaries
 
@@ -108,7 +117,8 @@ recovery additionally requires the selected continuous archive mechanism.
 
 ## Recovery objectives and evidence
 
-**RPO** states the accepted data age/loss; **RTO** states the accepted recovery duration.
+The **recovery point objective (RPO)** states the accepted data age/loss;
+the **recovery time objective (RTO)** states the accepted recovery duration.
 The schedule, transfer lag, failure behavior, keys and offsite access must support both.
 Job success alone does not establish either objective.
 

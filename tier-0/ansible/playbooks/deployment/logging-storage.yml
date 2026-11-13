@@ -19,3 +19,24 @@
     - name: Show the verified storage binding for the recovery record
       ansible.builtin.debug:
         var: data_volume_result
+
+    - name: Show where to save the optional receiver UUID guard
+      ansible.builtin.debug:
+        msg: |
+          Receiver {{ inventory_hostname }}: the verified UUID mount is already persistent in /etc/fstab.
+          Optionally save this explicit identity guard so future runs reject a different filesystem.
+          {% if groups['foundation_logging'] | length == 1 %}
+          In the Tier 0 repository, replace syslog_ng_data_uuid in ansible/group_vars/syslog.yml with:
+          {% else %}
+          In the Tier 0 repository, save this receiver's line in ansible/inventory/host_vars/{{ inventory_hostname }}.yml:
+          {% endif %}
+          syslog_ng_data_uuid: "{{ data_volume_result.uuid }}"
+          {% if groups['foundation_logging'] | length > 1 %}
+
+          Keep a separate UUID for each receiver; do not put one global UUID in ansible/group_vars/syslog.yml.
+          Remove syslog_ng_data_uuid, even an empty value, from that file and other -e/--ansible-vars files.
+          Extra vars override host variables. The inventory/host_vars path above is loaded beside inventory/hosts.yml;
+          ansible/host_vars is not automatically loaded by this deployment's playbook paths.
+          {% endif %}
+
+          No user configuration was edited automatically. Retain the verified binding above for recovery.

@@ -25,6 +25,8 @@ class AnsibleOwnership(TierRepositoryTestCase):
                 self.assertTrue((playbooks / deployment).is_file())
                 self.assertTrue((playbooks / "maintenance" / f"{setup}.yml").is_file())
             for path in playbooks.rglob("*.yml"):
+                if "vars" in path.relative_to(playbooks).parts[:-1]:
+                    continue
                 for play in yaml.safe_load(path.read_text()):
                     target = play.get("ansible.builtin.import_playbook")
                     if target:
@@ -63,13 +65,14 @@ class AnsibleOwnership(TierRepositoryTestCase):
         self.assertEqual({p.name for p in (shared / "ansible/roles").iterdir()},
                          {"baseline", "shared", "log_forwarder", "helm_release", "kubernetes_applications",
                           "cluster_platform", "cluster_security_logging", "host_security",
-                          "postgresql_file_backup", "data_volume"})
+                          "postgresql_file_backup", "backup_repository_storage", "data_volume"})
         self.assertEqual({p.name for p in (shared / "ansible/playbooks").iterdir()},
                          {"control-node.yml", "site.yml", "reset-known-hosts.yml", "guest-ready.yml",
-                          "software-consumer.yml", "tasks"})
+                          "software-consumer.yml", "tasks", "vars"})
         tasks = shared / "ansible/playbooks/tasks"
         self.assertEqual({p.name for p in tasks.iterdir()},
-                         {"control-node-network-filters.yml", "control-node-python.yml"})
+                         {"control-node-network-filters.yml", "control-node-python.yml", "control-node-git.yml",
+                          "control-node-freeipa-source.yml"})
         self.assertTrue((tasks / "control-node-network-filters.yml").is_file())
         self.assertFalse((shared / "terraform").exists())
         self.assertTrue((shared / "config/guest-sizes.json").is_file())
@@ -87,7 +90,8 @@ class AnsibleOwnership(TierRepositoryTestCase):
                        "template_refresh", "vault", "syslog_ng", "openxpki", "openxpki_bundle",
                        "logging_authority", "logging_archive", "logging_backup", "infrastructure_runner",
                        "control_applications", "infrastructure_monitoring", "cluster_endpoint",
-                       "control_backup", "logging_export", "netbox_audit", "hsm_provider", "hsm_remote"},
+                       "control_backup", "logging_export", "netbox_audit", "netbox_audit_account",
+                       "freeipa_ldap_reader", "hsm_provider", "hsm_remote"},
             "tier-1": {"gitlab_container", "podman_runner", "development_platform", "delivery_platform",
                        "observability_platform", "development_data", "software_intake", "observability_vm"},
             "tier-2": {"cache_proxy", "edge_load_balancer", "public_certificates", "public_certificate_schedule",
@@ -179,6 +183,8 @@ class AnsibleOwnership(TierRepositoryTestCase):
                 inventory = self.root / f"{prefix}{tier}-inventory.yml"
                 shutil.copyfile(repo / "ansible/inventory/hosts.yml.example", inventory)
                 for playbook in (repo / "ansible/playbooks").rglob("*.yml"):
+                    if "vars" in playbook.relative_to(repo / "ansible/playbooks").parts[:-1]:
+                        continue
                     result = subprocess.run(
                         ["ansible-playbook", "--syntax-check", "-i", str(inventory), str(playbook)],
                         cwd=repo, env=env, capture_output=True, text=True,

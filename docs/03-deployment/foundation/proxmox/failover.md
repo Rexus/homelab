@@ -9,23 +9,7 @@ This worked example uses the existing directory pair, not additional VMs. The
 host placements and HA rules below are an **operator-selected example**, not created
 by Terraform. Prove the behavior with disposable guests before testing identity.
 
-## Contents
-
-- [Selected configuration](#selected-configuration)
-- [When pve01 fails](#when-pve01-fails)
-- [Verify the result](#verify-the-result)
-- [References](#references)
-
-## Selected configuration
-
-| Item | Example selection |
-| --- | --- |
-| Guests | `idm-1` / VMID `201`, `idm-2` / VMID `202` |
-| Initial placement | `idm-1` on `pve01`, `idm-2` on `pve02`; `pve03` has recovery capacity |
-| Storage/network | Every guest disk, including EFI, on qualified shared Ceph; identity network on all three hosts |
-| HA resources | Both `started`, restart `1`, relocate `1`, failback off, auto-rebalance on |
-| Rule | Negative resource affinity between `vm:201` and `vm:202`; no extra node restriction |
-| Scheduler | Native dynamic automatic balancing; no ProxLB for these guests |
+<a id="figure-1-selected-placement-before-failure"></a>
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -54,23 +38,38 @@ flowchart TB
   class Storage data
 ```
 
-**Manual:** selected placement for Tier 0's [guest definitions](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
-and [inventory](../../../../tier-0/ansible/inventory/hosts.yml.example). Those inputs supply the exact guest names/VMIDs.
+**Manual:** **Figure 1: Selected placement before failure.** Tier 0's [guest definitions](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
+and [inventory](../../../../tier-0/ansible/inventory/hosts.yml.example) supply the exact guest names/VMIDs.
 Set initial node overrides in the local definitions; their example does not already spread the pair.
 HA enrollment, affinity, hosts and Ceph are manually commissioned prerequisites.
 The figure omits the foundation root's unrelated CA guest; it is not another directory member.
 This placement-only view shows no implied replication or network route.
 
+## Contents
+
+- [Selected configuration](#selected-configuration)
+- [When pve01 fails](#when-pve01-fails)
+- [Verify the result](#verify-the-result)
+- [References](#references)
+
+## Selected configuration
+
+| Item | Example selection |
+| --- | --- |
+| Guests | `idm-1` / VMID `201`, `idm-2` / VMID `202` |
+| Initial placement | `idm-1` on `pve01`, `idm-2` on `pve02`; `pve03` has recovery capacity |
+| Storage/network | Every guest disk, including EFI, on qualified shared Ceph; identity network on all three hosts |
+| HA resources | Both `started`, restart `1`, relocate `1`, failback off, auto-rebalance on |
+| Rule | Negative resource affinity between `vm:201` and `vm:202`; no extra node restriction |
+| Scheduler | Native dynamic automatic balancing; no ProxLB for these guests |
+
 ## When pve01 fails
 
-1. `idm-1` stops with the failed host. `idm-2` remains available if its own
-   dependencies work and clients are configured to use both directory/DNS servers.
-2. The surviving quorate cluster waits for safe fencing/ownership recovery.
-   A network-isolated host might still write its disks: never start a second copy manually.
-3. HA selects an eligible target. Anti-affinity excludes `pve02`, so in this
-   configuration `pve03` boots **the same VMID and disks** for `idm-1`.
-4. The guest performs crash recovery and rejoins directory replication. Its memory,
-   open sessions and in-flight work were not transferred. Measure the interruption. [1]
+Compare [Figure 1](#figure-1-selected-placement-before-failure) with the recovered placement
+in [Figure 2](#figure-2-placement-after-safe-ha-recovery). The same guest and disks move only
+after safe fencing; no new directory instance is created.
+
+<a id="figure-2-placement-after-safe-ha-recovery"></a>
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -101,9 +100,19 @@ flowchart TB
   class Failed fault
 ```
 
-**Manual:** fault scenario using the same [selected configuration](#selected-configuration), not a second
+**Manual:** **Figure 2: Placement after safe HA recovery.** Fault scenario using the same
+[selected configuration](#selected-configuration), not a second
 deployment or Terraform apply. No ProxLB, CI or Kubernetes dependency performs this recovery.
 Disk accessibility, quorum and fencing are conditions, not properties proved by this drawing.
+
+1. `idm-1` stops with the failed host. `idm-2` remains available if its own
+   dependencies work and clients are configured to use both directory/DNS servers.
+2. The surviving quorate cluster waits for safe fencing/ownership recovery.
+   A network-isolated host might still write its disks: never start a second copy manually.
+3. HA selects an eligible target. Anti-affinity excludes `pve02`, so in this
+   configuration `pve03` boots **the same VMID and disks** for `idm-1`.
+4. The guest performs crash recovery and rejoins directory replication. Its memory,
+   open sessions and in-flight work were not transferred. Measure the interruption. [1]
 
 | Failure condition | Expected outcome |
 | --- | --- |
@@ -119,7 +128,8 @@ Disk accessibility, quorum and fencing are conditions, not properties proved by 
 Use a reviewed maintenance window, disposable guests and out-of-band control.
 Never power-cut real identity or storage hosts as an unreviewed first test.
 
-1. Record healthy quorum, Ceph health, resources/rules and original guest location.
+1. Record healthy quorum, Ceph health, resources/rules and original guest location against
+   [Figure 1](#figure-1-selected-placement-before-failure).
    Test a live migration first, then require a no-unexpected-change Terraform plan.
 2. Exercise the approved host-death/fencing test, not merely an orderly reboot.
    Record failure time, fencing/recovery states, selected target, guest boot and client recovery.

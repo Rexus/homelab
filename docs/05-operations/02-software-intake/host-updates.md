@@ -1,7 +1,8 @@
 # Proxmox update-access tasks
 
 Connect Proxmox-managed downloads and host APT to the accepted repository proxy, then install
-updates during maintenance. This is [Stage 1, Step 7](../../03-deployment/stage-1-software-intake/README.md#step-7-connect-proxmox-host-updates).
+updates during maintenance. First deployment stays on [Stage 1, Steps 14–16](../../03-deployment/stage-1-software-intake/README.md#step-14-configure-proxmox-update-inputs);
+this runbook covers later changes and patch maintenance.
 Hosts pull approved content; the cache does not push updates or receive host credentials.
 
 **Working repository:** `<prefix>-tier-0` for managed configuration.

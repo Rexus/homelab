@@ -46,9 +46,9 @@ class SoftwareIntake(TierRepositoryTestCase):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             prefix = "<prefix>" if docs == UPSTREAM / "docs" else "verify"
-            design = (docs / "01-architecture/07-software-intake/README.md").read_text()
+            design = " ".join((docs / "01-architecture/07-software-intake/README.md").read_text().split())
             for expected in ("## Connected proxy design", "## Supply choices", "## Transport and integrity",
-                             "pull through the policy proxy", "one common policy", "not supplied",
+                             "requests target the proxy interface", "one common policy", "not supplied",
                              "Tier 0 authorizes and executes its updates", "Internal HTTP mirror",
                              "Tier 1 owns authoritative shared mirrors", "independent of the cache"):
                 self.assertIn(expected, design)
@@ -73,9 +73,9 @@ class SoftwareIntake(TierRepositoryTestCase):
             for step in range(1, 4):
                 self.assertIn(f"## Step {step}:", capability)
             for expected in ("cache-1", "cache-2", "proxy-cache.md", "**IaC:**", "Harbor",
-                             "works independently of later hosted", "Harbor belongs to Stage 7"):
+                             "complete without PKI or a hosted registry", "Harbor belongs to Stage 7"):
                 self.assertIn(expected, capability)
-            self.assertIn("../stage-3-trust/README.md#3b-verified-repository-and-artifact-publication", capability)
+            self.assertIn("../stage-3-trust/README.md#15b-verified-repository-and-artifact-publication-optional", capability)
             foundation = (deployment / "foundation/README.md").read_text()
             self.assertIn("../stage-1-software-intake/README.md", foundation)
             self.assertNotIn("step-3b-outbound-cache.md", foundation)

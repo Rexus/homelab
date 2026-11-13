@@ -9,7 +9,7 @@ rules. Successful configuration is not evidence of complete hardening or central
 [`host_security` role](../../../shared/ansible/roles/host_security/tasks/main.yml).
 Inventory, selected hosts, access policy and acceptance records remain tier-owned.
 
-**First deployment choice:** [Stage 1, option 4b](../../03-deployment/stage-1-software-intake/README.md#4b-apply-the-linux-security-profile--optional),
+**First deployment choice:** [Stage 1, option 8b](../../03-deployment/stage-1-software-intake/README.md#8b-apply-the-linux-security-profile--optional),
 after the cache VMs and their package access exist. Later Linux service deployments can reuse this recipe
 at their own post-install step. Return to that stage's verification after applying the profile.
 

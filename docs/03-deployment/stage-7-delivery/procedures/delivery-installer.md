@@ -1,8 +1,9 @@
 # Native delivery installation
 
-**Stage route:** [Stage 7, Step 2](../README.md#step-2-select-and-qualify-delivery) for the selected
-controller; [Step 3](../README.md#step-3-connect-approved-artifact-supply) for Harbor.
-**Return:** to that step's acceptance checks. Select only its component; these are separate runs.
+**First installation:** follow [Stage 7's numbered actions](../README.md#deployment-actions).
+This procedure supports reconciliation, adoption and later changes to an accepted installation.
+Use the existing selected inputs and Secret owner; do not repeat input creation or commission
+new state merely to reconcile the controller or registry.
 
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`). The
 [delivery role](../../../../tier-1/ansible/roles/delivery_platform) owns product
@@ -61,10 +62,15 @@ Existing inputs are preserved. Continue with that file, not a second copy.
 
 ## 2. Select the installation
 
+Review the selected expected result before choosing components:
+[Argo CD](../step-2a-argocd.md#figure-argocd-installation),
+[Spinnaker](../step-2b-spinnaker.md#figure-spinnaker-installation) or
+[Harbor](registry.md#figure-harbor-installation). Reconcile only the selected owner and products.
+
 In **`<prefix>-tier-1/`**, edit `ansible/group_vars/delivery_platform.yml` using the table below.
 Retain the approved `ansible/roles/delivery_platform/files/software.yml` pins.
 For the controller-only installation, set `delivery_platform_install_harbor: false`.
-[Stage 7, Step 3](../README.md#step-3-connect-approved-artifact-supply) adds Harbor later.
+[Stage 7, Step 8](../README.md#step-8-select-and-configure-artifact-supply) adds Harbor later.
 
 | Input | Contract |
 | --- | --- |
@@ -224,9 +230,9 @@ Use the selected [Tier 1 product recovery procedure](../../../05-operations/06-r
 for Argo CD or Harbor, or [native Spinnaker recovery](../step-2b-spinnaker.md#maintenance-and-recovery).
 The Argo CD/Harbor installer does not schedule those recovery copies.
 
-**Continue:** return to the selected [Argo CD](../step-2a-argocd.md#step-3-install-and-verify),
-[Spinnaker](../step-2b-spinnaker.md#step-4-qualify-delivery) or [Harbor](registry.md#acceptance)
-acceptance path, then rejoin Stage 7.
+**Continue:** return to [Stage 7 Step 7](../README.md#step-7-accept-controller-authorization-and-recovery)
+for controller acceptance, or [Step 11](../README.md#step-11-accept-artifact-access-and-recovery) for Harbor.
+A later reconciliation does not restart the initial cluster/controller installation.
 
 ## Native tests
 

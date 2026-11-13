@@ -1,8 +1,8 @@
 # Bootstrap-to-CI handover
 
-**Stage route:** [Stage 9, Step 4](../README.md#step-4-hand-over-infrastructure-execution), after runner and
+**Stage route:** [Stage 9, Step 20](../README.md#step-20-transfer-original-state-and-enable-one-protected-writer), after runner and
 Vault job-authorization acceptance.
-**Return:** to Step 4 for audit, credential-cleanup and independent recovery checks before Stage 10.
+**Return:** to Step 21 for audit, credential-cleanup and independent recovery checks before Stage 10.
 
 **Working repositories:** `<prefix>-tier-0` for the dedicated infrastructure project and
 runner; each target tier keeps its definitions, inventory, inputs and state.
@@ -25,12 +25,16 @@ ignored inputs/state separately through the protected restore path below.
 - [3. Stop bootstrap writes and check state](#3-stop-bootstrap-writes-and-check-state)
 - [4. Create the pipeline file](#step-2-configure-the-protected-pipeline)
 - [5. Protect the project and set variables](#5-protect-the-project-and-set-variables)
-- [6. Run the first plan job](#step-3-prove-plan-apply-and-recovery)
-- [7. Authorize the saved-plan apply](#7-authorize-the-saved-plan-apply)
-- [8. Verify the job and failure handling](#8-verify-the-job-and-failure-handling)
-- [9. Prove independent recovery](#9-prove-independent-recovery)
+- [6. Start the accepted runner](#6-start-the-accepted-runner)
+- [7. Run the first plan job](#step-3-prove-plan-apply-and-recovery)
+- [8. Authorize the saved-plan apply](#7-authorize-the-saved-plan-apply)
+- [9. Verify the job and failure handling](#8-verify-the-job-and-failure-handling)
+- [10. Prove independent recovery](#9-prove-independent-recovery)
 
 ## 1. Create the private projects
+
+Keep the [handover figure](../README.md#figure-infrastructure-handover) beside the state and writer checks:
+the existing collection moves to the protected runner while independent recovery custody remains available.
 
 In **GitLab**, use the private infrastructure project already bound to Vault and `iac-1`.
 Create any missing tier/Shared repositories and import the reviewed histories/branches.
@@ -65,14 +69,6 @@ non-secret CI environment separately. Restore an unavailable original collection
 On **`boot-1`**, confirm deployment writes remain stopped.
 Require the handover playbook's state-digest checks to pass. Byte-identical state retains the original
 backend lineage and resource addresses. Keep one writer per root; an empty checkout or `init` is not a restore.
-After completing the protected project and non-secret environment settings below, load the
-same existing runner token through its accepted secret workflow and reapply
-`bash scripts/deploy.sh infrastructure-runner --ansible-only` from bootstrap to start the accepted runner.
-Set `infrastructure_runner_environment_src` to the reviewed controller-side non-secret environment;
-IaC copies it to `/srv/iac/ci.env`. Set `infrastructure_runner_public_key_files` to approved `.pub`
-files; IaC copies them to `/srv/iac/public-keys/`. Use those runner-side paths in the environment.
-Set `infrastructure_runner_known_hosts_src` to the original controller's accepted `known_hosts`
-file to install the same SSH host trust in the runner account. Private SSH keys remain fetched per job.
 
 Do not generate replacement secrets or bootstrap another cluster. Retain the
 existing `.terraform/state/<setup>/prod/terraform.tfstate` and separate cluster/
@@ -133,15 +129,33 @@ project**: `CI_COMMIT_SHA` selects that repository's reviewed commit. Cross-proj
 or tenant requests require the separate bounded controller; changing a directory
 variable is not a cross-repository authorization mechanism.
 
+## 6. Start the accepted runner
+
+After completing the protected project and non-secret environment settings below, load the
+same existing runner token through its accepted secret workflow and reapply
+`bash scripts/deploy.sh infrastructure-runner --ansible-only` from bootstrap to start the accepted runner.
+Set `infrastructure_runner_environment_src` to the reviewed controller-side non-secret environment;
+IaC copies it to `/srv/iac/ci.env`. Set `infrastructure_runner_public_key_files` to approved `.pub`
+files; IaC copies them to `/srv/iac/public-keys/`. Use those runner-side paths in the environment.
+Set `infrastructure_runner_known_hosts_src` to the original controller's accepted `known_hosts`
+file to install the same SSH host trust in the runner account. Private SSH keys remain fetched per job.
+
+Keep plan/apply jobs disabled until this accepted runner is online with the restored collection,
+original state and reviewed non-secret environment. The next step starts its first reviewed pipeline.
+
 <a id="step-3-prove-plan-apply-and-recovery"></a>
 
-## 6. Run the first plan job
+<a id="6-run-the-first-plan-job"></a>
+
+## 7. Run the first plan job
 
 In **GitLab**, start a pipeline for the reviewed commit on the protected default branch.
 Require `iac-plan` to run on `iac-1` against the restored original state.
 Stop on unexpected replacements, deletions, missing resources or a new empty lineage.
 
-## 7. Authorize the saved-plan apply
+<a id="7-authorize-the-saved-plan-apply"></a>
+
+## 8. Authorize the saved-plan apply
 
 Review the protected pipeline's plan output in **GitLab**, then authorize
 the same pipeline's manual `iac-apply` job. `--plan-file` applies that exact plan;
@@ -153,7 +167,9 @@ Jobs are serialized and Terraform retains backend locking. Do not run another
 pipeline or workstation change between plan and acceptance; state changes can
 invalidate a saved plan. A project variable change does not authorize another scope.
 
-## 8. Verify the job and failure handling
+<a id="8-verify-the-job-and-failure-handling"></a>
+
+## 9. Verify the job and failure handling
 
 Require the intended change, successful Ansible results, log/audit delivery and temporary-key cleanup.
 Test denied jobs and state locking. Retain encrypted independent copies.
@@ -163,7 +179,9 @@ A private completion context resumes configuration without applying Terraform ag
 Changing inputs instead requires a new reviewed plan. Successful completion removes
 the context; a completed apply cannot be replayed.
 
-## 9. Prove independent recovery
+<a id="9-prove-independent-recovery"></a>
+
+## 10. Prove independent recovery
 
 In **an authorized recovery rehearsal**:
 

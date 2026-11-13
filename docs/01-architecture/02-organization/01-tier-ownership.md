@@ -4,16 +4,9 @@ Tiers divide repositories by **potential impact**, not network location.
 Lower-numbered tiers can affect more of the environment. Network names and
 VLANs remain purpose-based; they do not need tier prefixes.
 
-## Table of contents
+<a id="figure-tier-ownership"></a>
 
-- [Tier meanings](#tier-meanings)
-- [Repository role](#repository-role)
-- [Dependency rule](#dependency-rule)
-- [Placement and execution](#placement-and-execution)
-
-<a id="purpose"></a>
-
-## Tier meanings
+## Owners and impact
 
 ```mermaid
 %%{init: {"theme":"base","themeVariables":{"lineColor":"#627581"}}}%%
@@ -32,7 +25,20 @@ block-beta
   class Shared actor
 ```
 
-*Figure: Tiers own their resources and state; shared automation supports each tier without taking ownership.*
+*Figure 1 - Tiers own their resources and state; shared automation supports each tier without taking ownership.*
+
+## Table of contents
+
+- [Tier meanings](#tier-meanings)
+- [Repository role](#repository-role)
+- [Dependency rule](#dependency-rule)
+- [Placement and execution](#placement-and-execution)
+
+<a id="purpose"></a>
+
+## Tier meanings
+
+See [Figure 1](#figure-tier-ownership) for the participants and boundaries.
 
 Placement shows ownership and impact; it does not grant network access.
 

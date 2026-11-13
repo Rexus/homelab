@@ -37,7 +37,7 @@ and automatic patch rollout remain separate integrations.
 **Procedure:** [Stage 1](../docs/03-deployment/stage-1-software-intake/README.md) and
 [existing-cache migration](../docs/03-deployment/stage-1-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
 The first five checks cover the basic route; the remaining checks apply to the selected
-[verified extension](../docs/03-deployment/stage-3-trust/step-3b-verified-intake.md). None qualify patch rollout.
+[verified extension](../docs/03-deployment/stage-3-trust/step-15b-verified-intake.md). None qualify patch rollout.
 
 - [ ] **INTAKE-1: Real network enforcement.** From every selected subnet, approve actual sources and
   redirects; deny another source, a forbidden client and direct WAN bypass. Check HTTP and CONNECT,
@@ -66,6 +66,10 @@ The first five checks cover the basic route; the remaining checks apply to the s
 - [ ] **INTAKE-9: Recovery and selection.** Restore OS/data disks and policy/trust to an isolated
   target, verify retained hashes and current definitions, then select a still-valid previous version
   in a consumer. Retain usable Tier 0 supply without the worker or proxy.
+- [ ] **INTAKE-10: Offline definition import.** On the selected EL10/Debian worker, import current
+  approved CVD/CLD files through the controller; verify native signature/loading/freshness behavior,
+  ownership, writer exclusion and reboot persistence. Reject stale, downgraded or changed revisions
+  while preserving installed definitions. A local fixture does not establish live definition freshness.
 
 ## 1. Secure provider defaults
 

@@ -1,17 +1,17 @@
 # Step 3a: Bootstrap workspace disk
 
 **Branch from:** [Step 3](../README.md#step-3-prepare-the-bootstrap-execution-host), option **3a**,
-at [bootstrap Step 2, storage A](README.md#a-separate-workspace-filesystem--reference-layout).
-**Return:** [Foundation Step 3](../README.md#step-3-prepare-the-bootstrap-execution-host), continuing with
-[bootstrap tool acquisition](README.md#2a-install-git-terraform-and-ansible) after mount/reboot checks;
-select the offline alternative there if needed.
+at [bootstrap storage 3a](README.md#a-separate-workspace-filesystem--reference-layout).
+**Return:** [Bootstrap Step 4](README.md#step-4-select-optional-home-placement) after mount/reboot checks;
+select optional home placement once, then connected/offline acquisition. Do not restart Foundation Step 3.
 
 Prepare the separate local data filesystem used by `boot-1` for repositories, state and artifacts.
 This is the [bootstrap storage A](README.md#a-separate-workspace-filesystem--reference-layout) path.
 For an expanded LVM root, use [storage B](step-3b-bootstrap-lvm.md) instead.
 
 **Run on `boot-1`**, using its normal SSH account with authorized sudo and independent console access.
-**Before starting:** a recoverable VM backup and a new, empty attached data disk with **Backup** enabled.
+**Before starting:** a recoverable VM backup and the intended attached data disk with **Backup** enabled.
+Initialize only a new, empty disk; retain a qualified existing filesystem as Step 2 describes.
 The examples use `/dev/sdb`; identify the real device before changing it.
 
 ## Contents
@@ -27,7 +27,8 @@ The examples use `/dev/sdb`; identify the real device before changing it.
 
 ## 1. Install the storage tools
 
-On **`boot-1`**, use approved repositories. For EL10:
+Choose approved connected packages **or** the offline-bundle paragraph below, then continue at Step 2.
+On **`boot-1`**, for connected EL10:
 
 ```bash
 sudo dnf install -y parted xfsprogs
@@ -46,7 +47,7 @@ For offline preparation, first select the verified extracted bundle on independe
 read -r -p 'Verified extracted bundle directory on mounted media: ' BUNDLE
 ```
 
-Install its OS packages using [offline Step 7](step-3e-bootstrap-offline.md#7-install-signed-os-packages).
+Install its OS packages using [offline Step 9](step-3e-bootstrap-offline.md#9-install-signed-os-packages).
 Return here before creating Python environments or copying the full artifact bundle.
 
 ## 2. Identify the data disk
@@ -147,9 +148,8 @@ On **`boot-1`**, as its normal SSH account:
 ```
 
 Include both disks in the independent [bootstrap recovery set](../../../05-operations/06-resilience/backups/recovery-set.md).
-Optionally [move home directories](step-3c-bootstrap-home.md) before creating Python environments or cloning the kit.
-Then return to [Bootstrap 2a](README.md#2a-install-through-approved-sources), or
-[2b offline](README.md#2b-transfer-a-prepared-bundle--offline-alternative).
+Return to [Bootstrap Step 4](README.md#step-4-select-optional-home-placement) for the optional home decision,
+then its connected/offline tool acquisition. Storage is complete; do not add or format the disk again.
 
 If mount preparation fails, retain both disks and use the console to restore the recorded fstab configuration.
 Formatting cannot be undone by removing an fstab entry; recover mistakenly overwritten data from backup.

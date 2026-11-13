@@ -3,6 +3,10 @@
 # Selected release pins supply collection sources; this is not an installed inventory.
 # Revisions are upstream release commits, with annotated tags resolved to their commits.
 control_node_collection_git_defaults:
+  netbox.netbox:
+    repository: https://github.com/netbox-community/ansible_modules.git
+    revision: 57c1c63317e435bc8829cd5f8d065f2663c2a223
+    version: 3.23.0
   community.general:
     repository: https://github.com/ansible-collections/community.general.git
     revision: 7f63f47efc038694dc1580dce21d7edadf687b91

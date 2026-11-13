@@ -1,0 +1,11 @@
+---
+backup_repository_storage_action: render
+backup_repository_storage_kubeconfig: ""
+backup_repository_storage_context: ""
+backup_repository_storage_output: ""
+backup_repository_storage_owner: ""
+backup_repository_storage_namespace: ""
+backup_repository_storage_claim: ""
+# Existing commissioned claims are inspected by the consumer, never adopted or changed here.
+# static_nfs requires accepted nfs.csi.k8s.io. size is binding capacity, not a NAS quota or HA guarantee.
+backup_repository_storage_volume: {mode: existing}

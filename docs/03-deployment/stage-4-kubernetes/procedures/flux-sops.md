@@ -166,7 +166,7 @@ source, read-only credentials and age key without normal identity login. Advance
 the pinned commit only after reviewing the proposed source changes.
 
 Return to [basic platform acceptance](basic-platform.md#acceptance-and-recovery),
-then [Stage 4, Step 3](../README.md#step-3-verify-operation-and-recovery).
+then [Stage 4, action 19](../README.md#step-19-accept-operation-and-recovery).
 
 ## References
 

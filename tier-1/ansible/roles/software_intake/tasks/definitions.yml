@@ -1,0 +1,176 @@
+---
+- name: Prepare an isolated native database qualification workspace
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: intake-definitions-
+  register: software_intake_definition_workspace
+
+- name: Qualify the complete proposed definition directory before activation
+  block:
+    - name: Allow the isolated scanner to read the qualification workspace
+      ansible.builtin.file:
+        path: "{{ software_intake_definition_workspace.path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create the isolated candidate database directory
+      ansible.builtin.file:
+        path: "{{ software_intake_definition_workspace.path }}/database"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Inspect existing top-level databases without following links
+      ansible.builtin.find:
+        paths: "{{ software_intake_clam_database_dir }}"
+        file_type: any
+        recurse: false
+        follow: false
+      register: software_intake_existing_definition_files
+
+    - name: Reject linked database entries before constructing the candidate
+      ansible.builtin.assert:
+        that: software_intake_existing_definition_files.files | selectattr('islnk') | list | length == 0
+        fail_msg: Linked database entries require explicit review; no active definitions have been changed.
+
+    - name: Retain ordinary installed files in the proposed database snapshot
+      ansible.builtin.copy:
+        src: "{{ item.path }}"
+        dest: "{{ software_intake_definition_workspace.path }}/database/{{ item.path | basename }}"
+        remote_src: true
+        mode: preserve
+      loop: "{{ software_intake_existing_definition_files.files | selectattr('isreg') | list }}"
+      loop_control:
+        label: "{{ item.path | basename }}"
+
+    # copy calculates and checks its native SHA-1 transfer checksum; the approved identity remains SHA-256 below.
+    - name: Stage controller files without changing the active definitions
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ software_intake_definition_workspace.path }}/database/{{ item.name }}"
+        owner: root
+        group: root
+        mode: '0644'
+        decrypt: false
+      loop: "{{ software_intake_definition_files }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Read the transferred bytes independently of the controller preflight
+      ansible.builtin.stat:
+        path: "{{ software_intake_definition_workspace.path }}/database/{{ item.name }}"
+        follow: false
+        checksum_algorithm: sha256
+      loop: "{{ software_intake_definition_files }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: software_intake_staged_definitions
+
+    - name: Require the approved SHA-256 after transfer
+      ansible.builtin.assert:
+        that: item.stat.checksum == item.item.sha256
+        fail_msg: The staged database differs from its approved sha256; active definitions remain unchanged.
+      loop: "{{ software_intake_staged_definitions.results }}"
+      loop_control:
+        label: "{{ item.item.name }}"
+
+    - name: Verify each staged container with native sigtool
+      ansible.builtin.command:
+        argv: [/usr/bin/sigtool, --info, "{{ software_intake_definition_workspace.path }}/database/{{ item.name }}"]
+      environment: {LC_ALL: C}
+      changed_when: false
+      loop: "{{ software_intake_definition_files }}"
+      loop_control:
+        label: "{{ item.name }}"
+      register: software_intake_candidate_definition_info
+
+    - name: Check every selected revision before replacing any definition
+      ansible.builtin.include_tasks: definitions-check.yml
+      loop: "{{ software_intake_candidate_definition_info.results }}"
+      loop_control:
+        loop_var: definition_candidate
+        label: "{{ definition_candidate.item.name }}"
+
+    - name: Require daily definitions in the proposed scanner database
+      ansible.builtin.stat:
+        path: "{{ software_intake_definition_workspace.path }}/database/daily.{{ item }}"
+        follow: false
+      loop: [cvd, cld]
+      register: software_intake_candidate_daily_definitions
+
+    - name: Fail closed without an ordinary daily database
+      ansible.builtin.assert:
+        that: >-
+          software_intake_candidate_daily_definitions.results | selectattr('stat.isreg', 'defined')
+          | selectattr('stat.isreg') | list | length > 0
+        fail_msg: Include an approved daily.cvd/daily.cld import or retain an existing daily database.
+
+    - name: Create a harmless native engine-loading probe
+      ansible.builtin.copy:
+        content: "Intake database loading probe.\n"
+        dest: "{{ software_intake_definition_workspace.path }}/probe.txt"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Load the proposed database and enforce the existing engine freshness policy
+      become: true
+      become_user: "{{ software_intake_scan_user }}"
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/clamscan
+          - "--database={{ software_intake_definition_workspace.path }}/database"
+          - "--fail-if-cvd-older-than={{ software_intake_max_definition_age_days }}"
+          - --alert-exceeds-max=yes
+          - --alert-encrypted=yes
+          - --alert-broken=yes
+          - --no-summary
+          - "{{ software_intake_definition_workspace.path }}/probe.txt"
+      environment: {LC_ALL: C}
+      changed_when: false
+
+    - name: Activate only qualified definitions and retain previous replaced files as backups
+      ansible.builtin.copy:
+        src: "{{ software_intake_definition_workspace.path }}/database/{{ item.name }}"
+        dest: "{{ software_intake_clam_database_dir }}/{{ item.name }}"
+        remote_src: true
+        owner: "{{ software_intake_clam_users[ansible_os_family] }}"
+        group: "{{ software_intake_clam_users[ansible_os_family] }}"
+        mode: preserve
+        backup: true
+      loop: "{{ software_intake_definition_files }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Confirm the active directory loads under the real scanner identity and freshness gate
+      become: true
+      become_user: "{{ software_intake_scan_user }}"
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/clamscan
+          - "--database={{ software_intake_clam_database_dir }}"
+          - "--fail-if-cvd-older-than={{ software_intake_max_definition_age_days }}"
+          - --alert-exceeds-max=yes
+          - --alert-encrypted=yes
+          - --alert-broken=yes
+          - --no-summary
+          - "{{ software_intake_definition_workspace.path }}/probe.txt"
+      environment: {LC_ALL: C}
+      changed_when: false
+
+    - name: Report native definition loading without claiming malware coverage
+      ansible.builtin.debug:
+        msg: >-
+          Imported approved {{ software_intake_definition_files | map(attribute='name') | join(', ') }}
+          into {{ software_intake_clam_database_dir }}; the native scanner loaded that directory
+          with maximum daily age {{ software_intake_max_definition_age_days }} days.
+          CVD uses native signature verification; CLD relies on the approved sha256 and native loading.
+          This loading probe does not establish malware coverage; candidate scans retain their existing gates.
+  always:
+    - name: Remove only the isolated qualification workspace
+      ansible.builtin.file:
+        path: "{{ software_intake_definition_workspace.path }}"
+        state: absent

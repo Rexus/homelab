@@ -2,6 +2,9 @@
 - name: Validate intake policy and trusted inputs
   ansible.builtin.import_tasks: preflight.yml
 
+- name: Validate optional controller-local scanner definitions before host changes
+  ansible.builtin.import_tasks: definitions-preflight.yml
+
 - name: Provision the attached intake data volume
   ansible.builtin.include_role:
     name: data_volume
@@ -11,6 +14,7 @@
     data_volume_fstype: "{{ software_intake_data_fstype }}"
     data_volume_label: intake-data
     data_volume_expected_uuid: "{{ software_intake_data_uuid }}"
+    data_volume_uuid_input: software_intake_data_uuid
     data_volume_min_free_bytes: "{{ software_intake_min_free_bytes }}"
     data_volume_environment: "{{ software_intake_environment }}"
 

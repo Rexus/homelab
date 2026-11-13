@@ -1,8 +1,54 @@
 # Deploy the selected registry variant
 
-**Branch from:** [Stage 7, Step 3](../README.md#step-3-connect-approved-artifact-supply):
-3a installs Harbor; 3b accepts an existing registry; optional 3c adds separately integrated acceleration.
-**Return:** to Step 3 after the selected supply, access and recovery checks.
+**Branch from:** [Stage 7, Step 8](../README.md#step-8-select-and-configure-artifact-supply):
+8a installs Harbor; 8b accepts an existing registry. Acceleration is selected separately at Step 12a.
+**Return:** after configuration, Step 9 for Harbor or Step 11 acceptance for an existing service.
+
+The supplied **8a** path installs an independent Harbor service. Select an already accepted registry
+instead when it satisfies the same artifact, access and recovery contract.
+
+<a id="figure-harbor-installation"></a>
+
+## Expected outcome: independent Harbor registry (8a)
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  Clients["Existing approved runners<br/>and artifact consumers"]
+  subgraph T1["Tier 1 / Application / Services"]
+    subgraph Cluster["Existing platform Kubernetes"]
+      subgraph Release["harbor / native chart / single-instance reference"]
+        direction TB
+        Services["Registry / core / portal<br/>Jobservice / Trivy"]
+        Database["Bundled PostgreSQL / Redis"]
+        Volumes[("Retained PVCs<br/>registry / database / redis<br/>jobservice / trivy")]
+        Services ~~~ Database
+        Database ~~~ Volumes
+      end
+    end
+  end
+  Clients -->|Private HTTPS / scoped push and pull| Release
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Clients actor
+  class T1,Services services
+  class Cluster runtime
+  class Release replicas
+  class Database,Volumes data
+```
+
+**IaC:** *Figure: The independent registry keeps artifacts and bundled database/cache state in retained volumes.
+Clients receive scoped push/pull access; single-instance placement does not establish HA or recovery.*
+Tier 1's [Harbor task](../../../../tier-1/ansible/roles/delivery_platform/tasks/harbor.yml),
+[native values](../../../../tier-1/ansible/roles/delivery_platform/templates/harbor-values.yml.j2) and
+[delivery inputs](../../../../tier-1/ansible/group_vars/delivery_platform.yml.example).
+Scope: the independent chart release and its five persistent claims on the existing cluster.
+Identity, ingress, issued TLS, Secret ownership and independent backup custody are prerequisites.
+The chart supplies no Dragonfly deployment or independent backup service.
 
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
 The cluster variant uses [clusters/tier1/platform/artifact-registry/](../../../../tier-1/clusters/tier1/platform/artifact-registry);
@@ -68,17 +114,14 @@ The presence of a platform-cluster skeleton does not install these services.
 
 ## Install Harbor
 
-1. Open Tier 1's existing `ansible/group_vars/delivery_platform.yml`. Retain the chosen
-   controller configuration and set `delivery_platform_install_harbor: true`.
-   For an existing controller owned elsewhere, use `delivery_platform_controller: none`
-   to install Harbor without reconciling that controller.
-2. Fill the Harbor fields below; retain the centrally pinned chart version unless a
-   separately reviewed `delivery_platform_harbor_version` override is required.
-3. Prepare the Secrets and Keycloak client described below before running the
-   [common render/review/apply commands](delivery-installer.md#render-and-apply).
-4. Complete [acceptance](#acceptance), then return to
-   [Stage 7, Step 3](../README.md#step-3-connect-approved-artifact-supply)
-   for any selected acceleration/edge options before continuing to Observability.
+For first installation, select **8a** in [Stage 7 Step 8](../README.md#step-8-select-and-configure-artifact-supply).
+Fill the fields, Secrets and Keycloak client below, then return to Step 9's render/review and Step 10's
+apply. The main guide owns those commands; this page is the registry's configuration/acceptance contract.
+
+For later reconciliation, retain one release owner and use the [native installer](delivery-installer.md).
+Select `delivery_platform_controller: none` for Harbor-only work; it neither uninstalls nor reconfigures
+the accepted controller. Keep `delivery_platform_install_harbor: true` for that registry run.
+The [Harbor figure](#figure-harbor-installation) defines its selected scope.
 
 | Field in `ansible/group_vars/delivery_platform.yml` | Value |
 | --- | --- |
@@ -137,8 +180,8 @@ Back up all persistent volumes, database data and stable Secrets as one recovera
 
 <a id="read-more"></a>
 
-Return to [Stage 7, Step 3](../README.md#step-3-connect-approved-artifact-supply), or use the accepted service for
-[image-based Linux](../../stage-9-development/step-2c-image-based-linux.md) and workload delivery.
+Return to [Stage 7, Step 11](../README.md#step-11-accept-artifact-access-and-recovery), or use the accepted service for
+[image-based Linux](../../stage-9-development/step-15b-image-based-linux.md) and workload delivery.
 
 ## References
 

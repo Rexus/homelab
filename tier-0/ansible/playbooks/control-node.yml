@@ -3,6 +3,10 @@
   ansible.builtin.import_playbook: ../../../shared/ansible/playbooks/control-node.yml
   vars:
     control_node_collection_catalog:
+      netbox.netbox:
+        name: netbox.netbox
+        version: '>=3.23.0,<4.0.0'
+        os_packages: {RedHat: [], Debian: []}
       community.proxmox:
         name: community.proxmox
         version: '>=2.1.0,<3.0.0'
@@ -62,6 +66,8 @@
       infrastructure-monitoring: [community.general, ansible.posix, containers.podman]
       logging-export: [containers.podman]
       netbox-audit: []
+      netbox-audit-account: [netbox.netbox, community.general]
+      freeipa-ldap-reader: [community.general]
       control-backup: [ansible.posix]
       cluster-endpoint: [community.general, ansible.posix, ansible.utils]
       host-security: [community.general, ansible.posix, ansible.utils]

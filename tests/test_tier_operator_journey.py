@@ -18,7 +18,7 @@ class OperatorJourney(TierRepositoryTestCase):
             foundation = (docs / "03-deployment/foundation/README.md").read_text()
             self.assertIn("network/unifi.md#bring-up-the-network", foundation)
             host = (docs / "03-deployment/foundation/proxmox/README.md").read_text()
-            handoff = host.split("### Step 4:", 1)[1].split("## Platform guides", 1)[0]
+            handoff = host.split("### Step 6:", 1)[1].split("## Platform guides", 1)[0]
             self.assertIn("../README.md", handoff)
             self.assertIn("stage-1-software-intake/README.md", foundation)
             self.assertIn("stage-2-logging/README.md", foundation)
@@ -39,10 +39,10 @@ class OperatorJourney(TierRepositoryTestCase):
             ("stage-1-software-intake/README.md", "cache", ""),
             ("stage-7-delivery/procedures/edge-proxy.md", "edge", ""),
             ("stage-6-secrets/step-1b-vault-vm.md", "vault", ""),
-            ("stage-5-identity/procedures/freeipa.md", "foundation", ""),
+            ("stage-5-identity/README.md", "foundation", ""),
             ("stage-9-development/step-1b-source-control-vm.md", "development", ""),
-            ("stage-9-development/step-2b-podman-runner.md", "podman-runner", ""),
-            ("stage-9-development/step-2c-image-based-linux.md", "immutable-template", " --env test"),
+            ("stage-9-development/step-14b-podman-runner.md", "podman-runner", ""),
+            ("stage-9-development/step-15b-image-based-linux.md", "immutable-template", " --env test"),
         )
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             for relative, setup, environment in guides:
@@ -69,7 +69,7 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertLess(vault.index("export VAULT_TOKEN"), vault.index(configure))
             self.assertLess(vault.index(configure), vault.index("unset VAULT_TOKEN"))
             identity = (docs / "03-deployment/stage-5-identity/procedures/freeipa.md").read_text()
-            self.assertIn("same context/state used for the issuer", identity)
+            self.assertIn("foundation root owns both issuer and directory resources", identity)
 
     def test_hidden_follow_up_covers_every_branch_without_entering_generated_docs(self):
         self.generate()
@@ -118,7 +118,7 @@ class OperatorJourney(TierRepositoryTestCase):
             foundation = (docs / "03-deployment/foundation/README.md").read_text()
             bootstrap, publication = foundation.split("## Step 3:", 1)[1].split("## Step 4:", 1)
             self.assertIn("before provisioning", bootstrap)
-            self.assertIn("first disposable clone in Step 4", bootstrap)
+            self.assertIn("Guest backup/restore is tested on a disposable clone in Step 8", bootstrap)
             self.assertIn("Back up and restore a disposable clone", publication)
             backup = (docs / "05-operations/06-resilience/backups/virtual-machines.md").read_text()
             self.assertIn("An existing qualified target is valid", backup)
@@ -129,8 +129,8 @@ class OperatorJourney(TierRepositoryTestCase):
     def test_optional_test_contexts_link_isolation_and_keep_init_deploy_consistent(self):
         self.generate("--repo", "architecture")
         guides = (("step-1b-source-control-vm.md", "development"),
-                  ("step-2b-podman-runner.md", "podman-runner"),
-                  ("step-2c-image-based-linux.md", "immutable-template"))
+                  ("step-14b-podman-runner.md", "podman-runner"),
+                  ("step-15b-image-based-linux.md", "immutable-template"))
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             for relative, setup in guides:
                 content = (docs / "03-deployment/stage-9-development" / relative).read_text()
@@ -186,6 +186,8 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertIn("untrusted CA and a wrong hostname are rejected", guide)
             self.assertIn("state as before", guide)
             entry = (docs / "03-deployment/foundation/proxmox/api-access.md").read_text()
-            self.assertIn(relative, entry)
+            self.assertIn("../bootstrap/README.md", entry)
+            bootstrap = (docs / "03-deployment/foundation/bootstrap/README.md").read_text()
+            self.assertIn(relative + "#step-1-trust-the-bootstrap-ca", bootstrap)
             trust = (docs / "03-deployment/stage-3-trust/README.md").read_text()
             self.assertIn(relative + "#step-2-adopt-the-platform-pki", trust)

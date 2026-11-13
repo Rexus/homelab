@@ -8,6 +8,7 @@ or an installer. Record selected values in the generated architecture repository
 ## Contents
 
 - [Read the mapping](#read-the-mapping)
+- [VLAN ID ranges](#vlan-id-ranges)
 - [Zone overview](#zone-overview)
 - [Network allocations](#network-allocations)
 - [Deployment mapping](#deployment-mapping)
@@ -28,6 +29,19 @@ or an installer. Record selected values in the generated architecture repository
 Matching UniFi and Proxmox zone labels aid navigation; their configuration and
 permissions remain independent. Host-only networks need no guest SDN zone.
 UniFi's built-in External and Gateway zones retain their platform meanings. [1][2]
+
+## VLAN ID ranges
+
+These reference ranges are allocations, not security labels or tier numbers. Keep one
+site plan and avoid duplicate IDs on shared trunks; local requirements can select other ranges.
+
+| Range | Reference use |
+| --- | --- |
+| `2-99` | management, access, identity, clustering, storage transport |
+| `100-199` | internal services, applications, observability, archive |
+| `200-299` | cryptography, ceremony, specialist telemetry |
+| `300-399` | edge-facing networks |
+| `400+` | projects, labs, local extensions |
 
 ## Zone overview
 

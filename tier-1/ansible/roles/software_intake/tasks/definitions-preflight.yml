@@ -1,0 +1,68 @@
+---
+- name: Require a declarative list of approved controller definition files
+  ansible.builtin.assert:
+    that:
+      - software_intake_definition_files is sequence
+      - software_intake_definition_files is not string
+      - software_intake_definition_files is not mapping
+    fail_msg: Set software_intake_definition_files to [] or a list of name, absolute src and approved sha256 mappings.
+
+- name: Select one definition writer for an import run
+  ansible.builtin.assert:
+    that:
+      - not software_intake_freshclam_enabled
+      - not ansible_check_mode
+    fail_msg: >-
+      Imports require software_intake_freshclam_enabled=false and a normal run for native loading checks.
+      To use online FreshClam instead, clear software_intake_definition_files and enable its approved proxy path.
+  when: software_intake_definition_files | length > 0
+
+- name: Require explicit definition file fields
+  ansible.builtin.assert:
+    that:
+      - item is mapping
+      - item.name | default('') in ['main.cvd', 'main.cld', 'daily.cvd', 'daily.cld', 'bytecode.cvd', 'bytecode.cld']
+      - item.src | default('') is string
+      - item.src | default('') is match('^/')
+      - item.src | default('') is not search('[\r\n]')
+      - item.sha256 | default('') is string
+      - item.sha256 | default('') is match('^[a-f0-9]{64}$')
+      - item.sha256 | default('') | length == 64
+    fail_msg: >-
+      Each entry needs name (main/daily/bytecode.cvd or .cld), an absolute controller-local src,
+      and an independently approved lowercase sha256. URLs, custom signature files and patches are not imports.
+  loop: "{{ software_intake_definition_files }}"
+  loop_control:
+    label: "{{ item.name | default('invalid definition') }}"
+
+- name: Reject multiple representations of the same imported database
+  ansible.builtin.assert:
+    that: >-
+      software_intake_definition_files | map(attribute='name') | map('split', '.')
+      | map('first') | unique | length == software_intake_definition_files | length
+    fail_msg: Supply at most one CVD or CLD for each of main, daily and bytecode.
+
+- name: Inspect approved definitions on the controller without following file links
+  ansible.builtin.stat:
+    path: "{{ item.src }}"
+    follow: false
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  loop: "{{ software_intake_definition_files }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: software_intake_controller_definitions
+
+- name: Reject missing or changed controller definitions before modifying the guest
+  ansible.builtin.assert:
+    that:
+      - item.stat.isreg | default(false)
+      - item.stat.size | default(0) > 512
+      - item.stat.checksum | default('') == item.item.sha256
+    fail_msg: >-
+      {{ item.item.src }} must be an ordinary readable controller file matching its approved sha256.
+      Pre-stage it through the accepted offline bundle/SCP workflow; this role does not download definitions.
+  loop: "{{ software_intake_controller_definitions.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"

@@ -1,8 +1,5 @@
 # Protected security logging
 
-**Deploy:** [Protected logging](../../03-deployment/stage-2-logging/README.md).
-**Operate:** [Protected logging operations](../../05-operations/06-resilience/protected-logging.md).
-
 Syslog, audit and security events are a Tier 0 evidence capability, not an ordinary
 Tier 1 dashboard service. All tiers submit approved records through restricted
 intake. Only explicitly authorized system-administrator/security-reader roles
@@ -26,34 +23,46 @@ copies do not replace retained originals.
 ## Authority and flow
 
 ```mermaid
-block-beta
-  columns 3
-  Owner["Owning tier"] Function["Log services"] Access["Authority"]
-  T2["Tier 2<br/>Workloads"]
-  Sources["Local producers / queues"]
-  Developer["Submit approved streams<br/>Read own approved app view"]
-  T1["Tier 1<br/>Observability"]
-  Search["Scoped searchable copies"]
-  Query["Query approved copies<br/>No raw-evidence authority"]
-  T0["Tier 0<br/>Control"]
-  Logging["Protected intake / retained evidence"]
-  Readers["Audited security-reader access<br/>Producers submit only"]
-  space Retention["Independent retained copies"] Custodians["Separate retention custody"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T2["Tier 2 / workloads"]
+    direction LR
+    Sources["Local producers<br/>Queued submissions"]
+    Developer["Application owner<br/>Approved app view only"]
+    Sources ~~~ Developer
+  end
+  subgraph T1["Tier 1 / Observability"]
+    direction LR
+    Search["Scoped searchable<br/>copies"]
+    Query["Authorized queries<br/>No raw-evidence authority"]
+    Search ~~~ Query
+  end
+  subgraph T0["Tier 0 / Security Logging and Audit"]
+    direction LR
+    Logging["Protected intake<br/>Original evidence"]
+    Readers["Audited readers<br/>Producers submit only"]
+    Retention["Independent<br/>retained copies"]
+    Custodians["Separate retention<br/>custody"]
+    Logging ~~~ Readers ~~~ Retention ~~~ Custodians
+  end
+  T2 ~~~ T1 ~~~ T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  class Owner,Function,Access,T2,T1,T0 boundary
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class T2,T1 services
+  class T0 control
   class Sources,Developer,Query actor
   class Logging,Readers control
-  class Retention,Custodians data
+  class Retention data
+  class Custodians custody
   class Search services
 ```
 
-*Figure: This authority map separates Tier 2 submissions, Tier 1 scoped searches, Tier 0 evidence access and
-independent retention custody.*
+*Figure: Producers submit, application owners read approved copies, and security readers
+investigate originals. Independent retention custody remains inside Tier 0 ownership.*
 
 Every tier submits approved security records to Tier 0. Tier 1 receives only
 approved projections; application owners read their own scope there. This is an
@@ -132,6 +141,41 @@ forwarders release on transport submission, while protected acceptance applies o
 to the checkpoint covered by the required snapshot/independent copy. The interval
 before that boundary is exposed. This simpler profile is not the replicated-intake
 objective below; select that stronger contract when its residual risk is unacceptable.
+
+The sequence follows one published checkpoint. Snapshot and independent-backup schedules
+are separate operations; transport submission does not wait for either of them.
+
+```mermaid
+sequenceDiagram
+  participant Producer as Producer / local queue
+  participant Receiver as Protected receiver
+  participant NAS as Independent NAS archive
+  participant Recovery as Independent backup host
+  Producer->>Receiver: Submit authenticated records
+  Note over Producer,Receiver: Native queue releases on transport submission
+  Receiver->>Receiver: Write portable local records / fsync
+  Receiver->>NAS: Publish complete chunks and checkpoint
+  NAS-->>Receiver: Filesystem write / flush returns
+  Note over Receiver,NAS: Qualify actual NAS persistence separately
+  par Commissioned storage schedule
+    NAS->>NAS: Complete storage-owned snapshot
+  and Independent backup schedule
+    Recovery->>NAS: Read and verify checkpoint files
+    NAS-->>Recovery: Records, manifests and catalogue
+    Recovery->>Recovery: Encrypted restic<br/>backup and check
+  end
+  Note over NAS,Recovery: Protected acceptance covers only the required snapshot / copy
+```
+
+*Figure: Sender release, local persistence, NAS publication and protected acceptance are
+different boundaries. Independently scheduled snapshots and backups expose a measurable tail.*
+
+The [checkpoint writer](../../../tier-0/ansible/roles/logging_archive/files/logging_checkpoint.py)
+publishes complete prefixes; the [backup job](../../../tier-0/ansible/roles/logging_backup/templates/backup.sh.j2)
+pulls verified files from an independent host. NAS snapshot commissioning remains
+storage-owned work. The [pipeline contract](../../08-reference/logging-pipeline.md#commit-and-failure-boundaries)
+defines each completion boundary and its limits.
+
 The following table describes that stronger objective, not the acceptance criteria for
 the single-receiver NAS main path.
 

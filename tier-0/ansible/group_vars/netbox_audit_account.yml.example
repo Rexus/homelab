@@ -1,0 +1,19 @@
+---
+# Copy to ansible/group_vars/netbox_audit_account.yml and pass with -e @path.
+# Schema: ansible/roles/netbox_audit_account/defaults/main.yml and tasks/preflight.yml.
+# Existing qualified readers can use netbox-audit.yml directly without this optional bootstrap.
+netbox_audit_account_enabled: false
+netbox_audit_account_url: https://netbox.lab.example.com
+netbox_audit_account_username: audit
+netbox_audit_account_permission: audit-object-changes
+netbox_audit_account_token_description: protected-change-ledger
+netbox_audit_account_token_expires: '2027-11-13T00:00:00Z'
+# Supply netbox_audit_account_password (20+ characters) through an encrypted override.
+# Load the same encrypted control_applications_secrets used for NetBox installation:
+# netbox/netbox-superuser.api_key + api_token supply the fresh v2 administrator credential.
+# Legacy accepted admin secrets containing only api_token remain supported.
+# A separately delegated administrator may override netbox_audit_account_admin_token.
+netbox_audit_account_token_file: "{{ lookup('ansible.builtin.env', 'NETBOX_AUDIT_TOKEN_FILE') }}"
+netbox_audit_account_ca_file: "{{ lookup('ansible.builtin.env', 'NETBOX_AUDIT_CA_FILE') }}"
+# The private controller file is created once; retain it in protected recovery custody.
+# The existing collector consumes this path with netbox_audit_auth_scheme: Bearer.

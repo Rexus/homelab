@@ -2,34 +2,18 @@
 
 **Normal path:** [Observability in Tier 1 Kubernetes](README.md).
 **Change:** use dedicated VMs instead of the Kubernetes workloads.
-Do not run Step 2's Kubernetes installer on these VMs.
+Skip the main guide's Kubernetes Actions 2-12 when selecting this alternative.
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`).
 **Branch from:** [Step 1](README.md#step-1-prepare-the-runtime).
-**Return:** [Step 3](README.md#step-3-connect-infrastructure-monitoring) after this installation
-and its checks; this branch replaces Step 2's Kubernetes installer.
+**Return:** [Action 13](README.md#step-13-extend-infrastructure-collection) after this installation
+and its checks; this branch replaces the Kubernetes installer.
 **Design:** [signals, scaling and availability](../../01-architecture/11-operations/03-observability.md).
 
 Terraform provisions seven VMs and data disks. Ansible installs native Podman/systemd services,
 TLS, authentication, scoped search policy, frontend integration and Tier 1 Netdata diagnostics.
-The supported guest platforms
-are AlmaLinux, Rocky Linux and RHEL **10** x86_64, with EL9 compatibility using the same package/config
-paths. Use approved signed repositories supplying Podman **5.4+**, systemd and cgroup v2.
-DNS, issued TLS identities and the accepted Stage 5 Keycloak issuer/clients are prerequisites.
-Existing network policy must admit the selected interfaces below.
+<a id="figure-observability-vms"></a>
 
-## Table of contents
-
-- [Step 1: Configure the hosts](#step-1-configure-the-hosts)
-- [Step 2: Prepare private identities](#step-2-prepare-private-identities)
-- [Step 3: Install the services](#step-3-install-the-services)
-- [Step 4: Integrate and accept the services](#step-4-integrate-and-accept-the-services)
-- [Existing installations](#existing-installations)
-- [References](#references)
-
-<a id="deploy-the-telemetry-host-variant"></a>
-<a id="iac-defaults"></a>
-
-## Step 1: Configure the hosts
+## Expected outcome: dedicated signal hosts
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -64,7 +48,9 @@ flowchart TB
   class PVE,A,B,C boundary
 ```
 
-**IaC:** Tier 1's [VM inputs](../../../tier-1/terraform/deployments/observability/terraform.tfvars.example),
+**IaC:** *Figure: Seven guests spread gateways, metric stores and search members across the configured Proxmox hosts.
+Netdata parents and children share these guests; this is initial placement, not live availability evidence.*
+Tier 1's [VM inputs](../../../tier-1/terraform/deployments/observability/terraform.tfvars.example),
 [inventory](../../../tier-1/ansible/inventory/hosts.yml.example) and
 [service inputs](../../../tier-1/ansible/group_vars/observability.yml.example) own these guests.
 The [deployment playbook](../../../tier-1/ansible/playbooks/deployment/telemetry-hosts.yml) and
@@ -76,6 +62,28 @@ own diagnostics and selected metric export on these same guests.
 Scope: the configured VM alternative, with local disks on the illustrated initial hosts;
 the figure shows initial placement and Netdata roles, not live deployment or accepted availability.
 Other co-located native products are listed below; no new diagnostic VMs are added.
+
+The supported guest platforms
+are AlmaLinux, Rocky Linux and RHEL **10** x86_64, with EL9 compatibility using the same package/config
+paths. Use approved signed repositories supplying Podman **5.4+**, systemd and cgroup v2.
+DNS, issued TLS identities and the accepted Stage 5 Keycloak issuer/clients are prerequisites.
+Existing network policy must admit the selected interfaces below.
+
+## Table of contents
+
+- [Step 1: Configure the hosts](#step-1-configure-the-hosts)
+- [Step 2: Prepare private identities](#step-2-prepare-private-identities)
+- [Step 3: Install the services](#step-3-install-the-services)
+- [Step 4: Integrate and accept the services](#step-4-integrate-and-accept-the-services)
+- [Existing installations](#existing-installations)
+- [References](#references)
+
+<a id="deploy-the-telemetry-host-variant"></a>
+<a id="iac-defaults"></a>
+
+## Step 1: Configure the hosts
+
+Use the [dedicated-host figure](#figure-observability-vms) to check the selected guest keys and initial placement.
 
 | Runtime | Hosts | Installed services |
 | --- | --- | --- |
@@ -129,7 +137,10 @@ Missing or conflicting storage requires recovery. Normal installation needs no g
 ## Step 2: Prepare private identities
 
 Supply absolute controller paths to existing certificate/key files. Each server certificate must
-cover its `observability_vm_endpoints` DNS name. Search node certificates also need client-auth usage
+cover its `observability_vm_endpoints` DNS name. Point the `grafana` and `logs`
+[service names](../../02-conventions/service-dns.md) at `otel-1`; its certificate must also cover
+those names. Match `observability_vm_grafana_url` and `observability_vm_dashboards_url` to the
+accepted OIDC client redirects. Search node certificates also need client-auth usage
 and their exact RFC2253 subjects in `observability_vm_search_node_dns`. Supply unencrypted PEM keys
 and a separate administrative client identity. Ansible converts the supplied search node and admin
 keys to PKCS#8 on the guest, preserving their identities and controller originals. [6]
@@ -137,7 +148,7 @@ No CA signing key enters a VM. The administrator key is staged only for the nati
 and removed in an Ansible `always` block. [2]
 
 Use a separate issuer CA for metrics clients and each log scope. Application scopes accept logs and
-traces; projection scopes accept logs only and require [option 4b approval](step-4b-protected-log-search.md).
+traces; projection scopes accept logs only and require [option 14b approval](step-14b-protected-log-search.md).
 Select only actual scopes. The shared Kubernetes/VM policy grants scoped SSO groups read access;
 Data Prepper can ingest approved indices, not administer Tier 0 evidence.
 
@@ -277,8 +288,8 @@ continuity, source coverage, SSO-session, backup or physical-failure acceptance.
    catch-up and administrator-versus-tenant network access. Process health and host counts do not
    establish retention completeness or HA. Tier 1 health notifications are disabled; keep independent
    Tier 0 alerts available.
-6. Rejoin [Stage 8, Step 3](README.md#step-3-connect-infrastructure-monitoring) for source coverage and
-   the existing Tier 0-owned hardware/API metric bridge, then Step 4 reader/recovery checks. Tier 1
+6. Rejoin [Stage 8, Action 13](README.md#step-13-extend-infrastructure-collection) for source coverage and
+   the existing Tier 0-owned hardware/API metric bridge, then Actions 14-15 source/reader/recovery checks. Tier 1
    Netdata parents and these seven guest agents are already installed; rejoining needs no second
    Kubernetes installation or project-owned VM installer.
 
@@ -295,7 +306,6 @@ New keys and reused VMIDs/IPs can conflict with existing guests or propose destr
 Keep old desired state during migration; review a saved plan and use tested state/resource
 migration where appropriate. Generator refresh does not migrate existing live hosts.
 Retain any locally required networks even though unused starter attachments were removed.
-
 
 ## References
 

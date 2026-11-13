@@ -66,7 +66,9 @@ delivery_platform_spinnaker_secret_revision: '1'
 delivery_platform_spinnaker_backup_schedule: '0 2 * * *'
 delivery_platform_spinnaker_backup_keep_days: 7
 delivery_platform_spinnaker_backup_backend: s3
-# Preprovisioned NAS file volume; initialization owns only a new child repository.
+# Existing claims stay external; static_nfs explicitly creates only backup PV/PVC resources.
+delivery_platform_spinnaker_backup_storage: {mode: existing}
+# Repository initialization owns only a new child repository, never the export or filesystem.
 delivery_platform_spinnaker_backup_filesystem_claim: ""
 delivery_platform_spinnaker_backup_filesystem_repository: spinnaker
 delivery_platform_spinnaker_backup_filesystem_marker: ""

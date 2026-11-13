@@ -1,8 +1,8 @@
 # Vault authentication for infrastructure CI
 
-**Stage route:** [Stage 9, Step 3](../README.md#step-3-authorize-ci-through-vault) creates exact job authority.
-**Return:** to Step 3 after policy configuration. Credential placement and real job tests belong to
-[Step 4](../README.md#step-4-hand-over-infrastructure-execution), after `iac-1` is installed;
+**Stage route:** [Stage 9, Step 17](../README.md#step-17-configure-exact-vault-job-authority) creates exact job authority.
+**Return:** to Step 17 after policy configuration. Credential placement and real job tests belong to
+[Step 19](../README.md#step-19-place-scoped-credentials-and-prove-real-job-authorization), after `iac-1` is installed at Step 18;
 finish them before state handover.
 
 **Working repository:** `<prefix>-tier-0`.
@@ -74,7 +74,7 @@ audience. It grants only one KV-v2 read path, omits the default policy and caps
 token lifetime. These checks require a GitLab version that emits the selected claims. [1][2]
 
 **Pause here if `iac-1` is not installed yet.** Return to
-[Stage 9, Step 4](../README.md#step-4-hand-over-infrastructure-execution) to commission its protected
+[Stage 9, Step 18](../README.md#step-4-hand-over-infrastructure-execution) to commission its protected
 project runner. Continue below from that runner's accepted network/identity before enabling IaC jobs;
 general Tier 1 build runners are not a substitute for testing this authority.
 

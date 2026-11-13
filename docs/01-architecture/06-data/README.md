@@ -1,16 +1,38 @@
 # Data and storage
 
-**Operate persistence and recovery:** [Backup tasks](../../05-operations/06-resilience/README.md#backups)
-and [storage recovery](../../05-operations/06-resilience/recovery/README.md).
-
 Data and storage supplies persistent datasets and the interfaces used to access them.
 Applications retain authoritative records, configuration and operational state through
 runtime replacement. The capability can be provided by local storage, a shared system
 or an existing managed data service; the selected interface and ownership remain explicit.
 
-[Hosting and orchestration](../04-hosting/README.md) consumes these interfaces.
-[Backup and recovery](../11-operations/04-backup-recovery.md) owns copy policy, independent
-custody and recovery objectives.
+A service needs a particular storage interface, not simply a place with spare
+capacity. First choose the access contract, then identify the authoritative data
+and the independent material needed to recover it.
+
+```mermaid
+block-beta
+  columns 2
+  Volumes["Guest / database<br/>volumes"] Block["Block interface<br/>Attached volume<br/>Filesystem"]
+  Files["Shared files /<br/>file-backup<br/>repositories"] File["File interface<br/>Directories / permissions<br/>Locking contract"]
+  Objects["Native object<br/>clients"] Object["Object interface<br/>Buckets / keys<br/>Application API"]
+  Volumes --> Block
+  Files --> File
+  Objects --> Object
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Volumes,Files,Objects services
+  class Block,File,Object data
+```
+
+*Figure: Consumers access storage through their supported block, file or object interface. The rows
+are distinct contracts; an available file share cannot stand in for a required object API.*
+
+For example, a database can keep live data on block volumes and send completed
+backups to a file repository. That backup destination does not become its live
+database volume. A different application may also require object storage for its
+live uploads. The [storage prerequisites](../../03-deployment/foundation/storage/README.md)
+map these interfaces to the actual supplied consumers.
 
 ## Contents
 
@@ -76,38 +98,43 @@ The dataset owner identifies its authoritative source and consistent recovery in
 the operations design defines the required copy and retention policy.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  VMData["Service data in VMs"]
-  ClusterData["Service data in clusters"]
-  VMStorage["Selected VM or external storage"]
-  ClusterStorage["Selected volume or external data service"]
-  Backups["Service-specific backup copies"]
-  Records["State, accepted code and recovery credentials"]
-  Recovery["Protected retention outside the recovery target"]
-  VMData -->|Persists through| VMStorage
-  ClusterData -->|Persists through| ClusterStorage
-  VMStorage -->|Defined service backup path| Backups
-  ClusterStorage -->|Defined service backup path| Backups
-  Backups -->|Independent retention| Recovery
-  Records -->|Independent retention| Recovery
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  VMData["VM data<br/>Selected VM or external storage"]
+  ClusterData["Cluster data<br/>Selected volumes or data services"]
+  subgraph Independent["Outside the recovery target"]
+    direction TB
+    Backups["Service-specific<br/>backup copies"]
+    Records["Accepted code / state<br/>Recovery credentials"]
+    Recovery["Protected retention"]
+    Backups -. Independent retention .-> Recovery
+    Records -. Independent retention .-> Recovery
+  end
+  VMData -->|Defined backup path| Backups
+  ClusterData -->|Defined backup path| Backups
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class VMData,ClusterData services
-  class VMStorage,ClusterStorage,Backups data
-  class Records,Recovery custody
+  class Backups data
+  class Independent,Records,Recovery custody
 ```
 
-*Figure: VM and cluster data use selected storage; service backups and recovery records require independent
-retention.*
+*Figure: Live VM and cluster storage feed service-specific backup paths. Recovery also needs retained
+state, accepted code and credentials outside the system being recovered.*
 
 This view describes logical data responsibilities for VM/cluster-hosted services.
 It does not prescribe a backup product, claim that raw volume copies are application
 consistent, or establish independent custody merely by drawing another storage box.
 Scheduled full copies and continuously archived transactions have different recovery
 limits, defined by the selected service contract.
+
+Follow the figure from left to right: losing execution should leave the live
+dataset recoverable, while losing that dataset requires the backup and recovery
+records. A backup is usable only as part of the service's compatible data,
+configuration and key set. Storage administration remains separate from those
+application and recovery responsibilities.
 
 Kubernetes persistent-volume objects express storage consumption separately from a
 pod's lifecycle; the actual backend, attachment/access mode and reclaim behavior
@@ -142,6 +169,11 @@ as a side effect. A missing required interface remains an explicit prerequisite.
 - [Selected storage prerequisites](../../03-deployment/foundation/storage/README.md) for actual interfaces, source permissions and product qualification.
 - [Reference platform](../03-reference-platform.md) and [selection guidance](../02-organization/README.md#selected-design) for selected service composition.
 - [Runtime relationships](../11-operations/04-backup-recovery.md#recovery-boundaries) for the cross-capability data, evidence and restore flows.
+
+[Hosting and orchestration](../04-hosting/README.md) consumes the storage interfaces.
+[Backup tasks](../../05-operations/06-resilience/README.md#backups) and
+[storage recovery](../../05-operations/06-resilience/recovery/README.md) implement the
+selected copy and restore procedures.
 
 ## References
 

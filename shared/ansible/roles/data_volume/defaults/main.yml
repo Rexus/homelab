@@ -5,6 +5,8 @@ data_volume_path: ""
 data_volume_fstype: xfs
 data_volume_label: ""
 data_volume_expected_uuid: ""
+# Display-only handoff: the calling service's public UUID configuration key.
+data_volume_uuid_input: ""
 data_volume_mount_options: defaults,nodev,nosuid,noexec
 data_volume_min_free_bytes: 1073741824
 data_volume_wait_timeout: 60

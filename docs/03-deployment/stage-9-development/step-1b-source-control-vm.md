@@ -7,49 +7,13 @@ Run repository scripts from this root; paths below are repository-relative.
 
 **Branch from:** [Step 1](README.md#step-1-deploy-source-control-and-sso), instead of deploying source control in the Tier 1 cluster.
 **Change:** Use the VM service deployment without changing runner authority.
-**Return:** [Step 2 runner selection](README.md#step-2-add-on-demand-build-execution) after this VM's acceptance checks.
+**Return:** [Step 14 runner selection](README.md#step-2-add-on-demand-build-execution) after this VM's acceptance checks.
 
 **Design:** [delivery service variants](../../01-architecture/10-delivery/README.md).
 
-## Table of contents
+<a id="figure-source-control-vm"></a>
 
-- [Purpose](#purpose)
-- [Prerequisites](#prerequisites)
-- [What this deploys](#what-this-deploys)
-- [IaC used for this](#iac-used-for-this)
-- [Configure the deployment](#configure-the-deployment)
-- [Ports and DNS](#ports-and-dns)
-- [Operations](#operations)
-- [Recover an isolated matching-image target](#recover-an-isolated-matching-image-target)
-- [High availability direction](#high-availability-direction)
-- [Read more](#read-more)
-- [References](#references)
-
-## Purpose
-
-Use this path when the private cloud needs source control, CI/CD coordination,
-and a starting point for internal software projects.
-
-The reference implementation is GitLab on one dedicated Podman VM. This keeps
-the source-control runtime separate from the existing Tier 1 cluster and Stage 7 registry.
-Runner selection follows at Step 2; image builds are an optional extension there.
-
-<a id="before-you-start"></a>
-
-## Prerequisites
-
-Have these in place first:
-
-| Requirement | Why it matters |
-| --- | --- |
-| Identity foundation | Accepted existing Keycloak confidential client, HTTPS issuer, exact callback and private client secret. |
-| PKI certificate | The default deployment expects HTTPS with a certificate from the shared PKI. |
-| Linux template | Approved RedHat-family cloud-init image; the `gitlab_container` role rejects other distro families. |
-| Backup target | Independently commissioned NFS/SMB share or preinitialized SFTP restic repository; retain keys/password outside GitLab, Vault and this VM. |
-| Controller | Run the normal control-node setup; Shared supplies `community.general`/`ansible.posix`. Controller trust must accept the service CA. |
-| Package supply | Accepted baseline repositories supplying Podman, restic >= 0.17, OpenSSH, coreutils, util-linux and findutils. The role installs them; NAS clients are selected automatically. |
-
-## What this deploys
+## Expected outcome: dedicated source-control VM
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -76,9 +40,54 @@ flowchart LR
   class Clients actor
 ```
 
-**IaC:** Tier 1 [VM inputs](../../../tier-1/terraform/deployments/development/terraform.tfvars.example)
+**IaC:** *Figure: One GitLab container and its persistent data live on the dedicated service VM. General runners and
+registry services have separate installation paths.*
+Tier 1 [VM inputs](../../../tier-1/terraform/deployments/development/terraform.tfvars.example)
 and [source-control recipe](../../../tier-1/ansible/playbooks/deployment/source-control-vm.yml).
 This creates one service VM; runners, registry alternatives and public edge are separate deployments.
+
+## Table of contents
+
+- [Purpose](#purpose)
+- [Prerequisites](#prerequisites)
+- [What this deploys](#what-this-deploys)
+- [IaC used for this](#iac-used-for-this)
+- [Configure the deployment](#configure-the-deployment)
+- [Ports and DNS](#ports-and-dns)
+- [Operations](#operations)
+- [Recover an isolated matching-image target](#recover-an-isolated-matching-image-target)
+- [High availability direction](#high-availability-direction)
+- [Read more](#read-more)
+- [References](#references)
+
+## Purpose
+
+Use this path when the private cloud needs source control, CI/CD coordination,
+and a starting point for internal software projects.
+
+The reference implementation is GitLab on one dedicated Podman VM. This keeps
+the source-control runtime separate from the existing Tier 1 cluster and Stage 7 registry.
+Runner selection follows at Step 14; image builds are an optional extension there.
+
+<a id="before-you-start"></a>
+
+## Prerequisites
+
+Have these in place first:
+
+| Requirement | Why it matters |
+| --- | --- |
+| Identity foundation | Accepted existing Keycloak confidential client, HTTPS issuer, exact callback and private client secret. |
+| PKI certificate | The default deployment expects HTTPS with a certificate from the shared PKI. |
+| Linux template | Approved RedHat-family cloud-init image; the `gitlab_container` role rejects other distro families. |
+| Backup target | Independently commissioned NFS/SMB share or preinitialized SFTP restic repository; retain keys/password outside GitLab, Vault and this VM. |
+| Controller | Run the normal control-node setup; Shared supplies `community.general`/`ansible.posix`. Controller trust must accept the service CA. |
+| Package supply | Accepted baseline repositories supplying Podman, restic >= 0.17, OpenSSH, coreutils, util-linux and findutils. The role installs them; NAS clients are selected automatically. |
+
+## What this deploys
+
+The [source-control VM figure](#figure-source-control-vm) shows the service and its persistent data.
+
 
 Default deployment:
 
@@ -96,7 +105,7 @@ Default VM shape:
 | network zone | `application` |
 
 This path does not deploy runners by default. Use the
-[Podman image runner guide](step-2b-podman-runner.md) when build jobs should run away
+[Podman image runner guide](step-14b-podman-runner.md) when build jobs should run away
 from the GitLab host.
 
 ## IaC used for this
@@ -167,6 +176,8 @@ or migration; the guard refuses to hide existing files. NAS paths are backup des
 
 ### 3. Deploy and verify
 
+Check the planned service VM against the [selected runtime](#figure-source-control-vm) before deployment.
+
 Run from **`<prefix>-tier-1/`**.
 
 ```bash
@@ -215,7 +226,7 @@ bash scripts/deploy.sh development --ansible-only --playbook deployment/gitlab-v
 Expected result: systemd reports a successful native export, independent restic snapshot and repository
 check. Record its complete snapshot ID/set tag with the recovery owner. Test the isolated restore below,
 HTTPS, clone/push and protected logging before accepting this option. Then return to
-[Stage 9 Step 2 runner selection](README.md#step-2-add-on-demand-build-execution).
+[Stage 9 Step 14 runner selection](README.md#step-2-add-on-demand-build-execution).
 
 For a separate test installation, follow [environment isolation](../../08-reference/repository-scripts.md#environment-isolation)
 and add `--env test` consistently to initialization/deployment. Test and production
@@ -329,7 +340,7 @@ deployment model, plus the deliberate migration above.
 ## Read more
 
 - [Development platform](README.md)
-- [Podman image runner guide](step-2b-podman-runner.md)
+- [Podman image runner guide](step-14b-podman-runner.md)
 - [Container registry path](../stage-7-delivery/procedures/registry.md)
 - [Kubernetes platform path](../stage-7-delivery/procedures/platform-cluster.md)
 - [Shared services model](../../01-architecture/02-organization/README.md)

@@ -1,14 +1,17 @@
 # Dedicated infrastructure runner
 
 **Working repository:** `<prefix>-tier-0`. Branch from
-[Stage 9, Step 4](../README.md#step-4-hand-over-infrastructure-execution).
-**Return:** to Step 4 for Vault credential/job tests and original-state handover before routine apply.
-Its direct-CI trust decision is also required at Stage 9 Step 3, before creating the Vault policy.
+[Stage 9, Step 18](../README.md#step-4-hand-over-infrastructure-execution).
+**Return:** to Step 19 for Vault credential/job tests and original-state handover before routine apply.
+Its direct-CI trust decision is also required at Stage 9 Step 16, before creating the Vault policy.
 The reference adds `iac-1` on the management network, outside Kubernetes.
 It survives a control-cluster outage, but not loss of its hypervisor/storage;
 retain the independent recovery workstation.
 
 ## Step 1: Accept direct-CI trust
+
+The [infrastructure handover figure](../README.md#figure-infrastructure-handover) shows this runner's
+separate Tier 0 runtime, scoped secret interface and independent recovery workstation.
 
 Approve the [trusted-CI decision](../../../01-architecture/10-delivery/03-development-platform.md#privileged-ci).
 The infrastructure project, GitLab administrators and administrators able to modify
@@ -96,7 +99,7 @@ connections as the `gitlab-runner` user without disabling certificate verificati
 Verify package trust, configuration permissions, one-job concurrency, rejected
 unprotected/foreign jobs and CLI trust. The generated `/srv/iac` directory is empty:
 it does not contain a restored collection or original state.
-Continue with [handover](handover.md) before enabling an infrastructure apply job.
+Continue with [Stage 9 Step 19](../README.md#step-19-place-scoped-credentials-and-prove-real-job-authorization) before enabling an infrastructure apply job.
 
 ## References
 

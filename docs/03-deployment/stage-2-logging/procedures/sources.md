@@ -4,6 +4,11 @@ Forward Linux journal, audit and selected application files with isolated native
 rsyslog instances. Each stream has its own certificate, cursor and bounded disk
 queue. The existing OS logger remains in place; no extra input listener is opened.
 
+The source-to-intake relationship is shown in
+[Stage 2 Figure 3](../README.md#figure-3-authenticated-source-collection).
+This procedure adds approved streams to an existing receiver after initial installation.
+For the first receiver and its OS stream, stay on the [continuous Stage 2 guide](../README.md#step-5-configure-the-first-producer).
+
 **Working repository:** the producer's `<prefix>-tier-0`, `-tier-1` or `-tier-2`.
 **Implementation:** Shared `ansible/roles/log_forwarder`; all inputs, hosts, keys and
 state remain in the owning tier. Debian/systemd and Red Hat/systemd are supported
@@ -31,7 +36,7 @@ certificate identity; its connection target may be a fixed IP. No later-tier dir
 
    ```bash
    cp -n ansible/group_vars/logging_producers.yml.example ansible/group_vars/logging_producers.yml
-   mkdir -p ansible/host_vars
+   mkdir -p ansible/inventory/host_vars
    read -r -e -p 'Protected public request directory for this tier: ' LOGGING_REQUEST_DIR
    export LOGGING_REQUEST_DIR
    ```
@@ -42,7 +47,7 @@ certificate identity; its connection target may be a fixed IP. No later-tier dir
      inputs.
 
 2. Set `log_forwarder_target` and exact `log_forwarder_peer` in the local file.
-   Set `log_forwarder_streams` per host in ignored `ansible/host_vars/<host>.yml`.
+   Set `log_forwarder_streams` per host in ignored `ansible/inventory/host_vars/<host>.yml`.
    Start with one uniquely named security journal stream per host, including Proxmox
    and the receiver. Set a distinct `log_forwarder_watchdog_url` per host to an
    independently observed dead-man endpoint, never one shared by multiple hosts.
@@ -61,7 +66,7 @@ certificate identity; its connection target may be a fixed IP. No later-tier dir
    log_forwarder_peer: logs.internal.example.com
    ```
 
-   **`ansible/host_vars/log-1.yml`**:
+   **`ansible/inventory/host_vars/log-1.yml`**:
 
    ```yaml
    log_forwarder_watchdog_url: https://REPLACE_WITH_UNIQUE_EXTERNAL_DEAD_MAN_ENDPOINT
@@ -89,12 +94,13 @@ certificate identity; its connection target may be a fixed IP. No later-tier dir
      logging_inputs+=(-e "@$LOGGING_SETUP_VARS")
    fi
    logging_inputs+=(-e @ansible/group_vars/logging_producers.yml
-     -e "@ansible/host_vars/$LOGGING_HOST.yml")
+     -e "@ansible/inventory/host_vars/$LOGGING_HOST.yml")
    ```
 
-   These files are explicit inputs: `ansible/host_vars/` is not automatically
-   discovered beside the nested playbook/inventory paths. The host file is last
-   and `--limit` restricts those extra vars to that producer. Keep `platform_host_ips`
+   The host file is last and `--limit` restricts those extra vars to that producer.
+   The inventory-adjacent host-vars directory is also natively discoverable.
+   Existing `ansible/host_vars/` files remain valid when their actual path is explicitly
+   supplied as the final host input; refresh does not move local records. Keep `platform_host_ips`
    in its setup map; per-host overrides can set `ansible_host` directly.
    For a named environment, add its `all.<env>.yml` and `<setup>.<env>.yml` after the
    base setup and before the producer/host inputs. Use the same order for both runs.
@@ -110,8 +116,8 @@ certificate identity; its connection target may be a fixed IP. No later-tier dir
    Complete [Tier 0 signing](producer-trust.md#3-approve-producer-requests). Before
    signing an application identity, verify its actual file scope and intended readers.
 
-   During first installation, return to [receiver Step 2](receiver.md#step-2-register-trust-and-producers)
-   to register this identity and install the listener before continuing below.
+   After signing, continue directly with installation below. The initial receiver
+   was already installed by Stage 2; no disk or authority initialization is repeated.
 
 ## 2. Install and test forwarding
 
@@ -138,11 +144,12 @@ certificate identity; its connection target may be a fixed IP. No later-tier dir
    must be accompanied by storage limits/alerts. Existing local logging remains enabled.
 3. On a journal producer, submit a uniquely numbered test event:
 
-   Run on **the selected journal producer**.
+   Run from **the producer's owning tier**, retaining `logging_inputs`:
 
    ```bash
-   logger -t logging-acceptance 'logging-acceptance-event-001'
-   sudo systemctl status 'log-forwarder-*.service'
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible "$LOGGING_HOST" --playbook-dir ansible \
+     "${logging_inputs[@]}" --become -m ansible.builtin.command \
+     -a 'logger -t logging-acceptance logging-acceptance-event-001'
    ```
 
    Inspect the Tier 0 record's real CN/IP, fixed source/tier, original message and
@@ -199,11 +206,9 @@ The health timer checks unit state, spool usage below 80% of its budget, free sp
 leaf expiry and chain/CRL validity before pinging. This measures capacity/credentials,
 not receiver commitment; required source freshness is checked separately at the archive.
 
-During first installation, return to [Stage 2, Step 2](../README.md#step-2-enable-protected-collection)
-to finish source coverage, then select archive protection in Step 3.
-For a source added by a later stage, preserve existing archive custody. On the NAS path, append each
+For a source added after installation, preserve existing archive custody. On the NAS path, append each
 new required OS heartbeat to `logging_archive_required_sources` and reconcile the existing
-[archive health configuration](../step-3c-nas-archive.md#step-2-connect-collection-to-retained-copies),
+[archive health configuration](../step-15a-nas-archive.md#step-2-connect-collection-to-retained-copies),
 retaining its marker, mounts and credentials. Then return to the stage that requested enrollment;
 do not repeat first-time archive or backup initialization.
 

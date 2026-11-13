@@ -105,9 +105,9 @@ class CapabilityNavigation(TierRepositoryTestCase):
         for root in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             stage = area(root, "deployment") / "stage-1-software-intake"
             overview = (stage / "README.md").read_text(encoding="utf-8")
-            option = stage / "step-3b-windows-update.md"
+            option = stage / "step-7b-windows-update.md"
             text = option.read_text(encoding="utf-8")
-            self.assertIn("step-3b-windows-update.md", overview)
+            self.assertIn("step-7b-windows-update.md", overview)
             self.assertIn("cache_squid_allowed_domains", text)
             self.assertIn("cache_squid_allowed_cidrs", text)
             entries = re.search(r"```yaml\n(.*?)```", text, re.S)

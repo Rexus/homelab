@@ -1,7 +1,8 @@
 # NetBox change-audit collection
 
-**Stage route:** [Stage 6, Step 2](../README.md#step-2-add-operational-tools), after NetBox installation.
-**Return:** to Step 2 after proving real changes reach protected intake; then complete Headlamp access.
+**Stage route:** [Stage 6, action 18](../README.md#step-18-connect-netbox-change-auditing), after NetBox installation.
+The main stage contains the continuous first-install commands; this procedure owns the native API/ledger contract.
+**Return:** [Action 19](../README.md#step-19-install-headlamp-after-api-sso-acceptance) after proving real changes reach protected intake.
 
 **Working repository:** `<prefix>-tier-0`. NetBox and protected logging already exist.
 The selected collector runs on the independently prepared Tier 0 monitoring host;
@@ -12,7 +13,7 @@ retained source history and an external dead-man monitor.
 First complete [monitoring host preparation](independent-monitoring.md#step-1-prepare-the-monitoring-runtime):
 managed `mon-1` or an accepted existing host in `infrastructure_monitoring`, verified SSH/sudo
 and protected forwarding. Managed `mon-1` uses the foundation IP map; an external host uses
-`ansible/host_vars/<monitor-host>.yml`. Netdata need not be installed yet.
+`ansible/inventory/host_vars/<monitor-host>.yml`. Netdata need not be installed yet.
 
 ## Contents
 
@@ -22,9 +23,11 @@ and protected forwarding. Managed `mon-1` uses the foundation IP map; an externa
 
 ## Step 1: Prepare read-only access
 
-1. Create a noninteractive NetBox account allowed only to view **Object changes**,
-   across the intended audit scope. Do not grant add/change/delete, superuser or API write privileges.
-2. Create a read-only API token. The selected NetBox version uses
+1. Use [Stage 6 action 18a](../README.md#step-18-connect-netbox-change-auditing) to create the dedicated
+   read-only identity/token through IaC, or retain an accepted existing account (18b).
+   Allow only **Object changes** visibility across the intended audit scope; no add/change/delete,
+   superuser or API write privileges.
+2. Verify the selected token is read-only. The selected NetBox version uses
    `/api/core/object-changes/`; older supported installations can explicitly select the
    `extras` endpoint and `Token` authentication. Version 2 tokens use `Bearer`. [1][2]
 3. Store its token and verified server CA outside Git. Set `NETBOX_AUDIT_TOKEN_FILE`
@@ -83,7 +86,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.y
 ```
 
 Keep `localhost` in the limit: the first play checks that exactly one monitoring host is assigned.
-For an existing external host, append `-e "@ansible/host_vars/$AUDIT_HOST.yml"` so its address/account
+For an existing external host, append `-e "@ansible/inventory/host_vars/$AUDIT_HOST.yml"` so its address/account
 override the common inputs. Stop if the selected remote host is skipped.
 For a named environment, load `all.<env>.yml` and the complete `foundation.<env>.yml` after their base files.
 

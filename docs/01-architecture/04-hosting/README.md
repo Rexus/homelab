@@ -1,20 +1,47 @@
 # Hosting and orchestration
 
-**Operate this capability:** [Hosting tasks](../../05-operations/01-hosting/README.md).
-
 Hosting supplies the capacity and isolation needed to execute services. Orchestration
 places and maintains those services within authorized resources. The capability applies
 to a homelab, private cloud or externally managed runtime; its purpose does not depend
 on a particular hypervisor, operating system or scheduler.
 
-This capability expands the [platform overview](../README.md#foundational-capabilities).
-[Data and storage](../06-data/README.md) supplies persistence; [Operations](../11-operations/README.md)
-owns backup/recovery policy and evidence. Consuming a runtime grants neither host
-administration nor ownership of its underlying storage.
-The [interaction index](../README.md#how-the-platform-works-together) connect these interfaces to access,
-software changes and recovery across the platform.
-Read [bootstrap execution](02-provisioning.md#bootstrap-execution) after the runtime overview to see how
-the first changes and independent recovery are performed.
+A service consumes execution, network attachments and persistent datasets. Its owner
+controls the service within that allocation; a separate infrastructure authority
+controls the hosts and privileged lifecycle operations.
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  Services["Hosted<br/>services"]
+  Runtime["VM / container<br/>runtime"]
+  subgraph Contracts["Consumed contracts"]
+    direction TB
+    Hosts["Execution<br/>capacity"]
+    Network["Network<br/>attachments"]
+    Storage[("Persistent<br/>datasets")]
+    Hosts ~~~ Network ~~~ Storage
+  end
+  Services -->|Execution| Runtime
+  Runtime -. Contracts .-> Contracts
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Contracts boundary
+  class Services,Runtime services
+  class Hosts,Network control
+  class Storage data
+```
+
+*Figure: Hosted services consume VM or container execution. The runtime supplies isolation,
+placement and lifecycle; its dashed boundary link groups hosting from execution capacity,
+reachability from network attachments and persistence from datasets. The dependency group
+implies neither common ownership nor a network route.*
+
+Read the figure from service to dependencies: replacing a runtime must preserve its
+authorized reachability and data access. Consuming a runtime grants neither host
+administration nor ownership of the underlying storage.
 
 <a id="compute-and-cluster-platform"></a>
 
@@ -40,6 +67,12 @@ the first changes and independent recovery are performed.
 A scheduler's placement decision does not establish independent failure domains.
 Rescheduling, host restart, service replication and application recovery are distinct
 mechanisms. Each realization records which mechanisms it supplies and what they depend on.
+
+In the supplied realization, Proxmox creates the VM boundary and Kubernetes schedules
+services within selected node VMs. Start with the [runtime view](01-runtime.md), then
+[infrastructure control](02-provisioning.md#bootstrap-execution) for who can change those
+resources. [Kubernetes](03-kubernetes.md) explains cluster boundaries; [lab isolation](04-lab-environments.md)
+explains when a project needs a separate cluster.
 
 ## Supplied and consumed interfaces
 
@@ -105,41 +138,14 @@ supplies orchestration. These are the current implementation choices, not interc
 provider switches. Talos is the supplied Kubernetes node OS. Conceptual alternatives
 require their own validated integration; see [implementation support](../../08-reference/implementation-support.md).
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Services["Trust, delivery, operations and workload services"]
-  Runtime["VM and Kubernetes runtimes"]
-  Images["Approved image catalog"]
-  Execution["Protected workstation or runner"]
-  State["Tier-owned state and recovery records"]
-  Hosts["Proxmox hosts and approved resources"]
-  Services -->|Consume execution and storage attachment| Runtime
-  Runtime -->|Hosted on| Hosts
-  Images -->|Approved guest images| Hosts
-  Execution -->|Authorized infrastructure operations| Hosts
-  Execution -->|Protected reads and writes| State
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Services,Runtime services
-  class Execution,Hosts control
-  class Images,State data
-```
+Tier 0 owns host control and VM template publication; each consuming tier retains
+its definitions, inventory and state.
+The approved image catalog supplies guest-image references. Protected workstations
+or runners apply authorized operations and access the owning tier's state and recovery
+records. A template is an input, not a configured cluster or application.
 
-*Figure: Services consume VM and Kubernetes runtimes on Proxmox; approved images and protected execution
-support hosting and tier-owned state.*
-
-This **reference view** shows hosting and privileged control relationships, not
-network rules or an installation sequence. Tier 0 owns host control and VM template
-publication; each consuming tier retains its definitions, inventory and state.
-A template is an input, not a configured cluster or application.
-
-The [runtime view](01-runtime.md) expands the selected placement.
-[Kubernetes topology](03-kubernetes.md) owns the independent tier clusters and worker choices;
-[provisioning](02-provisioning.md) owns execution authority. The [VMID convention](../../02-conventions/vmid-convention.md)
-is a reference allocation, independent of network policy.
+The [VMID convention](../../02-conventions/vmid-convention.md) is a reference allocation,
+independent of network policy.
 
 Selected implementation details live in the [reference platform](../03-reference-platform.md),
 [host/image prerequisites](../../03-deployment/foundation/README.md) and
@@ -147,3 +153,9 @@ Selected implementation details live in the [reference platform](../03-reference
 The [HA realization](../../03-deployment/foundation/proxmox/step-1b-cluster-ha.md) distinguishes
 failure recovery, placement rules and rebalancing; guest restart is not uninterrupted
 application service or recovery from lost data.
+
+[Hosting tasks](../../05-operations/01-hosting/README.md) covers normal operation.
+[Data and storage](../06-data/README.md) owns persistence interfaces;
+[Operations](../11-operations/README.md) owns backup/recovery policy and evidence.
+The [platform overview](../README.md#foundational-capabilities) and
+[interaction examples](../README.md#how-the-platform-works-together) place hosting in the wider system.

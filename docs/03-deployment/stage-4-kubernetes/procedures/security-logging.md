@@ -13,6 +13,10 @@ stdout/stderr on all selected nodes, then submit RFC5424 over TCP with mTLS to
 the existing Tier 0 protected receiver. It supplies no metrics backend or OTLP
 application-metrics routing, and makes no zero-loss or deployment claim.
 
+The Tier 0 selection is shown in
+[Stage 4 Figure 3](../README.md#figure-3-protected-cluster-collection).
+Other tiers use the same collection path with their own nodes, identities and inputs.
+
 ## Table of contents
 
 - [Prerequisites and trust](#prerequisites-and-trust)
@@ -315,7 +319,7 @@ pod logs are excluded to avoid a forwarding feedback loop. No workload annotatio
 can opt out of collection. Raw CRI fragments remain separate records.
 
 For the initial Tier 0 installation, return to
-[Stage 4, Step 2](../README.md#step-2-establish-the-basic-platform), action **4**:
+[Stage 4, action 15](../README.md#step-15-qualify-live-storage):
 qualify live storage, then complete the remaining add-ons and Flux before acceptance.
 When called by another tier's stage, return to that owning stage's platform sequence.
 Retain the recorded logging tests; installing collectors alone does not complete the platform.

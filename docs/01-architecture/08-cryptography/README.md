@@ -1,20 +1,9 @@
 # Cryptography and secrets
 
-**Operate this capability:** [Cryptography and credential tasks](../../05-operations/03-cryptography/README.md).
-
 Cryptography establishes trust, protects key custody and delivers credentials.
 Root custody, online issuance, signing and secret storage are separate functions;
 one product need not implement all of them. Together they provide the certificate
 trust and secret interfaces of the [platform architecture](../README.md).
-
-## Table of contents
-
-- [Completed design](#completed-design)
-- [Components and interfaces](#components-and-interfaces)
-- [Independent choices](#independent-choices)
-- [Design constraints](#design-constraints)
-- [Detailed views](#detailed-views)
-- [Realization](#realization)
 
 ## Completed design
 
@@ -62,23 +51,54 @@ block-beta
   class T2Title,T1Title servicesHeading
   class T0Title controlHeading
 ```
-*Figure: Tier 0 holds the secret service and sibling issuers under separate offline root custody; Tier 1 and
-Tier 2 may also use scoped application or lab authorities.*
+*Figure: Online consumers sit above Tier 0 trust services; the upward dashed arrows transfer
+offline-signed intermediate certificates, not network traffic. Optional CAs have their own trust scope.*
 
-This view separates functions; a selected product can implement more than one.
-The reference allocation uses OpenXPKI as the permanent infrastructure issuer,
-FreeIPA's sibling identity CA under the same offline root, and Vault as the secret
-service. The [CA design](01-certificate-authority.md) expands policy, portal, enrollment
-and publication without merging those responsibilities.
-Root and online keys can use different custody providers, while the secret-service
-seal remains a separate integration.
+Read the figure from the consumers down to their trust foundation. An infrastructure
+client enrolls with the online issuer, which applies certificate policy and uses its
+selected signing provider. The root key stays offline: it authorizes the intermediate
+issuer during a ceremony rather than participating in routine requests. The identity
+issuer is a sibling authority for directory and host identities.
 
-Dashed arrows show offline certificate signing, not network routes.
 Each tier's infrastructure clients enroll directly with Tier 0's online issuer;
 Tier 1 is not an enrollment proxy for Tier 2. Secret consumers use separately
 authorized APIs. The [enrollment view](01-certificate-authority.md#enrollment-and-publication)
 expands those online paths without overlaying them on the placement map.
 Tier 1 enrollment clients do not hold infrastructure CA signing keys.
+
+## Table of contents
+
+- [Completed design](#completed-design)
+- [Components and interfaces](#components-and-interfaces)
+- [Independent choices](#independent-choices)
+- [Design constraints](#design-constraints)
+- [Detailed views](#detailed-views)
+- [Realization](#realization)
+
+## Components and interfaces
+
+### Establish trust, then issue online
+
+The offline root signs intermediate CA certificates under separately controlled
+custody. The online issuer owns approved certificate profiles, issuance records,
+renewal and revocation. Its key provider performs permitted cryptographic operations;
+it does not decide which names a consumer may request. A reachable gateway becomes
+a backend only through supported application/provider integration.
+
+The [CA design](01-certificate-authority.md) follows this boundary through the
+portal, enrollment adapter and public trust-object publication. Public certificates
+and revocation data can be distributed without distributing signing authority.
+
+### Deliver credentials through a separate service
+
+The secret service authorizes credential retrieval or delivery, records audit events
+and retains recoverable state. Its seal protects startup material. That seal is
+independent of the CA signing backend, even when both use hardware. Optional shared
+signing has its own key identities, permissions and recovery contract.
+The [secrets design](08-secrets.md) explains consumption; [seal patterns](06-vault-seal.md)
+explain startup and recovery.
+
+### Keep narrower trust scopes explicit
 
 Application-specific trust can instead use a shared Tier 1 CA or a lab-local Tier 2 CA.
 These optional authorities do not automatically chain to, or gain the permissions of,
@@ -86,20 +106,7 @@ the infrastructure root. Their trust stores, allowed names, keys and recovery re
 scoped to their consumers. Any cross-signing or subordinate delegation requires a
 separate policy and path-constraint review; neither is installed by these examples.
 
-## Components and interfaces
-
-| Component | Function and boundary |
-| --- | --- |
-| Offline root | Signs intermediate CA certificates during authorized ceremonies; no normal network service |
-| Online issuer | Issues and renews certificates under approved policy without access to the root key |
-| Key provider | Performs permitted cryptographic operations using software or hardware custody |
-| Secret service | Stores/delivers credentials with scoped authorization, audit and independent recovery |
-| Seal/unseal mechanism | Protects secret-service startup material; distinct from the certificate-signing backend |
-| Optional shared signing | Restricted PKCS#11 or scoped signing API; separate key identity, access policy and recovery from the secret store |
-
-The [enrollment design](01-certificate-authority.md#enrollment-and-publication) shows
-consumer-to-issuer relationships. A gateway cannot become a signing backend merely
-by being reachable; the application needs supported provider integration.
+### Supply trust and consume independent foundations
 
 | Boundary | Interface and connected function |
 | --- | --- |
@@ -112,6 +119,10 @@ by being reachable; the application needs supported provider integration.
 
 ## Independent choices
 
+Choose the boundary for each key purpose, then select its realization. Root and online
+keys can use different providers; secret-service placement does not select its seal.
+These are independent decisions, with no requirement to pass through every option.
+
 | Decision | Alternatives | Design |
 | --- | --- | --- |
 | Key custody | A: software; B: single USB; C: replicated USB gateways; D: network HSM | [Key-protection options](03-hsm-selection.md) |
@@ -121,9 +132,10 @@ by being reachable; the application needs supported provider integration.
 | Secret-service seal | Shamir; independent Transit service; supported native PKCS#11 | [Seal patterns](06-vault-seal.md), independent of A-D |
 | Shared signing interface | Native PKCS#11 remoting; separately deployed policy-enforcing API | [USB-backed key services](04-usb-hsm.md); HashiCorp Vault remains the initial secret store |
 
-Root and online keys may select different providers. None of the options requires
-passing through every other option first. Hardware can be selected initially or
-introduced later without changing its purpose.
+Hardware can be selected initially or introduced later without changing its purpose.
+The reference realization uses OpenXPKI for infrastructure issuance, FreeIPA's sibling
+identity CA and HashiCorp Vault for secrets. Those product choices implement the roles
+above; they do not merge their authority or recovery boundaries.
 
 <a id="maturity"></a>
 
@@ -142,15 +154,15 @@ does not establish the required isolation, recovery or compliance properties.
 
 ## Detailed views
 
-- [Secret access, audit and consumption](08-secrets.md) separates credential delivery from signing and seal operations.
-- [Algorithm selection](02-algorithm-selection.md) separates hashes, signatures, encryption and practical key sizes.
-- [Post-quantum readiness](07-post-quantum.md) distinguishes migration planning from qualified PQC deployment.
-- [YubiHSM performance](../../08-reference/yubihsm-performance.md) records vendor benchmark timings and limits.
-- [Runtime flows](08-secrets.md#certificate-and-secret-consumption) connects certificate and secret consumers across domains.
-- [Certificate authority](01-certificate-authority.md) expands the sibling issuers, portal, enrollment and publication.
-- [Key-protection options A-D](03-hsm-selection.md) compares custody boundaries and supported interfaces.
-- [Replicated USB gateways](04-usb-hsm.md) and [network HSMs](05-network-hsm.md) expand the selected hardware arrangement.
-- [Secret-service seal patterns](06-vault-seal.md) details startup protection independently of signing.
+Continue with [certificate authority design](01-certificate-authority.md) to follow
+issuance, then [algorithm selection](02-algorithm-selection.md) and
+[key-protection options A-D](03-hsm-selection.md) to understand the signing boundary.
+The USB and network-provider details branch from that choice.
+
+For credential consumers, read [secret access and audit](08-secrets.md), then the
+[seal design](06-vault-seal.md) for startup dependencies. Finally,
+[post-quantum readiness](07-post-quantum.md) explains which transport, signature and
+storage paths need separate migration qualification.
 
 ## Realization
 
@@ -162,3 +174,7 @@ binding preserves the original hardware key. Application-specific replication/HA
 For an existing software issuer, follow the administration
 [hardware migration procedure](../../05-operations/03-cryptography/hardware-migration.md)
 for controlled rollover and recovery.
+
+[Cryptography and credential tasks](../../05-operations/03-cryptography/README.md)
+owns day-to-day operation. [YubiHSM performance](../../08-reference/yubihsm-performance.md)
+provides benchmark timings and limits when sizing the selected hardware path.

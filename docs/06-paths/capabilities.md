@@ -26,5 +26,5 @@ For implementation ownership and code changes, use the [development map](../04-d
 [Hardware provider hosts](../03-deployment/stage-3-trust/step-1b-usb-hsm.md) and optional
 [PKCS#11 remoting](../03-deployment/stage-3-trust/procedures/pkcs11-remoting.md) belong to Cryptographic trust.
 They expose qualified key operations, not an application API. The independent
-[signing API](../03-deployment/stage-6-secrets/step-1d-openbao.md) is a separate Stage 6 choice;
+[signing API](../03-deployment/stage-6-secrets/step-11b-openbao.md) is a separate Stage 6 choice;
 neither it nor a different Vault seal is required by the initial PKI/HashiCorp Vault path.

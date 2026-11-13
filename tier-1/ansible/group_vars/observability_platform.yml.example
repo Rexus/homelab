@@ -1,5 +1,6 @@
 ---
 # Pass explicitly: -e @ansible/group_vars/observability_platform.yml
+# Service DNS: docs/02-conventions/service-dns.md
 observability_action: render
 observability_kubeconfig: ""
 observability_context: ""
@@ -10,7 +11,7 @@ observability_database_storage_accepted: false
 observability_topology_key: infrastructure.example.org/physical-host
 observability_failure_domains: [pve01, pve02, pve03]
 observability_backup_destination: s3://platform-backups/grafana-db
-observability_backup_endpoint: https://backup-objectstore.services.example.org
+observability_backup_endpoint: https://backup.services.example.org
 observability_backup_mode: files
 observability_backup_files_phase: prepare
 observability_backup_files_accepted: false
@@ -20,8 +21,11 @@ observability_backup_files:
   system_identifier: ""  # status.systemID after database-only preparation.
   marker: ""  # Commissioned private NAS marker, permissions and storage encryption.
   schedule: '0 2 * * *'
+  # Optional static_nfs: server/share/size; uses volume_handle above. NAS custody stays external.
+  # Schema: Shared ansible/roles/backup_repository_storage/tasks/preflight.yml.
+  storage: {mode: existing}
 observability_grafana_url: https://grafana.services.example.org
-observability_dashboards_url: https://dashboards.services.example.org
+observability_dashboards_url: https://logs.services.example.org
 observability_oidc_issuer: https://sso.identity.example.org/realms/platform
 observability_oidc_operator_group: platform-observability-readers
 observability_search_node_dns: [CN=opensearch.nodes.services.example.org]

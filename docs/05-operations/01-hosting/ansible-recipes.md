@@ -85,7 +85,7 @@ The signing play is a gated backend renderer, not a service, VIP or HA installer
 | 0 / issuer, explicit custody | `deployment/openxpki-bundle.yml` (controller), `deployment/openxpki-key.yml` | `maintenance/openxpki-backup.yml` and `maintenance/openxpki-restore.yml`: separately approved recovery operations |
 | 0 / `syslog` | `deployment/foundation-logging.yml` | `maintenance/syslog.yml`: baseline and isolated receiver convergence; no package upgrades, evidence/queue deletion or retention changes |
 | 0 / `vault` | `deployment/vault-vm.yml` | `maintenance/vault.yml`: reconcile existing role configuration |
-| 0 / `vault`, independent signing environment | `deployment/vault-vm.yml` with explicit OpenBao inputs; `deployment/openbao-signing.yml` after original initialization | [Signing API](../../03-deployment/stage-6-secrets/step-1d-openbao.md): scoped keys/clients, audit and independent recovery; never migrates Vault |
+| 0 / `vault`, independent signing environment | `deployment/vault-vm.yml` with explicit OpenBao inputs; `deployment/openbao-signing.yml` after original initialization | [Signing API](../../03-deployment/stage-6-secrets/step-11b-openbao.md): scoped keys/clients, audit and independent recovery; never migrates Vault |
 | 0 / `hsm` | `deployment/hsm-gateways.yml`; explicit `hsm-issuer.yml`/`hsm-token.yml` for original-key binding | `maintenance/hsm.yml`: baseline/provider reconciliation; `deployment/hsm-inspect.yml`: read-only provider check, no key rotation |
 | 0 / `hsm`, optional remoting | `deployment/hsm-remote.yml`, `hsm-remote-client.yml` | `hsm-remote-check.yml`: explicit original-key identity/signature checks; [native transport](../../03-deployment/stage-3-trust/procedures/pkcs11-remoting.md) |
 | 0 / `immutable-template` | `deployment/immutable-template.yml` | Existing builder recipe, with its current gates |
@@ -112,7 +112,7 @@ explicit kubeconfig. Their default action is offline `render`; `apply` is explic
 | 1 | `deployment/observability-platform.yml` | [Observability](../../03-deployment/stage-8-observability/README.md) |
 | 1 | `deployment/development-platform.yml` | [GitLab and runners](../../03-deployment/stage-9-development/procedures/gitlab.md) |
 | 2 | `deployment/lab-environment.yml` | [Bounded application](../../03-deployment/stage-10-lab-environments/step-3a-application.md) |
-| 2 | `deployment/workload-telemetry.yml` | [Scoped application telemetry](../../03-deployment/stage-10-lab-environments/step-3c-telemetry.md) |
+| 2 | `deployment/workload-telemetry.yml` | [Scoped application telemetry](../../03-deployment/stage-10-lab-environments/step-5b-telemetry.md) |
 
 Tier 0's `deployment/infrastructure-monitoring.yml` instead targets an explicitly
 prepared host outside observed clusters; use the [independent monitoring guide](../../03-deployment/stage-6-secrets/procedures/independent-monitoring.md).

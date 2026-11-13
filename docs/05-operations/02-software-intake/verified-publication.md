@@ -1,7 +1,7 @@
 # Verified software intake operations
 
 Operate the optional Tier 1 `intake-1` service. The proxy/cache remains a separate transport service.
-First installation belongs to the [deployment guide](../../03-deployment/stage-3-trust/step-3b-verified-intake.md);
+First installation belongs to the [deployment guide](../../03-deployment/stage-3-trust/step-15b-verified-intake.md);
 the [design](../../01-architecture/07-software-intake/01-verification.md) explains authority and trust.
 
 ## Contents
@@ -25,7 +25,7 @@ the [design](../../01-architecture/07-software-intake/01-verification.md) explai
    bash scripts/deploy.sh intake --recipe maintenance
    ```
 
-3. Inspect `latest.json` and its versioned receipt using the [deployment checks](../../03-deployment/stage-3-trust/step-3b-verified-intake.md#7-run-and-inspect-the-first-intake).
+3. Inspect `latest.json` and its versioned receipt using the [deployment checks](../../03-deployment/stage-3-trust/step-15b-verified-intake.md#7-run-and-inspect-the-first-intake).
    To schedule accepted policy, set `software_intake_timer_enabled: true`, select
    `software_intake_schedule` and repeat the first command. There is one serialized service,
    not overlapping workers. To pause new intake, set that value to `false` and reapply.

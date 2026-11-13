@@ -3,6 +3,12 @@
 - name: Prepare selected controller Python clients
   vars:
     control_node_python_catalog:
+      - collection: netbox.netbox
+        requirements: ['pynetbox>=7.5.0', 'pynetbox<8', 'requests>=2.32.0', 'requests<3']
+        imports: [pynetbox, requests]
+        packages:
+          RedHat: [python3-pynetbox, python3-requests]
+          Debian: [python3-pynetbox, python3-requests]
       - collection: kubernetes.core
         requirements: ['kubernetes>=24.2.0', 'jsonpatch>=1.33', 'PyYAML>=6.0']
         imports: [kubernetes, jsonpatch, yaml]

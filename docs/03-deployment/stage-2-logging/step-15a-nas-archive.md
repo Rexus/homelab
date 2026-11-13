@@ -1,0 +1,277 @@
+# Step 15a: NAS-backed log archive
+
+Use an independent NAS with storage-managed snapshots and backups when trusted
+NAS administrators and a measured unprotected tail are acceptable. Strict WORM
+retention is not required for this selected homelab model.
+
+[Stage 2 Figure 1](README.md#figure-1-nas-retention-and-independent-recovery) shows the selected
+outcome: local intake, NAS checkpoints and a separately held recovery copy. The steps below
+configure those transfers and qualify their independent custody.
+
+**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
+**Branch from:** [Step 15](README.md#step-15-protect-retained-records).
+**Main path:** NAS-backed retention is the default storage choice, not a prerequisite for the
+[locked-retention alternative](step-15b-retention-lock.md). Select that alternative when trusted NAS administration is insufficient.
+**Change:** Protect archive checkpoints with NAS-owned snapshots and independent backups, without claiming WORM.
+**Return:** [Step 16](README.md#step-16-verify-recovery-and-record-completion) to accept the demonstrated protection boundary.
+**Design:** [choice A: NAS custody](../../01-architecture/11-operations/02-log-retention.md).
+**Prerequisites:** working collection, dedicated NAS storage, independent admin
+credentials and a recovery destination outside that NAS's failure domain.
+**Automation boundary:** Tier 0 supplies separate archive and independent-backup
+recipes; `deploy.sh syslog` alone installs neither. NAS account/snapshot commissioning
+remains an external prerequisite, not a collector privilege. The backup recipe prepares an explicitly
+selected local recovery disk; an already commissioned independent mount is an adoption alternative.
+
+## Installation order
+
+1. [Commission the NAS boundary](#step-1-commission-the-nas-boundary).
+2. [Configure archive inputs](#step-2-configure-archive-inputs).
+3. [Install checkpoint transfer](#step-3-install-checkpoint-transfer).
+4. [Select the recovery host](#step-4-select-the-recovery-host).
+5. [Configure independent backup](#step-5-configure-independent-backup).
+6. [Install and verify backup jobs](#step-6-install-and-verify-backup-jobs).
+7. [Retain the storage identity](#step-7-retain-the-storage-identity).
+8. [Record custody and continue](#step-8-record-custody-and-continue).
+
+<a id="step-1-prepare-storage-and-roles"></a>
+
+## Step 1: Commission the NAS boundary
+
+The existing NAS owner supplies the dedicated share/capacity budget, separate transfer and
+read-only recovery identities, SMB 3.1.1 encryption, snapshots, retention and access auditing.
+Commission `.logging-target` with an independently recorded marker of 16–128 letters,
+digits, underscores or hyphens. Keep NAS/snapshot/backup administration off collectors and runners.
+Collector queues stay on their existing local volume; no receiver disk replacement is required.
+
+Permit only the selected endpoints; keep these flows separate from administration:
+
+| Initiator | Destination | Main-path transport |
+| --- | --- | --- |
+| Approved producers | Tier 0 receiver address | TCP 6514 with client TLS; selected port if overridden |
+| Collector transfer / independent recovery host | Dedicated NAS share endpoint | TCP 445, authenticated encrypted SMB; separate write/read identities |
+| Producer, archive and backup health jobs | Named independent dead-man endpoints | TCP 443, verified HTTPS; no general outbound permission implied |
+
+No producer receives NAS access. Restrict recovery-repository and approved reader
+access independently; this role does not open gateway rules or a public query listener.
+
+| Identity | Scope |
+| --- | --- |
+| Archive transfer account | Only its archive intake area; no NAS/snapshot/backup administration |
+| Security reader | Approved read scope; no writes, deletion or storage administration |
+| NAS/backup administrator | Snapshot, expiry and recovery authority; trusted under this model |
+| Family, employees, app developers | No raw archive share; later scoped application views are separate |
+
+For UniFi NAS, create a dedicated Shared Drive and file-service identity using
+the [SMB setup](https://help.ui.com/hc/en-us/articles/14276882157975-Adding-UniFi-Drive-to-Your-Desktop-via-SMB).
+Use supported authenticated/encrypted transport on the restricted archive network.
+The supplied archive and backup-source mounts use encrypted SMB. Changing their share path does not
+select NFS. An independently commissioned NFS repository is supported only through destination adoption below.
+Do not enable
+no-root-squash merely to solve client permissions. UniFi documents material
+restrictions for that mode. [1]
+
+<a id="step-2-connect-collection-to-retained-copies"></a>
+
+## Step 2: Configure archive inputs
+
+Run from **`<prefix>-tier-0/`**.
+
+```bash
+cp -n ansible/group_vars/logging_archive.yml.example ansible/group_vars/logging_archive.yml
+read -r -e -p 'Restricted NAS transfer credential file: ' LOGGING_NAS_CREDENTIALS_FILE
+export LOGGING_NAS_CREDENTIALS_FILE
+```
+
+Edit in **`<prefix>-tier-0/`**.
+
+- `ansible/group_vars/logging_archive.yml`: Archive transport/target, local credential paths and retention
+  inputs.
+
+Set the SMB source, marker, snapshot owner/runbook, required active OS source
+names, capacity/lag budgets and an **external dead-man URL** that alerts when
+successful pings stop. The credential file uses native CIFS `username=`, `password=`
+and optional `domain=` lines. It is copied root-only, not placed in inventory/Git.
+Optionally map only approved application sources to dedicated reader groups;
+security-stream classification comes from Tier 0's source catalogue.
+
+Edit **`ansible/group_vars/logging_archive.yml`** before running the recipe:
+
+| Field | Enter |
+| --- | --- |
+| `logging_archive_source` | Actual `//NAS/share` SMB path |
+| `logging_archive_marker` | Exact `.logging-target` contents commissioned on the NAS |
+| `logging_archive_snapshot_contract` | Snapshot owner, runbook, interval and tested recovery window |
+| `logging_archive_required_sources` | Active journal stream names, initially including `log-1-os` and commissioned host OS streams |
+| `logging_archive_watchdog_url` | Unique external dead-man URL for this collector's checkpoints |
+| `logging_archive_max_lag_seconds`, `logging_archive_min_free_bytes` | Accepted checkpoint lag and minimum free capacity |
+
+## Step 3: Install checkpoint transfer
+
+Select one commissioned collector from `foundation_logging`. Reuse its inventory-adjacent
+host file and load global, setup/IP, archive and host inputs in that order:
+
+Run from **`<prefix>-tier-0/`**.
+
+```bash
+read -r -p 'Collector inventory host (for example log-1): ' LOGGING_COLLECTOR
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
+  -i ansible/inventory/hosts.yml --limit "${LOGGING_COLLECTOR:?Select one collector}" \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/syslog.yml \
+  -e @ansible/group_vars/logging_archive.yml \
+  -e "@ansible/inventory/host_vars/$LOGGING_COLLECTOR.yml" \
+  ansible/playbooks/deployment/logging-archive.yml
+```
+
+The role mounts the selected encrypted share, checks its independent marker and
+starts `security-log-archive.timer`. Each run seals complete JSONL prefixes into
+create-only hashed chunks and manifests, then advances its local cursor. It never
+copies live queue files, mirrors deletion or removes local evidence. Linux audit
+records raw/view reads; forward `/var/log/audit/audit.log` as a security stream.
+
+## Step 4: Select the recovery host
+
+Select a separate Tier 0 Linux recovery host outside the NAS/collector failure domain.
+An existing independently commissioned host is valid. Add it under `logging_recovery`,
+never `foundation_logging`, and continue at Step 5.
+
+For a new VM, enable `rec-1` in **Tier 0 `terraform/deployments/syslog/terraform.tfvars`**,
+select independent host/storage placement and its dedicated `scsi1` recovery disk. Add its
+inventory entry and address in **`ansible/group_vars/syslog.yml`**. Preserve existing receiver
+resources/state. Provision from **`<prefix>-tier-0/`**:
+
+```bash
+bash scripts/deploy.sh syslog --terraform-only
+```
+
+**Expected:** recovery VM and disk exist; Ansible prepares its selected filesystem below.
+No guest login is required.
+
+## Step 5: Configure independent backup
+
+Run from **`<prefix>-tier-0/`**.
+
+```bash
+cp -n ansible/group_vars/logging_backup.yml.example ansible/group_vars/logging_backup.yml
+read -r -e -p 'Read-only NAS recovery credential file: ' LOGGING_BACKUP_NAS_CREDENTIALS_FILE
+read -r -e -p 'Separately held restic password file: ' LOGGING_BACKUP_PASSWORD_FILE
+export LOGGING_BACKUP_NAS_CREDENTIALS_FILE LOGGING_BACKUP_PASSWORD_FILE
+```
+
+Edit in **`<prefix>-tier-0/`**.
+
+- `ansible/group_vars/logging_backup.yml`: Independent recovery target, backup repository and watchdog
+  inputs.
+
+Set source/marker, independent repository, schedule and a separate external
+dead-man check. Keep password/recovery keys off the collector. Approve repository
+initialization only for a deliberately new destination; otherwise use the existing
+repository/password. Create `ansible/inventory/host_vars/<recovery-host>.yml` with its
+existing `ansible_host`, SSH account/key overrides and any per-host backup settings.
+
+Edit **`ansible/group_vars/logging_backup.yml`**:
+
+| Field | Enter |
+| --- | --- |
+| `logging_backup_source`, `logging_backup_marker` | Same commissioned NAS archive and marker; access uses the separate read-only account |
+| `logging_backup_repository` | Dedicated recovery mount root, such as `/srv/security-log-backup`, outside the NAS/collector failure domain |
+| `logging_backup_repository_device` | Attached `scsi1` disk: `/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1`. Empty selects adoption of an existing mount |
+| `logging_backup_repository_fstype` | `xfs` for a new local disk; `ext4` also supported; match retained local filesystems |
+| `logging_backup_repository_uuid` | Empty for a new blank disk; original UUID for an existing/restored local filesystem |
+| `logging_backup_repository_min_free_bytes` | Required free-space reserve before commissioning |
+| `logging_backup_initialize` | `true` for the first approved empty repository only; return to `false` after success |
+| `logging_backup_calendar` | Approved native systemd calendar, such as the supplied `hourly` |
+| `logging_backup_watchdog_url` | Separate external dead-man URL for independent backups |
+
+**5a: New local disk (main path):** retain the starter's explicit device, mount root and
+`xfs`, with an empty UUID. Shared creates a filesystem only on an undeclared signature-free disk,
+persists the UUID mount and grows the filesystem when its device expands. No guest `mkfs` or
+manual mount is required. Stop on a device/pin mismatch; do not erase storage to bypass a guard.
+
+**5b: Adopt an existing mount:** set `logging_backup_repository_device: ""` and keep the
+commissioned mount path. The recipe inspects it without formatting or changing fstab;
+set its original UUID when available. Existing NFS/SMB targets remain an adoption route,
+not a new remote-mount installer. Their external exports, credentials and persistent client
+mount must already be commissioned. Both routes continue with the same command below.
+
+The role rejects root, the archive input, overlapping paths, read-only/volatile destinations and
+insufficient reserve. Distinct paths do not prove distinct physical failure domains: record the
+actual host, storage and custody separation. Never use the source archive NAS as the recovery copy.
+
+**IaC:** Tier 0's [repository preparation](../../../tier-0/ansible/roles/logging_backup/tasks/repository.yml)
+invokes [Shared storage](../../../shared/ansible/roles/data_volume/tasks/main.yml) only for an explicit device.
+
+## Step 6: Install and verify backup jobs
+
+Run from **`<prefix>-tier-0/`**.
+
+```bash
+read -r -p 'Independent recovery inventory host: ' LOGGING_RECOVERY_HOST
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
+  -i ansible/inventory/hosts.yml --limit "${LOGGING_RECOVERY_HOST:?Select one recovery host}" \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/logging_backup.yml \
+  -e "@ansible/inventory/host_vars/$LOGGING_RECOVERY_HOST.yml" \
+  ansible/playbooks/deployment/logging-backup.yml
+```
+
+The recipe prepares/validates the selected repository, then verifies complete checkpoints and
+backs up only that fixed verified file list with restic, checks the encrypted repository and pings
+only after success. No automatic
+expiry/prune or NAS administration is granted. Each scheduled run checks the mount and its
+selected UUID/source/type before writing; a missing or substituted mount fails, with no local fallback.
+
+## Step 7: Retain the storage identity
+
+After the first successful initialization, set `logging_backup_initialize: false` in
+**Tier 0 `ansible/group_vars/logging_backup.yml`**. Retain the repository password, original
+mount/source/type and local-volume UUID in the independent recovery set.
+For a new local disk, inspect its mounted identity from **`<prefix>-tier-0/`**:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible "$LOGGING_RECOVERY_HOST" --playbook-dir ansible \
+  -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/logging_backup.yml \
+  -e "@ansible/inventory/host_vars/$LOGGING_RECOVERY_HOST.yml" --become -m ansible.builtin.command \
+  -a 'findmnt --json --mountpoint /srv/security-log-backup --output TARGET,UUID,FSTYPE'
+```
+
+Use the actual repository mount if customized. Save a local-volume UUID as
+`logging_backup_repository_uuid` in that receiver-independent host's inputs; keep separate
+values for separate recovery hosts. Verify persistent mounting after a controlled reboot.
+
+For named environments, insert `all.<env>.yml` and the selected setup overlay after
+the base setup map and before archive/backup settings and host overrides. Keep the
+host file last and rerun separately for each collector or recovery host.
+The examples use `ansible/inventory/host_vars/`, beside `inventory/hosts.yml`.
+For an existing explicitly supplied `ansible/host_vars/<host>.yml`, replace the final `-e` path
+with that actual file; keep it last and limit the run to its one host.
+
+Record source-to-copy lag and the latest verified snapshot/backup checkpoint.
+An asynchronous copy/snapshot interval creates an exposed tail; it is not zero RPO.
+RAID and another snapshot on the same NAS do not cover loss of the whole appliance.
+Protect decryption keys independently under the [backup policy](../../05-operations/06-resilience/backups/virtual-machines.md#backup-policy).
+The [pipeline contract](../../08-reference/logging-pipeline.md) defines exact paths,
+failure behavior, filesystem reader views and the distinction between transport,
+NAS checkpoint, NAS snapshot and independent backup. Snapshot coverage is
+commissioned/checked on the NAS, not inferred from a successful transfer heartbeat.
+
+<a id="step-3-verify-and-record-the-boundary"></a>
+
+## Step 8: Record custody and continue
+
+Record **A: NAS-backed**, the trusted administrators, measured checkpoint/snapshot/backup lag,
+storage failure domains and independent recovery keys. UniFi snapshots remain administrator-deletable;
+this model does not protect against a custodian deleting every copy under that custodian's authority. [2]
+Use separate custody or [15b: retention locks](step-15b-retention-lock.md) for that threat.
+
+Return to [Stage 2, Step 16](README.md#step-16-verify-recovery-and-record-completion) for the
+single selected-topology acceptance drill: access denials, NAS/network outage, backlog/alerts,
+and clean-target restoration without SSO or Kubernetes. Record observed RPO/RTO and recovered
+records; a successful backup job alone is insufficient. NAS backups and locked archives can coexist.
+
+<a id="next"></a>
+
+## References
+
+Sources checked 2026-10-19.
+
+1. [UniFi NFS squash modes and restrictions](https://help.ui.com/hc/en-us/articles/26277250895895-Accessing-Your-UniFi-Drive-from-Linux-Desktop-Using-NFS)
+2. [UniFi snapshots and deletion](https://help.ui.com/hc/en-us/articles/33317752912919-Understanding-System-Data-Others-in-UniFi-Drive)

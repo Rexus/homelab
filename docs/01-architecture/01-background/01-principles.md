@@ -1,5 +1,29 @@
 # Design principles
 
+A service verifies a caller and authorizes the requested operation. Network policy,
+credential protection and retained evidence support that decision; none replaces it.
+
+<a id="figure-zero-trust"></a>
+
+## A request crosses several boundaries
+
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  Subject["User / workload"] -->|Request| Resource["Resource<br/>local authorization"]
+  Identity["Identity authority"] -.->|Authenticated identity| Resource
+  Policy["Network policy"] -.->|Restricts path| Resource
+  Resource -->|Evidence| Evidence["Protected records"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Subject actor
+  class Resource,Identity,Policy,Evidence control
+```
+
+*Figure 1 - A request reaches a resource through a constrained path; the resource authorizes it and records
+evidence.*
+
 ## Table of contents
 
 - [Purpose](#purpose)
@@ -41,22 +65,7 @@ concern a specific subject, resource and operation; a permitted route does not
 authorize the application request. This follows NIST's resource-focused
 zero-trust model. [1]
 
-```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Subject["User / workload"] -->|Request| Resource["Resource<br/>local authorization"]
-  Identity["Identity authority"] -.->|Authenticated identity| Resource
-  Policy["Network policy"] -.->|Restricts path| Resource
-  Resource -->|Evidence| Evidence["Protected records"]
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Subject actor
-  class Resource,Identity,Policy,Evidence control
-```
-
-*Figure: A request reaches a resource through a constrained path; the resource authorizes it and records
-evidence.*
+See [Figure 1](#figure-zero-trust) for the participants and boundaries.
 
 This logical view does not prescribe an authentication exchange or policy engine.
 

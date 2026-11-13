@@ -1,5 +1,6 @@
 ---
 # Run from Tier 0; procedure: docs/03-deployment/stage-6-secrets/procedures/control-applications.md
+# Service DNS: docs/02-conventions/service-dns.md
 control_applications_action: render
 control_applications_components: [keycloak]
 control_applications_kubeconfig: ""
@@ -50,13 +51,25 @@ control_applications_backup_files:
     system_identifier: ""  # Read status.systemID after database-only preparation.
     marker: ""  # Custodian writes the exact source/SID/random-marker file on the private NAS export.
     schedule: '0 2 * * *'  # Native CronJob has five fields, UTC; object schedule above has six.
+    # Existing accepted claims remain external and are never modified.
+    # Opt in to IaC PV/PVC creation over a dedicated commissioned NFSv4.1 export:
+    # storage:
+    #   mode: static_nfs
+    #   server: nfs.lab.example.com
+    #   share: /backups/keycloak
+    #   size: 100Gi
+    # Uses volume_handle above; size is binding capacity, not a NAS quota.
+    # Accepted NFS CSI is required; NAS permissions, source marker and custody stay external.
+    storage: {mode: existing}
   netbox:
     claim: netbox-db-backups
     volume_handle: ""
     system_identifier: ""
     marker: ""
     schedule: '0 2 * * *'
+    storage: {mode: existing}  # Same static_nfs fields as keycloak, with its own dedicated share/handle.
 control_applications_keycloak_realm: platform
+# Keep the FreeIPA member FQDN: its LDAPS certificate and Kerberos identity are server-specific.
 control_applications_ldap_url: ldaps://idm-1.lab.example.com:636
 control_applications_ldap_users_dn: cn=users,cn=accounts,dc=lab,dc=example,dc=com
 control_applications_ldap_groups_dn: cn=groups,cn=accounts,dc=lab,dc=example,dc=com

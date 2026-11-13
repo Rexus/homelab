@@ -1,0 +1,17 @@
+---
+# Optional credential bootstrap after NetBox installation, before netbox-audit.yml.
+- name: Prepare native account collection tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: netbox-audit-account
+    control_node_require_terraform: false
+
+- name: Bootstrap the dedicated read-only NetBox audit credential
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  any_errors_fatal: true
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  roles:
+    - netbox_audit_account

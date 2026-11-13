@@ -106,6 +106,11 @@ preserves existing identity checks and persists the filesystem mount by UUID.
 If a local override still uses a disk letter, update that input after verifying the original volume;
 refresh preserves existing private configuration and UUID pins.
 
+After preparation, the service prints its actual UUID and the optional configuration key to pin.
+The mount is already persistent; saving the guard makes later runs reject a different filesystem.
+Each host needs its own UUID. When using `ansible/inventory/host_vars/<host>.yml`, remove the same
+key from `-e`/`--ansible-vars` files: extra variables override host variables even when the value is empty.
+
 ## Initial guest placement
 
 Before the first Linux deployment, set **Shared's** `config/platform.tfvars` to an
@@ -227,7 +232,7 @@ Additional sources and public trust are explicit local selections:
 | `baseline_apt_direct_hosts` | Exact internal APT publication hosts bypassing a global proxy |
 
 The [Shared defaults](../../shared/ansible/roles/baseline/defaults/main.yml) own these schemas.
-[Verified consumer deployment](../03-deployment/stage-3-trust/step-3b-verified-consumers.md)
+[Verified consumer deployment](../03-deployment/stage-3-trust/step-15b-verified-consumers.md)
 applies the package/trust subset from the controller without changing guest time, IPv6 or SSH policy.
 
 Shared's [baseline role](../../shared/ansible/roles/baseline/tasks/main.yml) manages

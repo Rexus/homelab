@@ -1,4 +1,5 @@
 # Variable definitions (this repository): terraform/deployments/kubernetes/variables.tf
+# Service DNS: docs/02-conventions/service-dns.md
 
 # Cluster-owned hardware/configuration. This root does not load Linux common.tfvars.
 # IP reservations are in ansible/group_vars/talos.yml, hosts in ansible/inventory/hosts.yml.
@@ -26,7 +27,7 @@ vm_firmware = { bios = "ovmf", machine = "q35", scsi_hardware = "virtio-scsi-pci
 qemu_agent  = true # Requires siderolabs/qemu-guest-agent in the image and installer schematic.
 cluster = {
   name               = "platform"
-  endpoint           = "https://kubernetes.platform.example.com:6443"
+  endpoint           = "https://api.platform.example.com:6443"
   bootstrap_node     = "pctl-1"
   talos_version      = "REPLACE_WITH_EXACT_VERSION_WITH_v"
   kubernetes_version = "REPLACE_WITH_COMPATIBLE_VERSION_WITHOUT_v"

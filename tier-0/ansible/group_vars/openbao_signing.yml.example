@@ -1,9 +1,11 @@
 # Copy to an untracked private input file; pass with -e @... to each selected play.
 # Defaults/schema: ansible/roles/vault/defaults/main.yml
-# Guide: docs/03-deployment/stage-6-secrets/step-1d-openbao.md
+# Guide: docs/03-deployment/stage-6-secrets/step-11b-openbao.md
+# Service DNS: docs/02-conventions/service-dns.md
 # This independent signing service never changes the existing HashiCorp Vault authority.
 vault_product: openbao
 vault_seal_type: shamir
+# Server API/cluster addresses and Raft joins retain each member's certificate identity.
 vault_api_addr: "{{ 'https://signing.example.internal:8200' if inventory_hostname == 'localhost' else 'https://' ~ inventory_hostname ~ '.signing.example.internal:8200' }}"
 vault_cluster_addr: "https://{{ inventory_hostname }}.signing.example.internal:8201"
 vault_tls_cert_src: "/private/signing/tls/{{ inventory_hostname }}-fullchain.pem"

@@ -1,17 +1,18 @@
 # GitLab on Kubernetes
 
-**Working repository:** `<prefix>-tier-1`. Branch from
-[Stage 9, Step 1](../README.md#step-1-deploy-source-control-and-sso).
-**Return:** to Step 1 for the joint data/toolbox backup and restore checks, then Step 2 runners.
-The native Ansible recipe renders or installs the official Helm chart.
-The main path installs Community Edition; no paid Vault CI integration is required.
+**Working repository:** `<prefix>-tier-1`.
+**First installation:** follow [Stage 9 Steps 9-13](../README.md#step-9-create-the-gitlab-configuration-and-sso-client).
+This reusable installer supports later render/reconciliation, existing data-service integrations and
+release-owner adoption. Preserve accepted inputs, dependency identities, the original release owner
+and stable Secrets; do not provision data VMs again for a chart update.
+The native Ansible recipe uses the official Community Edition Helm chart.
 
 ## Contents
 
 - [1. Accept the data services](#prepare-dependencies)
 - [2. Register GitLab SSO](#2-register-gitlab-sso)
 - [3. Create the application inputs](#render-and-install)
-- [4. Install controller dependencies](#4-install-controller-dependencies)
+- [Controller dependencies](#4-install-controller-dependencies)
 - [5. Prepare the GitLab Secrets](#5-prepare-the-gitlab-secrets)
 - [6. Render the chart](#6-render-the-chart)
 - [7. Review the rendered resources](#7-review-the-rendered-resources)
@@ -25,12 +26,15 @@ The main path installs Community Edition; no paid Vault CI integration is requir
 
 ## 1. Accept the data services
 
+The [source-control figure](../README.md#figure-source-control) shows the chart's selected runtime and
+external data-service interfaces. Accept those dependencies before the chart apply below.
+
 1. Qualify the chart's current external-data requirements. PostgreSQL, Redis,
    Gitaly and object storage are separately managed prerequisites. The production
    reference is Cloud Native Hybrid, not an all-in-one Kubernetes installation. [1]
-2. Provision the dependency VMs, buckets, scoped accounts and backups with
-   [GitLab data services](data-services.md), or qualify existing services against
-   the following contracts before installation.
+2. For first installation use [Stage 9 Steps 2-8](../README.md#step-2-initialize-the-data-service-inputs).
+   For an accepted installation, verify the existing services against the contracts below; do not
+   rerun provisioning merely to render/reconcile the chart.
 
 | Dependency | Contract |
 | --- | --- |
@@ -84,25 +88,14 @@ Load it last in every render/apply command below to retain endpoints, buckets an
 For independently commissioned existing services, fill those same fields in the authored inputs
 and omit only that overlay argument.
 
-## 4. Install controller dependencies
+<a id="4-install-controller-dependencies"></a>
 
-Use **the prepared deployment virtual environment**, from **`<prefix>-tier-1/`**.
-Install Python requirements through approved sources:
+## Controller dependencies
 
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-python3 -m pip install -r ansible/requirements.txt
-```
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ansible-galaxy collection install -r ansible/requirements.yml
-```
-
-Qualify and pin the project toolchain. Current chart qualification uses Helm 4 and
-`kubernetes.core` 6.6 or newer; the precheck reports missing tooling.
+The native deployment entry point checks/prepares its declared collections and controller Python
+clients before render/apply. Reuse the accepted controller environment; do not repeat manual Galaxy
+or pip installation. Pre-stage declared dependencies before disconnected
+`CONTROL_NODE_COLLECTIONS_MODE=check` runs.
 
 ## 5. Prepare the GitLab Secrets
 
@@ -152,7 +145,7 @@ args:
   client_options:
     identifier: gitlab
     secret: REPLACE_IN_PRIVATE_SECRET_ONLY
-    redirect_uri: https://gitlab.internal.example.com/users/auth/openid_connect/callback
+    redirect_uri: https://git.internal.example.com/users/auth/openid_connect/callback
 ```
 
 Encrypt the completed bootstrap file from **`<prefix>-tier-1/`**:
@@ -265,7 +258,7 @@ and restore duties from the data-service procedure.
 Retain GitLab secrets/configuration, external databases, Git repositories, object
 data and backup credentials independently. Helm values alone are not a backup.
 Do not disable the bootstrap administrator until SSO and break-glass recovery pass.
-Return to [Stage 9, Step 2](../README.md#step-2-add-on-demand-build-execution).
+Return to [Stage 9, Step 14](../README.md#step-2-add-on-demand-build-execution).
 
 ## References
 

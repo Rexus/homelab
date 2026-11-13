@@ -1,0 +1,34 @@
+---
+- name: Require a supported explicit storage selector
+  ansible.builtin.assert:
+    that:
+      - backup_repository_storage_volume is mapping
+      - backup_repository_storage_volume.get('mode', 'existing') in ['existing', 'static_nfs']
+      - backup_repository_storage_action in ['render', 'apply']
+    fail_msg: Select existing (read-only qualification by the consumer) or explicitly owned static_nfs storage.
+
+- name: Bound new storage to the caller's own namespace and a dedicated NAS share
+  ansible.builtin.assert:
+    that:
+      - backup_repository_storage_namespace is match('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
+      - backup_repository_storage_namespace | length <= 63
+      - backup_repository_storage_namespace not in ['default', 'kube-system', 'kube-public', 'kube-node-lease']
+      - not backup_repository_storage_namespace.startswith('kube-')
+      - backup_repository_storage_claim is match('^[a-z0-9]([-a-z0-9]*[a-z0-9])?$')
+      - ('backup-' ~ backup_repository_storage_namespace ~ '-' ~ backup_repository_storage_claim) | length <= 63
+      - backup_repository_storage_owner is match('^[a-z0-9][a-z0-9/-]+$')
+      - backup_repository_storage_output | length > 0
+      - backup_repository_storage_volume.keys() | difference(['mode', 'server', 'share', 'size', 'volume_handle']) | length == 0
+      - backup_repository_storage_volume.get('server', '') is match('^[a-zA-Z0-9][a-zA-Z0-9.-]*$')
+      - backup_repository_storage_volume.get('share', '') is match('^/[^\s#]+$')
+      - "'..' not in backup_repository_storage_volume.get('share', '').split('/')"
+      - "'//' not in backup_repository_storage_volume.get('share', '')"
+      - not backup_repository_storage_volume.get('share', '').endswith('/')
+      - backup_repository_storage_volume.get('size', '') is match('^[1-9][0-9]*(Gi|Ti)$')
+      - backup_repository_storage_volume.get('volume_handle', '') is match('^[^\s]+$')
+      - backup_repository_storage_volume.get('volume_handle', '') | length <= 128
+      - backup_repository_storage_action != 'apply' or backup_repository_storage_kubeconfig | length > 0
+    fail_msg: >-
+      static_nfs requires a dedicated existing NAS export, server, absolute share, size and unique volume_handle.
+      Only the caller's namespace and backup-<namespace>-<claim> PV are owned; no arbitrary manifests or system namespaces.
+  when: backup_repository_storage_volume.get('mode', 'existing') == 'static_nfs'

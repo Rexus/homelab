@@ -1,5 +1,10 @@
 ---
-- name: Inspect the preprovisioned NAS repository claim before resource changes
+- name: Prepare explicitly selected owned storage before qualification
+  ansible.builtin.include_tasks: spinnaker-backup-provision.yml
+  vars:
+    spinnaker_backup_storage_action: apply
+
+- name: Inspect the NAS repository claim before application resource changes
   kubernetes.core.k8s_info:
     kubeconfig: "{{ delivery_platform_kubeconfig }}"
     context: "{{ delivery_platform_context }}"
@@ -18,7 +23,7 @@
       - spinnaker_backup_claim.resources[0].spec.get('volumeName', '') | length > 0
       - spinnaker_backup_claim.resources[0].spec.get('volumeMode', 'Filesystem') == 'Filesystem'
       - not spinnaker_backup_claim.resources[0].metadata.get('deletionTimestamp')
-    fail_msg: Commission and bind the dedicated NAS repository PVC before applying Spinnaker.
+    fail_msg: Supply a bound accepted NAS PVC or select backup_storage.mode=static_nfs for explicit PV/PVC creation.
 
 - name: Inspect the repository claim's actual backing volume
   kubernetes.core.k8s_info:

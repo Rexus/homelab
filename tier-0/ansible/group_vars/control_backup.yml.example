@@ -1,5 +1,6 @@
 ---
 # Explicit -e @ansible/group_vars/control_backup.yml; inventory group: control_recovery.
+# Service DNS: docs/02-conventions/service-dns.md
 control_backup_independent_host_accepted: false
 control_backup_repository: /mnt/control-recovery
 # Optional native NAS export; omit when the existing mount has a separate IaC owner.
@@ -9,6 +10,7 @@ control_backup_vault_package: vault
 control_backup_vault_binary: /usr/bin/vault
 control_backup_repository_id: ""  # restic cat config -> id, recorded during separate commissioning
 control_backup_password_file: ""  # absolute controller-side file, copied root-only
+# This snapshot target is deliberately pinned; server_name is its accepted TLS certificate identity.
 control_backup_vault_address: https://vault-backup.internal.example.com:8200
 control_backup_vault_server_name: vault.example.com
 control_backup_vault_ca_file: ""

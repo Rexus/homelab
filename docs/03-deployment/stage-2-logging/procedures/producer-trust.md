@@ -1,136 +1,66 @@
-# Independent logging trust
+# Logging trust maintenance
 
-Issue receiver and producer certificates before the platform PKI exists. Producer
-private keys stay on their owning hosts; Tier 0 signs reviewed public requests.
-This authority is separate from the infrastructure root and requires no cluster or SSO.
+The first deployment prepares receiver/producer requests, review and signing in
+[Stage 2, Steps 6–10](../README.md#step-6-prepare-the-receiver-key-and-request).
+This page maintains that accepted independent authority and its public handoff.
+Producer private keys stay on their hosts; the authority exports only signed public results.
 
 **Working repository:** `<prefix>-tier-0`, on the protected signing controller.
-**Prerequisites:** [local Ansible tools](../../../04-development/local-setup.md),
-`community.crypto`, Python cryptography, independently authenticated host access,
-protected local storage and separately held encrypted backups/passphrase.
+**Prerequisites:** original protected authority directory/key, separately held passphrase,
+approved request history and cumulative revocations. Restore missing authority material;
+never initialize a replacement over an operating installation.
 
 ## Contents
 
-- [1. Establish custody](#1-establish-custody)
-- [2. Issue the receiver identity](#2-issue-the-receiver-identity)
-- [3. Approve producer requests](#3-approve-producer-requests)
+- [Existing authority and request approval](#existing-authority-and-request-approval)
+- [Sign approved requests](#sign-approved-requests)
 - [Renewal and revocation](#renewal-and-revocation)
 - [References](#references)
 
-## 1. Establish custody
+<a id="1-establish-custody"></a>
+<a id="2-issue-the-receiver-identity"></a>
+<a id="3-approve-producer-requests"></a>
 
-1. Select a dedicated protected signing directory outside Git. Never use a general
-   runner, collector or application host as the authority. Keep the encrypted key,
-   original CA, issued leaves and cumulative CRL in the recovery kit; keep the
-   passphrase separately. Record the CA fingerprint through an independent channel.
-2. Select local paths and the passphrase without putting secret values in history:
+## Existing authority and request approval
 
-   Run from **`<prefix>-tier-0/`**.
+Keep the original encrypted key, CA, issued leaves and CRL in the independent recovery kit;
+keep the passphrase separately. Never use a collector, general runner or application host as the authority.
+Native control-node preparation handles declared collections before signing runs.
 
-   ```bash
-   read -r -e -p 'Protected authority directory: ' LOGGING_AUTHORITY_DIR
-   read -r -s -p 'Authority key passphrase: ' LOGGING_AUTHORITY_PASSPHRASE
-   export LOGGING_AUTHORITY_DIR LOGGING_AUTHORITY_PASSPHRASE
-   cp -n ansible/group_vars/logging_authority.yml.example ansible/group_vars/logging_authority.yml
-   ```
+For a receiver request, use [Step 6](../README.md#step-6-prepare-the-receiver-key-and-request).
+For an additional producer, use [source preparation](sources.md#1-prepare-tier-owned-streams).
+Review the actual public CSR metadata and independently confirm its key fingerprint as shown in
+[Step 8](../README.md#step-8-review-the-public-requests). Append only exact approved descriptors to
+`logging_authority_requests`; preserve previous requests and `logging_authority_revocations`.
+Do not infer approval from a filename or copy producer private keys into the signing host.
 
-   Edit in **`<prefix>-tier-0/`**.
+<a id="sign-approved-requests"></a>
 
-   - `ansible/group_vars/logging_authority.yml`: Approved request identities, CSR paths and authority
-     custody/validity policy.
+## Sign approved requests
 
-3. Review the local file, then approve first initialization on an empty directory:
+Select the original directory and passphrase on **the signing controller, from `<prefix>-tier-0/`**:
 
-   Run from **`<prefix>-tier-0/`**.
+```bash
+read -r -e -p 'Original protected authority directory: ' LOGGING_AUTHORITY_DIR
+read -r -s -p 'Authority key passphrase: ' LOGGING_AUTHORITY_PASSPHRASE
+export LOGGING_AUTHORITY_DIR LOGGING_AUTHORITY_PASSPHRASE
+```
 
-   ```bash
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/logging-authority.yml -e @ansible/group_vars/logging_authority.yml -e logging_authority_initialize=true
-   ```
+Run from **the same Tier 0 root**, after reviewing the local request/revocation file:
 
-Normal reruns omit the initialization flag. Missing/partial authority material blocks
-execution; restore the original rather than silently replacing trust. The role uses
-native `community.crypto` primitives and exports only `public/`. [1]
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/logging-authority.yml -e @ansible/group_vars/logging_authority.yml
+```
 
-## 2. Issue the receiver identity
+**Expected:** the accepted `public/ca.pem`, fresh signed `public/revoked.pem` and approved
+`public/<name>.pem` leaves. Return only public files through authenticated custody.
+Keep the authority key on the signing controller. An existing externally managed authority can
+supply the same qualified interfaces; its renewal/revocation policy remains with its owner.
 
-1. On the protected deployment controller, prepare its server key/request. These are
-   outside Git; the unencrypted service key is later installed only on the receiver:
-
-   Run from **`<prefix>-tier-0/`**.
-
-   ```bash
-   read -r -e -p 'Protected receiver credential directory: ' LOGGING_RECEIVER_DIR
-   read -r -p 'Receiver inventory name: ' LOGGING_RECEIVER_NAME
-   read -r -p 'Approved receiver DNS name: ' LOGGING_RECEIVER_DNS
-   export LOGGING_RECEIVER_DIR LOGGING_RECEIVER_NAME LOGGING_RECEIVER_DNS
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/logging-receiver-request.yml
-   ```
-
-   Reruns preserve the existing service key and reconcile only its CSR. Deliberate key
-   rotation is a separate approved operation. The GnuTLS sender profile requires a DNS SAN:
-   connect to a fixed receiver IP with the exact DNS peer if bootstrap DNS is absent.
-   Address routing and certificate identity are separate; platform DNS is not required.
-2. Transfer the public CSR through authenticated custody to the signing controller.
-   Inspect its native metadata there:
-
-   Run from **`<prefix>-tier-0/`**.
-
-   ```bash
-   read -r -e -p 'Reviewed public CSR path: ' LOGGING_CSR
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible localhost -i localhost, -c local -m community.crypto.openssl_csr_info -a "path=$LOGGING_CSR"
-   ```
-
-   Independently confirm `public_key_fingerprints.sha256`, host identity and intended
-   purpose. Add the exact `name`, `profile: server`, CSR path, colon-separated key
-   fingerprint and SAN list to `logging_authority_requests`. The signer rejects other
-   subjects, CA powers, usages, keys or names; approval is not inferred from a filename.
-3. In **`ansible/group_vars/logging_authority.yml`**, add the server request to
-   `logging_authority_requests`, preserving existing entries:
-
-   ```yaml
-   logging_authority_requests:
-     - name: log-1
-       profile: server
-       csr: /REPLACE_WITH_REVIEWED_CSR_PATH/log-1.csr
-       key_sha256: REPLACE_WITH_VERIFIED_COLON_SEPARATED_KEY_FINGERPRINT
-       san: ['DNS:logs.internal.example.com']
-   ```
-
-   Replace the name/SAN with the approved values selected above. For a producer,
-   append its exact stream name with `profile: client`, its CSR path and verified
-   key fingerprint; omit the server SAN list.
-4. Run the [normal signing command](#sign-approved-requests), without preparing a producer first.
-   Return here and transfer `public/ca.pem`, `public/revoked.pem`
-   and the named leaf back; never transfer `key.pem` from the authority. Select these
-   files and the receiver service key in [receiver Step 2](receiver.md#step-2-register-trust-and-producers).
-
-## 3. Approve producer requests
-
-1. If producer CSRs have not been prepared, run
-   [source preparation](sources.md#1-prepare-tier-owned-streams) in the owning tier.
-   When returning from that guide with CSRs already prepared, continue directly with review below;
-   do not restart source preparation. Only CSRs are fetched; private keys remain on each producer.
-2. Review each public request as above. Add `profile: client`, the approved source
-   name, CSR path and independently confirmed fingerprint to the Tier 0 request list.
-   Match the Tier 0 receiver catalogue's CN, observed address, tier and classification.
-3. On the signing controller, issue or renew the approved requests and refresh the CRL:
-
-   <a id="sign-approved-requests"></a>
-
-   Run from **`<prefix>-tier-0/`**.
-
-   ```bash
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/logging-authority.yml -e @ansible/group_vars/logging_authority.yml
-   ```
-
-   Transfer public results into a protected public handoff directory for the owning
-   tier. For receiver-only signing, return to [receiver identity handoff](#2-issue-the-receiver-identity).
-   For producer signing, first register the identity and install the listener through the
-   [receiver guide](receiver.md#step-2-register-trust-and-producers), then follow
-   [source installation](sources.md#2-install-and-test-forwarding).
-   For running intake, extend the existing catalogue and reapply its configuration; retain earlier sources,
-   mounted data and authority state rather than repeating first-install preparation.
-   Do not copy another tier's inventory, private keys or state into Shared.
+For a new source, continue with [source installation](sources.md#2-install-and-test-forwarding).
+The receiver catalogue/CRL must be updated before the new sender is enabled.
+For first installation, resume [Step 10](../README.md#step-10-register-the-source-and-tls-inputs).
 
 ## Renewal and revocation
 

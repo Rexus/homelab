@@ -1,38 +1,14 @@
 # Edge proxy path
 
-**Branch from:** [Stage 7, Step 3d](../README.md#step-3-connect-approved-artifact-supply) for an existing
-approved backend, or [Stage 10, Step 3b](../../stage-10-lab-environments/README.md#step-3-deploy-and-verify-applications)
+**Branch from:** [Stage 7, Step 12b](../README.md#step-12-complete-selected-distribution-and-edge-options) for an existing
+approved backend, or [Stage 10, Step 4b](../../stage-10-lab-environments/README.md#step-4-select-website-exposure)
 when the website needs a new pool.
 **Return:** to Stage 7 after private listener/failover acceptance; to Stage 10's
-[public HTTPS guide](../../stage-10-lab-environments/step-3b-public-https.md) before website publication.
+[public HTTPS guide](../../stage-10-lab-environments/step-4b-public-https.md) before website publication.
 
-**Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
-Run repository scripts from this root; paths below are repository-relative.
-**Prerequisites:** approved RedHat-family guest image, reserved VIPs and reviewed network/host rules.
-The `edge_load_balancer` role rejects other distro families.
+<a id="figure-edge-pool"></a>
 
-**Design:** [traffic boundaries](../../../01-architecture/10-delivery/README.md).
-
-## Main path
-
-1. [Initialize and configure](#configuration)
-2. [Step 2: Deploy](#plan-and-deploy)
-3. [Step 3: Verify before publication](#verify-before-publication)
-
-Defaults and VIP behavior below explain the pattern; the starter has no application
-frontends/backends enabled. Provisioning the edge set alone does not publish an application.
-
-## Purpose
-
-Use this path from Tier 2 to deploy the public `external_edge` load-balancer layer. This
-is the north-south boundary for public application listeners and approved backend
-load balancing. Outbound proxy/cache is a separate `cache` deployment.
-
-The reference implementation is `HAProxy` with `keepalived`. The default is a
-3-node edge set with multiple VIPs. Each VIP has a different preferred owner,
-so healthy traffic is spread while every VIP can still fail over.
-
-## Default deployment
+## Expected outcome: edge pool
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
@@ -62,10 +38,43 @@ flowchart TB
   class Clients,Backends actor
 ```
 
-**IaC:** Tier 2 [edge inputs](../../../../tier-2/terraform/deployments/edge/terraform.tfvars.example)
+**IaC:** *Figure: Three edge VMs manage the selected VIPs. Client and origin traffic becomes available only after
+listeners, verified backend TLS and network policy are configured.*
+Tier 2 [edge inputs](../../../../tier-2/terraform/deployments/edge/terraform.tfvars.example)
 and [edge recipe](../../../../tier-2/ansible/playbooks/deployment/edge-proxy.yml).
 The starter creates three VMs and configures the VIP/service machinery, but has no application listeners enabled.
 The drawn client/backend traffic exists only after reviewed listener, TLS and firewall configuration.
+
+**Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
+Run repository scripts from this root; paths below are repository-relative.
+**Prerequisites:** approved RedHat-family guest image, reserved VIPs and reviewed network/host rules.
+The `edge_load_balancer` role rejects other distro families.
+
+**Design:** [traffic boundaries](../../../01-architecture/10-delivery/README.md).
+
+## Main path
+
+1. [Initialize and configure](#configuration)
+2. [Step 2: Deploy](#plan-and-deploy)
+3. [Step 3: Verify before publication](#verify-before-publication)
+
+Defaults and VIP behavior below explain the pattern; the starter has no application
+frontends/backends enabled. Provisioning the edge set alone does not publish an application.
+
+## Purpose
+
+Use this path from Tier 2 to deploy the public `external_edge` load-balancer layer. This
+is the north-south boundary for public application listeners and approved backend
+load balancing. Outbound proxy/cache is a separate `cache` deployment.
+
+The reference implementation is `HAProxy` with `keepalived`. The default is a
+3-node edge set with multiple VIPs. Each VIP has a different preferred owner,
+so healthy traffic is spread while every VIP can still fail over.
+
+## Default deployment
+
+The [edge-pool figure](#figure-edge-pool) shows these selected guests and the conditional traffic paths.
+
 
 | Component | Terraform default | Inventory entry | Network key | Purpose |
 | --- | --- | --- | --- | --- |
@@ -159,6 +168,8 @@ not the edge inventory, Terraform or frontend definitions.
 
 ## Step 2: Deploy
 
+Review the planned guests and VIP machinery against the [edge-pool figure](#figure-edge-pool).
+
 Configure host IPs, unused VIPs/VRRP IDs and approved application frontends/backends.
 For multiple environments, complete [environment isolation](../../../08-reference/repository-scripts.md#environment-isolation).
 
@@ -176,9 +187,9 @@ Add `--plan-only` for a preview without installation; approved unattended jobs u
 
 ## Step 3: Verify before publication
 
-For **Stage 7 Step 3d**, finish checks 1–2 below and return to the Delivery README.
+For **Stage 7 Step 12b**, finish checks 1–2 below and return to the Delivery README.
 Keep public DNS/NAT closed; the backend and private TLS must already exist.
-For **Stage 10 Step 3b**, complete the [public HTTPS procedure](../../stage-10-lab-environments/step-3b-public-https.md)
+For **Stage 10 Step 4b**, complete the [public HTTPS procedure](../../stage-10-lab-environments/step-4b-public-https.md)
 for certificates/renewal before check 3. The generic edge recipe does not obtain them.
 
 1. Test the selected VIP/listener from an approved internal client, backend health,

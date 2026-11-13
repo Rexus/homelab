@@ -307,7 +307,7 @@ admin to fix OIDC. Reconcile the same rollback in Terraform inputs before its
 next apply. CA rotation requires an overlap bundle and a separately reviewed
 file replacement/serial reboot, not `op: create` over the existing file.
 
-Return to [Stage 5, Step 3](../README.md#step-3-accept-identity-and-human-sso)
+Continue at [Stage 5, action 23](../README.md#step-23-accept-api-outage-and-independent-recovery)
 to finish the service SSO gate and identity acceptance. Stage 6 separately installs
 [NetBox change collection](../../stage-6-secrets/procedures/netbox-audit.md) and
 [scheduled control recovery copies](../../../05-operations/06-resilience/backups/control-applications.md#configure-and-schedule).

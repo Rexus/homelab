@@ -2,8 +2,8 @@
 
 **Branch from:** [Step 3](../README.md#step-3-prepare-the-bootstrap-execution-host), option **3c**,
 after storage path 3a and before installing tools or copying repositories/keys.
-**Return:** [Foundation Step 3](../README.md#step-3-prepare-the-bootstrap-execution-host), continuing with
-[bootstrap tool acquisition](README.md#2a-install-git-terraform-and-ansible) after reboot/SSH checks.
+**Return:** [Bootstrap Step 5](README.md#step-5-select-tool-acquisition) after reboot/SSH checks;
+the storage and home-placement decisions are then complete.
 
 Move `/home` to the attached data disk before installing Python environments or cloning repositories.
 A bind mount keeps `/home/automation` unchanged while storing its files under `/srv/tier0/home`.
@@ -53,8 +53,10 @@ sudo apt-get install -y rsync
 
 ### 1b: Offline bundle
 
-Complete [bundle preparation, transfer and OS installation through Step 7](step-3e-bootstrap-offline.md#7-install-signed-os-packages).
-It includes the Enterprise Linux tools above. Return here before Step 8 creates Python environments or clones the kit.
+Use the verified bundle already selected for workspace preparation; it contains the Enterprise Linux tools above.
+If those packages are not installed, complete [offline OS installation](step-3e-bootstrap-offline.md#9-install-signed-os-packages)
+from the independently mounted media. Return here before restoring the kit or creating Python environments;
+do not restart bundle acquisition/transfer when an accepted copy already exists.
 
 <a id="both-paths-open-the-console"></a>
 
@@ -188,9 +190,9 @@ Include both disks and the SELinux/fstab configuration in the independent
 Home data uses the attached disk; root's `/root` and OS packages remain on the OS disk.
 Repository and artifact paths remain under `/srv/tier0`.
 
-Return as the normal SSH account to [Bootstrap 2a](README.md#2a-install-through-approved-sources),
-or [offline Step 8](step-3e-bootstrap-offline.md#8-restore-the-kit-and-install-ansible)
-if the bundle is already transferred and its OS packages installed.
+Return as the normal SSH account to [Bootstrap Step 5](README.md#step-5-select-tool-acquisition).
+For offline acquisition, reuse the verified bundle and installed OS packages. Transfer/verify its full
+workspace copy if still on media, then resume [offline kit restoration](step-3e-bootstrap-offline.md#10-restore-the-kit-checkout).
 
 ## Rollback before deployment
 

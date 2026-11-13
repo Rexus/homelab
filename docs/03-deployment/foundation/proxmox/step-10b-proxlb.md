@@ -1,6 +1,6 @@
-# Step 4c: ProxLB balancing alternative
+# Step 10b: ProxLB balancing alternative
 
-**Branch from:** [Foundation Step 4c](../README.md#4c-finish-selected-ha-and-balancing-options),
+**Branch from:** [Foundation Step 10b](../README.md#step-10-qualify-selected-ha-and-balancing),
 after cluster readiness, API credentials and a movable test guest exist.
 **Return:** [Foundation readiness](../README.md#foundation-ready) after scheduler ownership and failover pass.
 

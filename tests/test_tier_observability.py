@@ -101,15 +101,15 @@ class Observability(TierRepositoryTestCase):
             design = (docs / "01-architecture/11-operations/03-observability.md").read_text()
             for expected in ("logs, metrics and distributed traces", "Security Logging and Audit",
                              "do **not** have equal resource needs", "existing Tier 1 Kubernetes cluster",
-                             "included initially",
+                             "included initially", "replica shards",
                              "Tier 1 index deletion never deletes Tier 0 originals"):
                 self.assertIn(expected, design)
             self.assertIn("readers must have no ingest, update, delete, delete-by-query or "
                           "index-management permissions", " ".join(design.split()))
             deployment = (docs / "03-deployment/stage-8-observability/README.md").read_text()
             for expected in ("OpenSearch is included initially", "observability-platform.yml",
-                             "writes to both", "replica shards", "test worker/physical-host loss",
-                             "no archive mount or write path is granted", "not Tier 0 mutation rights"):
+                             "writes to both", "search quorum/shards", "Exercise gateway, worker and physical-host loss",
+                             "no archive mount or write path is granted", "cannot mutate originals or search policy"):
                 self.assertIn(expected, deployment)
         for tier in (UPSTREAM / "tier-1", self.root / "verify-tier-1"):
             starter = yaml.safe_load((tier / "clusters/tier1/platform/observability/kustomization.yaml").read_text())
@@ -184,7 +184,7 @@ class Observability(TierRepositoryTestCase):
                 self.assertIn(expected, logging)
             self.assertIn("[Search read boundaries](03-observability.md#read-boundaries)", logging)
             self.assertIn("02-log-retention.md#choose-the-protection-boundary", logging)
-            telemetry = (docs / "01-architecture/11-operations/03-observability.md").read_text()
+            telemetry = " ".join((docs / "01-architecture/11-operations/03-observability.md").read_text().split())
             self.assertIn("## Read boundaries", telemetry)
             retention = (docs / "01-architecture/11-operations/02-log-retention.md").read_text()
             self.assertIn("## Choose the protection boundary", retention)
@@ -194,7 +194,7 @@ class Observability(TierRepositoryTestCase):
             foundation = (docs / "03-deployment/foundation/README.md").read_text()
             self.assertIn("Stage 2: Protected logging", foundation)
             later = (docs / "03-deployment/stage-8-observability/README.md").read_text()
-            self.assertIn("An app owner receives an application-log view", later)
+            self.assertIn("forged ownership and cross-application access", later)
             logging_stage = (docs / "03-deployment/stage-2-logging/README.md").read_text()
             self.assertIn("declared durability limits", logging_stage)
             self.assertIn("independent encrypted backups", logging_stage)
@@ -243,7 +243,7 @@ class Observability(TierRepositoryTestCase):
             self.assertIn("## Review triggers", design)
             stage = docs / "03-deployment/stage-2-logging"
             overview = (stage / "README.md").read_text()
-            for option in ("step-3c-nas-archive.md", "step-3d-retention-lock.md"):
+            for option in ("step-15a-nas-archive.md", "step-15b-retention-lock.md"):
                 self.assertIn(option, overview)
                 self.assertIn(option, design)
                 content = (stage / option).read_text()

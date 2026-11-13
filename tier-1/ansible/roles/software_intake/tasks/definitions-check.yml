@@ -1,0 +1,61 @@
+---
+# sigtool --info verifies CVD signatures; CLD is a locally patched container, not a signed publisher archive.
+# https://docs.clamav.net/manual/Signatures.html#inspecting-signatures-inside-a-cvd-file
+- name: Require a native database revision from the staged import
+  ansible.builtin.assert:
+    that: >-
+      definition_candidate.stdout | regex_findall('(?m)^Version: ([0-9]+)$') | length == 1
+    fail_msg: Native sigtool did not return an unambiguous database Version; no active definition has been changed.
+
+- name: Inspect both installed representations before accepting a replacement
+  ansible.builtin.stat:
+    path: "{{ software_intake_clam_database_dir }}/{{ definition_candidate.item.name.split('.')[0] }}.{{ item }}"
+    follow: false
+    checksum_algorithm: sha256
+  loop: [cvd, cld]
+  register: software_intake_installed_definitions
+
+- name: Preserve unexpected files and alternate-format definitions
+  ansible.builtin.assert:
+    that:
+      - not item.stat.exists or item.stat.isreg | default(false)
+      - not item.stat.exists or item.stat.path | basename == definition_candidate.item.name
+    fail_msg: >-
+      {{ software_intake_clam_database_dir }}/{{ definition_candidate.item.name.split('.')[0] }}.{{ item.item }}
+      already exists and is not an ordinary {{ definition_candidate.item.name }} file.
+      Keep the existing representation: supply its CVD/CLD format through the approved workflow.
+      This import never removes, follows links to, or converts existing database files.
+  loop: "{{ software_intake_installed_definitions.results }}"
+  loop_control:
+    label: "{{ definition_candidate.item.name.split('.')[0] }}.{{ item.item }}"
+
+- name: Read the installed database revision with the native tool
+  ansible.builtin.command:
+    argv: [/usr/bin/sigtool, --info, "{{ item.stat.path }}"]
+  environment: {LC_ALL: C}
+  changed_when: false
+  loop: "{{ software_intake_installed_definitions.results }}"
+  loop_control:
+    label: "{{ definition_candidate.item.name.split('.')[0] }}.{{ item.item }}"
+  when: item.stat.exists
+  register: software_intake_installed_definition_info
+
+- name: Refuse an older or conflicting same-revision import
+  ansible.builtin.assert:
+    that:
+      - >-
+        item.stdout | regex_findall('(?m)^Version: ([0-9]+)$') | length == 1
+      - >-
+        (definition_candidate.stdout | regex_findall('(?m)^Version: ([0-9]+)$') | first | int)
+        >= (item.stdout | regex_findall('(?m)^Version: ([0-9]+)$') | first | int)
+      - >-
+        (definition_candidate.stdout | regex_findall('(?m)^Version: ([0-9]+)$') | first | int)
+        > (item.stdout | regex_findall('(?m)^Version: ([0-9]+)$') | first | int)
+        or definition_candidate.item.sha256 == item.item.stat.checksum
+    fail_msg: >-
+      {{ definition_candidate.item.name }} would downgrade or change an installed revision.
+      Supply a newer approved database, or the identical approved bytes for an idempotent run.
+  loop: "{{ software_intake_installed_definition_info.results }}"
+  loop_control:
+    label: "{{ definition_candidate.item.name }}"
+  when: not item.skipped | default(false)

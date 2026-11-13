@@ -112,7 +112,11 @@ def field_links(document, label):
     start = rf"\*\*{label}" if label != "Return" else r"(?:\*\*)?Return\b"
     for match in re.finditer(rf"(?im)^[ \t]*(?:\d+[.)]\s+|[-*]\s+)?{start}[^\n]*"
                              r"(?:\n(?!\s*\n|\*\*)[^\n]*)*", content):
-        yield from links(document, match[0])
+        # An inline Return field belongs to its own route, not the preceding
+        # Continue/Branch field. Both forms are valid compact navigation.
+        field = re.split(r"\s+\*\*(?:Return|Working repositor(?:y|ies)|Prerequisites|Change):\*\*",
+                         match[0], maxsplit=1)[0]
+        yield from links(document, field)
 
 
 class DeploymentNavigation(TierRepositoryTestCase):
@@ -185,6 +189,31 @@ class DeploymentNavigation(TierRepositoryTestCase):
                                             "Dedicated path filename must match its title/README route")
                             self.assertTrue(routed_from(root, guide, int(re.match(r"\d+", route[1])[0])))
 
+    def test_step_link_labels_match_the_target_readme_action(self):
+        self.generate()
+        source = UPSTREAM / "docs"
+        generated = self.root / "verify-architecture/docs/auto-docs"
+        for docs in (source, generated):
+            checked = 0
+            for original in source.rglob("*.md"):
+                document = docs / original.relative_to(source)
+                content = document.read_text(encoding="utf-8")
+                for link in links(document, content):
+                    if (link.target.name != "README.md" or not link.fragment or
+                            not link.target.is_relative_to((docs / "03-deployment").resolve())):
+                        continue
+                    label = content[link.offset + 1:].split("]", 1)[0]
+                    number = re.search(r"\b(?:[Ss]teps?|[Aa]ctions?|[Oo]ption)\s+(\d+)", label)
+                    if not number:
+                        continue
+                    target = link.target.read_text(encoding="utf-8")
+                    action = step_at(target, anchors(target).get(link.fragment, -1))
+                    if action is not None:
+                        checked += 1
+                        self.assertEqual(int(number[1]), action,
+                                         f"{document}: {label} names the wrong destination action")
+            self.assertGreater(checked, 50)
+
     def test_numbered_files_start_at_their_owner_and_return(self):
         for deployment in self.deployment_roots():
             for root in self.owners(deployment):
@@ -202,10 +231,16 @@ class DeploymentNavigation(TierRepositoryTestCase):
                         for link in branches:
                             self.assertEqual(step_at(content, root_anchors[link.fragment]), number,
                                              f"{option.name} branches from the wrong step")
+                        indexes = {path.resolve() for path in root.parent.rglob("README.md")}
                         returns = [link for link in field_links(option, "Return")
-                                   if link.target == root.resolve() and link.fragment in root_anchors]
+                                   if link.target in indexes and link.fragment in
+                                   anchors(link.target.read_text(encoding="utf-8"))]
                         self.assertTrue(returns, "Return must link to an existing owning README anchor")
-                        self.assertTrue(routed_from(root, option, number),
+                        nested_route = any(
+                            index != root.resolve() and index in indexed_guides(root) and
+                            option.resolve() in [link.target for link in links(index)] and
+                            routed_from(root, index, number) for index in indexes)
+                        self.assertTrue(routed_from(root, option, number) or nested_route,
                                         "Owner must offer the option under its step or numbered routing table")
 
     def test_stage_root_files_are_numbered_paths_not_procedures_or_references(self):
@@ -216,12 +251,12 @@ class DeploymentNavigation(TierRepositoryTestCase):
                         continue
                     self.assertRegex(guide.name, r"^step-\d+[a-z]?-.+\.md$", str(guide))
             intake = deployment / "stage-1-software-intake"
-            self.assertTrue((intake / "step-6-bootstrap-consumer.md").is_file())
+            self.assertTrue((intake / "procedures/bootstrap-consumer.md").is_file())
             self.assertFalse((intake / "proxy-cache.md").exists())
             reference = deployment.parent / "08-reference/proxy-cache.md"
             self.assertTrue(reference.is_file())
             self.assertNotIn("```bash", reference.read_text(encoding="utf-8"))
-            self.assertTrue((deployment / "stage-8-observability/step-3-infrastructure-monitoring.md").is_file())
+            self.assertTrue((deployment / "stage-8-observability/step-13-infrastructure-monitoring.md").is_file())
 
     def test_numbered_paths_and_foundation_legacy_anchors_keep_the_reader_order(self):
         for deployment in self.deployment_roots():
@@ -230,13 +265,14 @@ class DeploymentNavigation(TierRepositoryTestCase):
                 with self.subTest(tree=str(deployment), owner=root.parent.name):
                     content = root.read_text(encoding="utf-8")
                     numbers = [number for number, _, _ in steps(content)]
-                    self.assertTrue(numbers, "Main path needs numbered steps")
-                    self.assertEqual(numbers, list(range(1, len(numbers) + 1)))
+                    counts = [10, 18, 16, 15, 19, 23, 22, 13, 15, 21, 7]
+                    self.assertEqual(numbers, list(range(1, counts[index] + 1)),
+                                     "Every operator action must remain on the numbered owner route")
                     if index < len(roots) - 1:
                         self.assertIn(roots[index + 1].resolve(), [link.target for link in links(root)],
                                       "Each completed capability must lead to the next stage")
             foundation = roots[0].read_text(encoding="utf-8")
-            self.assertEqual([number for number, _, _ in steps(foundation)], [1, 2, 3, 4])
+            self.assertEqual([number for number, _, _ in steps(foundation)], list(range(1, 11)))
             legacy = {"before-starting-hosts-and-networks": 1,
                       "step-1-create-the-first-linux-template-manually": 2,
                       "step-2-prepare-the-bootstrap-execution-host": 3,
@@ -244,6 +280,9 @@ class DeploymentNavigation(TierRepositoryTestCase):
             for anchor, number in legacy.items():
                 self.assertIn(anchor, anchors(foundation))
                 self.assertEqual(step_at(foundation, anchors(foundation)[anchor]), number)
+            bootstrap = deployment / "foundation/bootstrap/README.md"
+            self.assertEqual([number for number, _, _ in steps(bootstrap.read_text(encoding="utf-8"))],
+                             list(range(1, 20)))
 
     def test_foundation_separates_bootstrap_from_hypervisor_guides(self):
         for deployment in self.deployment_roots():
@@ -252,7 +291,7 @@ class DeploymentNavigation(TierRepositoryTestCase):
             self.assertTrue(bootstrap.is_file())
             self.assertFalse((foundation / "proxmox/bootstrap.md").exists())
             self.assertIn("existing Linux host", bootstrap.read_text(encoding="utf-8"))
-            for guide in ("step-1b-cluster-ha.md", "step-1c-sdn.md", "step-4c-proxlb.md",
+            for guide in ("step-1b-cluster-ha.md", "step-1c-sdn.md", "step-10b-proxlb.md",
                           "api-access.md", "templates.md"):
                 self.assertTrue((foundation / "proxmox" / guide).is_file(), guide)
             for guide in (foundation / "bootstrap").glob("step-*.md"):
@@ -268,17 +307,17 @@ class DeploymentNavigation(TierRepositoryTestCase):
             self.assertFalse((deployment / "foundation/proxmox/host-security.md").exists())
             routes = [link for link in links(root) if link.target == security.resolve()]
             self.assertTrue(routes, "Stage 1 must select the shared Linux security guide")
-            self.assertTrue(any(step_at(content, link.offset) == 4 for link in routes))
-            choice = re.search(r"(?m)^#{2,6}\s+(?:Step\s+)?4b\b.*(?:\n(?!#{1,3}\s).*)*", content)
-            self.assertIsNotNone(choice, "Hardening must be an explicit Step 4b choice")
+            self.assertTrue(any(step_at(content, link.offset) == 8 for link in routes))
+            choice = re.search(r"(?m)^#{2,6}\s+(?:Step\s+)?8b\b.*(?:\n(?!#{1,3}\s).*)*", content)
+            self.assertIsNotNone(choice, "Hardening must be an explicit Step 8b choice")
             self.assertIn(security.resolve(), [link.target for link in links(root, choice[0])])
 
     def test_verified_worker_is_routed_after_the_issuer_with_real_installation_inputs(self):
         for deployment in self.deployment_roots():
             intake_root = deployment / "stage-1-software-intake"
             trust = deployment / "stage-3-trust/README.md"
-            worker = trust.parent / "step-3b-verified-intake.md"
-            consumers = trust.parent / "step-3b-verified-consumers.md"
+            worker = trust.parent / "step-15b-verified-intake.md"
+            consumers = trust.parent / "step-15b-verified-consumers.md"
             self.assertTrue(worker.is_file())
             self.assertTrue(consumers.is_file())
             self.assertFalse((intake_root / "verified-intake.md").exists())
@@ -288,7 +327,7 @@ class DeploymentNavigation(TierRepositoryTestCase):
                 self.assertNotRegex(commands, r"scripts/deploy\.sh\s+(?:intake|syslog|foundation)\b",
                                     f"{guide.name} installs a later trust/logging-dependent capability")
                 self.assertNotRegex(commands, r"scripts/init-local-files\.sh\s+--setup\s+intake\b")
-            self.assertTrue(routed_from(trust, worker, 3), "Worker is selected after issuer acceptance")
+            self.assertTrue(routed_from(trust, worker, 15), "Worker is selected after issuer acceptance")
             text = worker.read_text(encoding="utf-8")
             install = re.search(r"(?m)^bash scripts/deploy\.sh intake\s*$", text)
             self.assertIsNotNone(install, "Worker path needs the real combined VM/service installer")
@@ -296,7 +335,7 @@ class DeploymentNavigation(TierRepositoryTestCase):
             self.assertIn((deployment / "stage-2-logging/README.md").resolve(),
                           [link.target for link in prerequisite_links])
             self.assertTrue(any(link.target == trust.resolve() and
-                                step_at(trust.read_text(), anchors(trust.read_text()).get(link.fragment, -1)) == 3
+                                step_at(trust.read_text(), anchors(trust.read_text()).get(link.fragment, -1)) == 14
                                 for link in prerequisite_links), "Issuer acceptance must precede worker installation")
             self.assertIn(consumers.resolve(), indexed_guides(trust))
             # Documentation must link to the supplied recipe, not merely label a baseline

@@ -2,15 +2,74 @@
 
 **Working repository:** `<prefix>-tier-1`.
 **Branch from:** [Step 2](README.md#step-2-select-and-qualify-delivery).
-**Return:** to Step 2 controller acceptance, then Step 3 artifact supply.
+**Return:** after configuring this choice, [Action 3](README.md#step-3-choose-the-secret-owner);
+accept the installed controller at [Action 7](README.md#step-7-accept-controller-authorization-and-recovery).
 **Change:** select application GitOps instead of Spinnaker release pipelines.
+
+Install one Argo CD release in the accepted Tier 1 cluster, with explicit repository and namespace policy.
+Applications keep their own release and recovery checks after the controller is accepted.
+
+<a id="figure-argocd-installation"></a>
+
+## Expected outcome: scoped application GitOps
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  Admin["Authorized Tier 1 operators"]
+  subgraph T1["Tier 1 / Application / Services"]
+    subgraph Cluster["Existing platform Kubernetes"]
+      direction TB
+      subgraph Added["Native installer / argocd namespace"]
+        Controller["argocd / native Helm release"]
+        Policy["platform AppProject<br/>Exact sources / local namespaces<br/>Default project denied"]
+        Controller ~~~ Policy
+      end
+      Targets["Existing allowed namespaces<br/>Separate application sync"]
+      Added -->|Namespace-scoped delivery| Targets
+    end
+  end
+  Source["Existing approved bootstrap source<br/>Read-only repository access"]
+  Admin -->|Private HTTPS / SSO| Added
+  Added -->|HTTPS source reads| Source
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  class Admin,Source actor
+  class T1,Controller,Targets services
+  class Cluster runtime
+  class Added,Policy replicas
+```
+
+**IaC:** *Figure: Argo CD reads approved sources and delivers only into selected local namespaces. The installer
+creates its policy; the bounded application and recovery tests establish whether delivery is accepted.*
+Tier 1's [controller task](../../../tier-1/ansible/roles/delivery_platform/tasks/argocd.yml),
+[native values](../../../tier-1/ansible/roles/delivery_platform/templates/argocd-values.yml.j2) and
+[AppProjects](../../../tier-1/ansible/roles/delivery_platform/templates/argocd-projects.yml.j2), selected through
+[delivery inputs](../../../tier-1/ansible/group_vars/delivery_platform.yml.example).
+Scope: the chart release and its source/destination policy; application sync is a separate accepted operation.
+Cluster, ingress, Keycloak, TLS and Secrets already exist. No new cluster or Tier 0 destination is created.
+
 **Prerequisites:** accepted Tier 1 cluster, reviewed controller release, TLS,
 independent bootstrap source and Keycloak. This option replaces Spinnaker ownership.
 
+## Contents
+
+- [Step 1: Prepare the controller inputs](#step-1-prepare-the-controller-inputs)
+- [Step 2: Restrict sources and destinations](#step-2-restrict-sources-and-destinations)
+- [Step 3: Install and verify](#step-3-install-and-verify)
+- [Acceptance](#acceptance)
+- [Later: Deliver the development platform](#later-deliver-the-development-platform)
+- [References](#references)
+
 ## Step 1: Prepare the controller inputs
 
-Create `ansible/group_vars/delivery_platform.yml` using
-[installer Step 1](procedures/delivery-installer.md#inputs-and-secrets), then edit it:
+Use the [selected installation figure](#figure-argocd-installation) when checking cluster, source and namespace scope.
+
+Edit the existing `ansible/group_vars/delivery_platform.yml` created in
+[Stage 7 Action 2](README.md#step-2-create-and-configure-the-selected-controller):
 
 ```yaml
 delivery_platform_controller: argocd
@@ -58,13 +117,14 @@ Test denied sources/destinations and an ordinary user before enabling sync.
 
 ## Step 3: Install and verify
 
-1. After preparing the inputs, Secret owner and all required Secrets above, run the
-   [common installer](procedures/delivery-installer.md#render-and-apply) to render,
-   review and apply the selected controller. Do not install Harbor in this pass.
-2. Test SSO with allowed and denied users, blocked sources/destinations, one bounded
-   application, rollback and independent recovery. Health alone is insufficient.
-3. Return to [Stage 7 Step 3](README.md#step-3-connect-approved-artifact-supply).
-   GitLab is installed later in Stage 9; the following adoption notes apply then.
+Return to [Stage 7 Action 3](README.md#step-3-choose-the-secret-owner) to choose the Secret owner,
+then follow Actions 4-6 for render, review and apply. Do not run another installer from this page.
+### Acceptance
+
+After the main guide's Step 6 apply succeeds, test SSO with allowed and denied users, rejected
+sources/destinations, one bounded application, rollback and independent recovery. Health alone
+is insufficient. Do not repeat input creation or installation to run these checks.
+Continue with [Action 8 artifact supply](README.md#step-8-select-and-configure-artifact-supply) after acceptance.
 
 ### Later: Deliver the development platform
 

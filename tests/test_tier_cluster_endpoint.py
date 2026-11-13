@@ -168,8 +168,12 @@ class ClusterEndpoint(TierRepositoryTestCase):
         for path in (TIER / "ansible/group_vars").glob("*.example"):
             if path.name == "cluster_endpoint.yml.example":
                 continue
-            other = (yaml.safe_load(path.read_text()) or {}).get("platform_host_ips", {})
+            profile = yaml.safe_load(path.read_text()) or {}
+            other = profile.get("platform_host_ips", {})
             self.assertFalse(allocated.intersection(other.values()), str(path))
+            listen_address = profile.get("infrastructure_monitoring_listen_address")
+            if listen_address:
+                self.assertNotIn(listen_address, allocated, str(path))
 
 
 @unittest.skipUnless(NATIVE, "Requires Ansible on Linux/WSL with ansible.utils and netaddr")

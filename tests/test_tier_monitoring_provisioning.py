@@ -51,7 +51,7 @@ class MonitoringProvisioning(TierRepositoryTestCase):
         activate_monitor(repo)
         enabled = yaml.safe_load((repo / "ansible/group_vars/foundation.yml").read_text())
         self.assertEqual(enabled["platform_host_ips"],
-                         dict(original["platform_host_ips"], **{"mon-1": "10.10.10.60"}))
+                         dict(original["platform_host_ips"], **{"mon-1": "10.10.10.70"}))
 
     @unittest.skipUnless(os.name != "nt" and shutil.which("terraform"), "Requires native Terraform")
     def test_native_mock_plan_adds_only_monitor_to_the_same_foundation_root(self):

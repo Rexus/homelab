@@ -6,11 +6,17 @@ Run commands from the selected tier's root; Shared is not the cluster's working 
 
 **Design:** [cluster runtime variants](../../../01-architecture/04-hosting/README.md).
 
+For the continuous Tier 0 installation, follow [Stage 4, actions 1-19](../README.md).
+This reusable cross-tier procedure owns the native node lifecycle; it is not another installer to run afterward.
+
 This is the current Talos implementation of the [Kubernetes cluster goal](kubernetes.md).
 Each tier owns its cluster VMs, inventory, Talos configuration, bootstrap,
 credentials, and state. Shared supplies the stateless command, approved template
 references and size profiles. This workflow creates a **new cluster**, not an adoption or restore.
 To consume an existing cluster, use the [adoption procedure](../step-1b-existing-cluster.md).
+
+[Stage 4 Figure 1](../README.md#figure-1-control-cluster-runtime) shows the Tier 0 starter's three
+control-plane VMs and independent API endpoint. Later tiers select their own nodes and state.
 
 ## Table of contents
 
@@ -255,7 +261,13 @@ Keep them and the original Terraform state in independent recovery custody befor
 
 <a id="install-the-platform"></a>
 
-## Step 4: Install the platform
+## Step 4: Continue the owning stage
+
+**Stage 4 first install:** continue at [action 11](../README.md#step-11-configure-the-platform-target)
+with the already exported credentials. Its actions 11-19 own CNI, collection, storage and the remaining
+platform in order. Do not also run the cross-tier continuation below.
+
+**Other cluster owners:** use the following sequence only when the owning stage calls this reusable procedure.
 
 ### 10. Select the exported client files
 

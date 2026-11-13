@@ -9,6 +9,31 @@ The reference CA deployment currently uses classical certificate signatures.
 Treat it as a migration-capable baseline; make a quantum-resistance claim only for
 the exact protocols, libraries, providers and consumers that have been qualified.
 
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":22,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  Client["Client"] -->|"TLS hop A"| Edge["Edge proxy"]
+  Edge -->|"TLS hop B"| Origin["Origin service"]
+  Cert["Certificate signatures<br/>Separate qualification"] -.->|"Authenticate"| Edge
+  Cert -.->|"Authenticate"| Origin
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Client actor
+  class Edge edge
+  class Origin services
+  class Cert control
+```
+*Figure: TLS hops A and B negotiate independently. Dashed authentication links identify a separate
+signature requirement; a hybrid key exchange on one hop changes neither the other hop nor its certificate chain.*
+
+Read the figure as two independent questions: how a connection establishes a shared
+secret, and how its peer identity is authenticated. Hybrid key establishment can
+improve confidentiality while the certificate chain still uses a classical signature.
+That is a scoped transport property, rather than a fully PQ certificate hierarchy.
+
 ## Contents
 
 - [Choose by purpose](#choose-by-purpose)
@@ -36,27 +61,8 @@ group with its peer. Installing another `openssl` executable alongside a service
 does not change that service's TLS behavior. [5]
 
 Hybrid key establishment combines classical and PQ components according to the
-supported protocol. It can improve confidentiality while the certificate chain
-still uses a classical signature. That is a scoped transport property, rather
-than a fully PQ certificate hierarchy.
-
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Client["Client"] -->|"TLS hop: qualify group<br/>and fallback"| Edge["Edge proxy"]
-  Edge -->|"Separate TLS hop:<br/>qualify independently"| Origin["Origin service"]
-  Cert["Certificate signatures<br/>separately qualified"] -.->|"Authenticate peers"| Edge
-  Cert -.->|"Authenticate peers"| Origin
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Client actor
-  class Edge,Origin services
-  class Cert control
-```
-*Figure: Client-to-edge and edge-to-origin TLS hops require separate qualification; certificate signatures are
-assessed independently.*
+supported protocol. Qualify each hop shown above with its actual client and server,
+then assess the certificate-signature path separately.
 
 ## Protect long-lived secrets
 
