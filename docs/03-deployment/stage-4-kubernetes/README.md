@@ -7,29 +7,39 @@ is the capability; Talos is the supplied node-OS implementation.
 <a id="figure-1-control-cluster-runtime"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T0["Tier 0 / Control layer"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
+  subgraph T0["Tier 0"]
     direction LR
-    subgraph PVE["Existing Proxmox hosts / control_cluster network"]
+    subgraph Network["Control Cluster Network / control_cluster"]
       direction TB
-      CP1["k8ctl-1<br/>Talos control plane<br/>ide2 / static NoCloud"]
-      CP2["k8ctl-2<br/>Talos control plane<br/>ide2 / static NoCloud"]
-      CP3["k8ctl-3<br/>Talos control plane<br/>ide2 / static NoCloud"]
-      CP1 ~~~ CP2 ~~~ CP3
+      subgraph Cluster["Tier 0 Kubernetes"]
+        direction TB
+        CP1["k8ctl-1<br/>Talos control plane<br/>ide2 / static NoCloud"]
+        CP2["k8ctl-2<br/>Talos control plane<br/>ide2 / static NoCloud"]
+        CP3["k8ctl-3<br/>Talos control plane<br/>ide2 / static NoCloud"]
+        CP1 ~~~ CP2 ~~~ CP3
+      end
     end
-    API["Existing independent API endpoint<br/>Control-plane load balancing"]
-    API -->|TCP 6443| PVE
+    subgraph ManagementNetwork["Management Network / management"]
+      API["Existing independent API endpoint<br/>Control-plane load balancing"]
+    end
   end
+    API -->|TCP 6443 / all three APIs| Cluster
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  class API control
-  class PVE runtime
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  class API traffic
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   class CP1,CP2,CP3 boundary
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Network,ManagementNetwork network
 ```
 
 **IaC:** **Figure 1: Control-cluster runtime.** Tier 0 [Kubernetes inputs](../../../tier-0/terraform/deployments/kubernetes/terraform.tfvars.example)
@@ -239,40 +249,43 @@ uses its original kubeconfig/Talos files; never substitute the fallback paths ab
 <a id="figure-2-basic-platform-services"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":22,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":22,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / Control layer"]
+  subgraph T0["Tier 0"]
     direction TB
-    subgraph Cluster["Existing Tier 0 Kubernetes / selected native releases"]
-      direction LR
-      subgraph Apps["Platform services"]
-        direction TB
-        TLS["cert-manager"]
-        Ingress["traefik / private NodePorts"]
-        Database["cloudnative-pg / operator"]
-        TLS ~~~ Ingress ~~~ Database
+    subgraph ControlNetwork["Control Cluster Network / control_cluster"]
+      subgraph Cluster["Tier 0 Kubernetes"]
+        direction LR
+        subgraph Apps["Platform services"]
+          direction TB
+          TLS["cert-manager"]
+          Ingress["traefik / private NodePorts"]
+          Database["cloudnative-pg / operator"]
+          TLS ~~~ Ingress ~~~ Database
+        end
+        subgraph Reconcile["Reconciliation"]
+          direction TB
+          Flux["flux2 / controllers"]
+          Source["platform / GitRepository<br/>and SOPS Kustomization"]
+          Flux --> Source
+        end
+        subgraph NodeServices["Node services"]
+          direction TB
+          Network["cilium / CNI"]
+          Storage["Existing block CSI<br/>Qualified Proxmox/Ceph class"]
+          Network ~~~ Storage
+        end
+        Apps ~~~ Reconcile ~~~ NodeServices
       end
-      subgraph Reconcile["Reconciliation"]
-        direction TB
-        Flux["flux2 / controllers"]
-        Source["platform / GitRepository<br/>and SOPS Kustomization"]
-        Flux --> Source
-      end
-      subgraph NodeServices["Node services"]
-        direction TB
-        Network["cilium / CNI"]
-        Storage["Existing block CSI<br/>Qualified Proxmox/Ceph class"]
-        Network ~~~ Storage
-      end
-      Apps ~~~ Reconcile ~~~ NodeServices
     end
-    subgraph Existing["Independent existing prerequisites"]
+    subgraph Existing["Service Dependencies"]
       direction LR
       Git["Approved bootstrap Git source"]
       PVE[("Existing Proxmox/Ceph<br/>Block storage")]
       Git ~~~ PVE
     end
-    Cluster -->|Read-only Git / block volumes| Existing
+    Flux -->|Read-only Git| Git
+    Storage -->|Block volumes| PVE
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -280,14 +293,18 @@ flowchart TB
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class Flux,Network control
-  class Apps,Reconcile,NodeServices,Existing boundary
   class Source,Git,PVE data
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
   class Ingress traffic
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class ControlNetwork network
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Apps,Reconcile,NodeServices,Existing group
 ```
 
 **IaC:** **Figure 2: Basic platform services.** Tier 0's [platform playbook](../../../tier-0/ansible/playbooks/deployment/cluster-platform.yml)
@@ -347,41 +364,49 @@ Ansible `apply` changes the selected release immediately; it is not the VM helpe
 <a id="figure-3-protected-cluster-collection"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  subgraph T0["Tier 0 / protected cluster logging"]
+  subgraph T0["Tier 0"]
     direction LR
-    subgraph Cluster["Existing control Kubernetes / cluster-security-logging"]
-      direction TB
-      Sources["Talos / API audit / pod logs<br/>All three existing nodes"]
-      subgraph Agents["Fluent Bit / bounded queues, not replicated"]
+    subgraph ControlNetwork["Control Cluster Network / control_cluster"]
+      subgraph Cluster["Tier 0 Kubernetes / cluster-security-logging"]
         direction TB
-        A1["security-log-control-k8ctl-1<br/>Node-local queue / cursor"]
-        A2["security-log-control-k8ctl-2<br/>Node-local queue / cursor"]
-        A3["security-log-control-k8ctl-3<br/>Node-local queue / cursor"]
-        A1 ~~~ A2 ~~~ A3
+        Sources["Talos / API audit / pod logs<br/>All three existing nodes"]
+        subgraph Agents["Log Collectors / Fluent Bit"]
+          direction TB
+          A1["security-log-control-k8ctl-1<br/>Node-local queue / cursor"]
+          A2["security-log-control-k8ctl-2<br/>Node-local queue / cursor"]
+          A3["security-log-control-k8ctl-3<br/>Node-local queue / cursor"]
+          A1 ~~~ A2 ~~~ A3
+        end
+        Sources -->|Node-local reads / per node| Agents
       end
-      Sources -->|Loopback / read-only host logs| Agents
     end
-    Receiver["Existing log-1 / protected intake<br/>Per-node CN and observed IP enrollment"]
-    Cluster -->|RFC5424 / TCP with mTLS| Receiver
+    subgraph ManagementNetwork["Management Network / management"]
+      Receiver["Existing log-1 / protected intake<br/>Per-node CN and observed IP enrollment"]
+    end
   end
+    Agents -->|Per-node RFC5424 / mTLS| Receiver
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Receiver control
   class Agents replicas
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class ControlNetwork,ManagementNetwork network
 ```
 
 **IaC:** **Figure 3: Protected cluster collection.** The Tier 0 [collection playbook](../../../tier-0/ansible/playbooks/deployment/cluster-security-logging.yml)
 and [node inputs](../../../tier-0/ansible/group_vars/cluster_security_logging.yml.example)
 select these three releases from the [Shared role](../../../shared/ansible/roles/cluster_security_logging).
 Scope: cluster sources and bounded local queues; the receiver and its archive are existing Stage 2 services.
+Each collector owns its node-local queue; collectors do not replicate queue contents.
 
 For [Figure 3](#figure-3-protected-cluster-collection), merge the rendered `receiver-sources.yml` entries
 into **Tier 0 `ansible/group_vars/syslog.yml`** under `syslog_ng_sources`, preserving the complete existing catalogue. Update the

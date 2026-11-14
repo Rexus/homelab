@@ -6,11 +6,11 @@ Complete this once before running host-management tasks from `boot-1` or another
 <a id="figure-host-management"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  subgraph T0["Tier 0 / existing management interfaces"]
+  subgraph T0["Tier 0"]
     direction LR
-    subgraph Execute["Prepared execution host"]
+    subgraph Execute["Execution Host"]
       direction TB
       Tools["boot-1 or accepted Linux host<br/>Ansible / SSH"]
       Inputs[("Tier 0 inventory<br/>Local configuration / SSH identity")]
@@ -22,7 +22,7 @@ flowchart LR
       Console["Independent host console<br/>Existing recovery access"]
       Nodes ~~~ Console
     end
-    Execute -->|SSH / remote Python| Hosts
+    Tools -->|SSH / remote Python| Nodes
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -32,7 +32,7 @@ flowchart LR
   class Tools,Nodes control
   class Inputs data
   class Console actor
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Execute,Hosts group
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0

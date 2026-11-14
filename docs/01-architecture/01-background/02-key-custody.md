@@ -12,13 +12,13 @@ sequenceDiagram
   Consumer->>API: Request an authorized key operation
   API->>Custody: Use the selected key and policy
   alt Local operator custody
-    Note over Custody: Local authority owns key access and lifecycle
+    Note over Custody: Local authority owns key access<br/>and lifecycle
   else Provider-operated custody
-    Note over Custody: Provider contract governs operation and recovery
+    Note over Custody: Provider contract governs<br/>operation and recovery
   end
   Custody-->>API: Operation result
   API-->>Consumer: Result within the service contract
-  Note over API,Custody: Recovery and external dependencies are separate design choices
+  Note over API,Custody: Recovery and external dependencies<br/>are separate design choices
 ```
 
 *Figure: Consumers retain a service contract while local or provider-operated key custody

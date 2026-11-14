@@ -107,12 +107,18 @@
 - name: Validate protected external directory federation
   ansible.builtin.assert:
     that:
-      - control_applications_ldap_url is match('^ldaps://[^/ ]+(:636)?$')
+      - control_applications_ldap_url is string
+      - >-
+        control_applications_ldap_url is match(
+          '^ldaps://[^/\s,@]+(?:[ ]+ldaps://[^/\s,@]+)*$'
+        )
+      - control_applications_ldap_connection_timeout_ms | int > 0
+      - control_applications_ldap_read_timeout_ms | int > 0
       - control_applications_ldap_users_dn | length > 0
       - control_applications_ldap_groups_dn | length > 0
       - control_applications_ldap_bind_dn | length > 0
       - control_applications_keycloak_replicas | int >= 2
-    fail_msg: Supply the external FreeIPA LDAPS endpoint, user/group search bases and read-only bind DN.
+    fail_msg: Supply space-separated FreeIPA LDAPS member URLs, positive timeouts, search bases and a read-only bind DN.
   when: "'keycloak' in control_applications_components"
 
 - name: Keep NetBox source history longer than an ordinary repair window

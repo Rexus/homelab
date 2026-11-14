@@ -58,8 +58,8 @@ provider is read-only, uses `uid` and FreeIPA `ipaUniqueID`, and maps `groupOfNa
 membership through `member` DNs. Unspecified built-in attribute mappers are
 preserved. Self-registration and directory writes are disabled. [3]
 
-The selected FreeIPA LDAPS endpoint must itself meet the availability requirement.
-Supplying two directory VMs does not configure a resilient LDAP endpoint.
+Set `control_applications_ldap_url` to the replicated members' space-separated LDAPS URLs in failover order.
+The starter tries `idm-1`, then `idm-2`, using each member's TLS identity and a bounded connection timeout. [4]
 Verify read access, disabled-account behavior, group hierarchy and membership
 removal against the real directory before accepting federation.
 
@@ -82,13 +82,16 @@ including preserved X509 authentication and cold-start issuer-outage acceptance.
 | Federation | Allowed user, denied user, disabled user and removed group membership behave as approved |
 | Audit | Authentication and administrative changes arrive through protected cluster stdout collection |
 | Backup | Completed verified file set, or base backup plus archived WAL for the selected object/PITR path; restore into a separate CNPG cluster and exercise a login |
-| Failure | Restart one replica, test the directory endpoint failing, then test the IdP outage |
+| Failure | Test an application login with the first LDAP member unreachable, restore replication, restart an IdP replica, then test IdP outage |
 | Recovery | Independent Kubernetes and Keycloak administration, database restore inputs and TLS material remain available |
 
 The role checks database/endpoint health and initial backup completion. Human
 login, event arrival, failover and clean-target restoration remain operator
 acceptance checks. Restore the existing realm/database; reinstalling an empty
 realm changes identity state and is not recovery.
+
+Exercise the complete application login during directory loss. Upstream tracks authentication errors
+when LDAP failover delays the login flow, which makes a real login part of release qualification. [5]
 
 Continue at [Stage 5, action 21](../README.md#step-21-roll-out-kubernetes-api-human-sso)
 for Kubernetes human SSO and the service-access gates before Stage 6.
@@ -100,3 +103,5 @@ Official/maintainer guidance checked 2026-10-26; pins live in the example inputs
 1. [Maintained Keycloak chart](https://github.com/codecentric/helm-charts/tree/master/charts/keycloakx).
 2. [Keycloak production containers](https://www.keycloak.org/server/containers).
 3. [Native Ansible LDAP federation module](https://docs.ansible.com/projects/ansible/latest/collections/community/general/keycloak_user_federation_module.html).
+4. [Keycloak LDAP connection failover](https://www.keycloak.org/docs/latest/server_admin/#connecting-to-multiple-ldap-servers-for-failover).
+5. [Keycloak delayed-failover authentication report](https://github.com/keycloak/keycloak/issues/49595).

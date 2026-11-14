@@ -4,36 +4,30 @@ Source control owns definitions and proposed changes. The registry owns promoted
 artifacts. A distribution layer accelerates pulls but is not the authority for
 which artifact is approved.
 
-## Contents
-
-- [Components and variants](#components-and-variants)
-- [Availability and dependencies](#availability-and-dependencies)
-- [References](#references)
-
 ## Components and variants
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   subgraph Clients["Authorized clients"]
     direction TB
     Source["Build /<br/>publication job"]
     Direct["Runtime /<br/>image builder"]
-    Source ~~~ Direct
   end
   Registry["Approved<br/>registry<br/>authority"]
-  Clients -->|Publish<br/>candidate| Registry
-  Clients -->|Pull approved<br/>version| Registry
+  Source -->|Publish<br/>candidate| Registry
+  Direct -->|Pull approved<br/>version| Registry
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Clients boundary
   class Registry data
   class Source,Direct actor
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Clients group
 ```
 
-*Figure: Client-boundary links represent candidate publication by the build job and approved-version
+*Figure: Separate client links represent candidate publication by the build job and approved-version
 pulls by the runtime or image builder, with separate registry permissions. These are requests to the
 registry authority; candidate publication does not approve a release.*
 
@@ -66,6 +60,12 @@ retrieval of content from B's authoritative registry. It adds operating responsi
 it does not select approved versions or replace retained recovery copies.
 
 <a id="maturity-and-dependencies"></a>
+
+## Contents
+
+- [Components and variants](#components-and-variants)
+- [Availability and dependencies](#availability-and-dependencies)
+- [References](#references)
 
 ## Availability and dependencies
 

@@ -4,23 +4,15 @@ Tier 0 uses Flux for its independently recoverable control-service deployment.
 Tier 1 selects its own delivery platform for shared services and approved Tier 2
 applications. Its controller is not selected by this kit.
 
-## Table of contents
-
-- [Authority and ownership](#authority-and-ownership)
-- [Choices](#choices)
-- [Selection criteria](#selection-criteria)
-- [Realization](#realization)
-- [References](#references)
-
 ## Authority and ownership
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"wrappingWidth":300,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"wrappingWidth":300,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart BT
-  subgraph T2["Tier 2 / optional application destinations"]
+  subgraph T2["Tier 2"]
     Workload["Approved applications<br/>Explicitly selected destinations"]
   end
-  subgraph T1["Tier 1 / shared application delivery"]
+  subgraph T1["Tier 1"]
     direction LR
     Platform["Tier 1<br/>applications"]
     D["Selected controller<br/>Argo CD<br/>or Spinnaker"]
@@ -29,7 +21,7 @@ flowchart BT
     D -- "Scoped<br/>changes" --> Platform
     D -- "Read approved<br/>inputs" --> Release
   end
-  subgraph T0["Tier 0 / independently recoverable control"]
+  subgraph T0["Tier 0"]
     direction LR
     Control["Control<br/>services"]
     F["Flux"]
@@ -72,6 +64,14 @@ retrieval by Tier 0 Flux does not transfer that authority to the source service.
 Each Kubernetes object has one reconciler or pipeline owner. Multiple tools must
 not independently control the same application resources. Tier 2 cluster lifecycle
 remains distinct from scoped application deployment to that cluster.
+
+## Table of contents
+
+- [Authority and ownership](#authority-and-ownership)
+- [Choices](#choices)
+- [Selection criteria](#selection-criteria)
+- [Realization](#realization)
+- [References](#references)
 
 ## Choices
 

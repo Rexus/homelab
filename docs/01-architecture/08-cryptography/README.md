@@ -12,23 +12,23 @@ remains separately controlled, and signing and secret-service startup protection
 retain independent provider choices.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart BT
-  subgraph T2["Tier 2 / workloads and isolated labs"]
+  subgraph T2["Tier 2"]
     direction LR
     Workloads["Certificate / secret consumers"]
     LabCA["Optional lab CA<br/>Lab-only trust"]
     Workloads ~~~ LabCA
   end
-  subgraph T1["Tier 1 / shared services"]
+  subgraph T1["Tier 1"]
     direction LR
     Enrollment["Enrollment clients<br/>Scoped infrastructure requests"]
     AppCA["Optional application CA<br/>Shared application trust"]
     Enrollment ~~~ AppCA
   end
-  subgraph T0["Tier 0 / infrastructure trust and secrets"]
+  subgraph T0["Tier 0"]
     direction BT
-    subgraph Online["Connected trust services"]
+    subgraph Online["Trust Services"]
       direction LR
       Secrets["Secret service<br/>Separate seal"]
       subgraph Issuers["Issuing authorities"]
@@ -49,7 +49,7 @@ flowchart BT
   classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class T0 tier0
   class T1 tier1

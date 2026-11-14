@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720"
+     role="img" aria-labelledby="title description">
+  <title id="title">Namespace-local collection and tier-owned telemetry</title>
+  <desc id="description">The application uses its namespace Service to select one Collector replica. Each replica has its own queue PVC. Their metrics and application exports use separate authenticated identities to the existing Tier 1 gateway below.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581"/>
+    </marker>
+    <style>
+      svg { font: 15px Arial, sans-serif; }
+      text { fill: currentColor; stroke: none; text-anchor: middle; }
+      .tier2 { fill: #f6f3ef; stroke: #aca59b; color: #4b443c; }
+      .tier1 { fill: #e9e2d8; stroke: #968976; color: #44382a; }
+      .network { fill: #f4eded; stroke: #9b7378; color: #50383d; }
+      .kubernetes { fill: #e8eef6; stroke: #6b83a3; color: #263d59; }
+      .group { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .replicas { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .traffic { fill: #303841; stroke: #8a9baa; color: #ffffff; }
+      .services { fill: #e7f0fc; stroke: #4d719b; color: #203a5b; }
+      .data { fill: #eeeafa; stroke: #78639b; color: #42325d; }
+      .tier2, .tier1, .network, .kubernetes, .traffic, .services, .data { stroke-dasharray: none; }
+      .connection { fill: none; stroke: #627581; stroke-width: 1.5; stroke-dasharray: none; marker-end: url(#arrow); }
+      .edge-label { fill: #1f2937; font-size: 13px; }
+    </style>
+  </defs>
+<g id="T2" class="tier2">
+<rect x="20" y="20" width="920" height="470"/>
+<text x="480.0" y="44">Tier 2</text>
+<g id="WorkloadNetwork" class="network">
+<rect x="40" y="65" width="880" height="405"/>
+<text x="480.0" y="89">Workload Cluster Network</text>
+<g id="Cluster" class="kubernetes">
+<rect x="55" y="105" width="850" height="350"/>
+<text x="480.0" y="129">Tier 2 Kubernetes</text>
+<g id="NS" class="group">
+<rect x="70" y="145" width="820" height="290"/>
+<text x="480.0" y="169">Namespace / lab-demo</text>
+<g id="App" class="services"><rect x="90" y="250" width="185" height="70"/>
+<text x="182.5" y="270.0">Existing lab-app</text>
+<text x="182.5" y="290.0">SDK instrumentation</text>
+<text x="182.5" y="310.0">prerequisite</text>
+</g>
+<g id="Receiver" class="traffic"><polygon points="345,255 460,255 475,285.0 460,315 345,315 330,285.0"/>
+<text x="402.5" y="280.0">otel-agent</text>
+<text x="402.5" y="300.0">Namespace Service</text>
+</g>
+<g id="Collect" class="replicas">
+<rect x="540" y="190" width="330" height="225"/>
+<text x="705.0" y="214">otel-agent / StatefulSet</text>
+<g id="A" class="services"><rect x="560" y="230" width="125" height="55"/>
+<text x="622.5" y="262.5">otel-agent-0</text>
+</g>
+<g id="B" class="services"><rect x="560" y="325" width="125" height="55"/>
+<text x="622.5" y="357.5">otel-agent-1</text>
+</g>
+<g id="QueueA" class="data"><path d="M735 239 C735 227 850 227 850 239 L850 276 C850 288 735 288 735 276 Z"/><path d="M735 239 C735 251 850 251 850 239" fill="none"/>
+<text x="792.5" y="265.5">queue PVC</text>
+</g>
+<g id="QueueB" class="data"><path d="M735 334 C735 322 850 322 850 334 L850 371 C850 383 735 383 735 371 Z"/><path d="M735 334 C735 346 850 346 850 334" fill="none"/>
+<text x="792.5" y="360.5">queue PVC</text>
+</g>
+<path class="connection" data-from="A" data-to="QueueA" d="M685 257 L735 257"/>
+<path class="connection" data-from="B" data-to="QueueB" d="M685 352 L735 352"/>
+</g>
+<path class="connection" data-from="App" data-to="Receiver" d="M275 285 L330 285"/>
+<rect x="255.5" y="222" width="95" height="24" fill="#f8fafc" stroke="none"/>
+<text x="303" y="238" class="edge-label">OTLP gRPC</text>
+<path class="connection" data-from="Receiver" data-to="A" d="M475 285 L510 285 L510 257 L560 257"/>
+<path class="connection" data-from="Receiver" data-to="B" d="M475 285 L510 285 L510 352 L560 352"/>
+<rect x="465.0" y="292" width="78" height="42" fill="#f8fafc" stroke="none"/>
+<text x="504" y="308" class="edge-label">Selected</text>
+<text x="504" y="326" class="edge-label">replica</text>
+</g>
+</g>
+</g>
+</g>
+<g id="T1" class="tier1">
+<rect x="20" y="535" width="920" height="165"/>
+<text x="480.0" y="559">Tier 1</text>
+<g id="ApplicationNetwork" class="network">
+<rect x="40" y="575" width="880" height="105"/>
+<text x="480.0" y="599">Application Network / application</text>
+<g id="Gateway" class="traffic"><polygon points="345,615 635,615 650,640.0 635,665 345,665 330,640.0"/>
+<text x="490.0" y="635.0">otel-gateway</text>
+<text x="490.0" y="655.0">Metrics / application TLS endpoints</text>
+</g>
+</g>
+</g>
+<path class="connection" data-from="Collect" data-to="Gateway" d="M705 415 L705 513 L490 513 L490 615"/>
+<rect x="613.5" y="497" width="155" height="24" fill="#f8fafc" stroke="none"/>
+<text x="691" y="513" class="edge-label">mTLS signal exports</text>
+</svg>

@@ -22,11 +22,11 @@ the optional Step 15 image-lifecycle choice, then Steps 16-17 protected CI/Vault
 ## Expected outcome: general Podman runner
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  subgraph T1["Tier 1 / general build execution"]
+  subgraph T1["Tier 1"]
     direction LR
-    subgraph PVE["Existing Proxmox<br/>delivery_edge / DMZ"]
+    subgraph Network["Delivery Edge Network / delivery_edge"]
       subgraph VM["runner-1 / VM"]
         direction TB
         Podman["Podman<br/>Bounded build containers"]
@@ -34,25 +34,29 @@ flowchart LR
         Runner -->|Starts jobs| Podman
       end
     end
-    subgraph Existing["Existing delivery services"]
+    subgraph Existing["Application Network / application"]
       direction TB
       Git["GitLab<br/>Scoped job source"]
       Registry["OCI registry<br/>Approved artifact destination"]
       Git ~~~ Registry
     end
-    VM -->|HTTPS polling /<br/>artifact publication| Existing
+    Runner -->|HTTPS job polling| Git
+    Podman -->|HTTPS artifact publication| Registry
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class PVE boundary
+  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
+  classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
   class Runner,Podman edge
-  class VM,Existing group
+  class VM group
   class Git,Registry services
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
   class T1 tier1
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Network,Existing network
 ```
 
 **IaC:** *Figure: The delivery-edge runner consumes scoped jobs and publishes artifacts to existing services. It holds
@@ -60,6 +64,8 @@ no Tier 0 infrastructure credentials.*
 Tier 1 [runner inputs](../../../tier-1/terraform/deployments/podman-runner/terraform.tfvars.example)
 and [runner recipe](../../../tier-1/ansible/playbooks/deployment/podman-runner.yml).
 Registration requires explicit local credentials; this runner has no Tier 0 authority.
+The [Tier 1 networks](../../../tier-1/terraform/common.tfvars.example) keep `delivery_edge`
+separate from the [shared application network](../../../shared/config/platform.tfvars).
 
 ## Table of contents
 

@@ -381,7 +381,8 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             steps = re.findall(r"(?m)^## Step (\d+): ", content)
             self.assertGreaterEqual(len(steps), 2)
             self.assertEqual(steps, [str(n) for n in range(1, len(steps) + 1)])
-            for expected in ("```mermaid", "architecture/", "**Prerequisites:**"):
+            self.assertRegex(content, r'```mermaid|!\[[^\]]+\]\([^\)]+\.svg\)', str(stage))
+            for expected in ("architecture/", "**Prerequisites:**"):
                 self.assertIn(expected, content, stage)
             self.assertRegex(content, r"(?m)^(?:\*\*(?:Result|Expected):\*\*|## Expected outcome:)", str(stage))
             if stage.parent.name == "stage-2-logging":

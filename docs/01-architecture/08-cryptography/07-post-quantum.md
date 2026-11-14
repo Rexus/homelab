@@ -10,7 +10,7 @@ Treat it as a migration-capable baseline; make a quantum-resistance claim only f
 the exact protocols, libraries, providers and consumers that have been qualified.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":22,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":22,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Client["Client"] -->|"TLS hop A"| Edge["Edge proxy"]
   Edge -->|"TLS hop B"| Origin["Origin service"]
@@ -22,7 +22,7 @@ flowchart LR
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   class Client actor
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
   class Edge traffic
   class Origin services
   class Cert control

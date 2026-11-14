@@ -11,44 +11,42 @@ when the website needs a new pool.
 ## Expected outcome: edge pool
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  Clients["Existing external / internal clients"]
-  subgraph T2["Tier 2 / edge ownership"]
+  Clients["Approved clients<br/>External / internal"]
+  subgraph T2["Tier 2"]
     direction LR
-    subgraph Zone["Edge / external_edge"]
+    subgraph Zone["Edge Network / external_edge"]
       direction LR
       VIP{{"Configured VIP set<br/>Preferred owners / failover"}}
-      subgraph PVE["Existing Proxmox / edge VMs"]
-        subgraph Pool["HAProxy / keepalived pool"]
-          direction TB
-          A["lb-1<br/>HAProxy / keepalived"]
-          B["lb-2<br/>HAProxy / keepalived"]
-          C["lb-3<br/>HAProxy / keepalived"]
-          A ~~~ B ~~~ C
-        end
+      subgraph Pool["Edge Services"]
+        direction TB
+        A["lb-1<br/>HAProxy / keepalived"]
+        B["lb-2<br/>HAProxy / keepalived"]
+        C["lb-3<br/>HAProxy / keepalived"]
+        A ~~~ B ~~~ C
       end
       VIP -. Address ownership .-> Pool
     end
   end
-  Backends["Existing approved application origins<br/>Only after listener configuration"]
-  Clients -->|Selected published listeners| T2
-  T2 -->|Configured verified backends| Backends
+  Backends["Approved origins<br/>After listener configuration"]
+  Clients -->|Selected published listeners| VIP
+  Pool -->|Configured backend TLS| Backends
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
   class A,B,C edge
-  class PVE boundary
   class Clients,Backends actor
   class Pool replicas
-  class Zone zoneEdge
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
   class VIP traffic
   classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
   class T2 tier2
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Zone network
 ```
 
 **IaC:** *Figure: Three edge VMs manage the selected VIPs. Client and origin traffic becomes available only after

@@ -7,17 +7,17 @@ It is an optional compatibility function, not an alternative owner for the
 platform's DNS, PKI or secret-service foundations.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Windows["Windows clients"] -->|"Selected services"| Kerberos
   Windows -->|"Domain join / GPO"| Domain
-  subgraph Options["Select the required compatibility path"]
+  subgraph Options["Windows Integration"]
     direction TB
     Kerberos["Kerberos interoperability"]
     Domain["Optional Samba AD extension<br/>Project integration"]
   end
   Authority["Primary identity authority<br/>Existing foundation"]
-  Kerberos -->|"Kerberos"| Authority["Primary identity authority"]
+  Kerberos -->|"Kerberos"| Authority
   Domain -.->|"Identity alignment<br/>to qualify"| Authority
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
@@ -25,9 +25,10 @@ flowchart LR
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   class Windows actor
-  class Options boundary
   class Kerberos,Domain services
   class Authority control
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Options group
 ```
 *Figure: The client requirement selects service interoperability or a domain extension. The existing
 authority stays to the right; the dashed alignment link is integration work, not an installed trust.*

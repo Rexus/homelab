@@ -7,26 +7,26 @@ not a numbered capability stage.
 <a id="figure-foundation-ready"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Admin["Privileged<br/>workstation<br/>Console / recovery"]
-  subgraph T0["Tier 0 / foundation"]
+  subgraph T0["Tier 0"]
     direction TB
-    subgraph Connected["Control / prepared infrastructure"]
+    subgraph Connected["Management Network / management"]
       direction LR
-      subgraph Execute["Prepared execution host"]
+      subgraph Execute["Execution Host"]
         direction TB
         Tools["Git / Terraform<br/>Ansible / SSH"]
         Workspace[("Repositories / artifacts<br/>Local inputs / state")]
         Tools ~~~ Workspace
       end
       Hosts["Proxmox API<br/>VM storage<br/>Approved templates"]
-      Execute -->|Verified HTTPS<br/>Scoped API access| Hosts
+      Tools -->|Verified HTTPS<br/>Scoped API access| Hosts
     end
     Recovery["Independent recovery inputs<br/>Bootstrap backup / state / keys"]
     Connected ~~~ Recovery
   end
-  Admin -->|Authorized SSH| T0
+  Admin -->|Authorized SSH| Tools
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
@@ -34,18 +34,23 @@ flowchart LR
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class Hosts control
-  class Connected,Execute runtime
+  class Execute runtime
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   class Admin actor
   class Workspace data
   class Recovery custody
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Connected network
 ```
 
 **Workflow:** **Figure 1: Foundation ready for IaC.** The [bootstrap steps](bootstrap/README.md)
 prepare the execution host; [template publication](../../../tier-0/terraform/deployments/templates/main.tf)
 manages the accepted catalog after the first manual template. The figure groups logical control
 interfaces, not physical hosting: the execution host may be `boot-1` or an accepted Linux host.
+The reference uses the [management network](../../../tier-0/terraform/common.tfvars.example);
+an accepted external execution host instead needs its approved route to the same API.
 The workstation arrow reaches only the authorized execution-host SSH interface. Recovery inputs
 are separately retained and qualified; the preparation path does not install a backup service.
 

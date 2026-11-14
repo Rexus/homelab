@@ -14,57 +14,38 @@ this recipe creates neither another syslog server nor an authoritative archive.
 
 ## Expected outcome: scoped application collection
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":22,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T2["Tier 2 / workload ownership"]
-    subgraph Cluster["Existing workload Kubernetes"]
-      subgraph NS["lab-demo / restricted namespace"]
-        direction LR
-        App["Existing lab-app<br/>SDK instrumentation prerequisite"]
-        subgraph Collect["otel-agent / StatefulSet"]
-          direction TB
-          A["otel-agent-0"]
-          B["otel-agent-1"]
-          Queue[("queue / PVC per replica")]
-          A ~~~ B ~~~ Queue
-        end
-        App -->|OTLP / same namespace| Collect
-      end
-    end
-  end
-  subgraph T1["Tier 1 / existing private Observability intake"]
-    Gateway["otel-gateway<br/>metrics and application-scoped TLS ports"]
-  end
-  T2 ~~~ T1
-  T2 -->|mTLS / distinct client identities| T1
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Cluster kubernetes
-  class NS group
-  class App,A,B services
-  class Collect replicas
-  class Queue data
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
-  class Gateway traffic
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  class T2 tier2
-```
+![Namespace-local collection and tier-owned telemetry](../../08-reference/diagrams/workload-telemetry-placement.svg)
 
 **IaC:** *Figure: Two namespace-local Collectors buffer instrumented application signals and send them to private Tier
-1 intake with distinct client identities. Protected security evidence keeps its separate Tier 0 path.*
+1 intake with distinct client identities. The shared export trunk represents both replicas' selected routes;
+the sequence below follows one replica. Protected security evidence keeps its separate Tier 0 path.*
 Tier 2 [Collector recipe](../../../tier-2/ansible/playbooks/deployment/workload-telemetry.yml),
 [inputs](../../../tier-2/ansible/group_vars/workload_telemetry.yml.example) and
 [native chart values](../../../tier-2/ansible/roles/workload_telemetry/templates/values.yml.j2).
 Scope: two application-namespace Collector replicas, their queue PVCs and network policies.
 The application SDK, cluster, CSI class and Tier 1 gateway already exist.
+
+The namespace Service selects a Collector replica; the application does not duplicate each signal
+to both replicas. Each replica retains its own queue. Separate metrics and application identities
+protect the selected Tier 1 export paths:
+
+```mermaid
+%%{init: {"themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif","sequence":{"actorFontSize":14,"messageFontSize":14,"noteFontSize":14}}}%%
+sequenceDiagram
+  participant App as Instrumented application
+  participant Collector as Selected otel-agent replica
+  participant Gateway as Tier 1 otel-gateway
+  App->>Collector: OTLP gRPC through namespace Service
+  Collector->>Collector: Buffer in this replica's queue PVC
+  Collector->>Gateway: mTLS export to the selected signal endpoint
+  Gateway-->>Collector: Acknowledge accepted export
+  Note over Collector,Gateway: Metrics and application exports use separate client identities
+```
+
+**IaC:** *Figure: The selected replica buffers before export; acknowledgement does not
+replicate its local queue or establish durable retention at the destination.*
+The [Collector values](../../../tier-2/ansible/roles/workload_telemetry/templates/values.yml.j2)
+define the namespace Service, per-replica storage and the two authenticated export pipelines.
 
 **Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
 **Prerequisites:** accepted [Observability](../stage-8-observability/README.md),

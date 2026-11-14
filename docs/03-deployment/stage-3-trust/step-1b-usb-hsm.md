@@ -13,11 +13,11 @@ and original hardware-key CSR, then action 11 signing.
 <a id="figure-1-usb-provider-hosts-and-custody"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / Control / USB provider hosts"]
+  subgraph T0["Tier 0"]
     direction TB
-    subgraph PVE["Existing Proxmox / cryptography network"]
+    subgraph Network["Cryptography Network / cryptography"]
       direction LR
       subgraph A["pve01 / physical device affinity"]
         direction TB
@@ -34,7 +34,7 @@ flowchart TB
       A ~~~ B
     end
     Custody["Offline recovery custody<br/>Original keys and device-specific backups"]
-    PVE ~~~ Custody
+    Network ~~~ Custody
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -46,12 +46,15 @@ flowchart TB
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class PVE zoneControl
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Network network
 ```
 
 **IaC:** **Figure 1: USB provider hosts and custody.** [HSM VM inputs](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example) and
 [deployment recipe](../../../tier-0/ansible/playbooks/deployment/hsm-gateways.yml) own the two-host
 starter, USB attachment and provider installation. Hardware and key custody already exist.
+The host boundaries show `proxmox_node_name` and host-local USB mappings: device affinity is the
+question here, so `pve01` and `pve02` remain explicit beneath the guest-network boundary.
 This view adds no signing application, key replication or VIP; shared transport is selected at action 2.
 
 **First installation:** select custody at Stage 3 action 1; prepare the issuer through

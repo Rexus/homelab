@@ -5,6 +5,7 @@ import copy
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
@@ -165,6 +166,42 @@ class ControlApplicationContracts(unittest.TestCase):
 
 @unittest.skipUnless(os.name != "nt" and shutil.which("ansible-playbook"), "Requires native Ansible")
 class ControlApplicationGates(unittest.TestCase):
+    def test_ldap_endpoint_failover_accepts_member_urls_and_rejects_broken_lists(self):
+        tasks = yaml.safe_load((ROLE / 'tasks/preflight.yml').read_text())
+        validation = next(task for task in tasks if task['name'] == 'Validate protected external directory federation')
+        self.assertTrue(all(isinstance(condition, str) for condition in validation['ansible.builtin.assert']['that']))
+        cases = (
+            ('ldaps://idm-1.lab.test:636', True),
+            ('ldaps://idm-1.lab.test:636 ldaps://idm-2.lab.test:636', True),
+            ('ldaps://idm-1.lab.test:636 ldap://idm-2.lab.test:389', False),
+            ('ldaps://idm-1.lab.test:636,ldaps://idm-2.lab.test:636', False),
+            ('ldaps://idm-1.lab.test:636, ldaps://idm-2.lab.test:636', False),
+            ('ldaps://idm-1.lab.test:636\tldaps://idm-2.lab.test:636', False),
+            ('', False),
+        )
+        with tempfile.TemporaryDirectory(prefix='control-apps-ldap-') as directory:
+            play = Path(directory) / 'ldap.yml'
+            play.write_text(yaml.safe_dump([{
+                'hosts': 'localhost', 'connection': 'local', 'gather_facts': False,
+                'vars': yaml.safe_load((ROLE / 'defaults/main.yml').read_text()) | fixture(),
+                'tasks': [validation],
+            }]))
+            for urls, accepted in cases:
+                with self.subTest(urls=urls):
+                    result = subprocess.run(
+                        ['ansible-playbook', '-i', 'localhost,', str(play), '-e',
+                         json.dumps({'control_applications_ldap_url': urls})],
+                        capture_output=True, text=True,
+                    )
+                    self.assertEqual(result.returncode == 0, accepted, result.stdout + result.stderr)
+        api = yaml.safe_load((ROLE / 'tasks/keycloak.yml').read_text())
+        federation = next(task['community.general.keycloak_user_federation']
+                          for block in api for task in block.get('block', [])
+                          if 'community.general.keycloak_user_federation' in task)
+        self.assertEqual(federation['config']['connectionUrl'], '{{ control_applications_ldap_url }}')
+        self.assertIn('connectionTimeout', federation['config'])
+        self.assertIn('readTimeout', federation['config'])
+
     def test_database_preparation_does_not_skip_unrelated_products(self):
         preflight = yaml.safe_load((ROLE / "tasks/preflight.yml").read_text())
         resolution = next(task for task in preflight
@@ -222,6 +259,13 @@ class ControlApplicationGates(unittest.TestCase):
             for task in tasks:
                 for name, arguments in task.items():
                     if name.startswith(("community.general.", "community.hashi_vault.")):
+                        if arguments is None:
+                            source = re.search(r"'([^']+\.j2)'", task['args'])[1]
+                            environment = jinja2.Environment(undefined=jinja2.StrictUndefined)
+                            environment.filters['to_json'] = json.dumps
+                            values = yaml.safe_load((ROLE / 'defaults/sso-human.yml').read_text())
+                            arguments = yaml.safe_load(environment.from_string(
+                                (ROLE / 'templates' / source).read_text()).render(values))
                         modules.setdefault(name, []).append(arguments)
                 collect(task.get("block", []))
 
@@ -258,6 +302,8 @@ class ControlApplicationGates(unittest.TestCase):
             {"control_applications_components": ["headlamp"], "control_applications_headlamp_group": "system:masters"},
             {"control_applications_components": ["headlamp"], "control_applications_headlamp_namespaces": ["*"]},
             {"control_applications_ldap_url": "ldap://directory.lab.test"},
+            {"control_applications_ldap_connection_timeout_ms": 0},
+            {"control_applications_ldap_read_timeout_ms": 0},
             {"control_applications_components": ["vault"], "control_applications_vault_replicas": 2},
             {"control_applications_components": ["vault"], "control_applications_vault_phase": "accept",
              "control_applications_action": "apply", "control_applications_kubeconfig": "/nonexistent",

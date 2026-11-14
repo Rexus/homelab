@@ -155,7 +155,21 @@ def shared_readme(writer, prefix):
 
 def copy_documentation(writer, prefix, upstream):
     documents = sorted((upstream / "docs").rglob("*.md"))
-    assets = ("08-reference/diagrams/palette.json", "02-conventions/vmid-convention.svg")
+    assets = ("08-reference/diagrams/palette.json", "02-conventions/vmid-convention.svg",
+              "08-reference/diagrams/identity-operations.svg", "08-reference/diagrams/cache-services.svg",
+              "08-reference/diagrams/protected-logging.svg", "08-reference/diagrams/lab-ownership.svg",
+              "08-reference/diagrams/verified-intake-placement.svg",
+              "08-reference/diagrams/software-intake-context.svg", "08-reference/diagrams/secrets-context.svg",
+              "08-reference/diagrams/backup-recovery-context.svg",
+              "08-reference/diagrams/cryptography-operations.svg",
+              "08-reference/diagrams/certificate-authority-operations.svg",
+              "08-reference/diagrams/infrastructure-runner-placement.svg",
+              "08-reference/diagrams/workload-telemetry-placement.svg",
+              "08-reference/diagrams/reference-platform-placement.svg",
+              "08-reference/diagrams/hosting-runtime-placement.svg",
+              "08-reference/diagrams/observability-capabilities.svg",
+              "08-reference/diagrams/control-applications-placement.svg",
+              "08-reference/diagrams/observability-operations.svg")
     current_paths = {f"{AUTO_DOCS}/{path.relative_to(upstream / 'docs').as_posix()}" for path in documents}
     referenced = referenced_manual_aliases(writer, prefix)
     aliases = {path: [alias for alias in compatibility_paths(Path("docs") / path.relative_to(upstream / "docs"))

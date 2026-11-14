@@ -8,7 +8,7 @@ credential protection and retained evidence support that decision; none replaces
 ## A request crosses several boundaries
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Subject["User / workload"] -->|Request| Resource["Resource<br/>local authorization"]
   Resource ~~~ Identity
@@ -20,7 +20,11 @@ flowchart LR
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   class Subject actor
-  class Resource,Identity,Policy,Evidence control
+  class Resource,Identity control
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Evidence data
+  classDef policy fill:#f4dce9,stroke:#955076,color:#57253f,stroke-dasharray:3 3
+  class Policy policy
 ```
 
 *Figure 1 - A request reaches a resource through a constrained path; the resource authorizes it and records

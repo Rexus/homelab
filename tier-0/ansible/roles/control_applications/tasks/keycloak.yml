@@ -37,6 +37,8 @@
           enabled: "true"
           vendor: other
           connectionUrl: "{{ control_applications_ldap_url }}"
+          connectionTimeout: "{{ control_applications_ldap_connection_timeout_ms | int }}"
+          readTimeout: "{{ control_applications_ldap_read_timeout_ms | int }}"
           usersDn: "{{ control_applications_ldap_users_dn }}"
           bindDn: "{{ control_applications_ldap_bind_dn }}"
           bindCredential: "{{ control_applications_ldap_bind_password }}"

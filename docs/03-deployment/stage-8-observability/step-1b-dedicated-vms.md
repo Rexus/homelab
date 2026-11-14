@@ -16,29 +16,31 @@ TLS, authentication, scoped search policy, frontend integration and Tier 1 Netda
 ## Expected outcome: dedicated signal hosts
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T1["Tier 1 / dedicated-VM alternative"]
-    subgraph PVE["Existing Proxmox cluster / initial placement"]
-      direction LR
-      subgraph A["pve01"]
-        direction TB
-        O1["otel-1<br/>Netdata parent"]
-        M1["metric-1<br/>Netdata child"]
-        S1["search-1<br/>Netdata child"]
-        O1 ~~~ M1 ~~~ S1
+  subgraph T1["Tier 1"]
+    subgraph ObservabilityNetwork["Observability Network / observability"]
+      subgraph PVE["Proxmox Cluster"]
+        direction LR
+        subgraph A["pve01"]
+          direction TB
+          O1["otel-1<br/>Netdata parent"]
+          M1["metric-1<br/>Netdata child"]
+          S1["search-1<br/>Netdata child"]
+          O1 ~~~ M1 ~~~ S1
+        end
+        subgraph B["pve02"]
+          direction TB
+          O2["otel-2<br/>Netdata parent"]
+          M2["metric-2<br/>Netdata child"]
+          S2["search-2<br/>Netdata child"]
+          O2 ~~~ M2 ~~~ S2
+        end
+        subgraph C["pve03"]
+          S3["search-3<br/>Netdata child"]
+        end
+        A ~~~ B ~~~ C
       end
-      subgraph B["pve02"]
-        direction TB
-        O2["otel-2<br/>Netdata parent"]
-        M2["metric-2<br/>Netdata child"]
-        S2["search-2<br/>Netdata child"]
-        O2 ~~~ M2 ~~~ S2
-      end
-      subgraph C["pve03"]
-        S3["search-3<br/>Netdata child"]
-      end
-      A ~~~ B ~~~ C
     end
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
@@ -48,6 +50,9 @@ flowchart TB
   class PVE,A,B,C boundary
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
   class T1 tier1
+  classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class ObservabilityNetwork network
 ```
 
 **IaC:** *Figure: Seven guests spread gateways, metric stores and search members across the configured Proxmox hosts.

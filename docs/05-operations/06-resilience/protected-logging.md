@@ -1,79 +1,24 @@
 # Security logging operations
 
-**Owner:** Tier 0 for protected evidence; each tier owns its producers.
+Receive authenticated streams, retain NAS checkpoints and keep an independent recovery copy.
+Each tier owns its producers; Tier 0 owns protected evidence.
+
+<a id="figure-protected-logging-operations"></a>
+
+![Protected logging from TLS intake to NAS archive, independent backup and offline custody](../../08-reference/diagrams/protected-logging.svg)
+
+**IaC / Manual:** *Figure: The NAS-retention path reads left to right: receiver, archive and
+independent backup. The recovery host requests the NAS read-only; its encrypted repository stays
+outside the source NAS failure domain. Offline tools and keys sit below connected services.
+The dashed arrow is a manual restore. [Health checks](#figure-logging-health) have their own view.*
+[Editable figure](../../08-reference/diagrams/protected-logging.svg).
+Tier 0 producers, including the receiver OS, use the same authenticated intake.
+The producer aggregate retains each source's tier ownership; the outer box scopes the retention service.
+
 **Design:** [security logging](../../01-architecture/11-operations/01-protected-logging.md).
 **Prerequisites:** accepted [receiver/archive integration](../../03-deployment/stage-2-logging/README.md)
 and recorded failure, retention, access and recovery contracts.
 
-<a id="figure-protected-logging-operations"></a>
-
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T2["Tier 2 / selected producers"]
-    P2["Authenticated streams / local queues"]
-  end
-  subgraph T1["Tier 1 / selected producers"]
-    P1["Authenticated streams / local queues"]
-  end
-  subgraph T0["Tier 0 / protected logging"]
-    direction TB
-    subgraph Pipeline["Accepted receiver and NAS interfaces"]
-      direction LR
-      subgraph Intake["Existing Proxmox / management network"]
-        direction TB
-        Log["log-1 / syslog-ng receiver<br/>Tier 0 sources include its own OS"]
-        Local[("scsi1 / local JSONL and queues")]
-        Log -->|Append| Local
-      end
-      subgraph NAS["Existing NAS / separate custodian"]
-        direction TB
-        Chunks[("Create-only checkpoints<br/>Chunks / manifests / source catalogue")]
-        Snapshots[("NAS-owned snapshots")]
-        Chunks -->|Custodian schedule| Snapshots
-      end
-      Intake -->|SMB checkpoint publication| NAS
-    end
-    subgraph Recovery["Independent recovery / separate host and credentials"]
-      direction LR
-      Pull["logging_recovery host<br/>Read-only NAS identity / restic job"]
-      Copy[("Encrypted restic repository<br/>Storage outside source NAS failure domain")]
-      Kit["Offline reader kit / separate keys<br/>Isolated inspection and restore"]
-      Pull -->|Scheduled backup| Copy
-      Copy -->|Restore a copy| Kit
-    end
-    Pipeline -. Independent backup contract .-> Recovery
-  end
-  Watchdog["Existing external dead-man service<br/>Separate checkpoint / backup checks"]
-  T2 ~~~ T1
-  T2 -->|Authorized source TLS| T0
-  T1 -->|Authorized source TLS| T0
-  T0 -->|Separate checkpoint / backup heartbeats| Watchdog
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Log control
-  class Pipeline boundary
-  class NAS,Recovery,Pull,Kit custody
-  class Local,Chunks,Snapshots,Copy data
-  class P2,P1,Watchdog actor
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  class T2 tier2
-  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class Intake zoneControl
-```
-
-**IaC / Manual:** *Figure: The single-receiver NAS-retention selection from intake through independent recovery.
-Each tier retains producer ownership; NAS snapshots and external alerts have separate custodians.
-The recovery host pulls the archive read-only; the dashed link denotes that backup contract.*
 In **`<prefix>-tier-0/`**, [receiver VM inputs](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example),
 [receiver configuration](../../../tier-0/ansible/group_vars/syslog.yml.example) and the
 [receiver recipe](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) own `log-1` and local intake.
@@ -104,6 +49,29 @@ retain their separate selection and acceptance contracts.
 
 **Work on:** the Tier 0 receiver, the separate recovery host and an authorized evidence-reading path.
 **Prerequisites:** the accepted source catalogue, archive/backup schedule and external watchdog.
+
+<a id="figure-logging-health"></a>
+
+```mermaid
+sequenceDiagram
+  participant Archive as Checkpoint job
+  participant Backup as Independent backup job
+  participant NAS as NAS archive
+  participant Watchdog as External watchdog
+  Archive->>NAS: Publish completed checkpoint
+  Archive->>Watchdog: Checkpoint success ping
+  Backup->>NAS: Read and verify checkpoint with read-only access
+  NAS-->>Backup: Selected committed files
+  Backup->>Backup: Encrypted restic backup and repository check
+  Backup->>Watchdog: Backup success ping
+  Note over Archive,Watchdog: Independent schedules<br/>Pings do not certify NAS snapshots
+```
+
+**IaC / Integration:** *Figure: A successful checkpoint and backup send separate health pings.
+The backup validates its source and repository before reporting success.*
+The [checkpoint writer](../../../tier-0/ansible/roles/logging_archive/files/logging_checkpoint.py),
+[health check](../../../tier-0/ansible/roles/logging_archive/files/logging_health.py) and
+[backup job](../../../tier-0/ansible/roles/logging_backup/templates/backup.sh.j2) own these interactions.
 
 1. On the receiver, inspect the dedicated service and archive timer; the OS logger is separate:
 

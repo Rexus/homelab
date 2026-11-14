@@ -9,7 +9,7 @@ VLANs remain purpose-based; they do not need tier prefixes.
 ## Owners and impact
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581"}}}%%
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","fontFamily":"Arial, sans-serif","fontSize":"14px","edgeLabelBackground":"#f8fafc"},"fontFamily":"Arial, sans-serif"}}%%
 block-beta
   columns 1
   T2["Tier 2 / edge and workloads<br/>Owns workload resources and state"]

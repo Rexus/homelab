@@ -10,39 +10,38 @@ then choose exposure at Step 4 and collection at Step 5 before recovery.
 ## Expected outcome: bounded private application
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":10,"subGraphTitleMargin":{"top":6,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  Source["Existing approved application source"]
-  subgraph T2["Tier 2 / workload ownership"]
-    subgraph Cluster["Existing workload Kubernetes"]
-      subgraph Project["lab-demo / restricted namespace"]
-        direction TB
-        Route{{"lab-app / Ingress<br/>and ClusterIP"}}
-        Apps["lab-app / Deployment<br/>2 replicas"]
-        Policy["budget / quota<br/>default-deny / network policy<br/>application-reader / scoped RBAC"]
-        Route --> Apps
-        Apps ~~~ Policy
-      end
+  Source["Approved application source"]
+  subgraph T2["Tier 2"]
+    subgraph Cluster["Tier 2 Kubernetes / namespace lab-demo"]
+      Route{{"lab-app<br/>Ingress / ClusterIP"}}
+      Apps["lab-app / Deployment<br/>2 replicas"]
+      Policy["budget / quota<br/>Default-deny NetworkPolicy<br/>Scoped reader RBAC"]
+      Route --> Apps
+      Apps ~~~ Policy
     end
   end
-  Source -->|Approved image digest / operator recipe| T2
+  Source -. Approved digest / operator recipe .-> Apps
+  Source ~~~ T2
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
   class Source data
   class Apps services
-  class Project,Policy group
-  class Cluster kubernetes
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
   class Route traffic
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class Cluster kubernetes
   class T2 tier2
+  classDef policy fill:#f4dce9,stroke:#955076,color:#57253f,stroke-dasharray:3 3
+  class Policy policy
 ```
 
 **IaC:** *Figure: The private route reaches two restricted application replicas. Namespace quota, default-deny policy
-and reader RBAC are installed together; cluster and TLS ownership already exist.*
+and reader RBAC are installed together; cluster and TLS ownership already exist. This focused view omits the
+unchanged [workload network placement](README.md#figure-workload-runtimes).*
 Tier 2 [application recipe](../../../tier-2/ansible/playbooks/deployment/lab-environment.yml)
 and [inputs](../../../tier-2/ansible/group_vars/lab_environment.yml.example) render/apply
 the [native resources](../../../tier-2/ansible/roles/lab_environment/templates/environment.yml.j2).

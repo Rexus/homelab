@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720"
+     role="img" aria-labelledby="title description">
+  <title id="title">Cache services and update requests</title>
+  <desc id="description">Approved clients from Tier 0 and Tier 1 request the cache VIP from below Tier 2.
+    The VIP routes proxy requests to Cache Services on external_edge. Cache Services request approved
+    Internet sources or a configured upstream proxy to the left. Each cache instance uses its own local disk.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581"/>
+    </marker>
+    <style>
+      svg { font: 15px Arial, sans-serif; }
+      text { fill: currentColor; stroke: none; text-anchor: middle; }
+      .network { fill: #f4eded; stroke: #9b7378; color: #50383d; }
+      .tier2 { fill: #f6f3ef; stroke: #aca59b; color: #4b443c; }
+      .zoneEdge { fill: #fff0f3; stroke: #9b4d67; color: #502638; }
+      .deploymentGroup { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .boundary { fill: #eef2f6; stroke: #64748b; color: #1f2937; }
+      .edge { fill: #fce8ec; stroke: #9b4d67; color: #502638; }
+      .data { fill: #eeeafa; stroke: #78639b; color: #42325d; }
+      .actor { fill: #edf0f3; stroke: #697682; color: #293642; }
+      .traffic { fill: #303841; stroke: #8a9baa; color: #ffffff; }
+      .network, .tier0, .tier1, .tier2, .runtime, .control, .traffic, .data, .custody, .kubernetes, .actor, .boundary, .edge { stroke-dasharray: none; }
+      .connection { fill: none; stroke: #627581; stroke-width: 1.5; stroke-dasharray: none; marker-end: url(#arrow); }
+      .edge-label { fill: #1f2937; font-size: 13px; }
+      .mount { font-size: 12px; }
+    </style>
+  </defs>
+  <g id="T2" class="tier2">
+    <rect x="250" y="20" width="690" height="500"/>
+    <text x="595" y="43">Tier 2</text>
+    <g id="Edge" class="network">
+      <rect x="270" y="58" width="650" height="442"/>
+      <text x="595" y="81">Cache Edge Network / external_edge</text>
+      <g id="Pair" class="deploymentGroup">
+        <rect x="510" y="100" width="390" height="380"/>
+        <text x="705" y="123">Cache Services</text>
+        <g id="CacheA" class="boundary">
+          <rect x="530" y="145" width="350" height="140"/>
+          <text x="705" y="168">cache-1</text>
+          <g id="S1" class="edge">
+            <rect x="550" y="190" width="115" height="60"/>
+            <text x="607" y="214">Squid</text>
+            <text x="607" y="236">keepalived</text>
+          </g>
+          <g id="D1" class="data">
+            <path d="M730 194 C730 178 855 178 855 194 L855 250 C855 266 730 266 730 250 Z"/>
+            <path d="M730 194 C730 210 855 210 855 194" fill="none"/>
+            <text x="792" y="224">scsi1</text>
+            <text x="792" y="247" class="mount">/var/spool/squid</text>
+          </g>
+          <path class="connection" data-from="S1" data-to="D1" d="M665 220 L730 220"/>
+          <text x="697" y="208" class="edge-label">Cache I/O</text>
+        </g>
+        <g id="CacheB" class="boundary">
+          <rect x="530" y="320" width="350" height="140"/>
+          <text x="705" y="343">cache-2</text>
+          <g id="S2" class="edge">
+            <rect x="550" y="365" width="115" height="60"/>
+            <text x="607" y="389">Squid</text>
+            <text x="607" y="411">keepalived</text>
+          </g>
+          <g id="D2" class="data">
+            <path d="M730 369 C730 353 855 353 855 369 L855 425 C855 441 730 441 730 425 Z"/>
+            <path d="M730 369 C730 385 855 385 855 369" fill="none"/>
+            <text x="792" y="399">scsi1</text>
+            <text x="792" y="422" class="mount">/var/spool/squid</text>
+          </g>
+          <path class="connection" data-from="S2" data-to="D2" d="M665 395 L730 395"/>
+          <text x="697" y="383" class="edge-label">Cache I/O</text>
+        </g>
+      </g>
+      <g id="VIP" class="traffic">
+        <polygon points="335,355 465,355 480,390 465,425 335,425 320,390"/>
+        <text x="400" y="396">Cache VIP</text>
+      </g>
+      <path class="connection" data-from="VIP" data-to="Pair" d="M480 390 L495 390 L495 300 L510 300"/>
+      <text x="402" y="340" class="edge-label">Proxy requests</text>
+    </g>
+  </g>
+  <g id="Upstream" class="actor">
+    <rect x="20" y="160" width="195" height="100"/>
+    <text x="117" y="187">Approved Sources</text>
+    <text x="117" y="210">Internet or</text>
+    <text x="117" y="233">Upstream Proxy</text>
+  </g>
+  <g id="Consumers" class="actor">
+    <rect x="285" y="590" width="230" height="80"/>
+    <text x="400" y="620">Approved Update Clients</text>
+    <text x="400" y="645">Tier 0 / Tier 1</text>
+  </g>
+  <path class="connection" data-from="Pair" data-to="Upstream" d="M510 135 L295 135 L295 210 L215 210"/>
+  <text x="397" y="124" class="edge-label">Approved upstream requests</text>
+  <path class="connection" data-from="Consumers" data-to="VIP" d="M400 590 L400 425"/>
+  <rect x="423" y="540" width="170" height="24" fill="#f8fafc" stroke="none"/>
+  <text x="508" y="556" class="edge-label">HTTP / HTTPS CONNECT</text>
+</svg>

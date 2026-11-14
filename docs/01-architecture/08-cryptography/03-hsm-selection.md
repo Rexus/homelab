@@ -27,19 +27,19 @@ dependencies. Application-state backups accompany the selected key-recovery meth
 ### A: Software
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / platform key protection"]
+  subgraph T0["Tier 0"]
     direction TB
-    subgraph Host["Authorized service host"]
+    subgraph Runtime["Authorized service runtime"]
       direction LR
       Service["Issuer / signing service"]
       Provider["Software key store<br/>or software provider"]
       Service -->|Key operation| Provider
     end
     Recovery["Offline recovery custody<br/>Independently held backups<br/>Not an online root CA"]
-    Host ~~~ Recovery
-    Recovery -. Authorized restore .-> Host
+    Runtime ~~~ Recovery
+    Recovery -. Authorized restore .-> Runtime
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
@@ -48,7 +48,7 @@ flowchart TB
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class T0 tier0
-  class Host runtime
+  class Runtime runtime
   class Service control
   class Provider data
   class Recovery custody
@@ -63,9 +63,9 @@ hardware isolation. [1]
 ### B: Single USB
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / platform key protection"]
+  subgraph T0["Tier 0"]
     direction TB
     subgraph Connected["Single local USB path"]
       direction LR
@@ -82,7 +82,7 @@ flowchart TB
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class T0 tier0
@@ -101,9 +101,9 @@ application state, not on the presence of a replacement device alone. [2][3]
 ### C: Replicated USB gateways
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / replicated USB service"]
+  subgraph T0["Tier 0"]
     direction TB
     subgraph Providers["Provider members / qualified application failover"]
       direction TB
@@ -128,8 +128,8 @@ flowchart TB
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class T0 tier0
   class Providers replicas
@@ -153,25 +153,25 @@ family unless cross-vendor transfer and recovery have been separately verified.
 ### D: Network HSM
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / network key service"]
+  subgraph T0["Tier 0"]
     direction TB
     subgraph Connected["Authorized online key path"]
       direction LR
-      subgraph Host["Authorized service host"]
+      subgraph Runtime["Authorized service runtime"]
         direction TB
         Service["Issuer / signing service"]
         Client["Vendor client"]
         Service -->|Key operation| Client
       end
-      subgraph Appliances["Selected partitions / optional vendor HA"]
+      subgraph Appliances["HSM Partitions"]
         direction TB
         PartitionA["Selected HSM partition"]
         PartitionB["Optional vendor HA member"]
         PartitionA ~~~ PartitionB
       end
-      Host -->|Vendor client access| Appliances
+      Runtime -->|Vendor client access| Appliances
     end
     Recovery["Offline recovery custody<br/>Backups and domain material"]
     Connected ~~~ Recovery
@@ -179,14 +179,14 @@ flowchart TB
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class T0 tier0
   class Connected group
-  class Host runtime
+  class Runtime runtime
   class Appliances replicas
   class Service,Client control
   class PartitionA,PartitionB,Recovery custody

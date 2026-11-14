@@ -11,14 +11,14 @@ contracts, even when they use the same hardware.
 ## Shared interfaces
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Clients["Explicitly authorized consumers<br/>Issuer, application or development signer"]
-  subgraph T0["Tier 0 / optional shared custody"]
+  subgraph T0["Tier 0"]
     direction TB
-    subgraph Connected["Connected services"]
+    subgraph Connected["Services"]
       direction LR
-      subgraph API["Optional signing API runtime"]
+      subgraph API["Signing API"]
         direction TB
         Policy["Authentication, key policy<br/>and audit"]
         State[("Signing API state")]
@@ -40,22 +40,23 @@ flowchart LR
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class T0 tier0
-  class Connected boundary
   class API,ProviderA,ProviderB runtime
   class Pool replicas
   class Policy control
   class Custody custody
   class State data
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Connected group
 ```
 
 *Figure: The consumer link selects the signing API or direct PKCS#11 access to a pinned device host.
-The API uses a selected pool member; the dashed group is qualified application failover, not a shared
-host or automatic key replication. Device backups remain separate from signing-API state.*
+The API selects a pool member for qualified application failover. Each device retains its own keys.
+Device backups remain separate from signing-API state.*
 
 Read the figure as two consumer contracts. A trusted application can own the
 PKCS#11 sessions and policy itself, or use a signing API that checks identity,
@@ -128,7 +129,7 @@ sequenceDiagram
     Token-->>Host: Signature or explicit error
     Host-->>API: Operation result
     API-->>App: Result with key/version identity
-    Note over App,Token: Direct PKCS#35;11 consumers perform application-side checks themselves
+    Note over App,Token: Direct PKCS#35;11 consumers perform<br/>application-side checks themselves
   end
 ```
 

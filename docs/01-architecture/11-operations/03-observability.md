@@ -9,66 +9,12 @@ for accountability, investigation and recovery. Its primary purpose is traceabil
 distributed tracing instead follows requests through services. Tier 1 observability
 does not replace that evidence or acquire Tier 0 administrative authority.
 
-## Table of contents
-
-- [Flow and interfaces](#flow-and-interfaces)
-- [Components and placement](#components-and-placement)
-- [Infrastructure coverage](#infrastructure-coverage)
-- [Independent scaling](#independent-scaling)
-- [Availability and recovery](#availability-and-recovery)
-- [Read boundaries](#read-boundaries)
-- [Realization](#realization)
-- [References](#references)
-
 ## Flow and interfaces
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T2["Tier 2 / applications"]
-    Apps["Application logs / metrics / traces"]
-  end
-  subgraph T1["Tier 1 / Observability"]
-    direction TB
-    subgraph Cluster["Platform Kubernetes / separate workloads"]
-      direction LR
-      Gateway["Telemetry gateways"]
-      Metrics["Metrics backend<br/>Metrics query UI"]
-      Search["Log / trace search<br/>Analysis UI"]
-      Diagnostics["Live platform / workload diagnostics"]
-      Gateway -->|Metrics| Metrics
-      Gateway -->|Application logs / traces| Search
-      Diagnostics ~~~ Gateway
-    end
-  end
-  subgraph T0["Tier 0 / Security Logging and Audit"]
-    direction LR
-    Evidence["Protected log intake / archive<br/>Restricted original evidence"]
-    Critical["Independent health / alerts"]
-    Evidence ~~~ Critical
-  end
-  T2 -->|OTLP / approved telemetry| T1
-  T2 -->|Security / audit submissions| T0
-  T1 -->|Security / audit submissions| T0
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Evidence,Critical control
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  class Cluster kubernetes
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
-  class Gateway traffic
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  class T2 tier2
-```
+![Telemetry analysis and protected evidence placement](../../08-reference/diagrams/observability-capabilities.svg)
 
-*Figure: Application telemetry feeds Tier 1 metrics and search, while security and audit submissions go to
-Tier 0.*
+*Figure: Tier 1 hosts routine telemetry analysis and live diagnostics. Tier 0 keeps protected original
+evidence and independent health; the request sequence below separates these submission paths.*
 
 Applications and tier-local agents submit approved telemetry to gateways using the
 OpenTelemetry Protocol (OTLP). Separate pipelines route metrics to metrics storage
@@ -77,18 +23,38 @@ service/resource identity, timestamps and request/trace IDs; it does not require
 unrestricted database-to-database access. OTLP does not imply that every backend
 accepts the same protocol. [1][2]
 
+```mermaid
+sequenceDiagram
+  participant Producers as Tier-local applications and agents
+  participant Gateway as Telemetry gateways
+  participant Metrics as Metrics backend
+  participant Search as Log and trace ingestion
+  participant Evidence as Protected evidence intake
+  par Approved telemetry
+    Producers->>Gateway: Authenticated OTLP signals
+    Gateway->>Metrics: Metrics pipeline / selected backend protocol
+    Gateway->>Search: Log and trace processing pipeline
+  and Security and audit
+    Producers->>Evidence: Authenticated security records
+  end
+  Note over Gateway,Search: Diagnostic streaming is a separate interface
+```
+
+*Figure: Approved telemetry and protected security records take separate routes. This logical
+view groups consumers from every tier; each receiving interface enforces its own contract.*
+
 Critical syslog and audit submissions from every tier go directly to Tier 0; there is no
 second Tier 1 critical-syslog service. The smaller view below follows an approved
 search copy across that boundary. Search copies cannot be edited back into the
 original archive. [Security logging](01-protected-logging.md) owns that contract.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart BT
-  subgraph T1["Tier 1 / Observability"]
+  subgraph T1["Tier 1"]
     Search["Scoped log search"]
   end
-  subgraph T0["Tier 0 / original evidence and export authority"]
+  subgraph T0["Tier 0"]
     direction RL
     Original[("Original evidence")]
     Projection["Approved projection<br/>Permitted sources / fields"]
@@ -116,6 +82,17 @@ The Tier 0 [projection writer](../../../tier-0/ansible/roles/logging_archive/fil
 and [export role](../../../tier-0/ansible/roles/logging_export/tasks/main.yml) implement
 source-side selection. The Tier 1 [pipeline template](../../../tier-1/ansible/roles/observability_platform/templates/collector-config.yml.j2)
 keeps application signals and approved security projections in separate scopes.
+
+## Table of contents
+
+- [Flow and interfaces](#flow-and-interfaces)
+- [Components and placement](#components-and-placement)
+- [Infrastructure coverage](#infrastructure-coverage)
+- [Independent scaling](#independent-scaling)
+- [Availability and recovery](#availability-and-recovery)
+- [Read boundaries](#read-boundaries)
+- [Realization](#realization)
+- [References](#references)
 
 ## Components and placement
 

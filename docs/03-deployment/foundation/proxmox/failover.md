@@ -12,9 +12,9 @@ by Terraform. Prove the behavior with disposable guests before testing identity.
 <a id="figure-1-selected-placement-before-failure"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / Control - before failure"]
+  subgraph T0["Tier 0"]
     direction TB
     subgraph P1["Proxmox pve01"]
       A["idm-1<br/>Running directory<br/>primary"]
@@ -74,9 +74,9 @@ after safe fencing; no new directory instance is created.
 <a id="figure-2-placement-after-safe-ha-recovery"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / Control - after safe HA recovery"]
+  subgraph T0["Tier 0"]
     direction TB
     subgraph P1["Proxmox pve01"]
       Failed["Failed / fenced host<br/>Original idm-1<br/>is not running"]

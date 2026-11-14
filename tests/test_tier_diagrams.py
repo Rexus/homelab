@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 import unittest
+import xml.etree.ElementTree as ET
 
 import yaml
 
@@ -11,10 +12,36 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
 PALETTE = "08-reference/diagrams/palette.json"
+IDENTITY_SVG = UPSTREAM / "docs/08-reference/diagrams/identity-operations.svg"
+CACHE_SVG = UPSTREAM / "docs/08-reference/diagrams/cache-services.svg"
+LOGGING_SVG = UPSTREAM / "docs/08-reference/diagrams/protected-logging.svg"
+LAB_SVG = UPSTREAM / "docs/08-reference/diagrams/lab-ownership.svg"
+INTAKE_SVG = UPSTREAM / "docs/08-reference/diagrams/verified-intake-placement.svg"
+SUPPLY_SVG = UPSTREAM / "docs/08-reference/diagrams/software-intake-context.svg"
+SECRETS_SVG = UPSTREAM / "docs/08-reference/diagrams/secrets-context.svg"
+BACKUP_SVG = UPSTREAM / "docs/08-reference/diagrams/backup-recovery-context.svg"
+CRYPTO_SVG = UPSTREAM / "docs/08-reference/diagrams/cryptography-operations.svg"
+CA_SVG = UPSTREAM / "docs/08-reference/diagrams/certificate-authority-operations.svg"
+RUNNER_SVG = UPSTREAM / "docs/08-reference/diagrams/infrastructure-runner-placement.svg"
+TELEMETRY_SVG = UPSTREAM / "docs/08-reference/diagrams/workload-telemetry-placement.svg"
+REFERENCE_SVG = UPSTREAM / "docs/08-reference/diagrams/reference-platform-placement.svg"
+RUNTIME_SVG = UPSTREAM / "docs/08-reference/diagrams/hosting-runtime-placement.svg"
+OBSERVABILITY_SVG = UPSTREAM / "docs/08-reference/diagrams/observability-capabilities.svg"
+CONTROL_SVG = UPSTREAM / "docs/08-reference/diagrams/control-applications-placement.svg"
+OBSERVABILITY_OPERATIONS_SVG = UPSTREAM / "docs/08-reference/diagrams/observability-operations.svg"
+PLACEMENT_SVGS = (IDENTITY_SVG, CACHE_SVG, LOGGING_SVG, LAB_SVG, INTAKE_SVG, SUPPLY_SVG, SECRETS_SVG,
+                  BACKUP_SVG, CRYPTO_SVG, CA_SVG, RUNNER_SVG, TELEMETRY_SVG, REFERENCE_SVG,
+                  RUNTIME_SVG, OBSERVABILITY_SVG, CONTROL_SVG, OBSERVABILITY_OPERATIONS_SVG)
+FIGURES = re.compile(r"```mermaid\n(.*?)```|!\[[^\]]+\]\(([^)#]+\.svg)\)", re.DOTALL)
 
 
 def diagrams(document):
     return re.findall(r"```mermaid\n(.*?)```", document.read_text(encoding="utf-8"), re.DOTALL)
+
+
+def figure_sources(document):
+    return [match[1] if match[1] is not None else (document.parent / match[2]).read_text(encoding="utf-8")
+            for match in FIGURES.finditer(document.read_text(encoding="utf-8"))]
 
 
 def luminance(colour):
@@ -30,29 +57,72 @@ def contrast(first, second):
 
 
 class DiagramConventions(TierRepositoryTestCase):
+    def test_capability_overviews_show_their_result_before_task_navigation(self):
+        for folder in ('10-delivery', '11-operations'):
+            for page in (UPSTREAM / 'docs/01-architecture' / folder).glob('*.md'):
+                source = page.read_text()
+                figure = FIGURES.search(source)
+                contents = re.search(r'^## (?:Table of contents|Contents)', source, re.M)
+                if figure and contents:
+                    self.assertLess(figure.start(), contents.start(), str(page))
+
+    def test_figures_do_not_silently_override_component_labels(self):
+        for document in (UPSTREAM / 'docs').rglob('*.md'):
+            for code in diagrams(document):
+                labels = {}
+                for name, label in re.findall(r'\b([A-Za-z_]\w*)\s*(?:\[\(|\{\{|\[|\{)\s*"([^"\n]+)"', code):
+                    if name in labels:
+                        self.assertEqual(labels[name], label, f'{document}: conflicting label for {name}')
+                    labels[name] = label
+
     def test_colour_roles_separate_ownership_runtime_traffic_and_custody(self):
         roles = json.loads((UPSTREAM / "docs" / PALETTE).read_text())["roles"]
         distinct = ("tier0", "tier1", "tier2", "zoneEdge", "zoneServices", "zoneControl",
-                    "kubernetes", "traffic", "action", "group", "data", "custody")
+                    "kubernetes", "network", "traffic", "policy", "action", "group", "data", "custody")
         self.assertEqual(len({roles[name]["fill"] for name in distinct}), len(distinct))
         self.assertEqual(roles["data"]["fill"], "#eeeafa")
         self.assertEqual(roles["custody"]["fill"], "#fff2d1")
         self.assertEqual(roles["group"]["fill"], roles["replicas"]["fill"])
-        self.assertNotIn("stroke-dasharray", roles["group"])
-        self.assertIn("stroke-dasharray", roles["replicas"])
+        for name in ("group", "deploymentGroup", "replicas"):
+            self.assertEqual(roles[name]["stroke-dasharray"], "2 3")
+        self.assertNotIn("stroke-dasharray", roles["network"])
+        self.assertEqual(roles["traffic"]["fill"], "#303841")
         for light, medium, strong in (("tier2", "tier1", "tier0"),
                                       ("zoneEdge", "zoneServices", "zoneControl")):
             self.assertGreater(luminance(roles[light]["fill"]), luminance(roles[medium]["fill"]))
             self.assertGreater(luminance(roles[medium]["fill"]), luminance(roles[strong]["fill"]))
-        identity = diagrams(UPSTREAM / "docs/05-operations/04-identity.md")[0]
-        for node, role in (("T0", "tier0"), ("Cluster", "kubernetes"), ("Ingress", "traffic"),
-                           ("Pair", "replicas"), ("Data", "data"), ("Recovery", "custody")):
-            self.assertRegex(identity, rf"(?m)^  class [\w,]*\b{node}\b[\w,]* {role}$")
+        identity = ET.parse(IDENTITY_SVG).getroot()
+        nodes = {element.get('id'): element for element in identity.iter() if element.get('id')}
+        for node, role in (("T0", "tier0"), ("Cluster", "kubernetes"), ("Directory", "network"), ("Ingress", "traffic"),
+                           ("NetworkRule", "policy"), ("Pair", "replicas"), ("Data", "data"),
+                           ("Recovery", "custody")):
+            self.assertEqual(nodes[node].get('class'), role)
+        for asset in PLACEMENT_SVGS:
+            for selectors, declarations in re.findall(r'(?m)^\s*(\.[\w., ]+)\s*\{([^}]+)\}', asset.read_text()):
+                if ',' in selectors:
+                    self.assertNotRegex(declarations, r'(?<![\w-])(?:fill|stroke|color):',
+                                        f'{asset}: shared resets must preserve semantic colours')
+            for role, declarations in re.findall(r'(?m)^\s*\.([\w]+)\s*\{([^}]+)\}', asset.read_text()):
+                if role in roles:
+                    actual = dict(item.strip().split(':', 1) for item in declarations.split(';') if item.strip())
+                    self.assertEqual({key: value.strip() for key, value in actual.items()}, roles[role])
         for document in (UPSTREAM / "docs").rglob("*.md"):
             for code in diagrams(document):
-                for node, tier in re.findall(r'subgraph (\w+)\["Tier ([012]) /', code):
-                    self.assertRegex(code, rf"(?m)^  class [\w,]*\b{node}\b[\w,]* tier{tier}$",
-                                     f"{document}: {node}")
+                boundaries = dict(re.findall(r'(?:subgraph\s+|block:)(\w+)\["([^"\n]+)"\]', code))
+                for node, label in boundaries.items():
+                    if re.search(r'\bnetwork(?:\s*/|$)|\bsubnet\b', label, re.I) and 'Kubernetes' not in label:
+                        self.assertRegex(code, rf'(?m)^  class [\w,]*\b{node}\b[\w,]* network$',
+                                         f'{document}: use the shared network palette')
+                for names, tier in re.findall(r'(?m)^  class ([\w,]+) tier([012])$', code):
+                    for node in names.split(','):
+                        if node in boundaries:
+                            label = boundaries[node].strip()
+                            if not label:
+                                heading = re.search(rf'\b{node}Title\["([^"\n]+)"\]', code)
+                                self.assertIsNotNone(heading, f"{document}: name the tier boundary")
+                                label = heading[1]
+                            self.assertEqual(label, f'Tier {tier}',
+                                             f"{document}: keep tier boundary titles to the tier name")
                 for node, tier in re.findall(r'\b(T([012]))\["Tier [012]\b', code):
                     self.assertRegex(code, rf"(?m)^  class [\w,]*\b{node}\b[\w,]* tier{tier}$",
                                      f"{document}: tier colour also applies to compact block labels")
@@ -63,7 +133,10 @@ class DiagramConventions(TierRepositoryTestCase):
                  UPSTREAM / "scripts/tier-repos/templates")
         for root in roots:
             for document in root.rglob("*.md"):
-                for code in diagrams(document):
+                # The allocation reference deliberately illustrates the VMID format.
+                if document.name == "vmid-convention.md":
+                    continue
+                for code in figure_sources(document):
                     self.assertNotRegex(code, r"(?i)\b(?:vm[ _-]?id|guest[ _-]?id)\b", str(document))
                     self.assertNotRegex(code, r"(?i)\bvm:\d+\b", str(document))
                     self.assertNotRegex(code, r"\b\d+(?:\.\d+){3}(?:/\d+)?\b", str(document))
@@ -89,6 +162,8 @@ class DiagramConventions(TierRepositoryTestCase):
         generated = self.root / "verify-architecture/docs/auto-docs"
         palette = json.loads((source / PALETTE).read_text())
         self.assertEqual((source / PALETTE).read_bytes(), (generated / PALETTE).read_bytes())
+        for asset in PLACEMENT_SVGS:
+            self.assertEqual(asset.read_bytes(), (generated / asset.relative_to(source)).read_bytes())
         checked = 0
         for document in source.rglob("*.md"):
             blocks = diagrams(document)
@@ -98,20 +173,26 @@ class DiagramConventions(TierRepositoryTestCase):
                     continue
                 definitions = dict(re.findall(r"(?m)^  classDef (\w+) (.+)$", code))
                 self.assertIn("default", definitions, str(document))
-                self.assertNotRegex(code, r"(?m)^\s*(?:style|linkStyle)\s", str(document))
+                layout_styles = re.findall(r'(?m)^\s*(?:style|linkStyle)\s[^\n]*', code)
+                for style in layout_styles:
+                    self.assertEqual(style.strip(), 'style Layout fill:none,stroke:none', str(document))
+                    self.assertIn('subgraph Layout[" "]', code, str(document))
                 for role, declarations in definitions.items():
                     self.assertIn(role, palette["roles"], str(document))
                     actual = dict(item.split(":", 1) for item in declarations.split(","))
                     self.assertEqual(actual, palette["roles"][role], f"{document}: {role}")
                 for role in re.findall(r"(?m)^  class [\w,]+ (\w+)$", code):
                     self.assertIn(role, definitions, str(document))
-                if "flowchart" in code:
-                    initializer = re.search(r"%%\{init: (.+)\}%%", code)
-                    config = json.loads(initializer[1])
-                    self.assertEqual(config["theme"], "base")
-                    self.assertEqual(config["themeVariables"]["lineColor"], palette["links"]["stroke"])
-                    self.assertEqual(config["themeVariables"]["edgeLabelBackground"],
-                                     palette["links"]["labelBackground"])
+                initializer = re.search(r"%%\{init: (.+)\}%%", code)
+                self.assertIsNotNone(initializer, str(document))
+                config = json.loads(initializer[1])
+                self.assertEqual(config["theme"], "base")
+                self.assertEqual(config['fontFamily'], 'Arial, sans-serif')
+                self.assertEqual(config['themeVariables']['fontFamily'], config['fontFamily'])
+                self.assertEqual(config['themeVariables']['fontSize'], '14px')
+                self.assertEqual(config["themeVariables"]["lineColor"], palette["links"]["stroke"])
+                self.assertEqual(config["themeVariables"]["edgeLabelBackground"],
+                                 palette["links"]["labelBackground"])
                 checked += 1
         self.assertGreater(checked, 50)
 
@@ -145,22 +226,27 @@ class DiagramConventions(TierRepositoryTestCase):
         overview = diagrams(root / "README.md")
         layers = diagrams(root / "05-networking/README.md")[0]
         for code in (overview[0], diagrams(root / "02-organization/01-tier-ownership.md")[0],
-                     diagrams(root / "04-hosting/03-kubernetes.md")[0],
-                     diagrams(root / "04-hosting/01-runtime.md")[0]):
+                     diagrams(root / "04-hosting/03-kubernetes.md")[0]):
             self.assertRegex(code, r"(?m)^(?:block-beta|flowchart TB)$")
             order = [re.search(rf'\bT{tier}(?:\[|\n)', code).start() for tier in (2, 1, 0)]
             self.assertEqual(order, sorted(order))
             self.assertNotIn("-->", code)
             self.assertNotIn("---", code)
+        namespace = {'svg': 'http://www.w3.org/2000/svg'}
+        runtime = ET.parse(RUNTIME_SVG).getroot()
+        nodes = {node.get('id'): node for node in runtime.iter() if node.get('id')}
+        rows = [nodes[f'T{tier}'].find('svg:rect', namespace) for tier in (2, 1, 0)]
+        for upper, lower in zip(rows, rows[1:]):
+            self.assertLess(float(upper.get('y')) + float(upper.get('height')), float(lower.get('y')))
+        self.assertFalse(runtime.findall('.//svg:path[@data-from]', namespace))
         self.assertLess(layers.index('Edge["'), layers.index('Application["'))
         self.assertLess(layers.index('Application["'), layers.index('Control["'))
         identity = diagrams(root / "09-identity/README.md")[0]
-        self.assertIn('subgraph T0["Tier 0 / Control layer"]', identity)
-        self.assertIn("T2 ~~~ T1", identity)
-        self.assertIn("T1 -->|OIDC to the IdP| T0", identity)
+        self.assertIn('subgraph T0["Tier 0"]', identity)
+        self.assertIn("Consumers -->|OIDC sign-in| Ingress", identity)
         self.assertIn("class Cluster kubernetes", identity)
         self.assertLess(identity.index('subgraph Cluster['), identity.index('subgraph Directory['))
-        self.assertIn("Cluster -->|Protected LDAP federation| Directory", identity)
+        self.assertIn("IdPNamespace -->|LDAPS| Directory", identity)
 
     def test_domain_views_group_authority_and_separate_offline_custody(self):
         root = UPSTREAM / "docs/01-architecture"
@@ -188,12 +274,17 @@ class DiagramConventions(TierRepositoryTestCase):
                     continue  # Request timelines do not repeat the complete custody placement map.
                 self.assertIn('subgraph T0[', code, name)
                 self.assertRegex(code, r'(?i)offline (?:recovery|backup) custody', name)
-        telemetry = diagrams(root / "11-operations/03-observability.md")[0]
-        for tier in (2, 1):
-            self.assertIn(f"T{tier} -->|Security / audit submissions| T0", telemetry)
-        self.assertIn('subgraph T0["Tier 0 / Security Logging and Audit"]', telemetry)
-        self.assertIn('Critical["Independent health / alerts"]', telemetry)
-        self.assertIn('subgraph Cluster["Platform Kubernetes / separate workloads"]', telemetry)
+        namespace = {'svg': 'http://www.w3.org/2000/svg'}
+        telemetry = ET.parse(OBSERVABILITY_SVG).getroot()
+        nodes = {node.get('id'): node for node in telemetry.iter() if node.get('id')}
+        parents = {child: parent for parent in telemetry.iter() for child in parent}
+        self.assertIs(parents[nodes['Evidence']], nodes['T0'])
+        self.assertIs(parents[nodes['Critical']], nodes['T0'])
+        self.assertIs(parents[nodes['Cluster']], nodes['T1'])
+        sequence = next(code for code in diagrams(root / '11-operations/03-observability.md')
+                        if 'participant Evidence as Protected evidence intake' in code)
+        self.assertIn('Producers->>Evidence: Authenticated security records', sequence)
+        self.assertIn('Producers->>Gateway: Authenticated OTLP signals', sequence)
         retention = diagrams(root / "11-operations/02-log-retention.md")[0]
         self.assertIn('subgraph T0["', retention)
         self.assertIn("Intake -->|Verified checkpoints| Protection", retention)
@@ -225,31 +316,25 @@ class DiagramConventions(TierRepositoryTestCase):
         hardware = (tier / "terraform/deployments/syslog/terraform.tfvars.example").read_text()
         self.assertIn(f'  "{guest}" = {{', hardware)
         defaults = yaml.safe_load((tier / "ansible/roles/syslog_ng/defaults/main.yml").read_text())
-        steps = diagrams(root / "README.md")
+        steps = figure_sources(root / "README.md")
         self.assertEqual(len(steps), 3)
         archive, provisioning, collection = steps
-        for code in steps:
+        self.assertEqual(archive, LOGGING_SVG.read_text())
+        for code in (provisioning, collection):
             self.assertIn("flowchart", code)
             self.assertIn('subgraph T0["', code)
-            self.assertIn('Tier 0 / Control layer', code)
-            self.assertIn('subgraph PVE["', code)
-            self.assertIn(f'VM["{guest}<br/>', code)
-            self.assertLess(code.index('subgraph T0['), code.index('subgraph PVE['))
-            self.assertLess(code.index('subgraph PVE['), code.index(f'VM["{guest}<br/>'))
+            self.assertIn('Tier 0', code)
+            self.assertIn(guest, code)
             self.assertNotRegex(code, r'(?m)^\s*space(?::\d+)?(?:\s|$)')
         self.assertIn("Guarded filesystem<br/>UUID mount", provisioning)
         self.assertIn('interface     = "scsi1"', hardware)
         self.assertIn('scsi1 / local data disk', provisioning)
+        self.assertIn('subgraph PVE["Proxmox Host"]', provisioning)
+        for code in (collection,):
+            self.assertIn('subgraph Network["Management Network / management"]', code)
+            self.assertNotIn('subgraph PVE[', code)
         self.assertIn(f'TLS {defaults["syslog_ng_tls_port"]}', collection)
         self.assertNotIn("log-2", provisioning)
-        self.assertIn('subgraph NAS["', archive)
-        self.assertIn('Existing NAS / independent custody', archive)
-        self.assertIn('subgraph Recovery["', archive)
-        self.assertIn('Existing Tier 0 recovery host', archive)
-        self.assertLess(archive.index('subgraph T1['), archive.index('subgraph T0['))
-        self.assertLess(archive.index('subgraph T0['), archive.index('subgraph Recovery['))
-        self.assertIn('    subgraph Recovery[', archive)
-        self.assertIn('Placement -->|Read-only NAS archive pull| Recovery', archive)
         redundant = diagrams(root / "step-14b-redundant-intake.md")[0]
         self.assertIn('subgraph PVE1["', redundant)
         self.assertIn('subgraph PVE2["', redundant)
@@ -264,27 +349,39 @@ class DiagramConventions(TierRepositoryTestCase):
     def test_directory_peers_stack_and_issuers_remain_foundational(self):
         root = UPSTREAM / "docs"
         identity = diagrams(root / "01-architecture/09-identity/README.md")[0]
-        self.assertIn('subgraph Directory["Directory authority / identity network"]\n      direction TB', identity)
-        self.assertIn('Primary["Directory primary"] <--> Replica["Directory replica"]', identity)
-        self.assertIn('class IdP,DirectoryGroup replicas', identity)
+        self.assertIn('subgraph Directory["Identity Network / identity"]', identity)
+        self.assertIn('Primary["Directory primary"]', identity)
+        self.assertIn('Replica["Directory replica"]', identity)
+        self.assertIn('Primary <-->|Replication| Replica', identity)
+        self.assertIn('class Pair replicas', identity)
         self.assertIn('Ingress{{"HTTPS sign-in', identity)
         trust = diagrams(root / "03-deployment/stage-3-trust/README.md")[0]
         self.assertLess(trust.index('subgraph Identity['), trust.index('subgraph Crypto['))
         self.assertIn('Identity ~~~ Crypto', trust)
         directory = diagrams(root / "03-deployment/stage-5-identity/README.md")[0]
-        self.assertIn('subgraph PVE["Existing Proxmox hosts"]\n      direction LR', directory)
-        self.assertIn('Identity ~~~ ExistingCA', directory)
-        control = diagrams(root / "03-deployment/stage-6-secrets/README.md")[0]
-        self.assertIn('Identity ~~~ Log ~~~ Issuer', control)
-        self.assertIn('idm-1 / idm-2<br/>FreeIPA pair', control)
-        federation = diagrams(root / "03-deployment/stage-5-identity/README.md")[1]
-        self.assertIn('Primary <-->|Replication| Replica', federation)
+        self.assertIn('subgraph Identity["Identity Network / identity"]', directory)
+        self.assertIn('subgraph Crypto["Cryptography Network / cryptography"]', directory)
+        self.assertIn('Identity ~~~ Crypto', directory)
+        namespace = {'svg': 'http://www.w3.org/2000/svg'}
+        control = ET.parse(CONTROL_SVG).getroot()
+        nodes = {node.get('id'): node for node in control.iter() if node.get('id')}
+        heights = [float(nodes[name].find('svg:rect', namespace).get('y'))
+                   for name in ('IdentityNetwork', 'ManagementNetwork', 'CryptoNetwork')]
+        self.assertEqual(heights, sorted(heights))
+        self.assertIn('idm-1 / idm-2', ''.join(nodes['Identity'].itertext()))
+        federation = ET.fromstring(figure_sources(root / "03-deployment/stage-5-identity/README.md")[1])
+        replication = federation.find(".//{http://www.w3.org/2000/svg}path[@data-from='Primary'][@data-to='Replica']")
+        self.assertIn('bidirectional', replication.get('class').split())
 
     def test_queries_enter_from_readers_and_alerts_retain_real_flow(self):
         root = UPSTREAM / "docs"
-        access = diagrams(root / "03-deployment/stage-8-observability/README.md")[3]
-        self.assertIn('flowchart LR', access)
-        self.assertIn('Reader -->|Read-only queries| T1', access)
+        access = next(code for code in diagrams(root / "03-deployment/stage-8-observability/README.md")
+                      if 'participant Reader as Authorized reader' in code)
+        self.assertIn('sequenceDiagram', access)
+        for edge in ('Reader->>Search: Scoped log / trace query',
+                     'Reader->>Metrics: Read-only metric query',
+                     'Reader->>Diagnostics: Operational diagnostics'):
+            self.assertIn(edge, access)
         self.assertNotIn('Read-only results| Reader', access)
         alerts = diagrams(root / "03-deployment/stage-6-secrets/procedures/independent-monitoring.md")[2]
         self.assertIn('flowchart RL', alerts)
@@ -314,8 +411,9 @@ class DiagramConventions(TierRepositoryTestCase):
         }
         for filename, steps in expected.items():
             document = root / filename
-            captions = re.findall(r"```\s+\*\*IaC:\*\*(.*?)(?:\n\s*\n|$)",
-                                  document.read_text(), re.DOTALL)
+            source = document.read_text()
+            captions = [source[figure.end():].lstrip().split('\n\n', 1)[0]
+                        for figure in FIGURES.finditer(source)]
             self.assertEqual(len(captions), len(steps), filename)
             for caption, paths in zip(captions, steps):
                 for path in paths:

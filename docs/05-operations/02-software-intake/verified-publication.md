@@ -7,27 +7,22 @@ the [design](../../01-architecture/07-software-intake/01-verification.md) explai
 <a id="figure-reference-verified-publication"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  subgraph T1["Tier 1 / delivery_edge"]
-    subgraph PVE["Existing Proxmox host"]
+  subgraph T1["Tier 1"]
+    subgraph DMZ["Delivery Edge Network / delivery_edge"]
       subgraph VM["intake-1 / worker and publication VM"]
         direction LR
-        subgraph Services["Local services"]
-          direction TB
           Timer["intake.timer<br/>When enabled"]
           Job["intake.service<br/>Fetch / verify / ClamAV<br/>Gated publication"]
-          Web["Nginx<br/>Read-only HTTPS<br/>GET / HEAD"]
+          Web{{"Nginx / HTTPS listener<br/>GET / HEAD"}}
           Timer -->|Serialized run| Job
           Job ~~~ Web
-        end
-        subgraph Disks["Attached local storage"]
-          direction TB
           OS[("OS disk<br/>Policy / TLS<br/>Scanner definitions")]
           Data[("scsi1 / /srv/intake<br/>Private work / quarantine<br/>Approved versions / receipts")]
           OS ~~~ Data
-        end
-        Services -->|Scoped file access| Disks
+        Job -->|Read / write intake state| Data
+        Web -->|Read /public only| Data
       end
     end
   end
@@ -36,22 +31,29 @@ flowchart LR
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class VM,Timer,Job,Web services
-  class PVE runtime
+  class VM runtime
+  class Timer,Job services
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  class Web traffic
+  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
   class OS,Data data
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
-  class Services,Disks group
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
   class T1 tier1
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class DMZ network
 ```
 
-*Figure: IaC reference for the optional publication service. One VM owns acquisition, gating and HTTPS;
-storage is local, and Nginx can serve only approved public content. There is no redundant worker.*
+*Figure: IaC reference for the optional publication service on `delivery_edge`. One VM owns acquisition,
+gating, HTTPS and its attached local disks; Nginx can serve only approved public content.
+There is no redundant worker.*
 
 **Owner:** `<prefix>-tier-1`; [VM inputs](../../../tier-1/terraform/deployments/intake/terraform.tfvars.example),
 [policy inputs](../../../tier-1/ansible/group_vars/intake.yml.example),
 [installer](../../../tier-1/ansible/playbooks/deployment/intake.yml) and
 [worker runtime](../../../tier-1/ansible/roles/software_intake/files/runtime/intake.yml).
+The [Nginx configuration](../../../tier-1/ansible/roles/software_intake/templates/nginx.conf.j2)
+restricts reads to `/srv/intake/public`; private work and quarantine remain outside its document root.
 The [deployment interface view](../../03-deployment/stage-3-trust/step-15b-verified-intake.md#figure-1-verified-publication-and-consumers)
 locates existing supply and readers; trust, protected forwarding and independent backups retain their own owners.
 

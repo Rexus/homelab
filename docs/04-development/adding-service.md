@@ -107,9 +107,9 @@ are inherited through the existing [catalog/profile contract](../08-reference/pl
 `local` is a logical storage class, not necessarily the Proxmox datastore named `local`.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph Tier["Tier 2 / proposed extension, not applied"]
+  subgraph Tier["Tier 2"]
     direction TB
   Ansible["Inventory + IP map<br/>hosts.yml / lab.yml<br/>lab-2"]
   Hardware["Hardware map<br/>terraform.tfvars<br/>lab-2"]

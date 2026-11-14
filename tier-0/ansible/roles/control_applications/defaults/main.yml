@@ -43,6 +43,8 @@ control_applications_keycloak_replicas: 2
 control_applications_keycloak_configure: true
 control_applications_keycloak_auth: {}
 control_applications_ldap_url: ""
+control_applications_ldap_connection_timeout_ms: 5000
+control_applications_ldap_read_timeout_ms: 10000
 control_applications_ldap_users_dn: ""
 control_applications_ldap_groups_dn: ""
 control_applications_ldap_bind_dn: ""

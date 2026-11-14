@@ -10,34 +10,24 @@ can investigate raw evidence. Producers cannot read, edit or delete it.
 and distributed traces. Request tracing is not audit traceability, and searchable
 copies do not replace retained originals.
 
-## Table of contents
-
-- [Authority and flow](#authority-and-flow)
-- [Segmented access](#segmented-access)
-- [Offline-readable evidence](#offline-readable-evidence)
-- [Durability and availability](#durability-and-availability)
-- [Protected retention](#protected-retention)
-- [Realization](#realization)
-- [References](#references)
-
 ## Authority and flow
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T2["Tier 2 / workloads"]
+  subgraph T2["Tier 2"]
     direction LR
     Sources["Local producers<br/>Queued submissions"]
     Developer["Application owner<br/>Approved app view only"]
     Sources ~~~ Developer
   end
-  subgraph T1["Tier 1 / Observability"]
+  subgraph T1["Tier 1"]
     direction LR
     Search["Scoped searchable<br/>copies"]
     Query["Authorized queries<br/>No raw-evidence authority"]
     Query ~~~ Search
   end
-  subgraph T0["Tier 0 / Security Logging and Audit"]
+  subgraph T0["Tier 0"]
     direction LR
     Logging["Protected intake<br/>Original evidence"]
     Readers["Audited readers<br/>Producers submit only"]
@@ -83,6 +73,16 @@ follow this protected path. Application-log retention is selected per stream;
 approved developer copies can be published without granting raw-archive access.
 Operational logs, metrics and distributed traces use the separate [telemetry design](03-observability.md).
 Offline custody has no online logging route; authorized evidence transfer is a ceremony operation.
+
+## Table of contents
+
+- [Authority and flow](#authority-and-flow)
+- [Segmented access](#segmented-access)
+- [Offline-readable evidence](#offline-readable-evidence)
+- [Durability and availability](#durability-and-availability)
+- [Protected retention](#protected-retention)
+- [Realization](#realization)
+- [References](#references)
 
 ## Segmented access
 
@@ -156,7 +156,7 @@ sequenceDiagram
   participant Recovery as Independent backup host
   participant NAS as Independent NAS archive
   Producer->>Receiver: Submit authenticated records
-  Note over Producer,Receiver: Native queue releases on transport submission
+  Note over Producer,Receiver: Native queue releases<br/>on transport submission
   Receiver->>Receiver: Write portable local records / fsync
   Receiver->>NAS: Publish complete chunks and checkpoint
   NAS-->>Receiver: Filesystem write / flush returns
@@ -168,7 +168,7 @@ sequenceDiagram
     NAS-->>Recovery: Records, manifests and catalogue
     Recovery->>Recovery: Encrypted restic<br/>backup and check
   end
-  Note over NAS,Recovery: Protected acceptance covers only the required snapshot / copy
+  Note over NAS,Recovery: Protected acceptance covers only<br/>the required snapshot / copy
 ```
 
 *Figure: Sender release, local persistence, NAS publication and protected acceptance are

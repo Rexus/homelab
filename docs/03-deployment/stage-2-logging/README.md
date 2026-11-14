@@ -9,65 +9,14 @@ it does not own this Security Logging and Audit capability.
 
 ## Expected outcome
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart BT
-  subgraph T1["Tier 1 / later Stage 8"]
-    Search["Scoped analytics<br/>Approved copies only"]
-  end
-  subgraph T0["Tier 0 / Control layer"]
-    direction TB
-    subgraph Placement[" "]
-      direction LR
-      subgraph PVE["Existing Proxmox host"]
-        direction TB
-        VM["log-1<br/>Receiver / checkpoint job"]
-        Records[("Local data disk<br/>JSONL / queues")]
-        VM -->|Append| Records
-      end
-      subgraph NAS["Existing NAS / independent custody"]
-        direction TB
-        Evidence[("Create-only archive<br/>Chunks / manifests")]
-        Snapshots[("NAS-owned snapshots")]
-        Evidence --> Snapshots
-      end
-      PVE -->|SMB checkpoints| NAS
-    end
-    subgraph Recovery["Independent recovery / separate credentials"]
-      direction LR
-      Backup["Existing Tier 0 recovery host<br/>logging_recovery group"]
-      Copy[("Encrypted restic repository<br/>Independent storage")]
-      Offline["Offline inspection kit<br/>Separately held keys"]
-      Backup -->|Backup| Copy
-      Copy -->|Restore| Offline
-    end
-    Placement -->|Read-only NAS archive pull| Recovery
-  end
-  T0 -. "Later approved copies" .-> T1
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class PVE boundary
-  class VM control
-  class Placement controlHeading
-  class Records,Evidence,Snapshots,Copy data
-  class NAS,Recovery,Backup,Offline custody
-  class Search services
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
-  classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
-```
+![Protected logging retention and independent recovery](../../08-reference/diagrams/protected-logging.svg)
 
 **IaC:** **Figure 1: NAS retention and independent recovery.** The main retention choice adds NAS
 checkpoints and independent recovery to the local receiver. NAS accounts/snapshots and the recovery
 host are existing prerequisites; the archive and backup recipes configure their selected interfaces.
-[Archive implementation](../../../tier-0/ansible/playbooks/deployment/logging-archive.yml) ·
+The receiver's `management` attachment follows the [VM inputs](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example).
+The NAS and recovery boundaries identify independent custody, not extra networks or receiver disks.
+[Archive implementation](../../../tier-0/ansible/playbooks/deployment/logging-archive.yml) Â·
 [Backup implementation](../../../tier-0/ansible/playbooks/deployment/logging-backup.yml).
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`). Run commands from this root on the
@@ -82,16 +31,16 @@ Kubernetes, FreeIPA, Vault and Stage 3 PKI are not prerequisites.
 NAS checkpoints and independent backup recipes are supplied. NAS custody, device-native forwarding and live
 acceptance remain commissioning tasks; see [stage coverage](../../08-reference/implementation-support.md#stage-coverage).
 
-**Design:** [Protected logging](../../01-architecture/11-operations/01-protected-logging.md) ·
+**Design:** [Protected logging](../../01-architecture/11-operations/01-protected-logging.md) Â·
 **Operate:** [Protected logging operations](../../05-operations/06-resilience/protected-logging.md).
 
 ## Installation order
 
 | Actions | Result |
 | --- | --- |
-| [1–4: provision and prepare storage](#step-1-initialize-local-inputs) | VM, attached data disk and persistent UUID mount |
-| [5–9: prepare and approve identities](#step-5-configure-the-first-producer) | Receiver and producer certificates; no listener yet |
-| [10–12: install and test collection](#step-10-register-the-source-and-tls-inputs) | Authenticated first event in protected intake |
+| [1â€“4: provision and prepare storage](#step-1-initialize-local-inputs) | VM, attached data disk and persistent UUID mount |
+| [5â€“9: prepare and approve identities](#step-5-configure-the-first-producer) | Receiver and producer certificates; no listener yet |
+| [10â€“12: install and test collection](#step-10-register-the-source-and-tls-inputs) | Authenticated first event in protected intake |
 | [13: connect existing sources](#step-13-connect-the-existing-hosts-and-devices) | Explicit source coverage |
 | [14: select receiver topology](#step-14-select-the-receiver-topology) | One receiver, or the optional second receiver |
 | [15: select retained storage](#step-15-protect-retained-records) | NAS custody, or a qualified locked-storage integration |
@@ -153,14 +102,14 @@ installing filesystem tools; no guest repository edits are required.
 <a id="figure-2-log-host-and-local-storage"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  subgraph T0["Tier 0 / Control layer"]
+  subgraph T0["Tier 0"]
     direction LR
-    subgraph Infrastructure["Existing network devices"]
+    subgraph Infrastructure["Network Devices"]
       Devices["Gateway / switches<br/>Retain local logs"]
     end
-    subgraph PVE["Existing Proxmox host"]
+    subgraph PVE["Proxmox Host"]
       direction TB
       Host["Hypervisor logs<br/>Retain locally"]
       Template["Approved<br/>Linux template"]
@@ -171,23 +120,28 @@ flowchart LR
     end
     Infrastructure ~~~ PVE
   end
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Infrastructure,PVE boundary
+  class PVE boundary
   class Template,Data data
   class VM control
   class Devices,Host actor
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Infrastructure group
 ```
 
 **IaC:** **Figure 2: Log host and local storage.** Tier 0's [VM inputs](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example)
 and [inventory](../../../tier-0/ansible/inventory/hosts.yml.example)
 allocate `log-1` and `scsi1`; the [storage recipe](../../../tier-0/ansible/playbooks/deployment/logging-storage.yml)
 prepares the filesystem in Step 4. The template, Proxmox host and network already exist.
+The host boundary is retained here because the figure shows the local attachment of `scsi1`,
+not just the receiver's logical service placement.
 
 Run from **`<prefix>-tier-0/`**. Review Terraform's displayed plan and approve the intended resources.
 
@@ -429,55 +383,64 @@ they do not authorize authority initialization or request approval implicitly.
 <a id="figure-3-authenticated-source-collection"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
   Sources["Other approved producers<br/>Tier 1 / Tier 2 as added"]
-  subgraph T0[" "]
+  subgraph T0["Tier 0"]
     direction TB
-    T0Title["Tier 0 / Control layer"]
     %% Keep the heading above a content-sized placement group, independent of external links.
-    subgraph Placement[" "]
+    subgraph Layout[" "]
       direction LR
-      subgraph Infrastructure["Existing devices / access"]
+      subgraph Infrastructure["Network Access"]
         Devices["Gateway / switches<br/>Device-native export"]
-        Admin["Authorized security reader"]
       end
-      subgraph PVE["Proxmox host / management subnet"]
-        Host["Hypervisor OS / audit logs"]
-        VM["log-1<br/>syslog-ng / TLS 6514"]
-        Records[("Local data disk<br/>JSONL / delivery queues")]
+      subgraph Network["Management Network / management"]
+        Host["Existing Proxmox hosts<br/>OS / audit logs"]
+        subgraph Guest["log-1 / receiver VM"]
+          VM["syslog-ng / TLS 6514"]
+          Records[("Local data disk<br/>JSONL / delivery queues")]
+          VM --> Records
+        end
         Host -->|TLS| VM
-        VM --> Records
       end
       Devices -->|Approved export| VM
-      Admin -->|Read / audit| Records
-      Infrastructure ~~~ PVE
+      Infrastructure ~~~ Network
     end
-    T0Title ~~~ Placement
   end
-  Sources -->|Approved TLS intake| T0
+  Admin["Authorized security reader"]
+  Sources ~~~ Devices
+  Sources ~~~ Host
+  Admin ~~~ Devices
+  Admin ~~~ Host
+  Admin -->|Read / audit| Records
+  Sources -->|Approved TLS intake| VM
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Infrastructure,PVE boundary
+  class Guest boundary
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   class Sources,Devices,Host,Admin actor
   class VM control
-  class Placement controlHeading
+  style Layout fill:none,stroke:none
   class Records data
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
   classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
-  class T0Title tier0Heading
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Infrastructure group
+  class Network network
 ```
 
 **IaC:** **Figure 3: Authenticated source collection.** The
 [receiver recipe](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) installs intake;
 the [producer recipe](../../../tier-0/ansible/playbooks/deployment/logging-producers.yml) installs
 the selected sender in Step 12. [Shared's sender role](../../../shared/ansible/roles/log_forwarder/tasks/main.yml)
-owns execution code; each tier owns its inventory, keys and stream inputs.
+owns execution code; each tier owns its inventory, keys and stream inputs. External producers and
+authorized readers enter from the left; the arrows distinguish ingestion from read access.
 
 Run from **`<prefix>-tier-0/`**, with Step 10's environment:
 

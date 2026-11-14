@@ -6,31 +6,28 @@ These cold component copies are separate from GitLab Toolbox backups and applica
 <a id="figure-gitlab-component-backups"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":32,"padding":10,"wrappingWidth":350,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":32,"padding":10,"wrappingWidth":350,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T1["Tier 1 / GitLab data"]
-    subgraph VMs["Three existing data VMs / per-host recipe"]
-      direction RL
+  subgraph T1["Tier 1"]
+    direction TB
       Jobs["On each VM<br/>development-data-backup.timer<br/>development-data-backup.service"]
       Disks[("Live Proxmox/Ceph-backed disks<br/>db-1 / PostgreSQL<br/>kv-1 / Redis<br/>repo-1 / Gitaly")]
       Disks -->|Cold component copy| Jobs
-    end
   end
-  subgraph T0["Tier 0 / existing storage administration"]
+  subgraph T0["Tier 0"]
     direction LR
     NAS[("Existing NAS / dedicated exports<br/>Encrypted restic repositories")]
     PVE["Existing Proxmox/Ceph<br/>Live VM disk hosting"]
   end
-  VMs -->|Encrypted backup files| NAS
-  VMs -. Live disk hosting .-> PVE
+  Jobs -->|Encrypted backup files| NAS
+  Disks -. Live disk hosting .-> PVE
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class Jobs services
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
-  class VMs group
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class PVE control
   class Disks,NAS data
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e

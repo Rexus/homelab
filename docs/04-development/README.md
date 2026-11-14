@@ -3,13 +3,6 @@
 Start with the repository that owns the change. Follow its inputs, execution code
 and checks; use the [architecture](../01-architecture/README.md) when changing a design boundary.
 
-## Contents
-
-- [Which repository?](#which-repository)
-- [Where to edit](#where-to-edit)
-- [Fast change loop](#fast-change-loop)
-- [Exact references](#exact-references)
-
 ## Which repository?
 
 The upstream kit supplies reusable code and examples. A generated collection holds
@@ -17,7 +10,7 @@ the private implementation and project decisions. Paths inside each tier remain
 the same: upstream `tier-2/ansible/` becomes `<prefix>-tier-2/ansible/`.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
   Kit["Upstream kit<br/>Tier / Shared payloads, docs and templates"]
   Generator["Repository generator<br/>scripts/init-tier-repos.sh"]
@@ -47,7 +40,7 @@ flowchart TB
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class Collection boundary
   class Architecture data
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Tiers,Support group
   classDef ownership fill:#f3f1ed,stroke:#8b857c,color:#3f3a34
   class Kit,Shared ownership
@@ -78,6 +71,13 @@ The collection directory is not itself a Git repository.
 | Common platform references or reusable role behavior | Shared; references may be project-owned, while managed code follows the refresh contract |
 | Selected designs, standards and operating records | The architecture repository's project documents |
 | Maintained manual | Upstream `docs/`; refresh copies it to `docs/auto-docs/` |
+
+## Contents
+
+- [Which repository?](#which-repository)
+- [Where to edit](#where-to-edit)
+- [Fast change loop](#fast-change-loop)
+- [Exact references](#exact-references)
 
 ## Where to edit
 

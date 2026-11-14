@@ -10,36 +10,35 @@ FreeIPA on dedicated VMs; the accepted Tier 0 Kubernetes platform hosts the iden
 ## Expected outcome: directory authority
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":2,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":2,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / Control layer"]
+  subgraph T0["Tier 0"]
     direction LR
-    subgraph PVE["Existing Proxmox hosts"]
-      direction LR
-      subgraph Identity["identity network / dedicated VMs"]
+    subgraph Identity["Identity Network / identity"]
+      direction TB
+      subgraph DirectoryPair["Directory Services"]
         direction TB
-        subgraph DirectoryPair["FreeIPA directory / identity CA"]
-          direction TB
-          Primary["idm-1<br/>FreeIPA primary"]
-          Replica["idm-2<br/>FreeIPA replica"]
-          Primary <-->|Replication| Replica
-        end
+        Primary["idm-1<br/>FreeIPA primary"]
+        Replica["idm-2<br/>FreeIPA replica"]
+        Primary <-->|Replication| Replica
       end
-      ExistingCA["ca-1<br/>Existing issuer / unchanged"]
-      Identity ~~~ ExistingCA
     end
+    subgraph Crypto["Cryptography Network / cryptography"]
+      ExistingCA["ca-1<br/>Existing issuer / unchanged"]
+    end
+    Identity ~~~ Crypto
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Primary,Replica,ExistingCA control
-  class PVE boundary
   class DirectoryPair replicas
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class Identity zoneControl
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Identity,Crypto network
 ```
 
 **IaC:** *Figure: The dedicated FreeIPA primary and CA replica share directory authority outside Kubernetes; the
@@ -230,83 +229,19 @@ bootstrap dependencies. A passing daemon/API check alone is not CA replication a
 
 <a id="figure-identity-federation"></a>
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":2,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px","lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T0["Tier 0 / Control layer"]
-    direction LR
-    subgraph PVE["Existing Proxmox hosts"]
-      direction LR
-      subgraph Cluster["Existing Tier 0 Kubernetes / control_cluster"]
-        direction TB
-        subgraph Auth["HTTPS sign-in runtime"]
-          direction LR
-          subgraph Access["HTTPS routing"]
-            direction TB
-            Ingress{{"Traefik<br/>Existing HTTPS ingress"}}
-            Service{"keycloak-http<br/>New Service"}
-            Ingress --> Service
-          end
-          subgraph Added["New Keycloak pods / after apply"]
-            direction TB
-            Keycloak1["keycloak / pod replica 1"]
-            Keycloak2["keycloak / pod replica 2"]
-            Keycloak1 ~~~ Keycloak2
-          end
-          Access -->|Keycloak HTTPS| Added
-        end
-        Data[("keycloak-db / PostgreSQL x3<br/>Live block PVCs")]
-        Auth -->|Database TLS| Data
-      end
-      subgraph Identity["identity network / dedicated VMs"]
-        direction TB
-        subgraph DirectoryPair["Existing FreeIPA authority"]
-          direction TB
-          Primary["▣ idm-1<br/>FreeIPA primary"]
-          Replica["▣ idm-2<br/>FreeIPA replica"]
-          Primary <-->|Replication| Replica
-        end
-      end
-      Cluster -->|Verified LDAPS| Identity
-    end
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  class Keycloak1,Keycloak2,Primary,Replica control
-  class PVE boundary
-  class Data data
-  class Added,DirectoryPair replicas
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
-  class Access,Auth group
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  class Cluster kubernetes
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
-  class Ingress,Service traffic
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
-  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class Identity zoneControl
-```
+![Identity ingress, directory failover, IdP storage and offline custody](../../08-reference/diagrams/identity-operations.svg)
 
-**IaC:** *Figure: Existing Traefik ingress and the new `keycloak-http` Service route HTTPS to two stacked
-Keycloak pods. Their three-instance PostgreSQL database remains inside the control cluster, on live block
-PVCs. The directory pair sits in its separate VM network to the right. Arrows between groups denote the
-named service interface, not another network hop or direct HTTP access to the database.*
+**IaC:** *Figure: Traefik routes HTTPS through `keycloak-http` to the IdP pods. State sits below the
+IdP in its namespace. Keycloak tries the primary directory member, then its replica on connection
+failure. Independent offline custody sits below connected services.*
+[Editable figure](../../08-reference/diagrams/identity-operations.svg).
 Tier 0 [control-application recipe](../../../tier-0/ansible/playbooks/deployment/control-applications.yml),
 [product role](../../../tier-0/ansible/roles/control_applications) and
-[example inputs](../../../tier-0/ansible/group_vars/control_applications.yml.example).
-Scope: identity runtimes and directory authority, not the separate backup jobs/storage.
-The picture shows configured placement, not a verified live installation.
-The existing directory comes from the [FreeIPA recipe](../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml).
-CNPG must be available before database creation. Backup destinations are separate
-from its live volumes; the Barman plugin is required only for the object/WAL option.
-The [backup realization](../../05-operations/06-resilience/backups/postgresql.md) identifies the
-scheduled file jobs and NAS destinations omitted from this runtime view.
+[example inputs](../../../tier-0/ansible/group_vars/control_applications.yml.example) own federation.
+The directory comes from the [FreeIPA recipe](../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml).
+CNPG and Traefik are accepted cluster prerequisites. The selected backup process supplies the offline
+recovery set. The [backup realization](../../05-operations/06-resilience/backups/postgresql.md) shows
+the file jobs and destinations. Object/WAL backups also require the Barman plugin.
 
 Run from **`<prefix>-tier-0/`**, retaining Stage 4's existing kubeconfig:
 
@@ -328,7 +263,7 @@ For the [federation figure](#figure-identity-federation), edit **Tier 0 `ansible
 | `control_applications_components` | `[keycloak]` only |
 | `control_applications_kubeconfig`, `control_applications_context` | Accepted Tier 0 target |
 | `control_applications_versions.keycloak`, `control_applications_hosts.keycloak` | Approved chart pin and stable HTTPS service name, matching certificate/issuer URLs |
-| `control_applications_ldap_url`, `control_applications_ldap_users_dn`, `control_applications_ldap_groups_dn`, `control_applications_ldap_bind_dn` | Verified FreeIPA LDAPS endpoint/search bases and the restricted reader prepared in action 14 |
+| `control_applications_ldap_url`, `control_applications_ldap_users_dn`, `control_applications_ldap_groups_dn`, `control_applications_ldap_bind_dn` | Space-separated LDAPS member URLs in failover order, search bases and the restricted reader prepared in action 14 |
 | `control_applications_keycloak_realm` | Selected federation realm; preserve an existing realm's identity |
 | `control_applications_storage_class`, `control_applications_database_storage_class` | Qualified live block storage, not NAS backup storage |
 | `control_applications_backup_mode` | **13a: `files`** for completed scheduled NAS sets, or **13b: `object`** for an existing qualified object/WAL service |
@@ -472,7 +407,8 @@ outside the IdP; recreating an empty realm/database is not recovery.
 
 Verify exact HTTPS discovery issuer; allowed/denied/disabled identities and removed group membership;
 authentication/admin events at protected intake; selected backup completion and a separate database restore
-followed by a login. Test directory endpoint, IdP replica and IdP outage behavior.
+followed by a login. Test an application login with `idm-1` unavailable, restore it and verify directory
+replication again. Also test IdP replica and IdP outage behavior.
 The [federation acceptance table](procedures/keycloak.md#accept-and-recover) owns the detailed evidence contract.
 Do not reinstall the IdP after these checks.
 

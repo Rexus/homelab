@@ -4,40 +4,9 @@ Backups preserve recoverable data and authority outside the systems being protec
 Availability keeps a service running; recovery restores its accepted identity and data
 after loss or compromise. Both need explicit owners and independently usable credentials.
 
-## Contents
+<a id="figure-recovery-boundaries"></a>
 
-- [Recovery boundaries](#recovery-boundaries)
-- [Copy and retention model](#copy-and-retention-model)
-- [Storage interfaces](#storage-interfaces)
-- [Authority and consistency](#authority-and-consistency)
-- [Recovery objectives and evidence](#recovery-objectives-and-evidence)
-- [Operational procedures](#operational-procedures)
-- [References](#references)
-
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Source["Protected service<br/>Data and configuration"] -->|"Back up"| Backup[("Independent backup")]
-  subgraph Copies["Independent retained copies"]
-    direction TB
-    Backup -->|"Offsite copy"| Offsite[("Offsite recovery copy")]
-  end
-  Operator["Recovery operator"] -->|"Authorize restore"| Target["Isolated recovery target"]
-  Backup -->|"Recovery set"| Target
-  Offsite -->|"If required"| Target
-  Custody["Independent custody<br/>Keys, credentials and tools"] -.->|"Recovery access"| Target
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Source,Target services
-  class Copies boundary
-  class Backup,Offsite data
-  class Operator actor
-  class Custody custody
-```
+![Independent copies and authorized recovery](../../08-reference/diagrams/backup-recovery-context.svg)
 
 *Figure: An isolated target is restored from the selected independent or offsite copy.
 Recovery also requires operator authority and separately held keys, credentials and tools.*
@@ -47,6 +16,16 @@ recovery set; the independent and offsite paths preserve copies
 under their own custody. Restoration needs both a usable copy and independent access
 to the tools and keys that make it readable. Those inputs must remain accessible when
 the protected service or its normal identity path is unavailable.
+
+## Contents
+
+- [Recovery boundaries](#recovery-boundaries)
+- [Copy and retention model](#copy-and-retention-model)
+- [Storage interfaces](#storage-interfaces)
+- [Authority and consistency](#authority-and-consistency)
+- [Recovery objectives and evidence](#recovery-objectives-and-evidence)
+- [Operational procedures](#operational-procedures)
+- [References](#references)
 
 ## Recovery boundaries
 

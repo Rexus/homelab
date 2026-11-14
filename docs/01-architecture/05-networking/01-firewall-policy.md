@@ -42,7 +42,7 @@ restriction, not a zone's architectural colour or permission for its whole subne
 | Red — Restricted | Privileged boundaries or the temporary log-intake exception; tightly scoped allows only |
 
 ```mermaid
-%%{init: {"theme":"base"}}%%
+%%{init: {"theme":"base","fontFamily":"Arial, sans-serif","themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px","lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 block-beta
   columns 5
   Direction["Source ↓<br/>Destination →"] Ddmz["DMZ"] Dservices["Services"] Dcontrol["Control"] Dfabric["Fabric<br/>management"]

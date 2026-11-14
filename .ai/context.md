@@ -13,12 +13,31 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Repository intent
 
+- In every diagram, choose boundaries for the reader's question. Logical service views show actual
+  networks and runtimes, without decorative Proxmox-host wrappers. Include physical hosts for host
+  placement, availability/failure domains, capacity, storage attachment, passthrough or host operations.
+  Code/workflow views retain their own relevant boundaries; do not invent a physical or network layer.
+- Diagram labels use short noun phrases: Tier 2; Cache Edge Network / external_edge; Cache Services.
+  Keep useful exact IaC identifiers. Put instance counts, existing/new status, step references and scope
+  explanations in captions or nearby inputs, not enclosing titles. Drawn instance counts illustrate
+  the referenced configuration, not a fixed capability size. Preserve meaningful protocol/quorum contracts.
+  Name cluster runtimes Tier 0 Kubernetes, Tier 1 Kubernetes or Tier 2 Kubernetes so the deployment is clear.
 - Apply the existing global AGENTS.md visual reference to all block diagrams, not only IAM/IdP.
   Compose inside out: compact server/replica stacks vertically, peer service groups horizontally,
   and outer zones/ownership boundaries vertically where the model requires it. Preserve left-to-right
-  consumer/provider order and the near-4:3 composition target. Use distinct routing symbols, dashed
+  consumer/provider order and the near-4:3 composition target. Use distinct routing symbols, dotted
   service groups and the project palette. Verify rendered geometry rather than merely declaring directions.
   Operations capability guides open with their complete selected deployment; focused task diagrams follow.
+- Review rendered figures as reading tasks: trace the main path, check headings and connector labels,
+  and split competing placement, request and health/recovery questions. Successful parsing, palette
+  matching or collision checks alone do not establish a clear picture. Reuse one editable asset when
+  deployment and operations show the same selected scope, so visual repairs reach both reader paths.
+- Static Mermaid block/flowchart figures declare Arial at 14px in both the root fontFamily setting and
+  themeVariables; the root setting is required for consistent HTML labels in the reviewed renderer.
+  Keep sequence/plot colours theme-aware. See docs/04-development/diagrams.md for the exact source contract.
+- In tiered placement views, keep Tier 2 as the top ownership row. Internet/upstream sources and external
+  clients sit to its left. Tenants and users enter their target owner's listener from the left. Keep actual
+  lower-tier consumers below their upper-tier provider. The project diagram guide owns this placement rule.
 - Put the opening figure after a short introduction, before contents, long prerequisites or inputs.
   Architecture starts with context/placement; deployment starts with its expected result; operations
   starts with the selected running deployment. Introduce substantial enhancements at the start of
@@ -27,10 +46,29 @@ This file keeps durable context for AI-assisted work across sessions.
 - Keep diagram colour roles distinct using docs/08-reference/diagrams/palette.json: warm neutral tier shades
   (Tier 2 lightest, Tier 1 medium, Tier 0 strongest), independently styled protection zones
   (light rose DMZ/Edge, medium blue Services, stronger green Control),
-  blue-gray Kubernetes, cyan traffic interfaces, peach actions, violet data and amber offline custody.
+  blue-gray Kubernetes, gray-rose networks, charcoal traffic interfaces, mauve policy/access rules, peach actions, violet data
+  and amber offline custody. Incoming policy annotations sit outside the destination tier/zone/runtime,
+  with a dashed association directly to its ingress/listener; they add no traffic hop or policy ownership.
+  Actual controllers and native policy resources remain in their real hosting/configuration boundaries.
   Tier ownership is not a protection-zone colour; retain the existing zone/component palette inside it.
-  Inner function/service and replica/failover groups use the same light neutral gray, with solid versus
-  dashed borders respectively. Preserve violet storage and amber offline custody at every nesting level.
+  Inner function/service, deployment and replica/failover groups use dotted light neutral gray.
+  Actual networks, hosts and Kubernetes runtimes use solid outlines. Preserve violet storage and amber custody.
+  Use dotted deploymentGroup boundaries for logical service collections, never label them as networks.
+  Keep IdP state below its application; offline custody sits at the bottom outside connected runtimes.
+- Identity deployment and operations share docs/08-reference/diagrams/identity-operations.svg for 4:3 placement:
+  IdP state below Keycloak, and a full-width offline custody row below connected services.
+  The SVG is editable source and a registered generated-documentation asset; its geometry is checked.
+- Identity federation uses native Keycloak ordered LDAPS member URLs in `control_applications_ldap_url`.
+  The starter tries idm-1 then idm-2, with bounded connection/read timeouts and member TLS identities.
+  Diagrams show direct endpoint failover. Acceptance includes a real application login during member loss.
+- Native SVG palette selectors target individual semantic classes. Combined outline resets change dash
+  patterns only. Review computed browser colours to catch inherited overrides as well as source declarations.
+  The cache block-beta trial obscured titles and crossed its VIP with the upstream arrow, so its SVG remains
+  the compact service-layout reference. Mermaid remains appropriate where its actual render preserves layout.
+- Cache deployment and operations share docs/08-reference/diagrams/cache-services.svg. Lower-tier callers
+  sit below Tier 2 and request its VIP upward; Cache Services request approved sources or an optional
+  parent proxy to the left. Preserve actual request direction when tier placement overrides the normal
+  consumer-to-provider reading order. Replies use established connections, not invented routing hops.
 - Number deployment actions by the edit/run/check the operator performs next, with as many
   sequential steps as the implementation needs. Do not compress a workflow into a few numbered
   phases with another numbered installation hidden behind each link. Keep the normal path on

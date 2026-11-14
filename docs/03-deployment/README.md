@@ -9,7 +9,7 @@ external storage custody and offline signing approvals retain their stated owner
 <a id="figure-deployment-sequence"></a>
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 block-beta
   columns 3
   Base["Foundation<br/>Hosts, access<br/>and templates"]

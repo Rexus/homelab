@@ -5,61 +5,15 @@ The main path creates a Tier 2 policy proxy/cache; an existing approved proxy or
 
 <a id="figure-1-controlled-proxy-pair"></a>
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":12,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  subgraph T2["Tier 2 / cache ownership"]
-    direction LR
-    subgraph Zone["Edge / external_edge"]
-      direction LR
-      VIP{{"Configured cache VIP<br/>One active owner"}}
-      subgraph PVE["Existing Proxmox hosts"]
-        subgraph Pair["VIP failover / independent caches"]
-          direction TB
-          subgraph CacheA["cache-1 / VM"]
-            direction LR
-            A["Squid<br/>keepalived"]
-            DA[("scsi1<br/>Cache data")]
-            A -->|Cache I/O| DA
-          end
-          subgraph CacheB["cache-2 / VM"]
-            direction LR
-            B["Squid<br/>keepalived"]
-            DB[("scsi1<br/>Cache data")]
-            B -->|Cache I/O| DB
-          end
-          CacheA ~~~ CacheB
-        end
-      end
-      VIP -. Preferred owner / failover .-> Pair
-    end
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
-  class A,B edge
-  class PVE boundary
-  class Pair replicas
-  class CacheA,CacheB group
-  class Zone zoneEdge
-  class DA,DB data
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
-  class VIP traffic
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  class T2 tier2
-```
+![Cache clients below Tier 2 and approved upstream sources to its left](../../08-reference/diagrams/cache-services.svg)
 
 **IaC:** **Figure 1: Controlled proxy pair.** Tier 2 [cache inputs](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example)
 and [cache recipe](../../../tier-2/ansible/playbooks/deployment/outbound-cache.yml).
 The pair and attached disks are created; clients, upstreams and physical networking already exist.
 The VIP fails over; it does not replicate cache data or balance both VMs concurrently.
-This placement view focuses on the new pair. The [proxy request sequence](../../01-architecture/07-software-intake/README.md#cache-request-and-response)
-shows its existing consumers and approved source interfaces.
+Client requests enter from below; outgoing source requests point left. Replies use the established
+connections. [Editable figure](../../08-reference/diagrams/cache-services.svg); the [proxy request sequence](../../01-architecture/07-software-intake/README.md#cache-request-and-response)
+explains HTTP caching and HTTPS CONNECT.
 
 **Related:** [Architecture](../../01-architecture/07-software-intake/README.md) ·
 [Operations](../../05-operations/02-software-intake/README.md)

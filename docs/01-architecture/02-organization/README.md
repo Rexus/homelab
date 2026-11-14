@@ -9,28 +9,27 @@ network placement and a successful login do not grant it.
 ## Shared interfaces, separate authority
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  Consumer["Applications / labs"] -->|Scoped consumption| Services["Shared service interfaces"]
+  Consumer["Applications /<br/>labs"] -->|Scoped<br/>consumption| Services["Shared service<br/>interfaces"]
   subgraph Control["Trust and operations"]
     direction TB
     Identity["Identity"]
-    Trust["Certificates / secrets"]
-    Evidence["Evidence / observability"]
+    Trust["Certificates /<br/>secrets"]
+    Evidence["Evidence /<br/>observability"]
+    Identity ~~~ Trust ~~~ Evidence
   end
-  Services -. Identity interface .-> Identity
-  Services -. Trust interface .-> Trust
-  Services -. Evidence interface .-> Evidence
+  Services -. Supporting<br/>interfaces .-> Control
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   class Consumer,Services services
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Control group
   class Identity,Trust,Evidence control
 ```
 
-*Figure 1 - Applications consume scoped shared interfaces. Dashed links identify supporting identity,
+*Figure 1 - Applications consume scoped shared interfaces. The dashed link aggregates supporting identity,
 trust and evidence contracts; the group is functional, not a common runtime or ownership boundary.*
 
 ## Contents

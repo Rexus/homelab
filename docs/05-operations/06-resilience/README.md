@@ -9,35 +9,35 @@ The [service-boundary design](../../01-architecture/02-organization/README.md) e
 <a id="figure-resilience-operating-scope"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T2["Tier 2 / when selected"]
+  subgraph T2["Tier 2"]
     Workloads["Installed workloads / edge services<br/>Owning tier's inputs and application data"]
   end
-  subgraph T1["Tier 1 / main-path service aggregates"]
+  subgraph T1["Tier 1"]
     direction LR
     Delivery["Argo CD / Harbor / GitLab / build runners<br/>Dedicated GitLab data services"]
     Observability["Signal / query / diagnostic services<br/>Scoped copies of evidence"]
     Delivery ~~~ Observability
   end
-  subgraph T0["Tier 0 / foundation and recovery authority"]
+  subgraph T0["Tier 0"]
     direction TB
-    subgraph Connected["Connected runtimes / selected service aggregates"]
+    subgraph Connected["Service Runtimes"]
       direction LR
-      subgraph Cluster["Control Kubernetes"]
+      subgraph Cluster["Tier 0 Kubernetes"]
         direction TB
         Apps["Keycloak / Vault / NetBox / Headlamp"]
         Data[("Original etcd / native service data<br/>Persistent volumes / media")]
         Apps ~~~ Data
       end
-      subgraph VMs["Separate control VMs / host-owned inputs"]
+      subgraph VMs["Control VMs"]
         direction TB
         ControlSets["Control VM recovery sets<br/>Execution / CA / directory<br/>Protected logging / independent monitor"]
       end
       Cluster ~~~ VMs
     end
     Foundation["Proxmox / networks / live storage<br/>Independent console / configuration"]
-    subgraph Recovery["Independent recovery custody / outside source runtimes"]
+    subgraph Recovery["Recovery Custody"]
       direction LR
       Copies[("Independent backup sets<br/>Guest / product-native copies<br/>Protected-log recovery repository")]
       Host["Isolated recovery host<br/>Restore original identities"]
@@ -57,7 +57,7 @@ flowchart TB
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class Workloads,Delivery,Observability services
   class Apps,ControlSets control
-  class Connected,VMs,Foundation boundary
+  class Foundation boundary
   class Recovery,Host,Keys custody
   class Data,Copies data
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
@@ -68,6 +68,8 @@ flowchart TB
   class T1 tier1
   classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
   class T2 tier2
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Connected,VMs group
 ```
 
 **IaC / Manual:** *Figure: Recovery coverage of the completed main paths, grouped by owning tier and runtime.

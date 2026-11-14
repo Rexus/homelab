@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720" role="img"
+     aria-labelledby="title description">
+  <title id="title">Identity services and offline custody</title>
+  <desc id="description">An incoming HTTPS rule points to Traefik in Tier 0 Kubernetes.
+    Keycloak and its database occupy the IdP namespace, with the database below Keycloak.
+    Keycloak tries the primary and replica LDAPS endpoints in order on the identity network to the right. Offline backups and
+    recovery credentials occupy the bottom of Tier 0, outside all connected services.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581"/>
+    </marker>
+    <style>
+      svg { font: 15px Arial, sans-serif; }
+      text { fill: currentColor; stroke: none; text-anchor: middle; }
+      .network { fill: #f4eded; stroke: #9b7378; color: #50383d; }
+      .tier0 { fill: #d8cbb9; stroke: #83715a; color: #352a1e; }
+      .deploymentGroup { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .group { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .kubernetes { fill: #e8eef6; stroke: #6b83a3; color: #263d59; }
+      .zoneControl { fill: #c9e0d5; stroke: #397366; color: #173f36; }
+      .control { fill: #e2f3ed; stroke: #397366; color: #173f36; }
+      .replicas { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .data { fill: #eeeafa; stroke: #78639b; color: #42325d; }
+      .traffic { fill: #303841; stroke: #8a9baa; color: #ffffff; }
+      .policy { fill: #f4dce9; stroke: #955076; color: #57253f; stroke-dasharray: 3 3; }
+      .custody { fill: #fff2d1; stroke: #926820; color: #584013; }
+      .network, .tier0, .tier1, .tier2, .runtime, .control, .traffic, .data, .custody, .kubernetes, .actor, .boundary, .edge { stroke-dasharray: none; }
+      .connection { fill: none; stroke: #627581; stroke-width: 1.5; stroke-dasharray: none; marker-end: url(#arrow); }
+      .association { stroke-dasharray: 4 4; }
+      .bidirectional { marker-start: url(#arrow); }
+      .edge-label { fill: #1f2937; font-size: 13px; }
+      .service-label { font-size: 13px; }
+    </style>
+  </defs>
+  <g id="T0" class="tier0">
+    <rect x="235" y="12" width="710" height="696"/>
+    <text x="590" y="35">Tier 0</text>
+    <g id="IdentityServices" class="deploymentGroup">
+      <rect x="255" y="52" width="670" height="470"/>
+      <text x="590" y="75">Identity Services</text>
+      <g id="Cluster" class="kubernetes">
+        <rect x="275" y="92" width="365" height="410"/>
+        <text x="457" y="117">Tier 0 Kubernetes / control_cluster</text>
+        <g id="Ingress" class="traffic">
+          <polygon points="302,184 412,184 427,215 412,246 302,246 287,215"/>
+          <text x="357" y="207">Traefik / HTTPS</text>
+          <text x="357" y="228">ingress-system</text>
+        </g>
+        <g id="IdPNamespace" class="group">
+          <rect x="452" y="142" width="170" height="340"/>
+          <text x="537" y="164">IdP Namespace</text>
+          <text x="537" y="185">keycloak</text>
+          <g id="Service" class="traffic">
+            <polygon points="480,194 594,194 607,215 594,236 480,236 467,215"/>
+            <text x="537" y="211" class="service-label">keycloak-http</text>
+            <text x="537" y="228" class="service-label">Service</text>
+          </g>
+          <g id="IdP" class="control">
+            <rect x="467" y="268" width="140" height="64"/>
+            <text x="537" y="294">keycloak</text>
+            <text x="537" y="315">IdP pods x2</text>
+          </g>
+          <g id="Data" class="data">
+            <path d="M467 376 C467 360 607 360 607 376 L607 435 C607 451 467 451 467 435 Z"/>
+            <path d="M467 376 C467 392 607 392 607 376" fill="none"/>
+            <text x="537" y="409">keycloak-db</text>
+            <text x="537" y="430">PostgreSQL x3</text>
+          </g>
+          <path class="connection" data-from="Service" data-to="IdP" d="M537 236 V268"/>
+          <text class="edge-label" x="570" y="258">HTTPS</text>
+          <path class="connection" data-from="IdP" data-to="Data" d="M537 332 V364"/>
+          <text class="edge-label" x="568" y="352">DB TLS</text>
+        </g>
+        <path class="connection" data-from="Ingress" data-to="Service" d="M427 215 H467"/>
+        <text class="edge-label" x="447" y="202">HTTPS</text>
+      </g>
+      <g id="Directory" class="network">
+        <rect x="685" y="92" width="220" height="410"/>
+        <text x="795" y="117">Identity Network / identity</text>
+        <g id="Pair" class="replicas">
+          <rect x="700" y="142" width="190" height="340"/>
+          <text x="795" y="166">Directory Services</text>
+          <g id="Primary" class="control">
+            <rect x="718" y="207" width="154" height="66"/>
+            <text x="795" y="233">idm-1</text>
+            <text x="795" y="254">FreeIPA primary</text>
+          </g>
+          <g id="Replica" class="control">
+            <rect x="718" y="376" width="154" height="66"/>
+            <text x="795" y="402">idm-2</text>
+            <text x="795" y="423">FreeIPA replica</text>
+          </g>
+          <path class="connection bidirectional" data-from="Primary" data-to="Replica" d="M795 276 V372"/>
+          <text class="edge-label" x="840" y="325">Replication</text>
+        </g>
+      </g>
+      <path class="connection" data-from="IdP" data-to="Primary" d="M607 294 H642 V240 H718"/>
+      <text class="edge-label" x="672" y="228">LDAPS</text>
+      <path class="connection association" data-from="IdP" data-to="Replica" data-condition="connection-failure"
+            d="M607 316 H660 V409 H718"/>
+      <rect x="632" y="317" width="55" height="39" fill="#f8fafc" stroke="none"/>
+      <text class="edge-label" x="660" y="332">LDAPS</text>
+      <text class="edge-label" x="660" y="349">failover</text>
+    </g>
+    <g id="Recovery" class="custody">
+      <rect x="255" y="552" width="670" height="132"/>
+      <text x="590" y="578">Offline Custody</text>
+      <g id="DirectoryBackup">
+        <rect x="275" y="602" width="200" height="58"/>
+        <text x="375" y="636">Directory Backups</text>
+      </g>
+      <g id="IdPBackup">
+        <rect x="490" y="602" width="200" height="58"/>
+        <text x="590" y="636">IdP Backups</text>
+      </g>
+      <g id="Credentials">
+        <rect x="705" y="602" width="200" height="58"/>
+        <text x="805" y="636">Recovery Credentials</text>
+      </g>
+    </g>
+  </g>
+  <g id="NetworkRule" class="policy">
+    <rect x="12" y="180" width="190" height="70"/>
+    <text x="107" y="207">Incoming Access Rule</text>
+    <text x="107" y="230">Approved HTTPS Sign-in</text>
+  </g>
+  <path class="connection association" data-from="NetworkRule" data-to="Ingress" d="M202 215 H287"/>
+  <rect x="204" y="184" width="80" height="20" fill="#f8fafc" stroke="none"/>
+  <text class="edge-label" x="244" y="200">HTTPS rule</text>
+</svg>

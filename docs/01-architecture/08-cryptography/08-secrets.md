@@ -5,44 +5,15 @@ records that access. Persistent service state, audit retention and startup/recov
 material have separate responsibilities, so recovery can proceed when the normal
 service or its login path is unavailable.
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Consumers["Authorized consumers"] -->|"Scoped access"| Runtime
-  subgraph T0["Tier 0 / secrets and audit"]
-    direction BT
-    Recovery["Independent offline recovery custody<br/>Credentials and startup material"]
-    subgraph Connected["Connected services"]
-      direction LR
-      subgraph Runtime["Secret-service runtime"]
-        direction TB
-        Service["Credential policy<br/>and delivery"]
-        State[("Persistent state")]
-        Service -->|Retain| State
-      end
-      Logs["Protected logging<br/>Independent retention"]
-      Runtime -->|Audit events| Logs
-    end
-    Recovery -. Authorized recovery .-> Runtime
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  class Consumers actor
-  class Service,Logs control
-  class Connected boundary
-  class Runtime runtime
-  class State data
-  class Recovery custody
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
-```
-*Figure: Consumers enter a policy-controlled secret runtime. Audit events flow to independent
+<a id="figure-secrets-context"></a>
+
+![Secret access and independent recovery](../../08-reference/diagrams/secrets-context.svg)
+
+*Figure: Consumers enter from the left of the policy-controlled secret runtime. Audit events flow to independent
 protected logging on the right; offline custody below the connected services supports authorized recovery.*
+
+**Architecture:** the [Secrets deployment](../../03-deployment/stage-6-secrets/README.md) realizes the runtime;
+[protected logging](../11-operations/01-protected-logging.md) owns audit retention.
 
 The service mediates credential access; it does not transfer its administrative
 authority to consumers. The figure's three durable concerns remain distinct:

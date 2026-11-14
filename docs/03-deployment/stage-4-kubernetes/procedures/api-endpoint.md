@@ -14,38 +14,48 @@ they do not prove API readiness or etcd quorum. [1][2]
 <a id="figure-1-independent-api-gateways"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Operator["Existing privileged client<br/>Private API access"]
-  subgraph T0["Tier 0 / management network"]
+  subgraph T0["Tier 0"]
     direction TB
-    VIP["Control API VIP<br/>TCP 6443 / passthrough TLS"]
-    subgraph Gateways["Separate existing Proxmox placement targets"]
-      direction LR
-      subgraph A["pve01"]
-        G1["api-gw-1<br/>HAProxy / Keepalived"]
-      end
-      subgraph B["pve02"]
-        G2["api-gw-2<br/>HAProxy / Keepalived"]
+    subgraph ManagementNetwork["Management Network / management"]
+      VIP["Control API VIP<br/>TCP 6443 / passthrough TLS"]
+      subgraph Gateways["API Gateway Hosts"]
+        direction LR
+        subgraph A["pve01"]
+          G1["api-gw-1<br/>HAProxy / Keepalived"]
+        end
+        subgraph B["pve02"]
+          G2["api-gw-2<br/>HAProxy / Keepalived"]
+        end
       end
     end
-    Backend["Planned control-plane addresses<br/>Separate cluster deployment"]
-    VIP --> Gateways
-    Gateways -->|TCP 6443| Backend
+    subgraph ControlNetwork["Control Cluster Network / control_cluster"]
+      Backend["Planned control-plane addresses<br/>Separate cluster deployment"]
+    end
+    VIP -. Active VIP owner .-> G1
+    VIP -. Active VIP owner .-> G2
+    G1 -->|TCP 6443| Backend
+    G2 -->|TCP 6443| Backend
   end
-  Operator -->|Private API traffic| T0
+  Operator -->|Private API traffic| VIP
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   class A,B runtime
-  class Gateways boundary
   class Operator,Backend actor
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
   class VIP traffic
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class ManagementNetwork,ControlNetwork network
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Gateways group
 ```
 
 **IaC:** **Figure 1: Independent API gateways.** [Gateway VM inputs](../../../../tier-0/terraform/deployments/cluster-endpoint/terraform.tfvars.example)
@@ -54,6 +64,8 @@ and the [recipe](../../../../tier-0/ansible/playbooks/deployment/cluster-endpoin
 and one selected VIP. Existing hypervisors and planned cluster addresses are context, not created
 by the endpoint role. Only one gateway owns this VIP at a time; both run HAProxy. Its VM pair does
 not establish fencing, storage independence or a healthy Kubernetes quorum.
+The host boundaries are retained to show the independently selected `pve01`/`pve02` placement;
+the planned backends use the separate control-cluster network, not the gateway management subnet.
 
 ## Contents
 

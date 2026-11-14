@@ -4,21 +4,12 @@ Source control owns reviewed code and coordinates CI. Application delivery owns
 release/reconciliation. Infrastructure execution owns credentials and state.
 These are distinct functions even when one product exposes several interfaces.
 
-## Contents
-
-- [Service arrangement](#service-arrangement)
-- [Build-job communication](#build-job-communication)
-- [Privileged CI](#privileged-ci)
-- [Identity and secrets](#identity-and-secrets)
-- [Failure and recovery](#failure-and-recovery)
-- [Realization](#realization)
-
 ## Service arrangement
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart BT
-  subgraph T1["Tier 1 / shared development"]
+  subgraph T1["Tier 1"]
     direction LR
     subgraph Consumers["Separate execution scopes"]
       direction TB
@@ -29,7 +20,7 @@ flowchart BT
     Source["Source control<br/>Reviewed code / release intent"]
     Consumers -->|Read authorized definitions| Source
   end
-  subgraph T0["Tier 0 / infrastructure authority"]
+  subgraph T0["Tier 0"]
     direction LR
     Executor["Infrastructure execution<br/>Optional trusted CI"]
     State[("Tier-owned inventory / state")]
@@ -43,7 +34,7 @@ flowchart BT
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class CI,Delivery services
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Consumers group
   class Executor control
   class Source,State data
@@ -78,6 +69,15 @@ non-privileged job settings do not reserve isolated build nodes. Worker capacity
 build-node isolation and cluster lifecycle remain separate concerns. Untrusted
 builds require the [isolated execution boundary](../04-hosting/03-kubernetes.md#scheduling-and-capacity),
 not merely this runner installation. A source-control deployment is not a provisioning service.
+
+## Contents
+
+- [Service arrangement](#service-arrangement)
+- [Build-job communication](#build-job-communication)
+- [Privileged CI](#privileged-ci)
+- [Identity and secrets](#identity-and-secrets)
+- [Failure and recovery](#failure-and-recovery)
+- [Realization](#realization)
 
 ## Build-job communication
 

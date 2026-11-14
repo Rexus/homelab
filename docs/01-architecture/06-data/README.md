@@ -10,6 +10,7 @@ capacity. First choose the access contract, then identify the authoritative data
 and the independent material needed to recover it.
 
 ```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 block-beta
   columns 2
   Volumes["Guest / database<br/>volumes"] Block["Block interface<br/>Attached volume<br/>Filesystem"]
@@ -97,42 +98,13 @@ Runtime availability, persistent data and recoverability are separate contracts.
 The dataset owner identifies its authoritative source and consistent recovery inputs;
 the operations design defines the required copy and retention policy.
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  VMData["VM data<br/>Selected VM or external storage"]
-  ClusterData["Cluster data<br/>Selected volumes or data services"]
-  subgraph Independent["Outside the recovery target"]
-    direction TB
-    Backups["Service-specific<br/>backup copies"]
-    Records["Accepted code / state<br/>Recovery credentials"]
-    Recovery["Protected retention"]
-    Backups -. Independent retention .-> Recovery
-    Records -. Independent retention .-> Recovery
-  end
-  VMData -->|Defined backup path| Backups
-  ClusterData -->|Defined backup path| Backups
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class VMData,ClusterData services
-  class Backups data
-  class Independent,Records,Recovery custody
-```
+The [recovery view](../11-operations/04-backup-recovery.md#figure-recovery-boundaries) shows the independent
+copies, credentials and tools needed after losing a dataset. Retain accepted code, original infrastructure
+state and compatible recovery credentials outside that failure boundary.
 
-*Figure: Live VM and cluster storage feed service-specific backup paths. Recovery also needs retained
-state, accepted code and credentials outside the system being recovered.*
-
-This view describes logical data responsibilities for VM/cluster-hosted services.
-It does not prescribe a backup product, claim that raw volume copies are application
-consistent, or establish independent custody merely by drawing another storage box.
-Scheduled full copies and continuously archived transactions have different recovery
-limits, defined by the selected service contract.
-
-Follow the figure from left to right: losing execution should leave the live
-dataset recoverable, while losing that dataset requires the backup and recovery
-records. A backup is usable only as part of the service's compatible data,
+Raw volume copies are not necessarily application-consistent. Scheduled full copies and continuously
+archived transactions have different recovery limits, defined by the selected service contract.
+A backup is usable only as part of the service's compatible data,
 configuration and key set. Storage administration remains separate from those
 application and recovery responsibilities.
 

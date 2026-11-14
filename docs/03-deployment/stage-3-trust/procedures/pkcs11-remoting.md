@@ -10,23 +10,32 @@ require the issuer to use a network service. Complete the selected extension bef
 <a id="figure-1-restricted-provider-remoting"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / Control / optional native remoting"]
+  subgraph T0["Tier 0"]
     direction TB
-    subgraph Connected["Existing Proxmox hosts and accepted devices"]
+    Client["Existing application account<br/>Pinned SSH identity / p11-kit client<br/>Existing permitted client network"]
+    subgraph Network["Cryptography Network / cryptography"]
       direction LR
-      Client["Existing application account<br/>Pinned SSH identity / p11-kit client"]
-      subgraph Pool["Configured provider pool / two-host starter"]
-        direction TB
-        H1["hsm-1<br/>Restricted SSH / native provider<br/>Assigned local USB token"]
-        H2["hsm-2<br/>Restricted SSH / native provider<br/>Assigned local USB token"]
-        H1 ~~~ H2
+      subgraph Pool["PKCS#11 Providers"]
+        direction LR
+        subgraph A["pve01 / USB device affinity"]
+          H1["hsm-1<br/>Restricted SSH / native provider"]
+          Token1["Assigned local USB token"]
+          H1 -->|Native passthrough| Token1
+        end
+        subgraph B["pve02 / USB device affinity"]
+          H2["hsm-2<br/>Restricted SSH / native provider"]
+          Token2["Assigned local USB token"]
+          H2 -->|Native passthrough| Token2
+        end
+        A ~~~ B
       end
-      Client -->|Select pinned endpoint / SSH RPC| Pool
     end
+    Client -->|Pinned SSH RPC endpoint| H1
+    Client -->|Pinned SSH RPC endpoint| H2
     Recovery["Offline custody<br/>Original-key backups and approved SPKI record"]
-    Connected ~~~ Recovery
+    Network ~~~ Recovery
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -34,11 +43,15 @@ flowchart TB
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class Client,H1,H2 control
-  class Connected boundary
-  class Pool runtime
-  class Recovery custody
+  class A,B boundary
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Pool group
+  class Recovery,Token1,Token2 custody
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Network network
 ```
 
 **IaC:** **Figure 1: Restricted provider remoting.** The existing [HSM VM inputs](../../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example)
@@ -47,6 +60,8 @@ own `hsm-1/2` and native USB attachment. The [server play](../../../../tier-0/an
 [role](../../../../tier-0/ansible/roles/hsm_remote) configure native transport on these accepted hosts/accounts.
 This two-backend view creates no client VM, key copies or shared session state. Larger selected pools
 retain one approved physical token and endpoint per host.
+The client stays in its existing permitted network; the provider interfaces use `cryptography`.
+Physical hosts remain visible because each USB mapping binds its token to that host.
 
 ## Contents
 

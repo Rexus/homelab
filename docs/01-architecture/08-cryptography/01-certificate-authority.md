@@ -12,22 +12,20 @@ map, including optional application and lab authorities. This view expands the
 two Tier 0 issuers under the infrastructure root.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
-  block:T0
-    columns 2
-    T0Title["Tier 0 / CA authority and custody"]:2
-    Hosts["Host / identity certificates"]
-    Services["Infrastructure certificates"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart BT
+  subgraph T0["Tier 0"]
+    direction BT
+    Root["Offline root CA<br/>Separate custody"]
     Identity["Identity issuing CA<br/>Directory authority"]
     Infrastructure["Infrastructure issuing CA<br/>Independent runtime"]
-    Root["Offline root CA / separate custody<br/>Authorized subordinate signing; no network route"]:2
+    Hosts["Host / identity certificates"]
+    Services["Infrastructure certificates"]
+    Root -. Authorized subordinate signing .-> Identity
+    Root -. Authorized subordinate signing .-> Infrastructure
+    Identity -->|Issue| Hosts
+    Infrastructure -->|Issue| Services
   end
-  Infrastructure --> Services
-  Identity --> Hosts
-  Root -.-> Infrastructure
-  Root -.-> Identity
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
@@ -35,10 +33,10 @@ block-beta
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   class Root custody
   class Services,Hosts services
+  class Identity,Infrastructure control
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
   classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
-  class T0Title tier0Heading
 ```
 *Figure: The offline root authorizes two sibling issuers. Upward arrows represent certificate
 signing, so neither routine issuance nor shared root trust grants access to the other issuer.*
@@ -82,24 +80,22 @@ retains independently tested recovery access.
 ## Enrollment and publication
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  subgraph Access["Separate consumer interfaces"]
-    direction TB
+  subgraph Authority["Tier 0"]
+    direction LR
     Portal["Operator portal"]
-    Bridge["Optional enrollment adapter<br/>Qualified integration"]
-    Publication["Public trust-object endpoint<br/>Certificates and CRLs"]
-  end
-  subgraph Authority["Tier 0 / infrastructure issuer"]
-    direction TB
+    Bridge["Optional adapter<br/>Qualified integration"]
     Issuer["Issuance policy<br/>and lifecycle"]
+    Keys["Signing provider<br/>Selected custody"]
     Records[("Issuer records")]
+    Publication["Trust-object endpoint<br/>Certificates / CRLs"]
+    Portal -->|Authorized workflow| Issuer
+    Bridge -->|Authenticated RPC| Issuer
+    Issuer -->|Permitted signing| Keys
     Issuer -->|Persist| Records
+    Issuer -->|Publish signed objects| Publication
   end
-  Portal -->|Authorized workflow| Issuer
-  Bridge -->|Authenticated RPC| Issuer
-  Issuer -->|Publish signed objects| Publication
-  Issuer -->|Permitted signing| Keys["Selected key provider<br/>Software or hardware custody"]
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
@@ -107,15 +103,15 @@ flowchart LR
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class Access boundary
   class Authority tier0
   class Portal,Issuer control
   class Bridge,Publication services
   class Keys custody
   class Records data
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
 ```
-*Figure: Portal and adapter requests enter issuer policy; signing depends on the provider to the
-right. Signed trust objects return to a separate publication interface for certificate verifiers.*
+*Figure: Portal and adapter requests enter issuer policy from the left. The issuer uses its selected
+key provider, retains records and publishes signed trust objects through separate output contracts.*
 
 The placement view separates access from authority. The sequence below follows one
 authorized leaf request; an operator portal and an automated adapter both reach

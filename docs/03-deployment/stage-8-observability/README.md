@@ -17,35 +17,40 @@ or administer Tier 0.
 ## Expected outcome: signal and query services
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T1["Tier 1 / Observability"]
-    subgraph Cluster["Existing platform Kubernetes"]
-      subgraph Project["Native chart releases / independent workload budgets"]
-        direction TB
-        Gateways["otel-gateway x2 / data-prepper x2<br/>Separate CPU / memory / queues"]
-        Metrics["metrics-1 / metrics-2<br/>Separate persistent volumes"]
-        Search["opensearch x3<br/>Heap and persistent volumes"]
-        Diagnostics["netdata-1 / netdata-2<br/>netdata-metrics / selected bridge"]
-        Database["grafana-db / PostgreSQL x3<br/>Live Proxmox/Ceph-backed PVCs"]
-        UIs["grafana / dashboards / metrics-query<br/>Two stateless replicas each"]
-        Gateways ~~~ Metrics
-        Search ~~~ Diagnostics
-        Database ~~~ UIs
+  subgraph T1["Tier 1"]
+    subgraph ApplicationNetwork["Application Network / application"]
+      subgraph Cluster["Tier 1 Kubernetes"]
+        subgraph Project["Observability Services"]
+          direction TB
+          Gateways["otel-gateway x2 / data-prepper x2<br/>Separate CPU / memory / queues"]
+          Metrics["metrics-1 / metrics-2<br/>Separate persistent volumes"]
+          Search["opensearch x3<br/>Heap and persistent volumes"]
+          Diagnostics["netdata-1 / netdata-2<br/>netdata-metrics / selected bridge"]
+          Database["grafana-db / PostgreSQL x3<br/>Live Proxmox/Ceph-backed PVCs"]
+          UIs["grafana / dashboards / metrics-query<br/>Two stateless replicas each"]
+          Gateways ~~~ Metrics
+          Search ~~~ Diagnostics
+          Database ~~~ UIs
+        end
       end
     end
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Project replicas
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
   class Gateways traffic
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
   class T1 tier1
+  classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class ApplicationNetwork network
 ```
 
 **IaC:** *Figure: The existing Tier 1 cluster hosts separately budgeted signal, diagnostic and query workloads. Live
@@ -288,49 +293,59 @@ the application installer prepares or qualifies only the selected cluster-side b
 <a id="figure-signal-pipelines"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":16,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Apps["Existing approved producers<br/>SDKs / local agents"]
-  subgraph T1["Tier 1 / Observability"]
-    subgraph Cluster["Existing platform Kubernetes"]
-      direction LR
-      Gateway["otel-gateway / 2 replicas<br/>Signal pipelines / queue PVCs"]
-      subgraph Backends["Signal-specific backends"]
-        direction TB
-        Metrics["metrics-1 / metrics-2<br/>VictoriaMetrics / writes to both"]
-        Prepper["data-prepper / 2 replicas<br/>Logs and traces"]
-        Search["opensearch / 3 members<br/>Replica shards"]
-        Metrics ~~~ Prepper
-        Prepper -->|Indexing| Search
-      end
-      Gateway -->|Verified TLS / signal routing| Backends
-    end
-  end
-  Apps -->|OTLP / scoped mTLS| T1
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":10,"subGraphTitleMargin":{"top":6,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
+  Apps["Approved producers"]
+  Gateway{{"otel-gateway x2<br/>Separate queue PVCs"}}
+  Metrics["metrics-1 / metrics-2<br/>Write both copies"]
+  Prepper["data-prepper x2"]
+  Search["opensearch x3"]
+  Apps -->|OTLP / scoped mTLS| Gateway
+  Gateway -->|Verified TLS / metrics| Metrics
+  Gateway -->|Verified TLS / logs and traces| Prepper
+  Prepper -->|Indexing / TLS| Search
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Backends replicas
   class Apps actor
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  class Cluster kubernetes
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
   class Gateway traffic
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
+  class Metrics,Prepper,Search services
 ```
 
 **IaC:** *Figure: Scoped OTLP reaches the gateways. Metrics write to both independent stores; logs and traces pass
 through Data Prepper into OpenSearch.*
-the [release specification](../../../tier-1/ansible/roles/observability_platform/templates/releases.yml.j2)
+The [release specification](../../../tier-1/ansible/roles/observability_platform/templates/releases.yml.j2)
 declares dependency order; [configuration](procedures/observability-platform.md) maps products to native values,
 Secrets, persistence and health gates. The VM baseline remains a separate alternative.
-Scope: the Tier 1 ingestion/backends subset, not the UIs or every existing source.
+Scope: the Tier 1 ingestion/backends subset, not the UIs or every existing source. The focused
+flow omits the unchanged network/runtime wrappers shown in the [opening view](#figure-observability-runtime).
 Producers already exist; this step installs no workload agents. Security/audit
 submissions still use the accepted direct Tier 0 path from Stage 4, omitted here;
 these analytical pipelines do not replace protected logging.
+
+```mermaid
+%%{init: {"themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif","sequence":{"actorFontSize":14,"messageFontSize":14,"noteFontSize":14}}}%%
+sequenceDiagram
+  participant Producers as Approved producers
+  participant Gateway as OTel gateways
+  participant Metrics as Metric stores
+  participant Prepper as Data Prepper
+  participant Search as OpenSearch
+  Producers->>Gateway: Scoped mTLS / OTLP signals
+  par Metrics
+    Gateway->>Metrics: Write metric stream to both copies
+  and Logs and traces
+    Gateway->>Prepper: Verified TLS / logs and traces
+    Prepper->>Search: Index through verified TLS
+  end
+```
+
+**IaC:** *Figure: The signal type selects the actual destination; metric copies are separate,
+while logs and traces pass through processing before indexing.*
+The [Collector configuration](../../../tier-1/ansible/roles/observability_platform/templates/collector-config.yml.j2)
+and [Data Prepper pipelines](../../../tier-1/ansible/roles/observability_platform/templates/prepper-pipelines.yml.j2)
+define these distinct routes.
 
 
 In **`<prefix>-tier-1/`**, finish `ansible/group_vars/observability_platform.yml`:
@@ -400,50 +415,61 @@ Require readiness again. Never re-enable the flag for restart, scaling or recove
 <a id="figure-infrastructure-metrics"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":8,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":8,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart BT
-  subgraph T1["Tier 1 / Observability"]
-    subgraph Cluster["Existing platform Kubernetes / native releases"]
-      direction LR
-      subgraph Pipeline["Installed metric pipeline"]
-        direction TB
-        Gateways["otel-gateway / 2 replicas"]
-        Metrics["metrics-1 / metrics-2<br/>VictoriaMetrics / both copies"]
-        Gateways --> Metrics
+  subgraph T1["Tier 1"]
+    subgraph ApplicationNetwork["Application Network / application"]
+      subgraph Cluster["Tier 1 Kubernetes"]
+        direction LR
+        subgraph Pipeline["Installed metric pipeline"]
+          direction TB
+          Gateways["otel-gateway / 2 replicas"]
+          Metrics["metrics-1 / metrics-2<br/>VictoriaMetrics / both copies"]
+          Gateways --> Metrics
+        end
       end
     end
   end
-  subgraph T0["Tier 0 / Control"]
+  subgraph T0["Tier 0"]
     direction RL
-    subgraph Local["Independent Tier 0 host / Netdata and metric bridge"]
-      direction BT
-      Parent["Existing independent Netdata<br/>Native streaming / API and BMC pollers"]
-      Export["Allowlisted metric bridge"]
-      Parent -->|Prometheus metrics| Export
+    subgraph ManagementNetwork["Management Network / management"]
+      subgraph Local["Monitoring Host"]
+        direction BT
+        Parent["Existing independent Netdata<br/>Native streaming / API and BMC pollers"]
+        Export["Allowlisted metric bridge"]
+        Parent -->|Prometheus metrics| Export
+      end
     end
-    subgraph Inputs["Existing / manually inventoried"]
+    subgraph Inputs["Monitored Systems"]
       direction TB
       Hosts["Proxmox hosts / storage"]
       BMC["BMC hardware sensors"]
       Hosts ~~~ BMC
     end
-    Inputs -->|Health metrics| Local
+    Hosts -->|Host / storage health metrics| Parent
+    BMC -->|Hardware health metrics| Parent
   end
-  T0 ---->|Approved OTLP metrics| T1
+  Export ---->|Approved OTLP metrics| Gateways
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  class Pipeline,Local replicas
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Pipeline,Local group
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
   class Gateways traffic
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
   class T1 tier1
+  classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class ApplicationNetwork,ManagementNetwork network
+  class Inputs group
 ```
 
 **IaC:** *Figure: The independent Tier 0 monitor retains infrastructure credentials and sends only approved metrics to
@@ -498,41 +524,29 @@ sources here. Mark unconnected scopes unverified instead of claiming their cover
 <a id="figure-query-access"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Reader["Application owner / authorized security reader"]
-  subgraph T1["Tier 1 / Observability"]
-    subgraph Cluster["Existing platform Kubernetes"]
-      subgraph Project["Native releases / read authorization"]
-        direction TB
-        Search["dashboards x2<br/>Scoped log / trace views"]
-        Metrics["grafana x2 / metrics-query x2<br/>Read-only metrics queries"]
-        Diagnostics["netdata-1 / netdata-2<br/>Authorized operational diagnostics"]
-        Search ~~~ Metrics
-        Metrics ~~~ Diagnostics
-      end
-    end
+%%{init: {"themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif","sequence":{"actorFontSize":14,"messageFontSize":14,"noteFontSize":14}}}%%
+sequenceDiagram
+  participant Reader as Authorized reader
+  participant Search as dashboards
+  participant Metrics as grafana
+  participant Diagnostics as Netdata parents
+  alt Log / trace search
+    Reader->>Search: Scoped log / trace query
+    Search-->>Reader: Authorized results
+  else Metrics
+    Reader->>Metrics: Read-only metric query
+    Metrics-->>Reader: Authorized results
+  else Diagnostics
+    Reader->>Diagnostics: Operational diagnostics
+    Diagnostics-->>Reader: Authorized diagnostics
   end
-  Reader -->|Read-only queries| T1
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Search,Metrics services
-  class Project replicas
-  class Reader actor
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  class Cluster kubernetes
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
 ```
 
-**IaC:** *Figure: Authorized readers enter the Tier 1 query interfaces from the left. Reader policy controls signal
-access; original Tier 0 evidence stays outside this query path.*
+**IaC:** *Figure: Each query type reaches its own Tier 1 interface with product-specific reader authorization.
+The sequence shows alternative requests; original Tier 0 evidence stays outside every query path.*
 Tier 1 [query values and search policy](../../../tier-1/ansible/roles/observability_platform/templates).
 This view shows query interfaces; backend placement and replica counts remain as
-defined in the runtime view. Readers enter from the left and query Tier 1 only. Tier 0 originals are outside
+defined in the runtime view. Readers query Tier 1 only. Tier 0 originals are outside
 this query view: no archive mount or write path is granted. Export/redaction remains
 separately authorized in Tier 0 before an approved copy reaches OpenSearch.
 

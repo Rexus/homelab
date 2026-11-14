@@ -7,10 +7,10 @@ the verified `vmbr0` attachment described in Step 1.
 <a id="figure-1-separated-fabric-and-storage-paths"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Switches["Managed switches or upstream fabric"]
-  subgraph Fabric["Fabric path / selected reference"]
+  subgraph Fabric["Fabric"]
     direction TB
     FabricBond["bond0<br/>fabric bond<br/>MTU 1500"]
     FabricBridge["vmbr0<br/>fabric bridge<br/>VLAN-aware<br/>MTU 1500"]
@@ -22,7 +22,7 @@ flowchart LR
     FabricBridge --> QuorumPrimary
     FabricBridge --> Guests
   end
-  subgraph Storage["Optional separate storage fabric"]
+  subgraph Storage["Storage Fabric"]
     direction TB
     StorageBond["bond1<br/>storage bond<br/>MTU 9000"]
     StorageBridge["vmbr1<br/>storage bridge<br/>VLAN-aware<br/>MTU 9000"]
@@ -40,9 +40,10 @@ flowchart LR
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Fabric boundary
   class Switches,FabricBond,FabricBridge,StorageBond,StorageBridge,Management,QuorumPrimary,QuorumSecondary control
   class Storage,CephPublic,CephCluster data
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Fabric network
 ```
 
 **Manual:** **Figure 1: Separated fabric and storage paths.** Normal platform VLANs use a fabric

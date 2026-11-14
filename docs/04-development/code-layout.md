@@ -61,19 +61,19 @@ The figure focuses on tier-local Terraform composition. The linked entry-point
 chain below supplies execution and Shared reference inputs.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph Tier["Owning tier / Tier 2 example"]
+  subgraph Tier["Tier 2"]
     direction TB
-    Root["terraform/deployments/lab<br/>main.tf / root composition"]
-    Inputs["ansible/inventory/hosts.yml<br/>group_vars/all.yml + lab.yml"]
+    Root["deployments/lab/main.tf<br/>Root composition"]
+    Inputs["inventory/hosts.yml<br/>group_vars/all.yml + lab.yml"]
     subgraph Modules["terraform/modules / definitions"]
       direction TB
-      Resolve["environment_guests<br/>Resolve names / IPs / hardware"]
-      Resources["vm / lxc<br/>Resource implementations"]
-      Resolve -->|Outputs forwarded by root| Resources
+      Resolve["environment_guests<br/>Resolve guest inputs"]
+      Resources["vm / lxc<br/>Guest resources"]
+      Resolve -->|Resolved inputs via root| Resources
     end
-    State[(".terraform/state/<br/>lab/prod/terraform.tfstate")]
+    State[("lab / prod<br/>Terraform state")]
     Root -->|Calls resolver| Resolve
     Root -->|Instantiates resources| Resources
     Inputs -->|YAML inputs| Resolve
@@ -84,7 +84,7 @@ flowchart TB
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Tier tier2
   class Modules group
   class Root,Resolve,Resources control
@@ -106,7 +106,7 @@ Shared references are defined by the [input contract](../08-reference/platform-i
 ## Ansible configuration path
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
   subgraph Tier["Owning tier / ansible"]
     direction TB

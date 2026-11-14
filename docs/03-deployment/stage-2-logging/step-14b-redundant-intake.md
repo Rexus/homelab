@@ -6,13 +6,12 @@ handoff for the selected failure contract.
 <a id="figure-1-independent-receivers"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
   Sources["Approved producers / owning tiers<br/>Durable local queues"]
-  subgraph T0[" "]
+  subgraph T0["Tier 0"]
     direction TB
-    T0Title["Tier 0 / Control layer"]
-    subgraph Placement[" "]
+    subgraph Placement["Management Network / management"]
       direction LR
       subgraph PVE1["Proxmox host A"]
         direction LR
@@ -28,16 +27,17 @@ flowchart TB
       end
       PVE1 ~~~ PVE2
     end
-    T0Title ~~~ Placement
-  end
-  subgraph Custody["Independent archive custody / selected integration"]
+    subgraph Custody["Archive Custody"]
     direction LR
     Commit["Required durable handoff<br/>Not installed by adding a VM"]
     Copies[("Retained copies / independent backup")]
     Commit --> Copies
   end
-  Sources -->|Selected sender routing| T0
-  T0 -->|Selected durable handoff| Custody
+  end
+  Sources -->|Selected sender routing| VM1
+  Sources -->|Selected alternate routing| VM2
+  VM1 -. Selected durable handoff .-> Commit
+  VM2 -. Selected durable handoff .-> Commit
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
@@ -48,13 +48,14 @@ flowchart TB
   class PVE1,PVE2 boundary
   class Sources actor
   class VM1,VM2 control
-  class Placement controlHeading
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   class Disk1,Disk2,Copies data
   class Custody,Commit custody
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
   classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
-  class T0Title tier0Heading
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Placement network
 ```
 
 **IaC:** **Figure 1: Independent receivers.** Tier 0 [optional VM definition](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example),
@@ -62,6 +63,8 @@ flowchart TB
 [IP map](../../../tier-0/ansible/group_vars/syslog.yml.example).
 Both receivers use the same [receiver recipe](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml);
 sender failover and the stronger durable-handoff contract remain selected integrations.
+Host A/B remain explicit because this view compares independently placed receivers and their local disks.
+Both guest interfaces use `management`; distinct host placement must be selected and verified.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Branch from:** [Step 14](README.md#step-14-select-the-receiver-topology), when the required failure contract exceeds a single collector.

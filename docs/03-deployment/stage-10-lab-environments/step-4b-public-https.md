@@ -15,30 +15,31 @@ This optional path uses the existing Tier 2 HAProxy/keepalived pool.
 ## Expected outcome: verified public certificates
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Authority["Existing public ACME authority"]
-  subgraph T2["Tier 2 / Edge / public HTTPS option"]
-    Controller["Existing Ansible controller<br/>Private order state / renewal timer"]
-    subgraph PVE["Existing Proxmox / external_edge VMs"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":10,"subGraphTitleMargin":{"top":6,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
+  Authority["Existing public<br/>ACME authority"]
+  subgraph T2["Tier 2"]
+    direction LR
+    Controller["Ansible controller<br/>Private order state<br/>Renewal timer"]
+    subgraph Network["Edge Network / external_edge"]
       direction TB
-      A["lb-1<br/>HAProxy / local HTTP-01"]
-      B["lb-2<br/>HAProxy / local HTTP-01"]
-      C["lb-3<br/>HAProxy / local HTTP-01"]
-      A ~~~ B ~~~ C
+      VIP{{"Configured VIP<br/>HTTP-01 listener"}}
+      Pool["Edge Services<br/>lb-1 / lb-2 / lb-3<br/>HAProxy / local HTTP-01"]
+      VIP ~~~ Pool
     end
-    Controller -->|Challenges / verified PEM deployment| PVE
+    Controller ~~~ Network
   end
-  Controller -->|Account / certificate orders| Authority
-  Authority -->|HTTP-01 validation via configured VIP| PVE
+  Authority ~~~ T2
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class A,B,C edge
-  class PVE boundary
-  class Controller,Authority actor
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Controller,Authority actor
+  class Pool services
+  class VIP traffic
+  class Network network
   class T2 tier2
 ```
 
@@ -49,6 +50,29 @@ Tier 2 [public HTTPS inputs](../../../tier-2/ansible/group_vars/public-https.yml
 [controller timer recipe](../../../tier-2/ansible/playbooks/deployment/public-certificate-schedule.yml).
 These configure existing edge hosts/controller, not new VMs, DNS, origins or a public CA.
 The [edge deployment view](../stage-7-delivery/procedures/edge-proxy.md#figure-edge-pool) owns the guest resources.
+
+<a id="figure-public-https-issuance"></a>
+
+### Certificate order and deployment
+
+```mermaid
+%%{init: {"themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif","sequence":{"actorFontSize":14,"messageFontSize":14,"noteFontSize":14}}}%%
+sequenceDiagram
+  participant Controller as Ansible controller
+  participant CA as Public ACME authority
+  participant Edge as Edge pool / VIP
+  Controller->>CA: Account / certificate order
+  Controller->>Edge: Deploy HTTP-01 challenges to members
+  CA->>Edge: HTTP-01 validation through VIP
+  CA-->>Controller: Issued certificate
+  Controller->>Edge: Deploy verified PEM files to members
+```
+
+**Workflow:** *Figure: The controller deploys the challenge before the authority validates it through the VIP.
+The same controller then installs the issued certificate on each selected member. The placement
+view above omits these arrows so that order and network placement remain readable.*
+The [public-certificate recipe](../../../tier-2/ansible/playbooks/maintenance/public-certificates.yml)
+owns challenge deployment, validation and certificate installation.
 
 **Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
 **Prerequisites:** prepared Enterprise Linux edge hosts/VIP, Linux Ansible controller

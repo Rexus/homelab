@@ -7,52 +7,59 @@ it is an optional branch, not a prerequisite for the rest of the platform.
 <a id="figure-1-offline-root-and-online-issuer"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart BT
-  subgraph T0["Tier 0 / Control and offline custody"]
+  subgraph T0["Tier 0"]
     direction BT
-    subgraph Offline["Separate offline custody / manual ceremony"]
+    subgraph Offline["Offline Custody"]
       direction LR
       Root["Offline root CA<br/>Root key and recovery material"]
       Ceremony["Existing ceremony environment"]
       Root -. Authorized signing .-> Ceremony
     end
-    subgraph PVE["Existing Proxmox / foundation root"]
+    subgraph Foundation["Foundation Services"]
       direction LR
-      subgraph Identity["identity network / configuration in Stage 5"]
+      subgraph Identity["Identity Network / identity"]
         direction TB
         Primary["idm-1<br/>Allocated VM only"]
         Replica["idm-2<br/>Allocated VM only"]
         Primary ~~~ Replica
       end
-      subgraph Crypto["cryptography network"]
+      subgraph Crypto["Cryptography Network / cryptography"]
         direction TB
-        Issuer["ca-1<br/>OpenXPKI runtime"]
-        Data[("scsi1 / CA data disk<br/>IaC-managed data mount")]
-        Issuer -->|Attached disk| Data
+        subgraph VM["ca-1 / issuer VM"]
+          Issuer["OpenXPKI runtime"]
+          Data[("scsi1 / CA data disk<br/>IaC-managed data mount")]
+          Issuer -->|Attached disk| Data
+        end
       end
       Identity ~~~ Crypto
     end
-    Offline -. "Signed certificate transfer; no network route" .-> PVE
+    Offline -. "Signed certificate transfer; no network route" .-> Foundation
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class PVE boundary
+  class VM boundary
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Foundation group
   class Offline,Root,Ceremony custody
   class Issuer,Primary,Replica control
   class Data data
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class Identity,Crypto zoneControl
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Identity,Crypto network
 ```
 
 **IaC:** **Figure 1: Offline root and online issuer.** Tier 0 [foundation guest definitions](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
 and [issuer recipe](../../../tier-0/ansible/playbooks/deployment/openxpki.yml).
 The unchanged starter root allocates all three VMs; directory configuration follows in Stage 5.
+The two guest networks follow the [Tier 0 network inputs](../../../tier-0/terraform/common.tfvars.example);
+the foundation group denotes a shared provisioning root, not one host or network.
 The issuer is configured first and drawn to the right; the FreeIPA CA remains its
 sibling under the offline root, not a subordinate of the infrastructure issuer.
 Ansible prepares the data mount; the root ceremony and CA activation remain controlled operations.

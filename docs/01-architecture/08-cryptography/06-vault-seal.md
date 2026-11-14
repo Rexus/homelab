@@ -17,11 +17,11 @@ The initial S1 reference keeps startup under custodian control without an online
 seal-provider dependency.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / S1: Shamir seal"]
+  subgraph T0["Tier 0"]
     direction TB
-    subgraph Runtime["Selected secret-service runtime"]
+    subgraph Runtime["Secret Service"]
       direction LR
       B["Secret service"]
       Data[("Persistent<br/>service state")]

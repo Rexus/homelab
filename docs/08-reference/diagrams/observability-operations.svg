@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720"
+     role="img" aria-labelledby="title description">
+  <title id="title">Kubernetes observability placement and persistence</title>
+  <desc id="description">Reader, ingestion and backend services form compact peer groups inside Tier 1 Kubernetes. Separate Netdata parents, node/state agents and a selected metric bridge form the diagnostics group below. History and signal PVCs are separate stores; placement does not imply HA or a shared data volume. Focused views show actual signal and query traffic.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581"/>
+    </marker>
+    <style>
+      svg { font: 15px Arial, sans-serif; }
+      text { fill: currentColor; stroke: none; text-anchor: middle; }
+      .data { fill: #eeeafa; stroke: #78639b; color: #42325d; }
+      .group { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .kubernetes { fill: #e8eef6; stroke: #6b83a3; color: #263d59; }
+      .services { fill: #e7f0fc; stroke: #4d719b; color: #203a5b; }
+      .tier1 { fill: #e9e2d8; stroke: #968976; color: #44382a; }
+      .traffic { fill: #303841; stroke: #8a9baa; color: #ffffff; }
+      .data, .kubernetes, .services, .tier1, .traffic { stroke-dasharray: none; }
+      .connection { fill: none; stroke: #627581; stroke-width: 1.5; stroke-dasharray: none; marker-end: url(#arrow); }
+      .edge-label { fill: #1f2937; font-size: 13px; }
+    </style>
+  </defs>
+<g id="T1" class="tier1">
+<rect x="20" y="20" width="920" height="680"/>
+<text x="480.0" y="44">Tier 1</text>
+<g id="Cluster" class="kubernetes">
+<rect x="40" y="65" width="880" height="615"/>
+<text x="480.0" y="89">Tier 1 Kubernetes</text>
+<g id="Processing" class="group">
+<rect x="60" y="110" width="250" height="285"/>
+<text x="185.0" y="134">Ingestion Services</text>
+<g id="Gateway" class="traffic"><polygon points="94,155 276,155 290,190.0 276,225 94,225 80,190.0"/>
+<text x="185.0" y="185.0">otel-gateway x2</text>
+<text x="185.0" y="205.0">Separate queue PVCs</text>
+</g>
+<g id="Prepper" class="services"><rect x="80" y="270" width="210" height="75"/>
+<text x="185.0" y="302.5">data-prepper x2</text>
+<text x="185.0" y="322.5">Scoped log / trace pipelines</text>
+</g>
+</g>
+<g id="Readers" class="group">
+<rect x="330" y="110" width="250" height="285"/>
+<text x="455.0" y="134">Reader-facing Services</text>
+<g id="UIs" class="services"><rect x="350" y="155" width="210" height="70"/>
+<text x="455.0" y="185.0">grafana / dashboards</text>
+<text x="455.0" y="205.0">Two replicas each</text>
+</g>
+<g id="Query" class="traffic"><polygon points="364,270 546,270 560,307.5 546,345 364,345 350,307.5"/>
+<text x="455.0" y="302.5">metrics-query x2</text>
+<text x="455.0" y="322.5">vmauth / selected reads</text>
+</g>
+</g>
+<g id="Backends" class="group">
+<rect x="600" y="110" width="300" height="285"/>
+<text x="750.0" y="134">Persistent Backends</text>
+<g id="Metrics" class="services"><rect x="620" y="150" width="260" height="60"/>
+<text x="750.0" y="175.0">metrics-1 / metrics-2</text>
+<text x="750.0" y="195.0">Separate PVCs</text>
+</g>
+<g id="Search" class="services"><rect x="620" y="235" width="260" height="55"/>
+<text x="750.0" y="267.5">opensearch x3 / own PVCs</text>
+</g>
+<g id="DB" class="services"><rect x="620" y="315" width="260" height="60"/>
+<text x="750.0" y="340.0">grafana-db / PostgreSQL x3</text>
+<text x="750.0" y="360.0">Live block PVCs</text>
+</g>
+</g>
+<g id="Diagnostics" class="group">
+<rect x="60" y="420" width="840" height="240"/>
+<text x="480.0" y="444">Netdata Diagnostics</text>
+<g id="Parents" class="group">
+<rect x="80" y="460" width="235" height="175"/>
+<text x="197.5" y="484">Diagnostic Parents</text>
+<g id="N1" class="services"><rect x="100" y="505" width="110" height="55"/>
+<text x="155.0" y="537.5">netdata-1</text>
+</g>
+<g id="N2" class="services"><rect x="100" y="570" width="110" height="55"/>
+<text x="155.0" y="602.5">netdata-2</text>
+</g>
+<g id="History1" class="data"><path d="M230 515 C230 502 295 502 295 515 L295 550 C295 563 230 563 230 550 Z"/><path d="M230 515 C230 528 295 528 295 515" fill="none"/>
+<text x="262.5" y="539.5">PVC</text>
+</g>
+<g id="History2" class="data"><path d="M230 580 C230 567 295 567 295 580 L295 615 C295 628 230 628 230 615 Z"/><path d="M230 580 C230 593 295 593 295 580" fill="none"/>
+<text x="262.5" y="604.5">PVC</text>
+</g>
+<path class="connection" data-from="N1" data-to="History1" d="M210 532 L230 532"/>
+<path class="connection" data-from="N2" data-to="History2" d="M210 597 L230 597"/>
+</g>
+<g id="Agents" class="services"><rect x="350" y="465" width="240" height="80"/>
+<text x="470.0" y="500.0">netdata-1 chart agents</text>
+<text x="470.0" y="520.0">Node children / k8sState</text>
+</g>
+<g id="Bridge" class="services"><rect x="620" y="465" width="255" height="80"/>
+<text x="747.5" y="500.0">netdata-metrics</text>
+<text x="747.5" y="520.0">Selected parent / exact allowlist</text>
+</g>
+</g>
+</g>
+</g>
+</svg>

@@ -5,7 +5,7 @@ software supply, data and recovery. Local ownership and selected public services
 can coexist; the operating and recovery responsibilities must remain explicit.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Team["Service owners /<br/>users"] -->|Scoped<br/>interfaces| Local
   subgraph Local["Privately operated platform"]
@@ -160,7 +160,7 @@ Example assumptions:
 | hybrid | private baseline plus public peak/offsite use averaging `€160/month` |
 
 ```mermaid
-%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#218d7b,#6e87be,#9b852c"}}}}%%
+%%{init: {"themeVariables":{"xyChart":{"plotColorPalette":"#218d7b,#6e87be,#9b852c"},"fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 xychart-beta
   title "Illustrative 24-month cumulative cost"
   x-axis "Months" [0, 6, 12, 18, 24]
@@ -177,7 +177,7 @@ cloud carries the steady service baseline and normal business workload. Public
 cloud is used only for the horizontal scale-out window.
 
 ```mermaid
-%%{init: {"themeVariables": {"xyChart": {"plotColorPalette": "#218d7b,#6e87be,#9b852c"}}}}%%
+%%{init: {"themeVariables":{"xyChart":{"plotColorPalette":"#218d7b,#6e87be,#9b852c"},"fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 xychart-beta
   title "Hybrid capacity for working-hours peaks"
   x-axis "Hour" [0, 4, 8, 12, 16, 20, 24]

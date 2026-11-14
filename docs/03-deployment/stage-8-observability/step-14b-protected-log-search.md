@@ -11,44 +11,50 @@ Application-only search skips this exporter.
 ## Expected outcome: approved search copy
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart BT
-  subgraph T1["Tier 1 / Existing Observability"]
-    subgraph K1["Existing platform Kubernetes / selected log pipeline"]
-      direction LR
-      Gateway["otel-gateway x2<br/>Projection listener"]
-      Prepper["data-prepper x2<br/>Fixed index"]
-      Search["opensearch x3<br/>Scoped reads"]
-      Gateway --> Prepper
-      Prepper --> Search
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":8,"bottom":20}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart TB
+  subgraph T1["Tier 1"]
+    subgraph ApplicationNetwork["Application Network / application"]
+      subgraph K1["Tier 1 Kubernetes"]
+        direction LR
+        Gateway{{"otel-gateway x2<br/>Projection listener"}}
+        Prepper["data-prepper x2<br/>Fixed index"]
+        Search["opensearch x3<br/>Scoped reads"]
+        Gateway -->|Logs / TLS| Prepper
+        Prepper -->|Indexing / TLS| Search
+      end
     end
   end
-  subgraph T0["Tier 0 / Control"]
-    subgraph Host["Existing log-1 / selected scope"]
-      direction RL
-      Original[("Original records<br/>Checkpoint custody")]
-      Copy[("operations<br/>Approved fields / IDs")]
-      Export["security-log-projection-<br/>operations<br/>Collector / local queue"]
-      Original --> Copy
-      Copy --> Export
+  subgraph T0["Tier 0"]
+    subgraph ManagementNetwork["Management Network / management"]
+      subgraph Host["Log Receiver / log-1"]
+        direction RL
+        Export["security-log-projection-<br/>operations<br/>Collector / local queue"]
+        Copy[("operations<br/>Approved fields / IDs")]
+        Original[("Original records<br/>Checkpoint custody")]
+        Original -->|Approved projection| Copy
+        Copy -->|Read-only mount| Export
+      end
     end
   end
-  T0 -->|Scoped export / push-only mTLS| T1
+  T1 ~~~ T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Host runtime
-  class Copy,Original data
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  class K1 kubernetes
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
-  class Gateway traffic
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class T0 tier0
   class T1 tier1
+  class ManagementNetwork,ApplicationNetwork network
+  class K1 kubernetes
+  class Host runtime
+  class Gateway traffic
+  class Prepper,Search,Export services
+  class Copy,Original data
 ```
 
 **IaC:** *Figure: Tier 0 filters a selected checkpoint into a read-only copy, then pushes it to the authenticated Tier
@@ -59,8 +65,27 @@ installs one container per selected scope using the [local inputs](../../../tier
 Tier 1's [existing pipeline](../../../tier-1/ansible/roles/observability_platform/templates/collector-config.yml.j2)
 selects the destination by authenticated listener, never a producer-supplied scope label.
 This figure covers one new `operations` export on `log-1`, not the entire logging or Observability stack.
-Arrows show checkpoint filtering, the read-only copy mount, push-only scoped mTLS and indexing,
-in that order. Query access remains in [Stage 8's reader view](README.md#step-4-publish-and-verify-read-only-views).
+The placement view separates Tier 0 custody from Tier 1 indexing. Its local arrows show filtering,
+the read-only copy mount and indexing; the sequence below shows the cross-tier push. Query access remains in [Stage 8's reader view](README.md#step-4-publish-and-verify-read-only-views).
+
+<a id="figure-protected-projection-push"></a>
+
+```mermaid
+sequenceDiagram
+  participant Export as operations exporter
+  participant Files as Approved operations files
+  participant Intake as Tier 1 otel-gateway
+  Export->>Files: Read-only JSONL mount / persistent cursor
+  Files-->>Export: Approved records
+  Export->>Intake: Push-only scoped mTLS
+  Intake->>Intake: Data Prepper to fixed OpenSearch index
+```
+
+**Workflow:** *Figure: The exporter reads only approved files, then pushes records to the authenticated
+projection listener. Tier 1 receives no route to the original evidence.*
+The [exporter configuration](../../../tier-0/ansible/roles/logging_export/templates/collector.yml.j2)
+owns file reads and push-only OTLP. The existing [Tier 1 pipeline](../../../tier-1/ansible/roles/observability_platform/templates/collector-config.yml.j2)
+maps that listener to its fixed scope.
 
 **Working repositories:** `<prefix>-tier-0` publishes and exports approved copies;
 `<prefix>-tier-1` owns the existing authenticated ingestion and search workloads.

@@ -6,21 +6,12 @@ The selected retention model determines which administrators remain trusted.
 The parent [security-logging design](01-protected-logging.md) owns intake, source
 identity, segmented reads and the accepted-record durability contract.
 
-## Contents
-
-- [Choose the protection boundary](#choose-the-protection-boundary)
-- [Roles and growth](#roles-and-growth)
-- [Durability and recovery](#durability-and-recovery)
-- [Review triggers](#review-triggers)
-- [Realization](#realization)
-- [References](#references)
-
 ## Choose the protection boundary
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  subgraph T0["Tier 0 / retained security evidence"]
+  subgraph T0["Tier 0"]
     direction LR
     subgraph Intake["Collector runtime / outside Kubernetes"]
       direction TB
@@ -101,6 +92,15 @@ protects individual versions: governance mode permits an authorized bypass;
 compliance mode prevents version deletion or retention shortening during its
 term, subject to provider/account and key-custody limits. [3]
 An S3-compatible API alone does not establish those guarantees.
+
+## Contents
+
+- [Choose the protection boundary](#choose-the-protection-boundary)
+- [Roles and growth](#roles-and-growth)
+- [Durability and recovery](#durability-and-recovery)
+- [Review triggers](#review-triggers)
+- [Realization](#realization)
+- [References](#references)
 
 ## Roles and growth
 

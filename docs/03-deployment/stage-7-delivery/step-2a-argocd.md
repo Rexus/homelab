@@ -14,40 +14,37 @@ Applications keep their own release and recovery checks after the controller is 
 ## Expected outcome: scoped application GitOps
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":10,"subGraphTitleMargin":{"top":6,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  Admin["Authorized Tier 1 operators"]
-  subgraph T1["Tier 1 / Application / Services"]
-    subgraph Cluster["Existing platform Kubernetes"]
-      direction TB
-      subgraph Added["Native installer / argocd namespace"]
-        Controller["argocd / native Helm release"]
-        Policy["platform AppProject<br/>Exact sources / local namespaces<br/>Default project denied"]
-        Controller ~~~ Policy
-      end
-      Targets["Existing allowed namespaces<br/>Separate application sync"]
-      Added -->|Namespace-scoped delivery| Targets
+  Admin["Authorized Tier 1<br/>operators"]
+  subgraph T1["Tier 1"]
+    subgraph Cluster["Tier 1 Kubernetes / namespace argocd"]
+      Controller["argocd / Helm release<br/>argocd-server / private HTTPS"]
+      Policy["platform AppProject<br/>Exact sources / local namespaces<br/>Default project denied"]
+      Targets["Allowed local namespaces<br/>Separate application sync"]
+      Controller ~~~ Policy
+      Controller -->|Namespace-scoped delivery| Targets
     end
   end
-  Source["Existing approved bootstrap source<br/>Read-only repository access"]
-  Admin -->|Private HTTPS / SSO| Added
-  Added -->|HTTPS source reads| Source
+  Source["Approved bootstrap source<br/>Read-only Git access"]
+  Admin -->|Private HTTPS / SSO| Controller
+  Controller -->|HTTPS source reads| Source
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   class Admin,Source actor
   class Controller,Targets services
-  class Added,Policy replicas
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
   class T1 tier1
+  classDef policy fill:#f4dce9,stroke:#955076,color:#57253f,stroke-dasharray:3 3
+  class Policy policy
 ```
 
 **IaC:** *Figure: Argo CD reads approved sources and delivers only into selected local namespaces. The installer
-creates its policy; the bounded application and recovery tests establish whether delivery is accepted.*
+creates its policy; the bounded application and recovery tests establish whether delivery is accepted. The
+[stage runtime](README.md) retains the network placement.*
 Tier 1's [controller task](../../../tier-1/ansible/roles/delivery_platform/tasks/argocd.yml),
 [native values](../../../tier-1/ansible/roles/delivery_platform/templates/argocd-values.yml.j2) and
 [AppProjects](../../../tier-1/ansible/roles/delivery_platform/templates/argocd-projects.yml.j2), selected through

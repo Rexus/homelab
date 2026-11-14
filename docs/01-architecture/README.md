@@ -7,24 +7,24 @@ together, from the infrastructure underneath a service to the users who consume 
 ## Functional structure
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T2["Tier 2 / edge and workloads"]
+  subgraph T2["Tier 2"]
     direction LR
     Edge["Edge / DMZ<br/>Public entry / software intake<br/>Clients on a separate subnet"]
     Workloads["Application / Services<br/>Applications / development / labs"]
     Edge ~~~ Workloads
   end
-  subgraph T1["Tier 1 / shared platform"]
+  subgraph T1["Tier 1"]
     direction LR
     Publication["Edge / DMZ<br/>External runners / mirrors"]
     Delivery["Application / Services<br/>Source / builds / artifacts<br/>Delivery / workload management"]
     Analytics["Application / Services<br/>Observability / investigation"]
     Publication ~~~ Delivery ~~~ Analytics
   end
-  subgraph T0["Tier 0 / infrastructure and trust"]
+  subgraph T0["Tier 0"]
     direction TB
-    subgraph Control["Control / connected systems"]
+    subgraph Control["Control Services"]
       direction LR
       Infrastructure["Hosting / networks<br/>Storage / lifecycle<br/>Inventory"]
       Consumers["Identity provider<br/>SSO / secrets"]
@@ -54,7 +54,8 @@ flowchart TB
   classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
   class Workloads,Delivery,Analytics zoneServices
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class Control zoneControl
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Control group
 ```
 
 *Figure 1 - The platform at a glance. Each enclosing tier owns its services;

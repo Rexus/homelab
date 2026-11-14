@@ -7,50 +7,13 @@ artifact or replaces a retained repository mirror.
 
 ## Connected proxy design
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  subgraph Consumers["Update consumers"]
-    direction TB
-    Workloads["Workload<br/>update clients"]
-    Platform["Platform<br/>update clients"]
-    Control["Infrastructure<br/>update clients"]
-    Workloads ~~~ Platform ~~~ Control
-  end
-  subgraph T2["Tier 2 / software intake"]
-    subgraph DMZ["Edge / DMZ"]
-      direction TB
-      Proxy{{"Policy proxy /<br/>HTTP cache"}}
-      Cache[("Rebuildable<br/>cached objects")]
-      Proxy -. Disposable<br/>storage .-> Cache
-    end
-  end
-  Sources["Approved<br/>sources"]
-  Consumers -->|Proxy<br/>requests| T2
-  T2 -->|Source<br/>requests| Sources
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Consumers boundary
-  class Workloads,Platform services
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
-  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
-  class Proxy traffic
-  class DMZ zoneEdge
-  class Control control
-  class Cache data
-  class Sources actor
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  class T2 tier2
-```
+<a id="figure-software-intake-context"></a>
 
-*Figure: Separately owned update clients request the policy proxy inside Tier 2; the upstream
-boundary link represents that proxy's requests to approved external sources. The proxy uses
-the rebuildable cache below it; cached objects confer neither approval nor recovery custody.*
+![Connected proxy and update consumers](../../08-reference/diagrams/software-intake-context.svg)
+
+*Figure: Separately owned update clients below request the Tier 2 proxy interface upward.
+The proxy requests approved external sources to its left and uses the rebuildable cache below it;
+cached objects confer neither approval nor recovery custody.*
 
 **Architecture (A):** requests target the proxy interface, not other Tier 2 services.
 The consumer group aggregates separate owners, not a shared subnet or runtime.
@@ -82,44 +45,60 @@ The client is any machine using approved software supply; it need not belong to
 one tier or run a specific package manager. The transport determines what can be cached.
 HTTPS CONNECT tunnels forward encrypted bytes and do not provide object caching or scanning.
 
+### HTTPS tunnel
+
+```mermaid
+sequenceDiagram
+  participant Client as Update client
+  participant Proxy as Policy proxy
+  participant Source as Approved repository
+  Client->>Proxy: CONNECT source:443
+  Proxy->>Proxy: Check client, destination and port
+  alt Denied by policy
+    Proxy-->>Client: Deny without a source connection
+  else Allowed
+    Proxy->>Source: Open permitted TCP connection
+    Source-->>Proxy: Connection established
+    Proxy-->>Client: 200 Connection Established
+    Note over Client,Source: Client-to-source TLS through the proxy<br/>No payload caching or scanning
+    Client->>Source: Fetch through the TLS tunnel
+    Source-->>Client: Encrypted response through the tunnel
+    Client->>Client: Verify trusted metadata / signatures
+  end
+```
+
+*Figure: The proxy permits the connection; the client authenticates the source and verifies the software.
+The client-to-source arrows describe the TLS exchange inside the established tunnel.*
+
+### Cacheable HTTP
+
 ```mermaid
 sequenceDiagram
   participant Client as Update client
   participant Proxy as Policy proxy/cache
   participant Source as Approved repository
-  Client->>Proxy: HTTP request or CONNECT to source:443
-  Proxy->>Proxy: Check client, destination and port policy
+  Client->>Proxy: HTTP repository request
+  Proxy->>Proxy: Check client, destination and port
   alt Denied by policy
-    Proxy-->>Client: Deny request without opening source connection
-  else Allowed request
-    alt HTTPS CONNECT
-      Proxy->>Source: Open permitted TCP connection
-      Source-->>Proxy: Connection established
-      Proxy-->>Client: 200 Connection Established
-      Note over Client,Source: Client-to-source TLS through the tunnel<br/>Encrypted payload is not cached or scanned
-      Client->>Source: Fetch package / metadata through tunnel
-      Source-->>Client: Encrypted response through tunnel
-    else Potentially cacheable HTTP
-      alt Fresh cache hit
-        Proxy-->>Client: Return cached response
-      else Response absent or requires revalidation
-        Proxy->>Source: Fetch or conditionally revalidate
-        Source-->>Proxy: Content or freshness response
-        Proxy->>Proxy: Apply cache and privacy rules
-        Proxy-->>Client: Return response
-      end
+    Proxy-->>Client: Deny without a cache lookup or source fetch
+  else Allowed
+    alt Fresh cache hit
+      Proxy-->>Client: Return cached response
+    else Absent or requires revalidation
+      Proxy->>Source: Fetch or conditionally revalidate
+      Source-->>Proxy: Content or freshness response
+      Proxy->>Proxy: Apply cache and privacy rules
+      Proxy-->>Client: Return response
     end
-    Client->>Client: Verify trusted metadata / package signatures
+    Client->>Client: Verify trusted metadata / signatures
   end
 ```
 
-*Figure: Approved HTTPS requests use an opaque tunnel; reusable HTTP responses may be
-cached or revalidated. The client verifies publisher signatures in both cases.*
+*Figure: An allowed HTTP request can use a fresh object or revalidate it with the source.
+Publisher verification remains the client's responsibility, including on a cache hit.*
 
-The first decision is access policy; a denial never becomes a cache lookup or a
-source fetch. Once CONNECT succeeds, the client verifies the source's TLS identity
-and software authenticity itself. A cache hit can save a transfer, but cannot
-establish that the response is an approved release. [1][2]
+A policy denial never becomes a cache lookup or source fetch. A cache hit saves a
+transfer; it does not establish that the response is an approved release. [1][2]
 
 ## Supply choices
 

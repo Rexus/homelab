@@ -114,7 +114,7 @@ class ReaderRoles(TierRepositoryTestCase):
         capability_map = overview.split("## Functional structure\n", 1)[1].split(
             "## Capabilities\n", 1)[0]
         self.assertIn("flowchart TB", capability_map)
-        self.assertIn('subgraph Control["Control / connected systems"]', capability_map)
+        self.assertIn('subgraph Control["Control Services"]', capability_map)
         for ordered in (('T2["Tier 2', 'T1["Tier 1', 'T0["Tier 0'),
                         ('Edge["Edge', 'Workloads["Application', 'Control["Control')):
             positions = [capability_map.index(label) for label in ordered]
@@ -126,9 +126,9 @@ class ReaderRoles(TierRepositoryTestCase):
         self.assertIn("Outside connected runtimes", capability_map)
         identity = (root / "09-identity/README.md").read_text()
         for expected in ("## Terminology", "Identity and access management (IAM)",
-                         "LDAP user federation", "Identity brokering", "Tier 0 / Control layer",
-                         "Directory primary", "Directory replica", "control_cluster network",
-                         "T2 -->|OIDC to the IdP| T0", "T1 -->|OIDC to the IdP| T0"):
+                         "LDAP user federation", "Identity brokering", 'subgraph T0["Tier 0"]',
+                         "Directory primary", "Directory replica", "Tier 0 Kubernetes / control_cluster",
+                         "Consumers -->|OIDC sign-in| Ingress"):
             self.assertIn(expected, identity)
         self.assertNotRegex(identity, r"\bIAP\b")
         sequence = identity.split("## Service access\n", 1)[1].split("## Components and interfaces\n", 1)[0]

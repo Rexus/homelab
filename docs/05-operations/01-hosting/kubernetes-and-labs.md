@@ -6,52 +6,57 @@ VM/LXC labs and a dedicated workload Kubernetes cluster remain separate selectio
 <a id="figure-reference-cluster-capacity"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  subgraph T0["Tier 0 / reference node and API deployment"]
-    subgraph PVE["Existing Proxmox hosts"]
+  subgraph T0["Tier 0"]
+    direction LR
+    subgraph Management["Management Network / management"]
       direction LR
-      subgraph Management["management / private API"]
-        subgraph Gateways["API VIP / one active owner"]
-          direction TB
-          G1["api-gw-1<br/>HAProxy / keepalived"]
-          G2["api-gw-2<br/>HAProxy / keepalived"]
-          G1 ~~~ G2
-        end
+      VIP{{"Control API VIP<br/>TCP 6443"}}
+      subgraph Gateways["API Services"]
+        direction TB
+        G1["api-gw-1<br/>HAProxy / keepalived"]
+        G2["api-gw-2<br/>HAProxy / keepalived"]
+        G1 ~~~ G2
       end
-      subgraph Control["control_cluster"]
-        subgraph Nodes["control / Talos"]
-          direction TB
-          CP1["k8ctl-1<br/>Control plane"]
-          CP2["k8ctl-2<br/>Control plane"]
-          CP3["k8ctl-3<br/>Control plane"]
-          CP1 ~~~ CP2 ~~~ CP3
-        end
-      end
-      Gateways -->|VIP / TCP 6443| Nodes
     end
+    subgraph Control["Control Cluster Network / control_cluster"]
+      subgraph Nodes["control / Talos node VMs"]
+        direction TB
+        CP1["k8ctl-1<br/>Control plane / API 6443"]
+        CP2["k8ctl-2<br/>Control plane / API 6443"]
+        CP3["k8ctl-3<br/>Control plane / API 6443"]
+        CP1 ~~~ CP2 ~~~ CP3
+      end
+    end
+    VIP -->|Active gateway| Gateways
+    Gateways -->|TCP 6443 / all three APIs| Nodes
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  class G1,G2 control
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class G1,G2,CP1,CP2,CP3 control
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  class VIP traffic
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class Management,Control zoneControl
-  class PVE boundary
   class Gateways,Nodes replicas
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Management,Control network
 ```
 
-*Figure: IaC reference for node-capacity operations: the supplied independent API pair fronts three
-schedulable control-plane VMs. This starter has no workers; the group arrow is the API interface.*
+*Figure: IaC reference for node-capacity operations: the API VM pair on `management` fronts three
+schedulable control-plane VMs on `control_cluster`. Each HAProxy uses the three API listeners as
+backends; only one gateway owns the VIP. This starter has no workers.*
 
 **Owner:** `<prefix>-tier-0`; [endpoint inputs](../../../tier-0/terraform/deployments/cluster-endpoint/terraform.tfvars.example)
 and [installer](../../../tier-0/ansible/playbooks/deployment/cluster-endpoint.yml),
 [node inputs](../../../tier-0/terraform/deployments/kubernetes/terraform.tfvars.example) and
 [cluster lifecycle](../../../tier-0/scripts/kubernetes-cluster.sh).
+The [HAProxy configuration](../../../tier-0/ansible/roles/cluster_endpoint/templates/haproxy.cfg.j2)
+defines the VIP listener and its control-plane backends.
 The [complete platform view](../../03-deployment/stage-4-kubernetes/README.md#figure-2-basic-platform-services)
 owns the add-on inventory. An accepted external API endpoint is a separate selection;
 [Tier 2 VM/LXC and Kubernetes lab views](../../03-deployment/stage-10-lab-environments/README.md#figure-workload-runtimes)

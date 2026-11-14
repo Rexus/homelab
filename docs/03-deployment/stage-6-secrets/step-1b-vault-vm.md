@@ -16,21 +16,22 @@ Run repository scripts from this root; paths below are repository-relative.
 ## Expected outcome: dedicated Vault runtime
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Operator["Authorized operator<br/>Manual initialization / unseal"]
-  subgraph T0["Tier 0 / Control"]
+  subgraph T0["Tier 0"]
     direction BT
-    Recovery["Independent share and backup custody"]
-    subgraph PVE["Existing Proxmox / cryptography network"]
+    subgraph Network["Cryptography Network / cryptography"]
       direction TB
-      VM["vault-1<br/>Vault installed / initially sealed"]
-      Data[("OS disk / local Raft data")]
-      VM --> Data
+      subgraph Guest["vault-1 / dedicated VM"]
+        VM["Vault installed / initially sealed"]
+        Data[("OS disk / local Raft data")]
+        VM --> Data
+      end
     end
-    Recovery -. Manual unseal / recovery transfer .-> PVE
+    Recovery["Independent share and backup custody"]
   end
-  Operator -->|Verified TLS / authorized bootstrap| T0
+  Operator -->|Verified TLS / authorized bootstrap| VM
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -44,7 +45,9 @@ flowchart LR
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class PVE zoneControl
+  class Guest boundary
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Network network
 ```
 
 **IaC:** *Figure: The VM installer leaves Vault sealed on its local Raft disk. Authorized custodians initialize and

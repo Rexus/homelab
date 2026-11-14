@@ -12,66 +12,72 @@ Hosts use directory authority directly; applications use an identity provider
 which remains outside the cluster it helps administrators access.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":2,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T2["Tier 2 / applications"]
-    Apps["Workload relying parties"]
-  end
-  subgraph T1["Tier 1 / shared services"]
-    Shared["Shared relying parties"]
-  end
-  Hosts["Other enrolled hosts<br/>DNS / LDAP / Kerberos"]
-  subgraph T0["Tier 0 / Control layer"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":20,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":28}},"themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px","lineColor":"#627581","edgeLabelBackground":"#f8fafc"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
+  NetworkRule["Incoming access rule<br/>Approved HTTPS sign-in"]
+  Consumers["Applications / shared services<br/>Authorized sign-in clients"]
+  Hosts["Enrolled hosts<br/>Directory protocols"]
+  subgraph T0["Tier 0"]
     direction LR
-    subgraph Cluster["Kubernetes / control_cluster network"]
-      direction TB
-      Ingress{{"HTTPS sign-in<br/>Ingress"}}
-      IdP["Identity provider<br/>IdP / SSO replica group"]
-      Data[("IdP state")]
-      Ingress -->|Approved sign-in routes| IdP
-      IdP -->|Database access| Data
-    end
-    subgraph Directory["Directory authority / identity network"]
-      direction TB
-      subgraph DirectoryGroup["Replicated directory service"]
+    subgraph IdentityServices["Identity Services"]
+      direction LR
+      subgraph Cluster["Tier 0 Kubernetes / control_cluster"]
         direction TB
-        Primary["Directory primary"] <--> Replica["Directory replica"]
+        Ingress{{"HTTPS sign-in<br/>Ingress"}}
+        subgraph IdPNamespace["IdP Namespace"]
+          direction TB
+          IdP["Identity provider<br/>SSO replicas"]
+          Data[("IdP state")]
+          IdP -->|Database| Data
+        end
+        Ingress -->|HTTPS| IdPNamespace
       end
+      subgraph Directory["Identity Network / identity"]
+        direction TB
+        subgraph Pair["Directory Services"]
+          direction TB
+          Primary["Directory primary"]
+          Replica["Directory replica"]
+          Primary <-->|Replication| Replica
+        end
+      end
+      IdPNamespace -->|LDAPS| Directory
     end
-    Cluster -->|Protected LDAP federation| Directory
   end
-  T2 ~~~ T1
-  T1 -->|OIDC to the IdP| T0
-  T2 -->|OIDC to the IdP| T0
-  Hosts -->|Directory protocols| T0
+  NetworkRule -. Governs HTTPS .-> Ingress
+  Consumers -->|OIDC sign-in| Ingress
+  Hosts ---->|Directory protocols| Directory
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  class Data data
-  class Hosts actor
-  class IdP,DirectoryGroup replicas
-  class Primary,Replica control
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  class Cluster kubernetes
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
-  class Ingress traffic
+  class IdP default
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  class T2 tier2
+  classDef deploymentGroup fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class IdentityServices deploymentGroup
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class IdPNamespace group
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class Directory zoneControl
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  class Primary,Replica,IdP control
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Pair replicas
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Data data
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  class Ingress traffic
+  classDef policy fill:#f4dce9,stroke:#955076,color:#57253f,stroke-dasharray:3 3
+  class NetworkRule policy
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Consumers,Hosts actor
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Directory network
 ```
-*Figure: Consumers sit above the Tier 0 authority. Its sign-in runtime is to the left of the dedicated
-directory; compact stacks show service instances inside their actual boundaries. The hexagon is HTTPS
-ingress, dashed boxes group services, and the database has its own state boundary. Directory protocols
-also serve enrolled hosts directly; administrative access is separate from these sign-in routes.*
+*Figure: Authorized consumers enter from outside Tier 0. Within the dotted Identity services grouping,
+Kubernetes on `control_cluster` is to the left of directory authority on `identity`.
+The IdP namespace contains the application and its state below it. Enrolled hosts use the directory directly.*
+The incoming-rule annotation sits outside Tier 0 and points directly to the charcoal ingress.
+Identity services is a functional grouping, not a network or a shared runtime.
 
 The figure separates ownership from access. Publishing an authentication endpoint
 to a consuming tier does not give that tier control of the directory or IdP runtime.

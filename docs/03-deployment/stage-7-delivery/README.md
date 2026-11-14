@@ -11,40 +11,43 @@ for Tier 1. GitLab and CI handover belong to [Stage 9](../stage-9-development/RE
 ## Expected outcome: delivery runtime
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T1["Tier 1 / Application / Services"]
+  subgraph T1["Tier 1"]
     direction LR
-    subgraph PVE["Existing Proxmox hosts"]
-      direction LR
-      subgraph Cluster["Platform Kubernetes / application runtime"]
-        subgraph Added["Selected controller / installed in Steps 2-7"]
+    subgraph Network["Application Network / application"]
+      direction TB
+      subgraph Cluster["Tier 1 Kubernetes"]
+        direction LR
+        subgraph Nodes["Kubernetes node VMs"]
+          direction TB
+          CP1["pctl-1"]
+          CP2["pctl-2"]
+          CP3["pctl-3"]
+          CP1 ~~~ CP2 ~~~ CP3
+        end
+        subgraph Added["Delivery Controller"]
           Controller["A: Argo CD<br/>or B: Spinnaker"]
         end
+        Nodes ~~~ Added
       end
-      subgraph Nodes["Kubernetes node VMs"]
-        direction TB
-        CP1["pctl-1"]
-        CP2["pctl-2"]
-        CP3["pctl-3"]
-        CP1 ~~~ CP2 ~~~ CP3
-      end
-      Cluster ~~~ Nodes
     end
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class CP1,CP2,CP3,Controller services
-  class PVE boundary
+  classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
   class Added group
   class Nodes replicas
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
   class T1 tier1
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Network network
 ```
 
 **IaC:** *Figure: Three platform node VMs provide the runtime. The selected controller has a separate installer in Actions
@@ -53,7 +56,8 @@ Tier 1 [node inputs](../../../tier-1/terraform/deployments/kubernetes/terraform.
 and [cluster command](../../../tier-1/scripts/kubernetes-cluster.sh) create the three
 starter VMs. The controller runs inside that cluster and is installed separately in Actions 2-7 through the
 [delivery recipe](../../../tier-1/ansible/playbooks/deployment/delivery-platform.yml).
-The VM group beside the runtime records physical hosting, not another Kubernetes cluster or network hop.
+The node VMs and controller belong to one runtime on the
+[shared application network](../../../shared/config/platform.tfvars); the node group is not a traffic hop.
 
 **Prerequisites:** accepted Tier 0 Kubernetes, Identity and Secrets; approved images,
 independent bootstrap Git/OCI sources, private DNS/TLS and qualified storage.

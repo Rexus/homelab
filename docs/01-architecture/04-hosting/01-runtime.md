@@ -12,60 +12,7 @@ dedicated VM or in a Kubernetes cluster whose nodes are VMs. The hosting layer
 does not change the service's authority classification or transfer its resource
 definitions and state to another tier.
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":10,"rankSpacing":6,"padding":8,"wrappingWidth":350,"subGraphTitleMargin":{"top":2,"bottom":6}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph PVE["Connected hosting / Proxmox capacity"]
-    direction LR
-    subgraph Guests["Tier-owned guest resources"]
-      direction TB
-      subgraph T2["Tier 2 / workload ownership"]
-        direction LR
-        Workloads["Dedicated workload VMs"]
-        subgraph WorkloadNodes["Cluster-node VMs"]
-          C2["Workload Kubernetes<br/>Application workloads"]
-        end
-        Workloads ~~~ WorkloadNodes
-      end
-      subgraph T1["Tier 1 / shared-platform ownership"]
-        direction LR
-        Shared["Dedicated shared-service VMs"]
-        subgraph PlatformNodes["Cluster-node VMs"]
-          C1["Platform Kubernetes<br/>Shared-service workloads"]
-        end
-        Shared ~~~ PlatformNodes
-      end
-      subgraph T0["Tier 0 / infrastructure and trust ownership"]
-        direction LR
-        subgraph ControlNodes["Cluster-node VMs"]
-          Cluster["Control Kubernetes<br/>Control-service workloads"]
-        end
-        Dedicated["Directory / protected execution<br/>Dedicated service VMs"]
-        ControlNodes ~~~ Dedicated
-      end
-      T2 ~~~ T1 ~~~ T0
-    end
-    Hosts["Tier 0-operated Proxmox hosts<br/>Physical execution<br/>Attached storage"]
-    Guests ~~~ Hosts
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  class PVE,Guests boundary
-  class Workloads,Shared services
-  class Dedicated,Hosts control
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  class Cluster,C2,C1 kubernetes
-  class WorkloadNodes,PlatformNodes,ControlNodes runtime
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  class T2 tier2
-```
+![Guest ownership on a common hosting foundation](../../08-reference/diagrams/hosting-runtime-placement.svg)
 
 *Figure: Dedicated VMs and cluster-node VMs occupy the same hosting foundation. Kubernetes workloads
 remain inside their node-VM runtime. Tier rows identify workload ownership; the hosts
@@ -132,7 +79,7 @@ This illustrative allocation uses the repository's shared VM profiles. Each host
 Read each row from allocated VMs on the left to unallocated capacity on the right.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 block-beta
   columns 8
   HostA["Physical host A / guest-memory budget"]:8

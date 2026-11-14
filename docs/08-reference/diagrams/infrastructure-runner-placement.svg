@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720"
+     role="img" aria-labelledby="title description">
+  <title id="title">Protected infrastructure execution and independent recovery</title>
+  <desc id="description">Tier 1 GitLab sits above Tier 0 protected execution. The runner retains original state below itself and uses scoped Vault access on the right. The recovery workstation remains below connected runtimes; a separate request sequence explains GitLab polling.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581"/>
+    </marker>
+    <style>
+      svg { font: 15px Arial, sans-serif; }
+      text { fill: currentColor; stroke: none; text-anchor: middle; }
+      .tier1 { fill: #e9e2d8; stroke: #968976; color: #44382a; }
+      .tier0 { fill: #d8cbb9; stroke: #83715a; color: #352a1e; }
+      .group { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .network { fill: #f4eded; stroke: #9b7378; color: #50383d; }
+      .runtime { fill: #d9eeec; stroke: #4d7b77; color: #173f3e; }
+      .kubernetes { fill: #e8eef6; stroke: #6b83a3; color: #263d59; }
+      .control { fill: #e2f3ed; stroke: #397366; color: #173f36; }
+      .services { fill: #e7f0fc; stroke: #4d719b; color: #203a5b; }
+      .data { fill: #eeeafa; stroke: #78639b; color: #42325d; }
+      .custody { fill: #fff2d1; stroke: #926820; color: #584013; }
+      .tier1, .tier0, .network, .runtime, .kubernetes, .control, .services, .data, .custody { stroke-dasharray: none; }
+      .connection { fill: none; stroke: #627581; stroke-width: 1.5; stroke-dasharray: none; marker-end: url(#arrow); }
+      .edge-label { fill: #1f2937; font-size: 13px; }
+    </style>
+  </defs>
+<g id="T1" class="tier1">
+<rect x="20" y="20" width="920" height="135"/>
+<text x="480.0" y="44">Tier 1</text>
+<g id="ApplicationNetwork" class="network">
+<rect x="40" y="60" width="880" height="75"/>
+<text x="480.0" y="84">Application Network / application</text>
+<g id="Git" class="services"><rect x="280" y="93" width="400" height="32"/>
+<text x="480.0" y="114.0">Existing GitLab / dedicated protected project</text>
+</g>
+</g>
+</g>
+<g id="T0" class="tier0">
+<rect x="20" y="185" width="920" height="515"/>
+<text x="480.0" y="209">Tier 0</text>
+<g id="Online" class="group">
+<rect x="40" y="225" width="880" height="360"/>
+<text x="480.0" y="249">Protected Services</text>
+<g id="ManagementNetwork" class="network">
+<rect x="60" y="265" width="360" height="300"/>
+<text x="240.0" y="289">Management Network / management</text>
+<g id="Execution" class="runtime">
+<rect x="75" y="310" width="330" height="235"/>
+<text x="240.0" y="334">Dedicated Runner VM</text>
+<g id="Runner" class="control"><rect x="120" y="350" width="240" height="60"/>
+<text x="240.0" y="375.0">iac-1 / gitlab-runner</text>
+<text x="240.0" y="395.0">One trusted shell job</text>
+</g>
+<g id="State" class="data"><path d="M130 474 C130 462 350 462 350 474 L350 516 C350 528 130 528 130 516 Z"/><path d="M130 474 C130 486 350 486 350 474" fill="none"/>
+<text x="240.0" y="494.0">Original inputs / state</text>
+<text x="240.0" y="512.0">Manual restore</text>
+</g>
+<path class="connection" data-from="Runner" data-to="State" d="M240 410 L240 466"/><rect x="250.5" y="424" width="101" height="24" fill="#f8fafc" stroke="none"/>
+<text x="301" y="440" class="edge-label">Read / update</text>
+</g>
+</g>
+<g id="ControlNetwork" class="network">
+<rect x="455" y="265" width="445" height="300"/>
+<text x="677.5" y="289">Control Cluster Network / control_cluster</text>
+<g id="Services" class="kubernetes">
+<rect x="470" y="310" width="415" height="235"/>
+<text x="677.5" y="334">Tier 0 Kubernetes</text>
+<g id="Flux" class="control"><rect x="600" y="350" width="200" height="60"/>
+<text x="700.0" y="385.0">Flux / retained GitOps</text>
+</g>
+<g id="Vault" class="control"><rect x="600" y="450" width="200" height="60"/>
+<text x="700.0" y="485.0">Vault / exact CI policy</text>
+</g>
+</g>
+</g>
+<path class="connection" data-from="Runner" data-to="Vault" d="M360 380 L438 380 L438 480 L600 480"/><rect x="447.0" y="439" width="116" height="42" fill="#f8fafc" stroke="none"/>
+<text x="505" y="455" class="edge-label">Scoped Vault</text>
+<text x="505" y="473" class="edge-label">HTTPS</text>
+</g>
+<g id="Recovery" class="custody"><rect x="40" y="610" width="880" height="70"/>
+<text x="480.0" y="640.0">Independent Tier 0 workstation / disconnected when idle</text>
+<text x="480.0" y="660.0">Bootstrap / recovery kit</text>
+</g>
+</g>
+</svg>

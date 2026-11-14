@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720"
+     role="img" aria-labelledby="title description">
+  <title id="title">Integrated reference platform placement</title>
+  <desc id="description">Tier 2 and Tier 1 remain above Tier 0. Four distinct Tier 0 network attachments contain the control cluster, operations VMs, directory VMs and issuer. Offline custody stays below connected services. This is placement, not connectivity or proof of installation.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581"/>
+    </marker>
+    <style>
+      svg { font: 15px Arial, sans-serif; }
+      text { fill: currentColor; stroke: none; text-anchor: middle; }
+      .control { fill: #e2f3ed; stroke: #397366; color: #173f36; }
+      .custody { fill: #fff2d1; stroke: #926820; color: #584013; }
+      .group { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .kubernetes { fill: #e8eef6; stroke: #6b83a3; color: #263d59; }
+      .network { fill: #f4eded; stroke: #9b7378; color: #50383d; }
+      .tier0 { fill: #d8cbb9; stroke: #83715a; color: #352a1e; }
+      .tier1 { fill: #e9e2d8; stroke: #968976; color: #44382a; }
+      .tier2 { fill: #f6f3ef; stroke: #aca59b; color: #4b443c; }
+      .zoneEdge { fill: #fff0f3; stroke: #9b4d67; color: #502638; }
+      .zoneServices { fill: #e1eaf6; stroke: #4d719b; color: #203a5b; }
+      .control, .custody, .kubernetes, .network, .tier0, .tier1, .tier2, .zoneEdge, .zoneServices { stroke-dasharray: none; }
+      .connection { fill: none; stroke: #627581; stroke-width: 1.5; stroke-dasharray: none; marker-end: url(#arrow); }
+      .edge-label { fill: #1f2937; font-size: 13px; }
+    </style>
+  </defs>
+<g id="T2" class="tier2">
+<rect x="20" y="20" width="920" height="100"/>
+<text x="480.0" y="44">Tier 2</text>
+<g id="Edge" class="zoneEdge"><rect x="40" y="58" width="420" height="47"/>
+<text x="250.0" y="86.5">Public edge / clients / outbound caches</text>
+</g>
+<g id="Workloads" class="zoneServices"><rect x="490" y="58" width="430" height="47"/>
+<text x="705.0" y="86.5">Project runtimes / applications and labs</text>
+</g>
+</g>
+<g id="T1" class="tier1">
+<rect x="20" y="140" width="920" height="100"/>
+<text x="480.0" y="164">Tier 1</text>
+<g id="Supply" class="zoneEdge"><rect x="40" y="178" width="420" height="47"/>
+<text x="250.0" y="206.5">External runners / authoritative mirrors</text>
+</g>
+<g id="Delivery" class="zoneServices"><rect x="490" y="178" width="430" height="47"/>
+<text x="705.0" y="206.5">Source / artifacts / CI / delivery / investigation</text>
+</g>
+</g>
+<g id="T0" class="tier0">
+<rect x="20" y="260" width="920" height="440"/>
+<text x="480.0" y="284">Tier 0</text>
+<g id="Online" class="group">
+<rect x="40" y="300" width="880" height="285"/>
+<text x="480.0" y="324">Control Services</text>
+<g id="ControlNetwork" class="network">
+<rect x="55" y="340" width="410" height="100"/>
+<text x="260.0" y="364">Control Cluster Network / control_cluster</text>
+<g id="K" class="kubernetes"><rect x="70" y="380" width="380" height="45"/>
+<text x="260.0" y="407.5">Tier 0 Kubernetes / Keycloak, Vault, NetBox</text>
+</g>
+</g>
+<g id="Management" class="network">
+<rect x="55" y="465" width="410" height="100"/>
+<text x="260.0" y="489">Management Network / management</text>
+<g id="M" class="control"><rect x="70" y="502" width="380" height="48"/>
+<text x="260.0" y="521.0">Dedicated operations VMs / protected IaC and state</text>
+<text x="260.0" y="541.0">Logging / critical monitoring</text>
+</g>
+</g>
+<g id="Identity" class="network">
+<rect x="485" y="340" width="420" height="100"/>
+<text x="695.0" y="364">Identity Network / identity</text>
+<g id="Directory" class="control"><rect x="500" y="380" width="390" height="45"/>
+<text x="695.0" y="407.5">FreeIPA primary / replica VMs</text>
+</g>
+</g>
+<g id="Crypto" class="network">
+<rect x="485" y="465" width="420" height="100"/>
+<text x="695.0" y="489">Cryptography Network / cryptography</text>
+<g id="Issuer" class="control"><rect x="500" y="502" width="390" height="48"/>
+<text x="695.0" y="531.0">OpenXPKI issuer VM</text>
+</g>
+</g>
+</g>
+<g id="Offline" class="custody"><rect x="40" y="615" width="880" height="65"/>
+<text x="480.0" y="642.5">Offline custody</text>
+<text x="480.0" y="662.5">Root CA / ceremony / recovery media</text>
+</g>
+</g>
+</svg>

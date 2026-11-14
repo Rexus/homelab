@@ -101,7 +101,7 @@ sequenceDiagram
     Platform-->>Execute: Operation result
     Execute-->>Request: Result within the granted scope
   end
-  Note over Policy,Platform: Proposed delegation service - project integration, not a supplied controller
+  Note over Policy,Platform: Proposed delegation service<br/>Project integration, not a supplied controller
 ```
 
 *Figure: Proposed delegation admits bounded requests before protected execution can reach infrastructure

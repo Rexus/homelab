@@ -11,60 +11,12 @@ authority and resource ownership; VM and cluster boundaries identify runtime
 placement. Physical host, storage and network failure domains are selected
 separately. Offline custody remains Tier 0-owned but outside the connected platform.
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T2["Tier 2 / edge and workloads"]
-    direction LR
-    Edge["DMZ / public edge<br/>Clients / outbound caches"]
-    Workloads["Services / project runtimes<br/>Applications and labs"]
-    Edge ~~~ Workloads
-  end
-  subgraph T1["Tier 1 / shared delivery"]
-    direction LR
-    Supply["DMZ / external runners<br/>Authoritative mirrors"]
-    Delivery["Services / source, artifacts and CI<br/>Scoped delivery / investigation"]
-    Supply ~~~ Delivery
-  end
-  subgraph T0["Tier 0 / infrastructure and trust"]
-    direction TB
-    subgraph Online["Connected Proxmox hosts / networks"]
-      direction LR
-      K["Control Kubernetes<br/>Keycloak / Vault / NetBox"]
-      M["Dedicated operations VMs<br/>Protected IaC / state<br/>Logging / critical monitoring"]
-      A["Dedicated authority VMs<br/>FreeIPA primary / replica<br/>OpenXPKI issuer"]
-      K ~~~ M ~~~ A
-    end
-    Offline["Offline custody / root CA, ceremony and recovery media"]
-    Online ~~~ Offline
-  end
-  T2 ~~~ T1 ~~~ T0
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class Online boundary
-  class M,A control
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  class K kubernetes
-  class Offline custody
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  class T2 tier2
-  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
-  class Edge,Supply zoneEdge
-  classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
-  class Workloads,Delivery zoneServices
-```
+![Integrated reference platform placement](../08-reference/diagrams/reference-platform-placement.svg)
 
 *Figure 1 - Edge and application runtimes sit above shared platform services.
-The connected infrastructure and trust foundation remains separate from offline custody;
-vertical placement identifies ownership, while foundational authorities sit to the right.*
+Tier 0 separates the control cluster, operations VMs, directory and issuer by their actual network
+attachments, with directory and issuer authority on the right. Offline custody remains below connected
+services. Vertical placement identifies ownership, while foundational authorities sit to the right.*
 
 ## Table of contents
 

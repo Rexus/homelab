@@ -19,6 +19,184 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Rendered clutter and shared logging overview, 2026-11-14
+
+The follow-up started from the actual pictures rather than treating successful rendering or
+collision checks as visual acceptance. Logging still had competing perimeter routes and crowded
+archive labels. Its retention view now has aligned receiver, NAS and independent-backup columns,
+with offline custody below. Health/checkpoint reporting has a separate sequence. Stage 2 had retained
+a different opening Mermaid figure; it now shares the editable protected-logging.svg with operations.
+
+The wider review split tangled request and placement views in intake, delivery, public certificates,
+development and observability, and wrapped overflowing sequence notes. Five compact editable SVGs
+replace crowded reference-platform, hosting-runtime, observability-design, control-application and
+observability-operations overviews. Per-parent history volumes remain separate, and focused sequences
+retain the real ingestion, query, backup and diagnostic interactions. Runner polling and telemetry
+export no longer need perimeter detours on their placement figures. The diagram guide records this
+reading test and the limits of palette, parsing and collision checks.
+
+All 71 distinct focused regression checks passed, including targeted reruns after correcting the
+new figure captions and a repeated guest label. They cover source/count correspondence, scopes,
+asset registration, reader routes and source/generated documentation links. The current manual has
+124 Mermaid figures and seventeen native context/deployment SVGs, besides the VMID reference.
+All 496 Mermaid and 68 SVG renders succeeded at 1100px/760px on light/dark backgrounds; final label
+refinements were rerendered separately. SVG computed colours matched the semantic palette. Changed
+layouts were visually inspected; these local checks do not qualify hosted rendering or live operations.
+
+Tooling remains Node 24.14.1, Mermaid 11.17.2 and headless Edge 157.0.4341.46. Reproduction and canonical
+source formats are documented in docs/04-development/diagrams.md. No runtime deployment, failover,
+restore, remote update, commit or push was performed in this visual follow-up.
+
+### Complete documentation diagram sweep, 2026-11-14
+
+Reviewed architecture, deployment, development and operations figures against their source contracts,
+with local rendering across both page themes and normal/narrow widths. Tier rows, actual interfaces,
+source identity, storage attachment, recovery custody and selected instance counts were traced.
+The operations/deployment sidecar reviews inspected their complete baseline inventories and retained
+source evidence privately; no structural runtime-code bug or new manual-SSH setup gap was identified.
+
+Concrete corrections include separate public/admin network endpoints; distinct registry publishers
+and pull clients; the Windows identity label override; host SSH versus independent console access;
+the Control API VIP; issuer portal versus public-download interfaces; worker versus publication reads;
+SQL/GitLab backup initiation and storage; and observability writes, queries and diagnostic export.
+Deployment views now separate placement from request chronology where cross-boundary arrows prevented
+correct tier order. Workload collection shows the namespace Service selecting a replica, its own queue
+PVC, and separate metrics/application client identities rather than application fan-out to both replicas.
+
+Static Mermaid figures declare both root and theme font settings, fixing the observed Arial-to-Times
+fallback in HTML labels. Source overrides no longer silently change node labels. Opening architecture
+figures precede their contents lists, and data recovery links to one authoritative recovery figure.
+Explicit SVGs replace unstable cryptography, runner and workload-collection layouts; visible palette
+roles stay separate and generated documentation copies all twelve native context/deployment assets.
+The one empty, invisible Layout wrapper is a placement aid, not a new system boundary.
+
+Final verification passed all 71 focused checks with no skips, including source/count correspondence,
+geometry and palette contracts, reader routes, all generated-documentation/refresh tests and local links.
+The final manual contains 122 Mermaid figures and twelve native context/deployment SVGs, alongside the
+separate VMID reference. All 488 Mermaid renders and 48 SVG renders succeeded at 1100px/760px on light/dark
+backgrounds; SVG computed colours/outlines matched the palette. Rendered corrections were inspected,
+including the two layouts that parsed correctly but still required explicit composition.
+
+Tooling: Node 24.14.1, cached Mermaid 11.17.2, Playwright and headless Edge 157.0.4341.46.
+Source formats and public reproduction commands are documented in docs/04-development/diagrams.md;
+editable SVGs are authoritative vector sources. Small request chains remain naturally wide without
+artificial padding. The right-hand origins in the edge-proxy view are backend dependencies, not
+Internet sources. Hosted-renderer presentation and live deployment/failover/recovery remain unqualified.
+
+### Top ownership row and external entry, 2026-11-14
+
+Tier 2 remains the top ownership row in placement views. Internet/upstream sources sit to its left;
+tenants and other external clients enter the target owner's interface from the left. Actual lower-tier
+consumers stay below a higher-tier provider and request upward. Chronological diagrams retain their
+time axis. Global AGENTS.md, its standalone reference, the project guide and context now agree;
+the older instruction permitting external clients above the ownership rows was removed.
+
+Explicit editable SVGs repair the lab, verified-intake, software-intake overview and secrets views.
+Their source-backed interactions, independent owners, storage and custody are retained. The identity
+architecture figure also moves enrolled hosts to the left using the real directory-protocol link.
+The wider architecture review used the existing 57-figure geometry inventory and external-actor sources.
+Mermaid trials could not hold the intake placement compactly, so those views use explicit SVG geometry.
+All seven native deployment/context SVGs are copied into generated architecture documentation.
+
+All 45 focused checks passed with no skips: placement and palette contracts, source/generated assets,
+reader roles and source/generated links. The four new SVGs produced 16 successful browser renders
+at 1100px/760px on light/dark backgrounds with no computed-style mismatches; accepted previews were
+inspected for layout and labels. The identity page's two Mermaid figures produced eight successful
+renders, with the changed opening view inspected at both widths/backgrounds. No live deployment or
+hosted-renderer acceptance was performed in this placement review.
+
+### Boundary palette, reference figures and directory failover, 2026-11-14
+
+Actual networks now share the solid gray-rose network role. Logical service/function collections and
+replica groups use dotted neutral gray, while ingress, VIPs and other routing interfaces use charcoal
+with white text. Protection-zone maps retain their explicit zone roles. The global AGENTS.md and its
+standalone cache/identity source snapshots, previews, palette and render record capture this grammar.
+The project guide and context use the same roles.
+
+Identity deployment and operations share the explicit SVG. Traefik routes through keycloak-http,
+state sits below the IdP, and primary/fallback LDAPS paths reach the actual directory members.
+The example now supplies both replicated member URLs, a five-second connection timeout and a ten-second
+read timeout through the native Keycloak module. Legacy single-member inputs remain accepted.
+Tests reject comma-separated, insecure, tab-separated and empty endpoint values. A folded YAML condition
+keeps the regular expression a boolean assertion across supported Ansible versions.
+
+Protected logging now has a compact receiver / NAS / independent-backup layout with offline custody
+at the bottom and external success checks outside Tier 0. Input, inventory, archive and backup source
+contracts were traced. SVG combined selectors reset outlines only, following correction of a colour
+inheritance override. Browser-computed colours and outlines match every assigned native palette role.
+
+All 55 focused Linux checks passed with no skips. Coverage includes native Ansible assertions/API
+arguments/syntax, diagram scopes/counts/placement, generated assets and source/generated links.
+The palette sweep rendered 125 Mermaid figures in four width/background combinations before the shared
+identity consolidation. Final group refinements rendered 41 affected figures again, with no errors.
+The current manual contains 124 Mermaid figures and three native SVG figures. All three SVGs were
+rendered at 1100px/760px on light/dark pages with computed-style checks, and key views were inspected.
+The cache block-beta trial stretched cells, obscured titles and crossed the VIP, so the SVG remains
+the reference. Tool versions and reproduction commands are recorded with the global snapshots.
+
+Live directory-loss acceptance remains open, including application login with refused and silently
+dropped connections. The Keycloak procedure links the upstream delayed-failover authentication report.
+Hosted-renderer presentation and live logging/backup/recovery acceptance remain separate work.
+
+### Cache request placement, 2026-11-14
+
+Stage 1 and operations share the editable `cache-services.svg` view. Approved Tier 0/Tier 1 callers
+sit below Tier 2 and request the VIP upward; Cache Services request approved Internet sources or the
+configured parent proxy to the left. Actual Squid parent-proxy inputs, network key, guest names and
+independent data mounts were checked against the implementation. The caption distinguishes requests
+from replies and retains the single-active-owner, nonreplicating cache contract.
+
+All 26 focused checks passed for direction/containment, palette, source counts, generated asset bytes
+and documentation links. Four browser renders checked the embedded SVG at 1100px/760px on light/dark
+pages; the intrinsic 960x720 image scales to 720x540 at the narrow width. No runtime settings changed;
+hosted presentation and live traffic were not tested. The project diagram guide records the general
+rule for callers below their provider and outbound requests to external peers on the left.
+
+### Identity operations placement, 2026-11-14
+
+The operations overview now embeds an editable SVG with explicit coordinates. Its IdP database is
+aligned below Keycloak inside the namespace, and Offline Custody spans the bottom below all connected
+services. This replaces the operations Mermaid view whose nested directions and disconnected custody
+did not provide reliable placement. The incoming rule still targets actual ingress outside Tier 0.
+
+Twenty-five focused checks passed for scope, geometric placement, palette, source counts, generated
+asset bytes and documentation links. Four browser renders checked inline geometry and the embedded
+image at 1100px/760px on light/dark pages. The image has an intrinsic 960x720 canvas; the narrow embedded
+image measures 720x540. The SVG itself is the editable source; no export toolchain is required.
+No infrastructure behavior changed. Hosted-site presentation and live services remain unqualified.
+
+### Concise diagram language, 2026-11-14
+
+Boundary titles now name their scope directly: Tier 2; Cache Edge Network / external_edge; Cache Services.
+The same noun-phrase pattern removes narrative status, counts and step references from enclosing labels
+throughout the documentation. Useful IaC keys and instance names remain; captions retain important scope,
+trust and selected-configuration details. Cluster runtimes identify Tier 0, Tier 1 or Tier 2 Kubernetes.
+Global AGENTS.md, its visual reference, the project diagram guide and repository context capture this language.
+
+Sixty-six focused Linux checks passed together, covering source/generated diagrams, input correspondence,
+reader routes, refresh ownership and links. All 129 Mermaid figures rendered at both widths/backgrounds;
+targeted final renders followed the last title refinements. Visual inspection focused on operations
+cache, identity, delivery and observability views, with the inventory reviewed in contact sheets.
+These wording changes do not change IaC behavior or qualify hosted-renderer parity or live infrastructure.
+
+### Network, service and policy boundaries, 2026-11-14
+
+The follow-up diagram sweep separates real network/runtime placement from logical deployment groups.
+Generic physical-host wrappers were removed from service views; host placement remains explicit for
+capacity, host operations, attached storage, USB affinity and failure-domain views. Distinct networks
+were retained. Identity uses a dotted functional grouping, Kubernetes on `control_cluster`, the
+`keycloak` namespace and directory VMs on `identity`. Its incoming policy annotation sits outside
+Tier 0 and points directly to ingress. IdP state sits below the application; recovery custody stays
+outside connected runtimes at the bottom. The global guidance and project palette capture these roles.
+
+Fifty-nine distinct Linux checks passed for source/generated figures, input/count correspondence,
+contrast, refresh ownership, reading routes and local links. All 129 Mermaid figures rendered without
+errors at 1100px and 760px on light/dark page backgrounds (516 review images). Contact-sheet review
+covered the inventory; focused inspection checked identity, cache, issuer custody, replica stacks and
+modified network views. Review used Mermaid 11.17.2 and Edge 157.0.4341.46. Native interface aggregates
+retain the depicted members without duplicating each identical connection. No IaC behavior changed;
+live deployment, failure/recovery behavior and hosted-renderer parity remain unqualified.
+
 ### Diagram composition and operating views, 2026-11-14
 
 The global AGENTS.md and project diagram guide now state opening-figure placement for architecture,

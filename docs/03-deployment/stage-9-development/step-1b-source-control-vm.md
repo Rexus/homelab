@@ -16,11 +16,11 @@ Run repository scripts from this root; paths below are repository-relative.
 ## Expected outcome: dedicated source-control VM
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Clients["Existing approved service clients"]
-  subgraph T1["Tier 1 / Application / Services"]
-    subgraph PVE["Existing Proxmox / application network"]
+  subgraph T1["Tier 1"]
+    subgraph Network["Application Network / application"]
       subgraph VM["git-1 / dedicated VM"]
         direction TB
         App["GitLab / Podman"]
@@ -29,7 +29,7 @@ flowchart LR
       end
     end
   end
-  Clients -->|Configured HTTPS / SSH| VM
+  Clients -->|Configured HTTPS / SSH| App
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
@@ -41,7 +41,8 @@ flowchart LR
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
   class T1 tier1
   classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
-  class PVE zoneServices
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Network network
 ```
 
 **IaC:** *Figure: One GitLab container and its persistent data live on the dedicated service VM. General runners and

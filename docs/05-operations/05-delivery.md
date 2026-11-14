@@ -7,11 +7,11 @@ version-specific migration and rollback procedure.
 <a id="figure-delivery-operating-scope"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T1["Tier 1 / Argo CD and Kubernetes development selection"]
+  subgraph T1["Tier 1"]
     direction TB
-    subgraph Runtime["Existing Tier 1 Kubernetes / platform cluster"]
+    subgraph Runtime["Tier 1 Kubernetes"]
       direction LR
       subgraph Consumers["Delivery and build execution"]
         direction TB
@@ -25,11 +25,11 @@ flowchart TB
         Harbor["harbor<br/>Registry / native data services"]
         Git ~~~ Harbor
       end
-      Consumers -->|Git / OCI / job API| Supply
+      Consumers ~~~ Supply
     end
-    subgraph Data["Dedicated GitLab data VMs / application network"]
+    subgraph Data["GitLab Data Services"]
       direction TB
-      subgraph Services["Three independent data services / TLS"]
+      subgraph Services["Data VMs"]
         direction LR
         DB["db-1 / PostgreSQL"]
         Cache["kv-1 / Redis"]
@@ -39,30 +39,31 @@ flowchart TB
       Disks[("Separate live VM disks<br/>Proxmox / Ceph-backed storage")]
       Services -->|Persist| Disks
     end
-    Runtime -->|GitLab data interfaces / TLS| Data
+    Runtime ~~~ Data
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class CD,Runner,Git,Harbor,DB,Cache,Repo services
+  class CD,Runner,Git,DB,Cache,Repo services
   class Disks data
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Consumers,Supply,Services group
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Runtime kubernetes
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
   class T1 tier1
   classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
-  class Data zoneServices
+  class Data group
 ```
 
 **IaC / Integration:** *Figure: Operating view of the selected Argo CD, Harbor and Kubernetes GitLab/build services,
-including GitLab's dedicated data VMs. Chart boxes aggregate their native component sets;
-each of the three data VMs retains its own live disk.*
+including GitLab's dedicated data VMs. This placement view groups native component sets;
+each of the three data VMs retains its own live disk. The [interface view](#figure-delivery-data-interfaces)
+identifies the clients of the GitLab data endpoints.*
 In **`<prefix>-tier-1/`**, [delivery inputs](../../tier-1/ansible/group_vars/delivery_platform.yml.example)
 and the [delivery installer](../../tier-1/ansible/playbooks/deployment/delivery-platform.yml) own Argo CD/Harbor;
 [development inputs](../../tier-1/ansible/group_vars/development_platform.yml.example) and the
@@ -75,6 +76,33 @@ Existing identity, object storage and backup services retain their own custody.
 [Podman builds](../03-deployment/stage-9-development/step-14b-podman-runner.md) are replacement selections.
 Protected Tier 0 infrastructure execution has its own
 [runtime and explicit CI-trust boundary](../03-deployment/stage-9-development/README.md#figure-infrastructure-handover).
+
+
+<a id="figure-delivery-data-interfaces"></a>
+
+## Which services use the data endpoints?
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":10,"subGraphTitleMargin":{"top":6,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
+  CD["argocd"]
+  Runner["gitlab-runner<br/>Job pods"]
+  Git["gitlab"]
+  Data["GitLab Data VMs<br/>db-1 / PostgreSQL<br/>kv-1 / Redis<br/>repo-1 / Gitaly"]
+  CD -->|Git source| Git
+  Runner -->|Job API / source| Git
+  Git -->|PostgreSQL / Redis / Gitaly<br/>Verified TLS| Data
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class CD,Runner,Git,Data services
+```
+
+*Figure: Interfaces within the Tier 1 placement above. GitLab uses the external data VMs;
+Argo CD and runner jobs use GitLab's Git/job interfaces. The arrows represent requests.*
+The [GitLab values](../../tier-1/ansible/roles/development_platform/templates/gitlab-values.yml.j2)
+select external PostgreSQL, Redis and Gitaly. The [Argo CD tasks](../../tier-1/ansible/roles/delivery_platform/tasks/argocd.yml)
+require explicit HTTPS Git sources. Harbor and job-image policy remain separate inputs; this view
+does not imply that OCI sources or registry credentials have been configured for the controller.
 
 **Design:** [Delivery](../01-architecture/10-delivery/README.md) and the
 [Development platform](../01-architecture/10-delivery/03-development-platform.md).

@@ -14,20 +14,20 @@ Grafana reuse the same code with their owning tier's inputs; they are not extra
 databases created by this figure. Storage is commissioned independently.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"wrappingWidth":390,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"wrappingWidth":390,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / Control and storage administration"]
+  subgraph T0["Tier 0"]
     direction TB
-    subgraph Cluster["Existing control Kubernetes / keycloak namespace"]
+    subgraph Cluster["Tier 0 Kubernetes / keycloak"]
       direction LR
       Backup["File-backup resources<br/>keycloak-db-files<br/>ConfigMap + CronJob<br/>keycloak-db-files-first-&lt;revision&gt;<br/>Initial verification Job<br/>Existing PVC: keycloak-db-backups"]
       Database[("keycloak-db / PostgreSQL x3<br/>Prepared live block PVCs<br/>Not NAS storage")]
-      Backup <-->|mTLS / backup stream| Database
+      Backup -->|Request base backup / mTLS| Database
     end
     NAS[("Existing NAS / private backup export<br/>pending / completed file sets")]
     PVE["Existing Proxmox/Ceph<br/>Live database block volumes"]
-    Cluster -->|Verified files / NFS CSI mount| NAS
-    Cluster -. Live volume attachment .-> PVE
+    Backup -->|Verified files / NFS CSI mount| NAS
+    Database -. Live volume attachment .-> PVE
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36

@@ -7,9 +7,9 @@ partitions through the vendor's supported client and transport.
 ## Components and boundaries
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / protected cryptography"]
+  subgraph T0["Tier 0"]
     direction TB
     subgraph Connected["Authorized online key path"]
       direction LR
@@ -19,7 +19,7 @@ flowchart TB
         Client["Vendor client /<br/>partition identity"]
         Consumers -->|Key operation| Client
       end
-      subgraph Appliances["Selected partitions / optional vendor HA"]
+      subgraph Appliances["HSM Partitions"]
         direction TB
         H1["Private appliance<br/>Selected HSM partition"]
         H2["Optional vendor HA member"]
@@ -32,9 +32,9 @@ flowchart TB
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class T0 tier0

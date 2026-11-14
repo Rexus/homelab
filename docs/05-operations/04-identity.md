@@ -3,60 +3,18 @@
 The operating scope is the accepted directory pair, sign-in service and its database. Application
 authorization and independently held recovery material remain separate responsibilities.
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":2,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T0["Tier 0 / selected identity deployment"]
-    direction TB
-    subgraph Placement["Connected runtimes on Proxmox"]
-      direction LR
-      subgraph Cluster["Control Kubernetes / control_cluster"]
-        direction TB
-        Ingress{{"Approved HTTPS<br/>sign-in ingress"}}
-        IdP["keycloak / IdP pods x2"]
-        Data[("keycloak-db / PostgreSQL x3")]
-        Ingress --> IdP
-        IdP -->|Database TLS| Data
-      end
-      subgraph Directory["identity network / dedicated VMs"]
-        direction TB
-        subgraph Pair["Replicated FreeIPA authority"]
-          direction TB
-          Primary["idm-1 / primary"]
-          Replica["idm-2 / replica"]
-          Primary <-->|Replication| Replica
-        end
-      end
-      Cluster -->|Read-only LDAPS federation| Directory
-    end
-    Recovery["Recovery custody<br/>Directory + IdP backups<br/>Independent credentials"]
-    Placement -. Recovery contract .-> Recovery
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  class IdP,Primary,Replica control
-  class Placement boundary
-  class Pair replicas
-  class Data data
-  class Recovery custody
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  class Cluster kubernetes
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
-  class Ingress traffic
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
-  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class Directory zoneControl
-```
+![Identity services with IdP storage below Keycloak and offline custody at the bottom](../08-reference/diagrams/identity-operations.svg)
 
 *Figure: The completed reference keeps the sign-in runtime to the left of its directory dependency.
 The IdP and database counts are the supplied defaults, not physical-host or failover guarantees.
 Independent recovery copies are a custody requirement outside the connected runtimes.*
+The dotted Identity services box is a functional grouping. Kubernetes uses `control_cluster`, with the
+IdP and its database in the `keycloak` namespace; FreeIPA uses the separate `identity` network.
+The incoming-rule annotation is outside Tier 0 and points directly to Traefik ingress.
+Keycloak tries `idm-1`, then `idm-2` using the ordered `control_applications_ldap_url` value.
+The dashed LDAPS path shows connection failover to the replica.
+Offline recovery custody sits at the bottom, outside connected runtimes.
+[Editable figure](../08-reference/diagrams/identity-operations.svg).
 [Stage 5 deployment](../03-deployment/stage-5-identity/README.md#figure-identity-federation),
 [runtime inputs](../../tier-0/ansible/group_vars/control_applications.yml.example) and
 [replica defaults](../../tier-0/ansible/roles/control_applications/defaults/main.yml)
@@ -91,6 +49,32 @@ In **`<prefix>-tier-0/`**, the principal configuration locations are:
 - [How is a person granted application access?](#join-and-leave)
 - [How is a departing person's access revoked?](#revoke-access)
 - [How is remote administration enabled?](#remote-administration)
+- [How does directory failover work?](#how-does-directory-failover-work)
+
+## How does directory failover work?
+
+1. In **`<prefix>-tier-0/ansible/group_vars/control_applications.yml`**, list both replicated members
+   in `control_applications_ldap_url`, separated by spaces. Each URL uses its member's TLS name.
+
+   ```yaml
+   control_applications_ldap_url: >-
+     ldaps://idm-1.lab.example.com:636
+     ldaps://idm-2.lab.example.com:636
+   ```
+
+2. Reapply the selected control applications and federation from **`<prefix>-tier-0/`** using the execution host.
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply
+   ```
+
+3. During a planned test, make `idm-1` unreachable from Keycloak and verify a real application login
+   through `idm-2`. Restore `idm-1` and verify replication and login again. Include both refused
+   connections and a silently dropped connection in the selected release's acceptance test.
+
+Keycloak tries the URLs when opening a connection. An interrupted operation can need a retry.
+The default connection timeout is five seconds per unavailable member. Optional settings live in
+`ansible/roles/control_applications/defaults/main.yml`. [2]
 
 <a id="household-devices"></a>
 
@@ -224,3 +208,4 @@ local-only deployment; mark it not selected until its actual implementation and 
 ## References
 
 1. [FreeIPA user lifecycle and account disablement](https://www.freeipa.org/page/V4/User_Life-Cycle_Management).
+2. [Keycloak LDAP connection failover](https://www.keycloak.org/docs/latest/server_admin/#connecting-to-multiple-ldap-servers-for-failover).

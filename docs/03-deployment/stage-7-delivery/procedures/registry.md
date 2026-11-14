@@ -12,27 +12,31 @@ instead when it satisfies the same artifact, access and recovery contract.
 ## Expected outcome: independent Harbor registry (8a)
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  Clients["Existing approved runners<br/>and artifact consumers"]
-  subgraph T1["Tier 1 / Application / Services"]
-    subgraph Cluster["Existing platform Kubernetes"]
-      subgraph Release["harbor / native chart / single-instance reference"]
-        direction TB
-        Services["Registry / core / portal<br/>Jobservice / Trivy"]
-        Database["Bundled PostgreSQL / Redis"]
-        Volumes[("Retained PVCs<br/>registry / database / redis<br/>jobservice / trivy")]
-        Services ~~~ Database
-        Database ~~~ Volumes
+  Clients["Approved clients<br/>Runners / consumers"]
+  subgraph T1["Tier 1"]
+    subgraph ApplicationNetwork["Application Network / application"]
+      subgraph Cluster["Tier 1 Kubernetes"]
+        Ingress{{"harbor / private HTTPS Ingress"}}
+        subgraph Release["Registry Services / harbor"]
+          direction TB
+          Services["Registry / core / portal<br/>Jobservice / Trivy"]
+          Database["Bundled PostgreSQL / Redis"]
+          Volumes[("Retained PVCs<br/>registry / database / redis<br/>jobservice / trivy")]
+          Services ~~~ Database
+          Database ~~~ Volumes
+        end
       end
     end
   end
-  Clients -->|Private HTTPS / scoped push and pull| Release
+  Clients -->|Scoped HTTPS| Ingress
+  Ingress -->|Registry / core routes| Release
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class Clients actor
   class Services services
@@ -42,6 +46,11 @@ flowchart LR
   class Cluster kubernetes
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
   class T1 tier1
+  classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  class Ingress traffic
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class ApplicationNetwork network
 ```
 
 **IaC:** *Figure: The independent registry keeps artifacts and bundled database/cache state in retained volumes.

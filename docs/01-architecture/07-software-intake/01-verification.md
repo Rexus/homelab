@@ -10,70 +10,14 @@ HTTPS tunnels or create snapshots.
 
 ## Placement and authority
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":12,"padding":8,"wrappingWidth":320,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart BT
-  subgraph Transport["Outbound request path / separate owners"]
-    direction LR
-    subgraph T2["Tier 2 / software intake"]
-      subgraph DMZ["Edge / DMZ"]
-        Proxy{{"Policy proxy / cache<br/>Existing intake support"}}
-      end
-    end
-    Sources["Accepted external sources"]
-    Proxy -- "Allowed requests" --> Sources
-  end
-  subgraph T1["Tier 1 / optional staged supply"]
-    direction LR
-    subgraph Intake["Isolated acquisition / assessment"]
-      Worker["Verify / scan / quarantine<br/>No Tier 0 credentials"]
-    end
-    Supply[("Approved publication<br/>Retained identified versions")]
-    Intake -- "Publish" --> Supply
-  end
-  subgraph T0["Tier 0 / independent update authority"]
-    direction LR
-    subgraph Connected["Connected consumer"]
-      Consumer["Independent verification<br/>Selected updates"]
-    end
-    Retained[("Retained supply<br/>Recovery custody<br/>Outside connected consumer")]
-    Connected ~~~ Retained
-  end
-  T1 -- "Worker: acquire through Tier 2 proxy" --> Transport
-  T0 -- "Consumer: pull selected publication" --> T1
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
-  class Intake group
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
-  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
-  class Proxy traffic
-  class DMZ zoneEdge
-  class Supply data
-  class Consumer control
-  class Connected boundary
-  class Transport boundary
-  class Retained custody
-  class Sources actor
-  classDef action fill:#fcebdc,stroke:#a16c43,color:#5b3921
-  class Worker services
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  class T2 tier2
-```
+<a id="figure-verified-intake-placement"></a>
 
-*Figure: Tier 1 acquires through the Tier 2 proxy and publishes only accepted content. Tier 0 pulls
-selected versions and retains its own recovery supply outside the connected consumer. Boundary arrows
-name the worker's proxy and consumer's publication interfaces; supplier access grants no installation authority.*
+![Accepted external sources left of Tier 2 with publication and consumers below](../../08-reference/diagrams/verified-intake-placement.svg)
+
+*Figure: Tier 2 requests approved external sources to its left. The Tier 1 worker acquires through
+the proxy, then publishes accepted content. Tier 0 pulls selected versions and retains independent
+recovery supply below its connected consumer.*
+[Editable figure](../../08-reference/diagrams/verified-intake-placement.svg).
 
 **Architecture:** the optional worker and publication interface have a separate
 [deployment path](../../03-deployment/stage-3-trust/step-15b-verified-intake.md).
@@ -107,12 +51,12 @@ No online route reaches offline custody, and no lower tier initiates a privilege
 ## Acceptance policy
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Candidate["Candidate bytes"] --> Verify["Verify publisher<br/>and integrity"]
   Verify --> Scan["Assess supported content<br/>Malware scan"]
   Verify -->|Invalid / incomplete| Hold["Reject or hold for review"]
-  Scan --> Policy{"Required checks passed?"}
+  Scan --> Policy{"Accept?"}
   Scan -->|Detection / error| Hold
   Policy -->|Yes| Publish["Publish identified<br/>accepted version"]
   Policy -->|No / incomplete| Hold

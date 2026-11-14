@@ -18,48 +18,55 @@ or recovery executable. Its server owner must already have installed the declare
 ## Expected outcome: independent signing service
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  Clients["Authorized operator / workloads"]
-  subgraph T0["Tier 0 / Control"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":8,"bottom":20}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
+  Clients["Authorized operator<br/>and workloads"]
+  subgraph T0["Tier 0"]
     direction TB
-    subgraph Runtime["Existing Proxmox / cryptography network"]
+    subgraph Layout[" "]
       direction LR
-      API["Existing private endpoint"]
-      subgraph Raft["Independent OpenBao / three Raft voters"]
-        direction TB
-        B1["bao-1 / PKCS11 plugin"]
-        B2["bao-2 / PKCS11 plugin"]
-        B3["bao-3 / PKCS11 plugin"]
-        B1 ~~~ B2 ~~~ B3
-        Data[("Per-member local Raft disks")]
-        B3 ~~~ Data
+      API{{"Existing private endpoint<br/>Source-preserving ingress"}}
+      subgraph Runtime["Cryptography Network / cryptography"]
+        subgraph Raft["OpenBao Raft"]
+          direction TB
+          B1["bao-1<br/>PKCS11 plugin / client"]
+          B2["bao-2<br/>PKCS11 plugin / client"]
+          B3["bao-3<br/>PKCS11 plugin / client"]
+          Data[("Per-member<br/>local Raft data")]
+          B1 ~~~ B2 ~~~ B3 ~~~ Data
+        end
       end
-      HSM["Existing native HSM client service<br/>One qualified hardware key domain"]
-      API ~~~ Raft ~~~ HSM
+      HSM["Existing HSM key domain<br/>Qualified provider<br/>or remoting interface"]
+      API -->|HTTPS / selected member| Raft
+      Raft -->|PKCS11 signing| HSM
     end
     Custody["Independent snapshots / original shares<br/>Vendor-native HSM recovery custody"]
-    Runtime ~~~ Custody
   end
-  Clients ~~~ T0
+  Clients -->|Verified TLS / authorized API| API
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  class B1,B2,B3 control
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class T0 tier0
+  style Layout fill:none,stroke:none
+  class Runtime network
+  class Raft replicas
+  class API traffic
+  class B1,B2,B3,HSM control
   class Data data
   class Custody custody
-  class Raft replicas
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
-  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class Runtime zoneControl
+  class Clients actor
 ```
 
 **IaC:** *Figure: The selected three-member OpenBao service has per-member Raft storage and an existing hardware key
-domain. Raft replicates service state, while HSM key recovery stays separate.*
+domain. Clients reach the accepted private endpoint; each member uses its qualified PKCS#11 interface.
+Raft replicates service state, while HSM key recovery stays separate.*
 existing [Vault VM root](../../../tier-0/terraform/deployments/vault/main.tf),
 [installer](../../../tier-0/ansible/playbooks/deployment/vault-vm.yml),
 [OpenBao tasks](../../../tier-0/ansible/roles/vault/tasks/openbao.yml), and
@@ -67,7 +74,8 @@ existing [Vault VM root](../../../tier-0/terraform/deployments/vault/main.tf),
 The three IDs come from the private input below. Hardware, endpoint and independent custody are existing
 accepted prerequisites. Raft replicates service state; it does not copy HSM private keys. The single-node
 learning choice has one voter and **no HA**. A two-node deployment is rejected by signing acceptance.
-This is a placement view: each member uses its local Raft disk and qualified PKCS#11 client;
+This logical placement view follows the Vault root's `cryptography` attachment;
+host placement remains in the selected signing inputs. Each member uses its local Raft disk and qualified PKCS#11 client;
 the [signing sequence](../../01-architecture/08-cryptography/04-usb-hsm.md#request-and-response)
 shows authenticated request/result flow. Offline custody has no normal network route.
 

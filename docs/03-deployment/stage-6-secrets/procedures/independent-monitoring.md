@@ -15,24 +15,26 @@ prerequisite for the earlier collector.
 ## Expected outcome: independent monitoring runtime
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T0["Tier 0 / Control"]
-    subgraph PVE["Existing Proxmox hosts"]
+  subgraph T0["Tier 0"]
+    subgraph Placement["Control Runtimes"]
       direction LR
-      subgraph Context["Existing / unchanged"]
-        direction TB
+      subgraph ControlNetwork["Control Cluster Network / control_cluster"]
         Cluster["Existing Tier 0<br/>Kubernetes"]
+      end
+      subgraph ManagementNetwork["Management Network / management"]
+        direction LR
         Existing["log-1<br/>Protected intake"]
-        Cluster ~~~ Existing
+        subgraph Project["mon-1 / managed monitoring VM"]
+          direction TB
+          Host["Native Netdata parent<br/>History / alerts"]
+          Disk[("OS disk<br/>Monitoring history")]
+          Host --- Disk
+        end
+        Existing ~~~ Project
       end
-      subgraph Project["mon-1 / managed monitoring VM"]
-        direction TB
-        Host["Native Netdata parent<br/>History / alerts"]
-        Disk[("OS and monitoring<br/>data disk")]
-        Host --- Disk
-      end
-      Context ~~~ Project
+      ControlNetwork ~~~ ManagementNetwork
     end
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
@@ -42,13 +44,16 @@ flowchart TB
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Disk data
   class Existing,Host control
-  class PVE,Context boundary
+  class Placement group
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   class Project group
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class ControlNetwork,ManagementNetwork network
 ```
 
 **IaC:** *Figure: The managed monitor is a separate VM from Kubernetes and protected intake. Step 1 prepares its host;
@@ -59,6 +64,8 @@ optionally provision `mon-1` and its disk in the existing foundation state. Tier
 [recipe](../../../../tier-0/ansible/playbooks/deployment/infrastructure-monitoring.yml) and local
 inputs own the subsequent service installation on that selected host. The log-host Terraform and cluster
 starters provide context only. An accepted existing host is an alternative to the managed VM.
+The managed monitor and receiver use separate VMs on `management`; Kubernetes uses `control_cluster`.
+This shows runtime independence. Physical failure domains require their own placement acceptance.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Prerequisites:** accepted [protected logging](../../stage-2-logging/README.md), approved
@@ -197,33 +204,37 @@ ansible-vault encrypt ansible/group_vars/infrastructure_monitoring_secrets.yml
 <a id="figure-monitoring-history"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart RL
-  subgraph T0["Tier 0 / Control"]
-    subgraph Existing["Existing infrastructure / protected logging"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":8,"bottom":20}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
+  subgraph T0["Tier 0"]
+    subgraph Existing["Monitored Systems"]
       Sources["Hosts, storage and control APIs<br/>Existing agents / log-1 queues"]
     end
-    subgraph Project["Independent host / native monitoring functions"]
-      Parent["netdata.service / parent<br/>API exporter / Redfish jobs"]
-      Metrics["dbengine / persistent history"]
-      Rules["Native Netdata health rules"]
-      Parent --> Metrics --> Rules
+    subgraph ManagementNetwork["Management Network / management"]
+      subgraph Project["Monitoring Services"]
+        direction TB
+        Parent["netdata.service / parent<br/>API exporter / Redfish jobs"]
+        Metrics[("dbengine / persistent history")]
+        Rules["Native Netdata health rules"]
+        Parent -->|Retain metrics| Metrics
+        Parent -->|Evaluate health| Rules
+      end
     end
-    Sources -->|Selected signal exporters| Project
+    Sources -->|Selected signal exporters| Parent
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  class Sources actor
-  class Metrics data
-  class Parent,Rules control
-  class Existing boundary
-  class Project replicas
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class T0 tier0
+  class Existing,Project group
+  class ManagementNetwork network
+  class Sources actor
+  class Parent,Rules control
+  class Metrics data
 ```
 
 **IaC:** *Figure: Selected infrastructure signals feed one native Netdata service, which keeps local history and
@@ -273,17 +284,19 @@ private output and complete notification inputs in Step 3 before apply.
 <a id="figure-independent-alerts"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart RL
-  subgraph T0["Tier 0 / Control"]
-    subgraph Project["Independent host / native alert delivery"]
-      direction TB
-      Rules["Netdata health engine"] --> Routing["Netdata native notification client"]
-      Heartbeat["infrastructure-heartbeat.timer<br/>Requires local netdatacli ping"]
+  subgraph T0["Tier 0"]
+    subgraph ManagementNetwork["Management Network / management"]
+      subgraph Project["Alert Services"]
+        direction TB
+        Rules["Netdata health engine"] --> Routing["Netdata native notification client"]
+        Heartbeat["infrastructure-heartbeat.timer<br/>Requires local netdatacli ping"]
+      end
+      Log["log-1<br/>Existing archive watchdog"]
     end
-    Log["log-1<br/>Existing archive watchdog"]
   end
-  subgraph External["Existing external notification service"]
+  subgraph External["Notification Service"]
     Watch["Heartbeat / dead-man checks"]
   end
   Admin["Authorized administrators"]
@@ -295,13 +308,16 @@ flowchart RL
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Rules,Routing,Heartbeat,Log control
   class External,Watch services
   class Admin actor
   class Project replicas
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class ManagementNetwork network
 ```
 
 **IaC:** *Figure: Health alerts and watchdog heartbeats leave Tier 0 for their authorized recipients. The external

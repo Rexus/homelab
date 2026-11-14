@@ -7,49 +7,12 @@ For verified publication, use [verified software intake operations](verified-pub
 
 <a id="figure-reference-cache-deployment"></a>
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  subgraph T2["Tier 2 / external_edge"]
-    subgraph PVE["Existing Proxmox hosts"]
-      direction LR
-      VIP{{"cache VIP<br/>One active owner"}}
-      subgraph Pair["cache / two existing VMs"]
-        direction TB
-        subgraph A["cache-1"]
-          direction LR
-          S1["Squid / keepalived"]
-          D1[("scsi1<br/>/var/spool/squid")]
-          S1 -->|Cache I/O| D1
-        end
-        subgraph B["cache-2"]
-          direction LR
-          S2["Squid / keepalived"]
-          D2[("scsi1<br/>/var/spool/squid")]
-          S2 -->|Cache I/O| D2
-        end
-        A ~~~ B
-      end
-      VIP -->|Proxy requests| Pair
-    end
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  class S1,S2 edge
-  class PVE,A,B boundary
-  class Pair replicas
-  class D1,D2 data
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
-  class VIP traffic
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  class T2 tier2
-```
+![Cache clients below Tier 2 and approved upstream sources to its left](../../08-reference/diagrams/cache-services.svg)
 
-*Figure: IaC reference cache deployment. Approved requests use one VIP owner; each VM has an independent
-cache disk. The pair provides transport, without cache-data replication or software publication.*
+*Figure: Approved update clients below Tier 2 request the Cache VIP; Cache Services request approved
+Internet sources or a configured upstream proxy to the left. Replies use the established connections.
+Each instance has its own cache disk; the VIP has one active owner and does not replicate cache data.*
+[Editable figure](../../08-reference/diagrams/cache-services.svg). Physical host placement is outside this service view.
 
 **Owner:** `<prefix>-tier-2`; [VM inputs](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example),
 [policy inputs](../../../tier-2/ansible/group_vars/cache.yml.example) and

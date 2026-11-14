@@ -12,15 +12,15 @@ offline custody and outage visibility independent of the clusters they recover.
 ## Cluster boundaries
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":16,"padding":10,"wrappingWidth":350,"subGraphTitleMargin":{"top":2,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":16,"padding":10,"wrappingWidth":350,"subGraphTitleMargin":{"top":2,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T2["Tier 2 / workload authority"]
+  subgraph T2["Tier 2"]
     C2["Workload cluster<br/>Independent API / etcd / credentials<br/>Development, testing and labs"]
   end
-  subgraph T1["Tier 1 / shared-platform authority"]
+  subgraph T1["Tier 1"]
     C1["Platform cluster<br/>Independent API / etcd / credentials<br/>Source, registry and delivery services"]
   end
-  subgraph T0["Tier 0 / infrastructure and trust authority"]
+  subgraph T0["Tier 0"]
     direction TB
     subgraph Connected["Connected runtimes"]
       direction LR
@@ -38,7 +38,6 @@ flowchart TB
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class Directory control
-  class Connected boundary
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class C0,C1,C2 kubernetes
   class Custody custody
@@ -48,6 +47,8 @@ flowchart TB
   class T1 tier1
   classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
   class T2 tier2
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Connected group
 ```
 
 *Figure: Each tier retains its own cluster authority. Tier 0 also owns dedicated directory and execution

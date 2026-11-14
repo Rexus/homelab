@@ -12,12 +12,12 @@ because this repository provisions Proxmox resources, not because bootstrap requ
 <a id="figure-1-bootstrap-execution-host"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":10,"rankSpacing":6,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":10,"rankSpacing":6,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   Admin["Privileged<br/>workstation<br/>Console / recovery"]
-  subgraph T0["Tier 0 / Control layer"]
+  subgraph T0["Tier 0"]
     direction TB
-      subgraph PVE["Proxmox / management network"]
+      subgraph Network["Management Network / management"]
         direction LR
         subgraph VM["boot-1 / Linux VM"]
           direction TB
@@ -32,10 +32,10 @@ flowchart LR
           Image["Approved<br/>Linux template"]
           API ~~~ Image
         end
-        VM -->|API / TLS| Host
+        Tools -->|API / TLS| API
       end
   end
-  Admin -->|SSH to boot-1| T0
+  Admin -->|SSH to boot-1| Tools
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
@@ -51,7 +51,8 @@ flowchart LR
   class T0 tier0
   classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class PVE zoneControl
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Network network
 ```
 
 **Manual:** **Figure 1: Bootstrap execution host.** One `boot-1` VM holds tools, repositories and local state.

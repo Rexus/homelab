@@ -20,13 +20,12 @@ dependencies, controlled egress and privileged administration. Each connection
 below represents a named endpoint contract, not access to an entire zone.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":32,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":32,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
   subgraph Access["Callers"]
     direction TB
     Internet["External<br/>application<br/>client"]
     AdminEntry["Approved<br/>administration<br/>entry"]
-    Internet ~~~ AdminEntry
   end
   subgraph Edge["Edge / DMZ"]
     Gateways["Public<br/>entry"]
@@ -38,22 +37,20 @@ flowchart LR
     direction TB
     Endpoints["Identity /<br/>trust /<br/>operations<br/>interfaces"]
     Administration["Protected<br/>infrastructure<br/>administration"]
-    Endpoints ~~~ Administration
   end
-  Access -->|Public| Edge
-  Edge -->|Backend| Application
-  Application -->|Service| Control
-  Access -->|Admin| Control
+  Internet -->|Public<br/>HTTPS| Gateways
+  Gateways -->|Backend<br/>HTTPS| Services
+  Services -->|Service<br/>protocols| Endpoints
+  AdminEntry ---->|Authorized administration| Administration
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Access boundary
   class Internet,AdminEntry actor
   class Endpoints,Administration control
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
   class Gateways,Services traffic
   classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
   class Edge zoneEdge
@@ -61,9 +58,11 @@ flowchart LR
   class Application zoneServices
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   class Control zoneControl
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Access group
 ```
 
-*Figure: Boundary links represent named interfaces: the external client uses the public Edge
+*Figure: Links terminate on their actual interfaces: the external client uses the public Edge
 listener; Edge uses the Application / Services backend; that service uses Control identity,
 trust and operations interfaces. The approved administration entry separately uses protected
 infrastructure administration. The caller group is not a shared network or authority.*
@@ -128,7 +127,7 @@ sequenceDiagram
   Backend->>Backend: Apply service authentication / authorization
   Backend-->>Edge: Application result
   Edge-->>Client: Response on the client connection
-  Note over Edge,Backend: Frontend and backend connections have separate transport / TLS policy
+  Note over Edge,Backend: Frontend and backend connections<br/>have separate transport / TLS policy
 ```
 
 *Figure: A published request crosses two selected connections and returns through the edge. The

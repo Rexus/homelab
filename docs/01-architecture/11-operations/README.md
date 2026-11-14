@@ -9,36 +9,26 @@ Visibility explains what happened; protected evidence preserves what must surviv
 recovery restores accepted service identity and data. Their access and failure boundaries
 remain distinct even when one operator is responsible for all three.
 
-## Table of contents
-
-- [Completed design](#completed-design)
-- [Components and interfaces](#components-and-interfaces)
-- [Design choices](#design-choices)
-- [Design constraints](#design-constraints)
-- [Independent operation](#independent-operation)
-- [Detailed views](#detailed-views)
-- [Realization](#realization)
-
 ## Completed design
 
 The map separates routine telemetry from protected security evidence. Follow the
 application telemetry through Tier 1, then the security submissions into Tier 0.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T2["Tier 2 / workloads"]
+  subgraph T2["Tier 2"]
     Producers["Applications / local collection"]
   end
-  subgraph T1["Tier 1 / Observability"]
-    subgraph Cluster["Platform Kubernetes / separate workloads"]
+  subgraph T1["Tier 1"]
+    subgraph Cluster["Tier 1 Kubernetes"]
       direction LR
       Collection["Telemetry gateways"]
       Backends["Metrics / log and trace search<br/>Scoped queries and UIs"]
       Collection -->|Logs / metrics / traces| Backends
     end
   end
-  subgraph T0["Tier 0 / independent control visibility"]
+  subgraph T0["Tier 0"]
     direction LR
     Evidence["Security Logging and Audit<br/>Protected intake / original evidence"]
     Health["Independent health checks<br/>External alert delivery"]
@@ -70,6 +60,16 @@ to their query backends. Operators use those signals to understand service behav
 System, security and audit records from every tier follow restricted intake into
 Tier 0 custody. Approved projections can be searchable in Tier 1 without giving
 query users or analytics administrators authority over the originals.
+
+## Table of contents
+
+- [Completed design](#completed-design)
+- [Components and interfaces](#components-and-interfaces)
+- [Design choices](#design-choices)
+- [Design constraints](#design-constraints)
+- [Independent operation](#independent-operation)
+- [Detailed views](#detailed-views)
+- [Realization](#realization)
 
 ## Components and interfaces
 

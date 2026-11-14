@@ -12,57 +12,94 @@ This extension works with either Stage 1 supply route; it does not deploy Kubern
 <a id="figure-1-verified-publication-and-consumers"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":16,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart BT
-  subgraph T0["Tier 0 / existing consumers"]
-    C["Selected repositories / artifacts<br/>Independent verification and recovery copies"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":8,"bottom":20}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart TB
+  subgraph Layout[" "]
+    direction LR
+    UP["Approved external<br/>publishers / definitions"]
+    subgraph T2["Tier 2"]
+      subgraph CacheNetwork["Edge Network / external_edge"]
+        PROXY{{"cache-1 / cache-2<br/>Approved proxy route"}}
+      end
+    end
+    UP ~~~ T2
   end
-  subgraph T1["Tier 1 / delivery_edge"]
-    subgraph PVE["Existing Proxmox host"]
-    subgraph VM["intake-1"]
+  subgraph T1["Tier 1"]
+    subgraph Network["Delivery Edge Network / delivery_edge"]
+      subgraph VM["intake-1 / publication VM"]
         direction LR
-        WEB["Nginx<br/>GET-only publication"]
+        WEB{{"Nginx<br/>GET / HEAD publication"}}
         JOBS["intake.service<br/>Fetch / verify / ClamAV / publish"]
-        DATA[("scsi1 / srv/intake<br/>Private work / quarantine<br/>Accepted versions")]
-        WEB --- DATA
+        DATA[("scsi1 / /srv/intake<br/>Private work / quarantine<br/>Accepted versions")]
+        WEB -->|Read public files| DATA
         JOBS -->|Gated publication| DATA
       end
     end
   end
-  subgraph T2["Tier 2 / existing DMZ"]
-    PROXY["cache-1 / cache-2<br/>Approved proxy route"]
+  subgraph T0["Tier 0"]
+    C["Selected repositories / artifacts<br/>Independent verification / recovery"]
   end
-  UP["Approved external publishers / definitions"]
-  T0 -->|GET selected version| T1
-  T1 -->|Acquisition requests| T2
-  T2 -->|HTTPS| UP
+  Layout ~~~ T1 ~~~ T0
+  style Layout fill:none,stroke:none
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  class C control
-  class VM,WEB,JOBS services
-  class PVE runtime
-  class DATA data
-  class PROXY edge
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
   classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class T0 tier0
+  class T1 tier1
   class T2 tier2
+  class CacheNetwork,Network network
+  class VM runtime
+  class WEB,PROXY traffic
+  class JOBS services
+  class C control
+  class DATA data
+  class UP actor
 ```
 
 **IaC:** **Figure 1: Verified publication and consumers.** Tier 1 [installer](../../../tier-1/ansible/playbooks/deployment/intake.yml),
 [runtime](../../../tier-1/ansible/roles/software_intake/files/runtime/intake.yml) and
 [policy inputs](../../../tier-1/ansible/group_vars/intake.yml.example).
-Upward arrows show acquisition and consumer requests; the job arrow shows gated publication. The storage link
-shows read-only attachment. The job aggregates `intake-fetch`, `intake-scan` and root publication;
+The [intake VM](../../../tier-1/terraform/deployments/intake/terraform.tfvars.example)
+uses `delivery_edge`; the existing [cache VMs](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example)
+use `external_edge`. These remain distinct networks across their tier boundaries.
+The opening view shows placement; the request sequence below shows acquisition through the proxy and
+consumer access to Nginx. Within the VM, the arrows show gated publication and reads of public files. The job aggregates `intake-fetch`, `intake-scan` and root publication;
 OS storage holds policy, TLS and ClamAV definitions, with optional native FreshClam updating them.
 Proxmox, proxy, trust,
 firewall and protected logging are commissioned prerequisites, not additional resources from this setup.
+
+<a id="figure-verified-intake-requests"></a>
+
+```mermaid
+sequenceDiagram
+  participant Client as Approved consumer
+  participant Web as Nginx
+  participant Worker as intake.service
+  participant Proxy as Existing proxy
+  participant Source as External publisher
+  Worker->>Proxy: HTTPS acquisition request
+  Proxy->>Source: Allowed HTTPS request
+  Source-->>Proxy: Source bytes
+  Proxy-->>Worker: Source bytes
+  Worker->>Worker: Verify / scan and quarantine failures
+  Worker->>Worker: Write accepted immutable version to public files
+  Client->>Web: GET selected version / verified TLS
+  Web-->>Client: Accepted content and receipt
+```
+
+**Workflow:** *Figure: The worker acquires through the existing proxy and publishes only accepted versions.
+Consumers request the selected version from Nginx; this sequence creates no additional service.*
+The same [runtime](../../../tier-1/ansible/roles/software_intake/files/runtime/intake.yml)
+and [Nginx configuration](../../../tier-1/ansible/roles/software_intake/templates/nginx.conf.j2)
+own these operations. Publication writes public files on `scsi1`; it is not an HTTP upload to Nginx.
 
 **Provisioning:** one `deploy.sh intake` command in **Step 3** creates `intake-1`, prepares its
 data volume and installs the service. Terraform owns the VM/disks; Ansible manages the filesystem
@@ -216,15 +253,17 @@ not per-repository user authentication.
 <a id="figure-2-intake-worker-and-disks"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":16,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":16,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  subgraph T1["Tier 1 / delivery_edge"]
-    subgraph PVE["Existing Proxmox host"]
-      VM["intake-1<br/>Full Linux clone"]
-      OS[("scsi0 / OS disk")]
-      DATA[("scsi1 / data disk<br/>IaC-managed /srv/intake")]
-      VM --- OS
-      VM --- DATA
+  subgraph T1["Tier 1"]
+    subgraph Network["Delivery Edge Network / delivery_edge"]
+      subgraph PVE["Proxmox Host"]
+        VM["intake-1<br/>Full Linux clone"]
+        OS[("scsi0 / OS disk")]
+        DATA[("scsi1 / data disk<br/>IaC-managed /srv/intake")]
+        VM --- OS
+        VM --- DATA
+      end
     end
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
@@ -236,6 +275,9 @@ flowchart LR
   class OS,DATA data
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
   class T1 tier1
+  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  class Network network
 ```
 
 **IaC:** **Figure 2: Intake worker and disks.** Tier 1 [VM inputs](../../../tier-1/terraform/deployments/intake/terraform.tfvars.example),
@@ -244,6 +286,7 @@ flowchart LR
 [deployment playbook](../../../tier-1/ansible/playbooks/deployment/intake.yml) uses Shared's
 [data-volume role](../../../shared/ansible/roles/data_volume/tasks/main.yml) to manage the filesystem,
 UUID mount and growth. Storage links mean attachment.
+The host boundary records local OS/data-disk attachment; it is retained for this storage view only.
 One VM is not HA; its outage pauses both new intake and its publication endpoint.
 
 Provision the worker and attached storage in [Figure 2](#figure-2-intake-worker-and-disks).

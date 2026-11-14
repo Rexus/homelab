@@ -5,80 +5,21 @@ remain under [protected logging](protected-logging.md); search projections have 
 
 <a id="figure-observability-operating-scope"></a>
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T1["Tier 1 / Kubernetes selection"]
-    subgraph Cluster["Existing platform Kubernetes"]
-      direction TB
-      subgraph Serving["Signal and query services"]
-        direction LR
-        subgraph Readers["Reader-facing services"]
-          direction TB
-          UIs["grafana / dashboards<br/>Two replicas each"]
-          Query{{"metrics-query x2<br/>vmauth / selected read members"}}
-          UIs ~~~ Query
-        end
-        subgraph Processing["Ingestion services"]
-          direction TB
-          Gateway{{"otel-gateway x2<br/>Separate persistent queues"}}
-          Prepper["data-prepper x2<br/>Scoped log / trace pipelines"]
-          Gateway -->|Logs / traces| Prepper
-        end
-        subgraph Backends["Persistent backend services"]
-          direction TB
-          Metrics["metrics-1 / metrics-2<br/>Separate PVCs"]
-          Search["opensearch x3 / own PVCs"]
-          DB["grafana-db / PostgreSQL x3<br/>Live block PVCs"]
-          Metrics ~~~ Search ~~~ DB
-        end
-        Readers -->|Queries / Grafana SQL| Backends
-        Processing -->|Metrics / scoped logs and traces| Backends
-        Readers ~~~ Processing
-      end
-      subgraph Diagnostics["Netdata diagnostics / persistent parent history"]
-        direction LR
-        subgraph Parents["Diagnostic parents"]
-          direction TB
-          N1["netdata-1"]
-          N2["netdata-2"]
-          N1 ~~~ N2
-        end
-        Agents["netdata-1 chart agents<br/>Node children / k8sState collector"]
-        Bridge["netdata-metrics / selected bridge<br/>One parent / exact metric allowlist"]
-        Agents -->|Authenticated streams| Parents
-        Bridge -->|Read selected metrics| Parents
-      end
-      Serving ~~~ Diagnostics
-    end
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class UIs,Prepper,Metrics,Search,DB,N1,N2,Agents,Bridge services
-  class Parents replicas
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
-  class Backends,Diagnostics,Processing,Readers,Serving group
-  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  class Cluster kubernetes
-  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
-  class Query,Gateway traffic
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  class T1 tier1
-```
+![Kubernetes observability placement and persistence](../../08-reference/diagrams/observability-operations.svg)
 
-**IaC / Integration:** *Figure: The Kubernetes main-path signal, query, database and diagnostic workload set.
+**IaC / Integration:** *Figure: Placement of the Kubernetes signal, query, database and diagnostic workloads.
 Backend boxes aggregate native members and their attached persistence; replica counts alone are not availability evidence.
-The diagnostic bridge supplies allowlisted metrics to the ingestion group; the overview separates their placement.*
+Grafana queries through `metrics-query` and uses its own PostgreSQL database; Dashboards queries OpenSearch.
+The [signal paths](#signal-paths) distinguish the read and write endpoints and the diagnostic bridge.*
 In **`<prefix>-tier-1/`**, [platform inputs](../../../tier-1/ansible/group_vars/observability_platform.yml.example),
 [release composition](../../../tier-1/ansible/roles/observability_platform/templates/releases.yml.j2),
 [database resources](../../../tier-1/ansible/roles/observability_platform/templates/grafana-database.yml.j2) and the
 [installer](../../../tier-1/ansible/playbooks/deployment/observability-platform.yml) own this scope.
 [Netdata values](../../../tier-1/ansible/roles/observability_platform/templates/netdata-values.yml.j2)
 enable node/state collection only in the `netdata-1` release; the metric bridge is selected by its allowlist.
+The [collector](../../../tier-1/ansible/roles/observability_platform/templates/collector-config.yml.j2),
+[query proxy](../../../tier-1/ansible/roles/observability_platform/templates/query-values.yml.j2) and
+[bridge](../../../tier-1/ansible/roles/observability_platform/templates/bridge-values.yml.j2) define the signal paths.
 The [VM selection](#figure-observability-vm-operations) replaces these Kubernetes workloads.
 [Tier 0 infrastructure collection](../../03-deployment/stage-8-observability/step-13-infrastructure-monitoring.md),
 [optional protected-log projections](../../03-deployment/stage-8-observability/step-14b-protected-log-search.md) and
@@ -88,6 +29,8 @@ The [VM selection](#figure-observability-vm-operations) replaces these Kubernete
 **Install and acceptance:** [Stage 8](../../03-deployment/stage-8-observability/README.md).
 
 ## Table of contents
+
+- [Signal and query paths](#signal-paths)
 
 - [Find the configuration](#find-the-configuration)
 - [Reconcile dedicated VMs](#how-are-dedicated-vms-reconciled)
@@ -119,63 +62,39 @@ It also installs two Netdata parents on `otel-1/2` and children on the five metr
 <a id="figure-observability-vm-operations"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":6,"padding":10,"subGraphTitleMargin":{"top":6,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
-  subgraph T1["Tier 1 / dedicated-VM replacement selection"]
-    subgraph PVE["Existing Proxmox / observability network"]
-      direction TB
-      subgraph Services["Native Podman / systemd runtimes"]
-        direction LR
-        subgraph Gateways["Gateway / frontend guests"]
-          direction TB
-          O1["otel-1<br/>Collector / Prepper / vmauth<br/>Dashboards / Grafana / Netdata parent"]
-          O2["otel-2<br/>Collector / Prepper / vmauth<br/>Dashboards / Netdata parent"]
-          O1 ~~~ O2
-        end
-        subgraph Metrics["Independent metric stores"]
-          direction TB
-          M1["metric-1 / Netdata child"]
-          M2["metric-2 / Netdata child"]
-          M1 ~~~ M2
-        end
-        subgraph Search["OpenSearch members"]
-          direction TB
-          S1["search-1 / Netdata child"]
-          S2["search-2 / Netdata child"]
-          S3["search-3 / Netdata child"]
-          S1 ~~~ S2 ~~~ S3
-        end
-        Gateways -->|Write both / query selected stores| Metrics
-        Gateways -->|Scoped ingest / queries| Search
-        Metrics ~~~ Search
-      end
-      Disks[("One scsi1 data disk per guest<br/>Queues / backends / Netdata identity and history<br/>Grafana SQLite on otel-1 only")]
-      Services -->|Guest-local persistence| Disks
+  subgraph T1["Tier 1"]
+    subgraph Network["Observability Network / observability"]
+      O1["otel-1 / otel-2<br/>Collector / Prepper / vmauth<br/>Dashboards / Netdata parents<br/>Selected Grafana instance"]
+      M1["metric-1 / metric-2<br/>VictoriaMetrics / Netdata children"]
+      Search["search-1 / search-2 / search-3<br/>OpenSearch / Netdata children"]
+      Disks[("Seven separate scsi1 data disks<br/>Guest-local queues / backend data / history<br/>Single Grafana / SQLite store")]
+      O1 ~~~ Disks
+      M1 ~~~ Disks
+      Search ~~~ Disks
     end
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class O1,O2,M1,M2,S1,S2,S3 services
-  class PVE boundary
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
-  class Services,Gateways,Metrics group
-  class Search replicas
-  class Disks data
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class O1,M1,Search services
+  class Disks data
+  class Network network
   class T1 tier1
 ```
 
-**IaC:** *Figure: All seven guests in the VM selection, with co-located processing, query and diagnostic services.
-The data-disk shape aggregates seven separate local disks; it is not shared backend storage.*
+**IaC:** *Figure: All seven guests on the `observability` network, with co-located processing, query and
+diagnostic services. The data-disk shape aggregates seven separate guest-local disks;
+it is not shared backend storage.*
 Tier 1's [VM inputs](../../../tier-1/terraform/deployments/observability/terraform.tfvars.example),
 [service inputs](../../../tier-1/ansible/group_vars/observability.yml.example),
 [service composition](../../../tier-1/ansible/roles/observability_vm/tasks/main.yml) and
 [Netdata installer](../../../tier-1/ansible/roles/observability_vm/tasks/netdata.yml) own this alternative.
 Children stream to the two parents, parents peer-stream, and only the selected parent supplies bridge metrics.
-The single Grafana/SQLite instance and per-store metrics copies retain their documented recovery limits.
+The single Grafana/SQLite instance on `otel-1` and per-store metrics copies retain their documented recovery limits.
 
 Review the existing VM inputs and private file; keep `observability_vm_search_bootstrap: false`
 after commissioning. Supply the accepted Vault password through the controller secret owner.
@@ -256,3 +175,94 @@ For the **Kubernetes runtime**, use its render/review/apply workflow:
 | Check node, Proxmox, IPMI and Netdata source coverage | [Stage 8 checks](../../03-deployment/stage-8-observability/README.md#main-path) |
 
 Configuration reconciliation does not replace version-specific database or search migrations.
+
+
+<a id="signal-paths"></a>
+
+## How do signals and queries reach the data?
+
+### Signal ingestion
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":12,"padding":10,"subGraphTitleMargin":{"top":6,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
+  Gateway{{"otel-gateway"}}
+  Prepper["data-prepper"]
+  Search["opensearch"]
+  Metrics["metrics-1 / metrics-2"]
+  Gateway -->|Logs / traces| Prepper
+  Prepper -->|Scoped writes| Search
+  Gateway -->|Write both copies| Metrics
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  class Gateway traffic
+  class Prepper,Search,Metrics services
+```
+
+*Figure: Collectors write both metric stores and forward scoped logs/traces through Data Prepper
+to OpenSearch. Each gateway maintains its own persistent queues.*
+The [Grafana values](../../../tier-1/ansible/roles/observability_platform/templates/grafana-values.yml.j2)
+and [Dashboards values](../../../tier-1/ansible/roles/observability_platform/templates/dashboards-values.yml.j2)
+define their distinct query and database connections.
+
+### Metrics queries
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":12,"padding":10,"subGraphTitleMargin":{"top":6,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
+  Grafana["grafana"]
+  Query{{"metrics-query / vmauth"}}
+  Metrics["metrics-1 / metrics-2"]
+  DB[("grafana-db")]
+  Grafana -->|Metric queries| Query
+  Query -->|Selected read members| Metrics
+  Grafana -->|SQL / TLS| DB
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  class Grafana,Metrics services
+  class Query traffic
+  class DB data
+```
+
+*Figure: Grafana queries metric copies through vmauth and retains its own SQL state.*
+
+### Log and trace queries
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":12,"padding":10,"subGraphTitleMargin":{"top":6,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart LR
+  Dashboards["dashboards"] -->|Scoped queries| Search["opensearch"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  class Dashboards,Search services
+```
+
+*Figure: Dashboards queries OpenSearch. This read path is separate from signal ingestion.*
+
+### Diagnostic metric export
+
+```mermaid
+%%{init: {"themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif","sequence":{"actorFontSize":14,"messageFontSize":14,"noteFontSize":14}}}%%
+sequenceDiagram
+  participant Agents as Node/state agents
+  participant Parent as Netdata parents
+  participant Bridge as netdata-metrics
+  participant Gateway as otel-gateway
+  participant Stores as metrics-1 / metrics-2
+  Agents->>Parent: Authenticated TLS streams
+  Note over Parent: Parents also peer-stream
+  Bridge->>Parent: HTTPS scrape / selected metrics
+  Parent-->>Bridge: Metric samples
+  Bridge->>Gateway: Allowlisted metrics / mTLS
+  Gateway->>Stores: Separate write queues to both stores
+```
+
+*Figure: The diagnostic bridge scrapes the selected parent and forwards its allowlist through
+the same gateway. Parent streaming remains separate from the metric-export path.*
+The [bridge values](../../../tier-1/ansible/roles/observability_platform/templates/bridge-values.yml.j2)
+and [Netdata values](../../../tier-1/ansible/roles/observability_platform/templates/netdata-values.yml.j2)
+own these connections. The VM alternative co-locates its selected scraper with `otel-1` instead
+of creating the Kubernetes `netdata-metrics` workload.

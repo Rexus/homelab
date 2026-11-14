@@ -24,16 +24,48 @@ ownership. Deployment views show the capability added by a step, not a new archi
 | How does a request proceed? | Flowchart or sequence | Arrows describe real interactions; sequence diagrams retain chronological order |
 | What does a deployment step add? | Content-sized nested flowchart | Retain tier, host/VM and storage boundaries; distinguish existing components from additions |
 
+Block and flowchart figures use `Arial, sans-serif` at 14px. Set `fontFamily` at the configuration
+root as well as in `themeVariables`, with `themeVariables.fontSize: "14px"`; the root setting also
+governs HTML labels. [2][5] Theme-aware sequence and chart views retain their background-specific colours.
+
 ## Compact block composition
 
 Use one visual language for architecture, deployment and operating views. Compose from the inside out:
 
+Choose boundaries by the question in every diagram. Service and traffic views show the relevant zones,
+networks and VM/container/Kubernetes runtimes. Omit a generic Proxmox-host wrapper when physical placement
+does not explain the picture. Show named hosts for placement, host failure, capacity, storage attachment
+or device passthrough; a deployment view does not automatically need the physical hosting layer.
+Code and workflow views use their relevant module, authority or process boundaries instead.
+
+### Keep labels simple
+
+Name what each box represents with a short noun phrase. A tier boundary says `Tier 2`; a network says
+`Cache Edge Network / external_edge`; the functional group inside says `Cache Services`.
+Retain an exact IaC key, namespace, service or interface name when it helps readers find the configuration.
+Identify each runtime deployment explicitly: `Tier 0 Kubernetes`, `Tier 1 Kubernetes` or `Tier 2 Kubernetes`.
+Use the owning deployment's name consistently across design, deployment and operations.
+
+Do not pad titles with ownership explanations, instance counts, deployment status, step numbers or
+phrases such as "two existing VMs". Describe those details in the caption or nearby inputs when needed.
+The instances drawn illustrate the referenced configuration; their number does not define the capability.
+Keep names and counts on individual instances or concise aggregates when they are the figure's subject.
+Retain contract details such as quorum or offline custody where they explain behavior, rather than
+repeating them on every enclosing box. Name arrows by the interaction, such as `Proxy requests`.
+
+### Arrange the groups
+
 | Level | Placement | Visual treatment |
 | --- | --- | --- |
-| Servers, pods and replicas | Compact vertical stacks | Similar instance rectangles inside a dashed service group |
+| Servers, pods and replicas | Compact vertical stacks | Similar instance rectangles inside a dotted service group |
 | Peer service groups | Side by side | Consumer on the left; supporting service or authority to the right |
 | Zones and ownership boundaries | Stack where the model requires it | Solid outer boundaries; retain Tier 2 above Tier 1 above Tier 0 |
 | Gateways and balancers | Close to the peers they connect | Distinct compact shapes; label their actual routing role |
+
+In tiered placement views, Tier 2 is the highest ownership row. Place Internet services, upstream
+providers and external clients to its left. Users and tenants enter their target API from the left
+of that owner's boundary. Actual Tier 0/Tier 1 consumers remain below a Tier 2 provider and request
+it upward. Sequence diagrams retain their chronological axes.
 
 This nesting should produce a compact figure near 4:3. Do not turn every server group into a horizontal
 row or spread a small deployment across a wide canvas. Use the project's palette, native component
@@ -48,6 +80,16 @@ view to the accepted deployment and link its owning inputs; an installation sequ
 Render before accepting the layout. Nested Mermaid directions can be overridden by external links:
 confirm that replicas actually stack, peer groups actually read left to right, titles remain visible and
 the figure stays readable at normal and narrow widths. A near-4:3 canvas alone does not prove compactness.
+
+Review the picture as a reading task: trace its main path without jumping around the page. Keep connector
+labels beside their own lines and leave space between headings, child boxes and unrelated links.
+Long perimeter detours, several competing paths or health/recovery arrows crowding a retention view
+are reasons to split the questions into focused figures. Remove enclosing boxes that add no useful
+ownership, runtime or failure boundary. Palette, parsing and collision checks supplement this visual review.
+
+When a placement row needs a non-semantic layout wrapper, use an empty `Layout` subgraph with
+`style Layout fill:none,stroke:none`. It supplies placement only; it is not an ownership or network
+boundary. Keep all visible components and groups on the shared palette.
 
 ### Start with the result
 
@@ -76,6 +118,12 @@ ownership, tier and protection-layer placement rules. Returned results, alerts a
 offline trust transfers retain their actual direction rather than being reversed
 to satisfy the page layout. Sequence participants follow the same consumer-to-provider
 order across the page; time still advances downward.
+
+When a higher tier serves lower-tier consumers, show those callers below it with requests pointing
+up to the actual listener. Outbound requests may point left to an external source or upstream proxy.
+Keep these peers outside the service's owner; label requests separately from returned responses.
+The [cache service view](../05-operations/02-software-intake/README.md#figure-reference-cache-deployment)
+shows this placement without changing tier ownership or inventing another routing hop.
 
 Block diagrams support explicit placement through columns, spans and spaces. [1]
 Use them for placement maps and compact hosting views. Keep a flowchart when routing and nested
@@ -132,8 +180,8 @@ single long strip. This is a sequence convention, not a reversal of tier/layer p
 
 Use one enclosing boundary per tier in a view; place that tier's zones and runtimes
 inside it. More foundational or privileged dependencies belong lower or farther right:
-for example, Kubernetes to the left of directory authority. Clients enter from Tier 2
-above or from an external access area on the left. An Edge-facing privileged bootstrap
+for example, Kubernetes to the left of directory authority. External clients enter from the left
+of the owner's actual interface. An Edge-facing privileged bootstrap
 entry does not acquire Tier 2 ownership or a public administrative listener.
 
 Offline root and recovery custody belong at the bottom inside Tier 0's ownership
@@ -141,9 +189,10 @@ boundary, but outside connected runtime/Proxmox boundaries. This is not another 
 zone or a formal negative-numbered tier. Signed-object transfers point upward from
 custody; chronological ceremony/enrollment workflows can retain their natural sequence.
 
-Deployment steps keep the physical and runtime context visible: the owning tier
-contains the actual Proxmox hosts, VMs and attached local volumes. Use inventory
-names for deployed guests. Show remote archives and independent recovery as
+Deployment steps keep the relevant network and runtime context visible: the owning tier
+contains its network zones, VMs and attached local volumes. Include physical hosts only when
+the figure explains host-level placement or behavior. Use inventory names for deployed guests.
+Show remote archives and independent recovery as
 separate boundaries, not another disk inside the receiver. An optional second
 host must be labelled optional; adding a replica does not imply replication or HA.
 
@@ -200,12 +249,15 @@ the documentation tests compare those declarations with the palette.
 | Tier boundaries | Warm neutrals: light `tier2`, medium `tier1`, strongest `tier0`; the same shade everywhere |
 | Other ownership boundary | Warm neutral gray `ownership`, independent of network protection zones |
 | Protection zones | Light rose `zoneEdge`, medium blue `zoneServices`, stronger green `zoneControl`; separate from tiers |
-| Site or network boundary | Pale neutral enclosing box, solid border |
+| Site or ownership boundary | Warm neutral enclosing box, solid border |
+| Network or subnet | Pale gray-rose `network`, solid border, useful input key in its short heading |
 | Kubernetes runtime | Pale blue-gray `kubernetes`; contained inside its owner and actual network |
-| Traffic interface | Pale cyan `traffic`; ingress, gateways, balancers and routing entry points |
+| Traffic interface | Charcoal `traffic` with white text for ingress, gateways, VIPs, balancers and listeners |
+| Policy / access rule | Mauve `policy`, dashed border; permitted traffic, authorization constraints or named policy resources |
 | Action / approval | Pale peach `action`; workflow activity, distinct from deployed service instances |
-| Inner function / service group | Light neutral gray `group`, solid border; works inside any owner, zone or runtime |
-| Replica / failover group | The same light gray `replicas`, dashed border; labels state the actual contract |
+| Inner function / service group | Light neutral gray `group`, dotted border inside its actual owner, zone or runtime |
+| Logical deployment grouping | Light neutral gray `deploymentGroup`, dotted border; groups services without inventing a network |
+| Replica / failover group | The same dotted light gray `replicas`; labels state the replication or failover contract |
 | Boundary heading | Native title or content-sized unframed heading above its children, not a grid spacer row |
 | Functional components | Preserve the component's rose, blue or green role; do not reuse zone fills for every child |
 | Other runtime | Declared runtime treatment; Kubernetes always uses its dedicated blue-gray role |
@@ -217,6 +269,19 @@ Colour distinguishes roles, not products or a universal tier classification.
 For example, Tier 2 includes both DMZ entry points and Services workloads.
 Labels, containment, shapes and line styles carry the same meaning without colour.
 Gateways should sit near the boundary and peer they connect to.
+Actual network boundaries share the same rose treatment across tiers and capabilities.
+Protection-zone maps use the separate Edge, Services and Control palette roles.
+Service collections use dotted outlines. Hosts, network boundaries and Kubernetes runtimes use solid outlines.
+Distinguish the rule from its implementation. Put a traffic-rule annotation beside the incoming path,
+outside the destination tier, zone and runtime. Point its dashed association directly to the actual
+ingress or listener; placement does not assign policy ownership or add a traffic hop.
+Keep ingress controllers, gateways and firewall appliances where they run.
+Native policy resources such as NetworkPolicy, RBAC or an Argo CD
+AppProject stay inside their configured runtime. Workflow approval decisions retain the peach action role.
+Use a dotted deployment grouping for a functional collection such as Identity services; label only actual
+network boundaries as networks. Stack an application's state beneath it when this keeps its attachment
+clear. Offline custody remains at the bottom of its owner, outside connected runtimes.
+
 Policy and health matrices retain their explicit green/amber/red legend. Their cells express
 policy or severity, while coloured row and column headings identify the corresponding zones.
 
@@ -250,6 +315,20 @@ renderers or complete diagrams meet accessibility requirements.
 
 ### Export a review copy
 
+SVG figures such as the [identity operating view](../08-reference/diagrams/identity-operations.svg)
+are their own editable source. Their explicit coordinates preserve required placement across renderers;
+open the SVG in a browser or vector editor and inspect it at normal/narrow widths on both backgrounds.
+Keep its semantic colours aligned with the palette. Register new diagram assets with the documentation
+generator so the generated manual carries the same image; geometry checks protect critical placement.
+
+The [cache operating view](../05-operations/02-software-intake/README.md#figure-reference-cache-deployment)
+is the reference for compact service grouping and inbound/outbound request placement.
+A Mermaid 11.17.2 `block-beta` trial stretched peer cells, obscured group titles and routed the upstream
+arrow through the VIP. Its editable SVG preserves the required placement. Use Mermaid when its rendered
+layout expresses the same relationships clearly.
+Scope SVG palette rules to single semantic classes. Shared outline resets affect dash patterns only.
+Check computed fills, foregrounds and borders in the browser to catch inherited colour overrides.
+
 With an accepted Mermaid CLI installation, render the Markdown directly; the
 native CLI extracts its diagram fences and creates SVGs beside the review copy. [3]
 Run from **the upstream checkout**:
@@ -269,9 +348,11 @@ placement, and local rendering does not establish GitHub rendering parity.
 
 ## References
 
-Mermaid syntax, theming and CLI sources checked 2026-11-13; contrast reference checked 2026-10-19.
+Mermaid syntax, theming and configuration sources checked 2026-11-14; CLI checked 2026-11-13;
+contrast reference checked 2026-10-19.
 
 1. [Mermaid: Block diagrams](https://mermaid.js.org/syntax/block.html)
 2. [Mermaid: Theming](https://mermaid.js.org/config/theming.html)
 3. [Mermaid CLI](https://github.com/mermaid-js/mermaid-cli)
 4. [W3C: Understanding contrast minimum](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html)
+5. [Mermaid configuration schema: fontFamily](https://mermaid.js.org/config/schema-docs/config.html#fontfamily)
