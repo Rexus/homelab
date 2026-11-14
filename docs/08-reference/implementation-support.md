@@ -13,6 +13,7 @@ working checkouts; Shared helpers do not own the tier deployments they execute.
 
 - [Stage coverage](#stage-coverage)
 - [Detailed coverage](#detailed-coverage)
+- [Tier 1 Flux evidence](#tier-1-flux-evidence)
 
 <a id="first-six-stages"></a>
 
@@ -31,7 +32,7 @@ each prerequisite before proceeding; empty manifests do not meet a stage gate.
 | [4: Kubernetes](../03-deployment/stage-04-kubernetes/README.md) | Node bootstrap, reusable native CNI/CSI/TLS/ingress/database/Flux recipes, SOPS gates and protected cluster-source collection | Independent private API endpoint, qualified storage, approved Git/images and imported leaf certificates or qualified external enrollment; live audit/persistence/recovery tests |
 | [5: Identity](../03-deployment/stage-05-identity/README.md) | FreeIPA pair, Keycloak/database installation, LDAP federation, guarded API OIDC rollout, public PKCE CLI client and bounded namespace RBAC before Headlamp | Offline identity-CA signing, approved login executable, trusted leaf/replication credentials and real human login/denial, group removal and replica recovery tests |
 | [6: Secrets](../03-deployment/stage-06-secrets/README.md) | Cluster or VM HashiCorp Vault, audit/OIDC, configurable seals, control tools/monitoring and independent backups; optional separate OpenBao external-key signing API | Protected initialization/unseal, independent key/state custody and live access/restore tests; native Vault PKCS#11 requires a qualified licensed artifact. OpenBao never migrates Vault; hardware/session failover needs separate qualification |
-| [7: Delivery](../03-deployment/stage-07-delivery/README.md) | Tier 1 cluster/platform, native Harbor, Argo CD or complete native Spinnaker with SQL/cache, optional Tier 2 edge | Explicit controller choice, scoped sources/targets, storage, TLS/SSO and independent backups; live migration, rollback and restore qualification |
+| [7: Delivery](../03-deployment/stage-07-delivery/README.md) | Independent Tier 1 Cilium/Flux bootstrap, native pinned service exports, Spinnaker/SQL/Redis lifecycle, Harbor, promotion pipeline/worker and external source maintenance; explicit Argo CD/direct alternatives | Separate sources/identities, real encrypted payloads and custody; live fresh install, adoption, approval bypass, migration, drift, upgrade and full recovery remain required |
 | [8: Observability](../03-deployment/stage-08-observability/README.md) | Kubernetes or seven-VM native signal/query services and Netdata parents/agents; Tier 0 infrastructure polling/export remains separately owned | Qualified placement, capacity, storage/kernel settings, scoped certificates/search roles, private Netdata stream keys and administrator access; approved projections and live outage/denial/restore tests |
 | [9: Development platform](../03-deployment/stage-09-development/README.md) | Native GitLab/runner charts and data-service VMs; standalone VM option with OIDC, encrypted scheduled backups and controller-driven initial access/recovery; Tier 0 runner/Vault CI | Qualified matching packages/images, scoped storage, approved identity clients and runner protection; live SSO, CI, state continuity and isolated restore acceptance |
 | [10: Lab environments](../03-deployment/stage-10-lab-environments/README.md) | Tier 2 VM/cluster/platform lifecycle, bounded application/RBAC/quota/policy recipe, scoped OTel collection and opt-in public HTTPS | Approved application image/SDK, DNS/TLS and live boundary/restore tests; automatic tenant allocation, expiry and a portal remain separate integrations |
@@ -40,9 +41,11 @@ The independent cluster API endpoint and prepared storage are explicit prerequis
 not resources silently created by the cluster root. Tier 0 supplies an optional separate
 [API gateway](../03-deployment/stage-04-kubernetes/procedures/api-endpoint.md) setup;
 existing qualified services remain valid. [Storage prerequisites](../03-deployment/foundation/storage/README.md)
-use existing native interfaces, not an added gateway. Product installers live in
-the owning tier's Ansible recipes; Shared supplies reusable execution. Owned
-`clusters/` directories remain optional GitOps adoption points, not duplicate installers.
+use existing native interfaces, not an added gateway. Product configuration/renderers live in
+the owning tier's Ansible recipes; Shared supplies reusable execution and Flux payload rendering.
+Selected fresh Tier 1 Kubernetes services are installed by Flux from real exported payloads.
+Other tiers' owned `clusters/` directories retain their stated integration scope; empty starters
+are not installers.
 For the VM deployments, Terraform attaches disks and Ansible prepares the guest filesystems/mounts;
 intake, logging and the issuer reuse Shared's guarded data-volume role. NAS client mounts belong to
 the consuming recipe; NAS-side exports, permissions, snapshots and independent backup custody
@@ -72,7 +75,7 @@ Retain one values/resource owner when transferring a release to a delivery contr
 | 6 option 11b | Independent signing API | Separate named environment/state through the existing VM root; approved OpenBao/plugin artifacts, native HSM clients, Raft/TLS, audit/OIDC, original external-key mappings, exact certificate-auth signing policies and independent snapshots. Native RSA-PSS/P-256 software-token integration tested; actual Yubi/Pico mechanisms, three-member/device failover and recovery remain target acceptance |
 | 6 | Independent monitoring | Optional Tier 0 VM provisioned through the original foundation root, or accepted existing host; native Netdata, scoped Proxmox/Redfish polling and independent alerts outside observed clusters |
 | 6 | Audit and recovery transport | Tier 0 GET-only retained NetBox change collection plus native Vault snapshot authentication, encrypted original-input/media copies and product-specific clean-target recovery procedures; independently commissioned source shares, destinations and keys required |
-| 7 | Delivery controller | Tier 0 Flux/SOPS bootstrap; Tier 1 explicitly selects native Argo CD or native Spinnaker with eight services, SQL/Redis, certificates, scoped targets, SSO and backup jobs. Custom reviewed Spinnaker overlays remain an alternative; neither controller receives Tier 0 credentials |
+| 7 | Delivery controller | Independent Tier 1 Flux owns selected Kubernetes services, including Flux and native Spinnaker; Spinnaker promotes separate application Git and observes read-only. Native TLS, SQL/Redis, schema, repository/backup and ingress phases remain required. Legacy Argo CD/direct Spinnaker and custom overlays retain explicit scope; no Tier 0 credentials |
 | 9 | Source control and general runners | Tier 1 native Helm role renders/applies pinned official charts; separate `development-data` VMs install matching GitLab package roles for PostgreSQL/Redis/Gitaly with tenant object-storage handoff and backups. Protected Secrets and qualified hosting remain required; `development` retains the standalone VM alternative and its original state |
 | 7/10 | Public edge | Tier 2 HAProxy/keepalived plus opt-in native HTTP-01, staging/production separation, verified origin TLS and controller renewal timer; real domain, SELinux/network behavior, failover/renewal and independent alert acceptance remain operator work |
 | 9 option | Image lifecycle | Tier 0 native digest-pinned bootc-image-builder on a mutable builder, qcow2 verification/fetch and existing publisher catalog handoff; alternative existing bootc-native host switch/finalization. Approved source/product images, registry trust and live boot/rollback qualification remain required; general builds and registry commissioning are separate |
@@ -85,6 +88,29 @@ Retain one values/resource owner when transferring a release to a delivery contr
 Existing services can satisfy the same interface contract. A successful Terraform
 apply proves resource provisioning, not the acceptance of every service drawn in
 the architecture. Ansible maintenance reuses only supported operations.
+
+## Tier 1 Flux evidence
+
+[D-041](../07-decisions/README.md#d-041) accepts the ownership design. It does not establish a
+working site. The [installation/adoption path](../03-deployment/stage-07-delivery/procedures/flux-platform.md)
+and [live acceptance matrix](../03-deployment/stage-07-delivery/procedures/flux-platform.md#promotion-and-acceptance)
+are the required operational handoff.
+
+| Scope | Implementing owner / evidence boundary |
+| --- | --- |
+| Minimum bootstrap and self-management | Shared `cluster_platform`; exact bootstrap RBAC/canary, separately pinned platform source and matching `flux2` HelmRelease in platform-base; normal Ansible stops applying adopted releases |
+| Service definitions | Existing delivery/observability/development native renderers plus Shared `flux_payload`; actual pinned HelmRelease/manifests, staged health and SOPS exports; later stages are opt-in |
+| Node security collection | Shared `cluster_security_logging` retains Talos preparation and leaf validation; Tier 1 publishes retained per-node Helm identities through Flux with exact single-node readiness. Tier 0/2 keep their existing installer owners |
+| Release orchestration | Tier 1 `delivery_promotion`, versioned pipeline and worker; stable API import, exact approved app change and relevant Flux/workload health; direct executor/API/Git/admin bypass limits are explicit |
+| Platform change/recovery configuration | Shared `flux_maintenance` and Tier 1 recovery package tool; external accepted-revision inspection, candidate Git bundles/artifact checksums, guarded advancement and suspended application recovery |
+| Data restoration | Native product procedures; maintenance/Flux do not restore PVC contents, reverse schema migrations or fence every restored external trigger automatically |
+| Existing installations | Explicit stopped-writer adoption; preserve Helm identities, storage, Secrets and authored cluster/CI inputs; refresh does not migrate live owners |
+
+Fresh bootstrap, adoption, denial attempts, drift correction, product/Flux upgrades, compatible rollback,
+Spinnaker/GitLab/registry outages and complete independent recovery require live recorded evidence.
+Rendering and source/generated tests establish only their tested contracts. Any service still using
+Ansible in a selected Flux site must be recorded as a named transition exception with reason,
+migration work and acceptance criteria. No transition exception is implicitly accepted as target completion.
 
 <a id="purpose"></a>
 <a id="recommended-order"></a>

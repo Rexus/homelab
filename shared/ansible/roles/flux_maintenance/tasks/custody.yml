@@ -1,0 +1,22 @@
+---
+- name: Require a commissioned independent recovery location
+  ansible.builtin.assert:
+    that:
+      - flux_maintenance_custody_accepted | bool
+      - flux_maintenance_recovery_directory | length > 0
+      - flux_maintenance_artifact_lock_sha256 is match('^[a-f0-9]{64}$')
+    fail_msg: Export and verify the candidate configuration and pinned artifacts at independent custody before changing its accepted revision.
+
+- name: Verify retained Git bundles, encrypted configuration and actual artifact checksums
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_playbook_python }}"
+      - "{{ flux_maintenance_recovery_tool }}"
+      - verify
+      - --directory
+      - "{{ flux_maintenance_recovery_directory }}"
+      - --expect
+      - "{{ flux_maintenance_source }}={{ flux_maintenance_revision }}"
+      - --expect-lock
+      - "{{ flux_maintenance_artifact_lock_sha256 }}"
+  changed_when: false

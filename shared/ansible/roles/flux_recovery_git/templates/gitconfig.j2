@@ -1,0 +1,4 @@
+[safe]
+{% for name in flux_recovery_git_source_keys %}
+    directory = {{ flux_recovery_git_root }}/{{ name }}.git
+{% endfor %}

@@ -40,7 +40,19 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/deployment-context.sh"
 
 setup_group_vars_stem() {
   local setup_name="$1"
+  if [[ "$setup_name" == delivery-promotions ]]; then
+    echo delivery_promotion
+    return
+  fi
   echo "${setup_name//-/_}"
+}
+
+is_ansible_only_setup() {
+  local setup_name="$1" stem
+  [[ "$setup_name" =~ ^[a-z0-9][a-z0-9-]*$ ]] || return 1
+  stem="$(setup_group_vars_stem "$setup_name")"
+  [[ -f "$repo_root/ansible/group_vars/$stem.yml.example" &&
+     -f "$repo_root/ansible/playbooks/deployment/$setup_name.yml" ]]
 }
 
 normalize_setup_name() {
@@ -98,6 +110,9 @@ if [[ -n "$deployment_env" && ! "$deployment_env" =~ ^[A-Za-z0-9-]+$ ]]; then
 fi
 
 for setup_name in "${selected_setups[@]}"; do
+  if is_ansible_only_setup "$setup_name"; then
+    continue
+  fi
   # Existing-VM HA is an Ansible-only operation owned by Tier 0.
   if [[ "$setup_name" == proxmox-ha && -f "$repo_root/ansible/group_vars/proxmox_ha.yml.example" &&
         -f "$repo_root/ansible/playbooks/proxmox-ha.yml" ]]; then
@@ -193,6 +208,11 @@ create_setup_files() {
   create_from_example \
     "$repo_root/ansible/group_vars/$stem.yml.example" \
     "$repo_root/ansible/group_vars/$stem.yml"
+  if [[ -f "$repo_root/ansible/group_vars/${stem}_secrets.yml.example" ]]; then
+    create_from_example \
+      "$repo_root/ansible/group_vars/${stem}_secrets.yml.example" \
+      "$repo_root/ansible/group_vars/${stem}_secrets.yml"
+  fi
 
   terraform_deployment_dir="$repo_root/terraform/deployments/$setup_name"
   terraform_example_path="$terraform_deployment_dir/terraform.tfvars.example"

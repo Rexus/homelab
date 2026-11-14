@@ -1,0 +1,100 @@
+---
+- name: Validate product inputs without cluster access
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Require retained physical placement and isolation qualification before Flux publication
+  ansible.builtin.assert:
+    that:
+      - observability_netdata_host_access_approved | bool
+      - observability_network_policy_verified | bool
+      - observability_search_kernel_verified | bool
+    fail_msg: Supply the same accepted host-access, enforced network-policy and kernel prerequisites required by the native installer.
+  when: observability_backup_mode != 'files' or observability_backup_files_phase != 'prepare'
+
+- name: Resolve stable ingestion identities from protected inputs
+  ansible.builtin.import_tasks: credentials.yml
+  when: observability_backup_mode != 'files' or observability_backup_files_phase != 'prepare'
+
+- name: Require real ingestion credentials for the deployable Flux payload
+  ansible.builtin.assert:
+    that:
+      - observability_prepper_auth.username | length > 0
+      - observability_prepper_auth.password | length >= 16
+      - observability_prepper_search_auth.username == 'data-prepper'
+      - observability_prepper_search_auth.password | length >= 16
+      - "'render-only' not in [observability_prepper_auth.password, observability_prepper_search_auth.password]"
+  no_log: true
+  when: observability_backup_mode != 'files' or observability_backup_files_phase != 'prepare'
+
+- name: Validate supplied separate source trust domains without cluster access
+  ansible.builtin.include_tasks: trust.yml
+  vars:
+    observability_manage_secrets: true
+  when: observability_backup_mode != 'files' or observability_backup_files_phase != 'prepare'
+
+- name: Resolve the native product releases once for the selected owner
+  ansible.builtin.set_fact:
+    observability_releases: "{{ lookup('ansible.builtin.template', 'releases.yml.j2') | from_yaml }}"
+  no_log: true
+
+- name: Require stable database credentials for database-only commissioning
+  ansible.builtin.assert:
+    that:
+      - secret_id in observability_secrets
+      - item['keys'] | difference(observability_secrets.get(secret_id, {}).keys() | list) | length == 0
+      - item['keys'] | map('extract', observability_secrets.get(secret_id, {})) | select('equalto', '') | list | length == 0
+  vars:
+    secret_id: "{{ observability_namespace }}/{{ item.name }}"
+    grafana: "{{ observability_releases | selectattr('name', 'equalto', 'grafana') | first }}"
+  loop: >-
+    {{ grafana.required_secrets | selectattr('name', 'in', [
+       'grafana-database', 'grafana-db-ca', 'grafana-db-server-tls',
+       'grafana-db-client-ca', 'grafana-db-replication']) | list }}
+  when:
+    - observability_backup_mode == 'files'
+    - observability_backup_files_phase == 'prepare'
+  no_log: true
+
+- name: Render existing native NAS backup and retained repository storage
+  ansible.builtin.include_role:
+    name: postgresql_file_backup
+  vars:
+    postgresql_file_backup_action: render
+    postgresql_file_backup_output: "{{ observability_output }}"
+    postgresql_file_backup_target: >-
+      {{ observability_backup_files | combine({
+         'cluster': 'grafana-db', 'namespace': observability_namespace,
+         'source_id': 'tier-1/' ~ observability_namespace ~ '/grafana-db',
+         'image': observability_database_image, 'tls_secret': 'grafana-db-file-backup',
+         'accepted': observability_backup_files_accepted}) }}
+  when:
+    - observability_backup_mode == 'files'
+    - observability_backup_files_phase == 'backup'
+
+- name: Require accepted backup custody and exact retained volume identity
+  ansible.builtin.assert:
+    that:
+      - observability_backup_files_accepted | bool
+      - observability_database_storage_accepted | bool
+      - observability_backup_files.volume_name is match('^[a-z0-9][a-z0-9.-]*$')
+    fail_msg: Record the accepted database class, commissioned NAS custody and actual bound PV name before enabling backup reconciliation.
+  when:
+    - observability_backup_mode == 'files'
+    - observability_backup_files_phase == 'backup'
+
+- name: Assemble database readiness, completed backup and search policy stages
+  ansible.builtin.set_fact:
+    observability_flux_contract: "{{ lookup('ansible.builtin.template', 'flux-graph.yml.j2') | from_yaml }}"
+  no_log: true
+
+- name: Emit encrypted staged observability payload into the private platform source
+  ansible.builtin.include_role:
+    name: flux_payload
+  vars:
+    flux_payload_root: "{{ observability_flux_root }}"
+    flux_payload_component: platform/observability
+    flux_payload_age_recipients: "{{ observability_flux_age_recipients }}"
+    flux_payload_releases: "{{ observability_flux_contract.releases }}"
+    flux_payload_stages: "{{ observability_flux_contract.stages }}"
+    flux_payload_secrets: "{{ observability_secrets }}"
+    flux_payload_depends_on: "{{ observability_flux_depends_on }}"

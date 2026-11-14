@@ -63,8 +63,9 @@
       data: {ca.crt: "{{ delivery_platform_spinnaker_ca_pem | b64encode }}"}
     - name: spinnaker-redis-acl
       data:
-        users.acl: >-
-          {{ ('user default on #' ~ (delivery_platform_checked_secrets[delivery_platform_spinnaker_namespace ~
-             '/spinnaker-redis-auth'].password | hash('sha256')) ~
-             ' ~* &* +@all -config -acl -shutdown -module -debug -replicaof -slaveof -migrate -flushall -flushdb\n') | b64encode }}
+        users.acl: "{{ spinnaker_native_redis_acl | b64encode }}"
+  vars:
+    spinnaker_native_redis_acl: |
+      user default on #{{ delivery_platform_checked_secrets[delivery_platform_spinnaker_namespace ~
+        '/spinnaker-redis-auth'].password | hash('sha256') }} ~* &* +@all -config -acl -shutdown -module -debug -replicaof -slaveof -migrate -flushall -flushdb
   no_log: true

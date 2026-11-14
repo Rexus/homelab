@@ -26,22 +26,26 @@
       - >-
         item not in ['default', 'kube-system', 'kube-public', 'kube-node-lease', 'flux-system',
           'cert-manager', 'cnpg-system', 'vault', 'keycloak', 'freeipa', 'netbox', 'headlamp',
-          delivery_platform_spinnaker_namespace, delivery_platform_spinnaker_ingress_namespace]
+          delivery_platform_spinnaker_namespace, delivery_platform_spinnaker_ingress_namespace,
+          delivery_platform_spinnaker_promotion_namespace]
   loop: "{{ delivery_platform_spinnaker_destinations }}"
+
+- name: Confine promotion Jobs to their dedicated account namespace
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_spinnaker_promotion_namespace == 'delivery-promotion'
+      - delivery_platform_spinnaker_promotion_namespace != delivery_platform_spinnaker_namespace
+  when: delivery_platform_spinnaker_delivery_mode == 'flux'
 
 - name: Require distinct native identity roles
   ansible.builtin.assert:
     that:
-      - spinnaker_native_groups | unique | length == 3
+      - spinnaker_native_identity_groups | unique | length == spinnaker_native_identity_groups | length
       - delivery_platform_spinnaker_oidc_client_id | length > 0
       - delivery_platform_spinnaker_oidc_roles_claim is match('^[A-Za-z0-9_.-]+$')
       - "'openid' in delivery_platform_spinnaker_oidc_scopes"
       - item is match('^[a-z0-9][a-z0-9_:/.-]*$')
-  vars:
-    spinnaker_native_groups: >-
-      {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_reader_group,
-          delivery_platform_spinnaker_writer_group] }}
-  loop: "{{ spinnaker_native_groups }}"
+  loop: "{{ spinnaker_native_identity_groups }}"
 
 - name: Require explicit non-global egress grants
   ansible.builtin.assert:

@@ -2,6 +2,13 @@
 # Pass explicitly: -e @ansible/group_vars/observability_platform.yml
 # Service DNS: docs/02-conventions/service-dns.md
 observability_action: render
+observability_owner: flux
+# Existing installations select adopt only after disabling the previous Helm/Ansible writer.
+observability_flux_migration: fresh
+observability_previous_writer_disabled: false
+observability_flux_root: ""  # Absolute private platform checkout /clusters/tier1.
+observability_flux_age_recipients: []  # Retain the matching age identity independently.
+observability_flux_depends_on: [{name: platform-base}]
 observability_kubeconfig: ""
 observability_context: ""
 observability_storage_class: retained-block
@@ -18,6 +25,7 @@ observability_backup_files_accepted: false
 observability_backup_files:
   claim: grafana-db-backups
   volume_handle: ""  # Exact retained NFS CSI PV handle; backup destination only.
+  volume_name: ""  # Actual bound PV name for Flux's pre-backup identity health gate.
   system_identifier: ""  # status.systemID after database-only preparation.
   marker: ""  # Commissioned private NAS marker, permissions and storage encryption.
   schedule: '0 2 * * *'

@@ -9,7 +9,8 @@ spec:
       annotations:
         delivery.homelab/secret-revision: {{ delivery_platform_spinnaker_secret_revision | to_json }}
     spec:
-      automountServiceAccountToken: false
+      automountServiceAccountToken: {{ (spinnaker_native_service == 'clouddriver' and
+                                        delivery_platform_spinnaker_delivery_mode == 'flux') | to_json }}
 {% if spinnaker_native_service != 'deck' %}
       initContainers:
 {{ lookup('ansible.builtin.template', 'spinnaker/redis-sidecar.yml.j2') | indent(8, true) }}
@@ -66,9 +67,10 @@ spec:
               - configMap:
                   name: spinnaker-accounts
                   items:
-{% for namespace in delivery_platform_spinnaker_destinations %}
+{% for namespace in spinnaker_native_account_namespaces %}
                     - {key: {{ namespace }}.kubeconfig, path: {{ namespace }}/kubeconfig}
 {% endfor %}
+{% if delivery_platform_spinnaker_delivery_mode == 'direct' %}
 {% for namespace in delivery_platform_spinnaker_destinations %}
               - secret:
                   name: spinnaker-account-{{ namespace }}
@@ -76,5 +78,6 @@ spec:
                     - {key: token, path: {{ namespace }}/token}
                     - {key: ca.crt, path: {{ namespace }}/ca.crt}
 {% endfor %}
+{% endif %}
 {% endif %}
 {% endif %}

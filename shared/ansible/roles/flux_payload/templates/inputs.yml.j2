@@ -1,0 +1,41 @@
+{% set seen = namespace(namespaces=[], secrets=[]) %}
+{% if flux_payload_releases | length == 0 %}
+[]
+{% endif %}
+{% for release in flux_payload_releases %}
+{% if release.namespace not in seen.namespaces %}
+{% set seen.namespaces = seen.namespaces + [release.namespace] %}
+- apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: {{ release.namespace }}
+    labels: {{ release.namespace_labels | default({}) | to_json }}
+{% endif %}
+{% for secret in release.required_secrets | default([]) %}
+{% set key = release.namespace ~ '/' ~ secret.name %}
+{% if key not in seen.secrets %}
+{% set seen.secrets = seen.secrets + [key] %}
+- apiVersion: v1
+  kind: Secret
+  metadata: {name: {{ secret.name }}, namespace: {{ release.namespace }}}
+  type: {{ secret.type | default('Opaque') }}
+  stringData: {{ flux_payload_secrets[key] | to_json }}
+{% endif %}
+{% endfor %}
+{% set identity_base = prefix ~ '-' ~ release.name %}
+{% set identity = identity_base if identity_base | length <= 55 else identity_base[:44] ~ '-' ~ (identity_base | hash('sha256'))[:10] %}
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: {{ identity }}-values
+    namespace: {{ flux_payload_namespace }}
+    labels: {reconcile.fluxcd.io/watch: Enabled}
+  stringData:
+    values.yaml: {{ release['values'] | to_nice_yaml | to_json }}
+- apiVersion: source.toolkit.fluxcd.io/v1
+  kind: HelmRepository
+  metadata: {name: {{ identity }}, namespace: {{ flux_payload_namespace }}}
+  spec:
+    interval: 1h
+    url: {{ release.repository | to_json }}
+{% endfor %}

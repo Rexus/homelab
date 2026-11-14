@@ -19,6 +19,31 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Independent Tier 1 Flux ownership, 2026-11-14
+
+D-041 supersedes only D-036's unselected Tier 1 product status. Tier 0 immutable source/canary
+validation and its independent credentials stay intact. Fresh Tier 1 inputs select independent Flux;
+legacy defaults and preserved downstream inputs remain Ansible until explicit stopped-writer adoption.
+
+- Ansible installs initial Cilium/Flux and source/decryption access. A pinned bootstrap source owns
+  RBAC/canary only; a separate approved platform revision owns Flux itself and selected services.
+- Delivery, registry, security collectors, observability, GitLab and Kubernetes runners export real
+  native Flux resources. Later stages remain selected explicitly in the authored platform root.
+- Spinnaker promotes separate application Git through versioned pipelines and confined Jobs, with
+  exact diff/judgment/CAS/revision/health checks. Old direct-writer credentials require explicit revocation.
+- External maintenance, exact Git bundles, copied artifact checksums, retained keys and read-only
+  recovery Git remain available independently of Spinnaker/GitLab/Harbor/runners.
+- Stateful initialization, schema verification, first-backup gates and recovery fencing stay separate;
+  resource reconstruction does not restore service contents or reverse database migrations.
+- Generated cluster/pipeline/project inputs survive refresh. Current examples/automation refresh;
+  local secret files are initialized only when absent. Legacy diagram assets are retained when referenced.
+
+The implementation record in [tier1-flux-implementation.md](tier1-flux-implementation.md) records native
+checks and their exact limits. Fresh install, adoption, direct API/Git bypasses, drift, upgrades,
+compatible rollback, service outages and clean-host full recovery remain unperformed live gates.
+Rancher is unselected with no supplied installer. Existing Argo CD/direct Spinnaker retain their
+explicit alternative scope; no live owner is migrated by repository refresh.
+
 ### Imported VM clone provenance and firmware, 2026-11-14
 
 All three Linux VM modules retain Proxmox-owned placement and creation-only clone provenance on updates.

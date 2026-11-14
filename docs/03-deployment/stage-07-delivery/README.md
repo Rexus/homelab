@@ -1,357 +1,225 @@
 # Stage 7: Delivery
 
-**Related:** [Architecture](../../01-architecture/10-delivery/README.md) Â· [Operations](../../05-operations/05-delivery.md)
+**Related:** [Architecture](../../01-architecture/10-delivery/README.md) · [Operations](../../05-operations/05-delivery.md)
 
-Establish Tier 1 application delivery. Tier 0 already uses Flux from
-[Stage 4](../stage-04-kubernetes/README.md); select **A: Argo CD** or **B: Spinnaker**
-for Tier 1. GitLab and CI handover belong to [Stage 9](../stage-09-development/README.md).
+Establish independent Tier 1 Flux ownership and Spinnaker application promotion. Terraform/Ansible
+retain cluster lifecycle; Ansible bootstraps minimum networking and Flux, then Flux owns selected
+Kubernetes platform services. Stage 8 Observability and Stage 9 GitLab/runners remain later selections.
 
 <a id="figure-platform-runtime"></a>
 
 ## Expected outcome: delivery runtime
 
-![Platform node VMs and the selected delivery controller](../../08-reference/diagrams/platform-cluster-runtime.svg)
+![Tier 1 node VMs, independent Flux and Spinnaker](../../08-reference/diagrams/platform-cluster-runtime.svg)
 
-**IaC:** *Figure: Three platform node VMs provide the runtime. The selected controller has a separate installer in Actions
-2-7; node provisioning alone does not install it.*
-Tier 1 [node inputs](../../../tier-1/terraform/deployments/kubernetes/terraform.tfvars.example)
-and [cluster command](../../../tier-1/scripts/kubernetes-cluster.sh) create the three
-starter VMs. The controller runs inside that cluster and is installed separately in Actions 2-7 through the
-[delivery recipe](../../../tier-1/ansible/playbooks/deployment/delivery-platform.yml).
-The node VMs and controller belong to one runtime on the
-[shared application network](../../../shared/config/platform.tfvars); the node group is not a traffic hop.
+**IaC:** *Figure: Three starter node VMs provide Tier 1 Kubernetes. Independent Flux owns selected
+platform services, including Spinnaker; Spinnaker promotes application Git. This logical grouping
+does not assign pods to individual VMs or establish high availability.*
+[Ownership and source mapping](../../01-architecture/10-delivery/flux-ownership.md),
+[editable SVG/render record](../../08-reference/diagrams/tier1-flux-ownership-render.md),
+[Tier 1 node inputs](../../../tier-1/terraform/deployments/kubernetes/terraform.tfvars.example),
+[shared bootstrap](../../../shared/ansible/roles/cluster_platform) and
+[native delivery renderer](../../../tier-1/ansible/roles/delivery_platform).
 
-**Prerequisites:** accepted Tier 0 Kubernetes, Identity and Secrets; approved images,
-independent bootstrap Git/OCI sources, private DNS/TLS and qualified storage.
-Action 1 creates or accepts Tier 1's cluster and its
-[foundation gates](../stage-04-kubernetes/procedures/kubernetes.md#cluster-foundation).
-The temporary source must work before GitLab or the new registry exists.
-**Working repositories:** `<prefix>-tier-1` for delivery and registry;
-`<prefix>-tier-2` for optional public edge. Tier 0 owns its existing Flux.
-**Execution context:** `<prefix>-tier-1/`.
+The [bootstrap/maintenance/promotion/recovery flow](../../01-architecture/10-delivery/flux-ownership.md#figure-tier1-flux-ownership)
+shows the separate sources and actual tier boundaries. Stage 8/9 services are explicit later selections.
 
-**Automation:** cluster lifecycle, native Argo CD/Spinnaker and Harbor installers are supplied.
-The actions below run their separate installations; TLS/backup commissioning and live acceptance remain explicit.
-See [coverage](../../08-reference/implementation-support.md#stage-coverage) for live acceptance boundaries.
-**Design:** [controller patterns](../../01-architecture/10-delivery/02-controllers.md).
+**Prerequisites:** accepted Tier 0 access, Kubernetes, Identity and Secrets; independent approved Git,
+charts/images, private DNS/TLS, decryption custody and qualified storage. Stage 7 precedes Stage 9
+GitLab and cannot require the new GitLab, Harbor, Spinnaker or ordinary runners to restore themselves.
+**Working repository:** `<prefix>-tier-1/`; optional private edge remains Tier 2.
+**Design:** [D-041](../../07-decisions/README.md#d-041) and [Flux ownership](../../01-architecture/10-delivery/flux-ownership.md).
+**Evidence:** code/rendering and live qualification are separate; use the
+[support map](../../08-reference/implementation-support.md#tier-1-flux-evidence).
 
 <a id="main-path"></a>
 
 ## Deployment actions
 
-Choose a runtime and controller, install and accept that controller, then select artifact supply.
-Each application install uses the accepted runtime; no later action bootstraps that cluster again.
-
-| Action | Choice or result | Next |
+| Action | Selected path | Next |
 | --- | --- | --- |
-| 1a / 1b | Create or accept the Tier 1 runtime | 2 |
-| 2a / 2b | Argo CD or Spinnaker inputs | 3 |
-| 3a / 3b | Existing Secret owner or encrypted bootstrap inputs | 4 |
-| 4-7 | Render, review, install and accept the controller | 8 |
-| 8a | Supplied Harbor installation | 9-11 |
-| 8b | Existing approved registry | 11; skip the Harbor installer |
-| 12a / 12b | Optional acceleration and/or private edge pool | 13 after selected options |
-| 13 | Record the accepted path | Stage 8 |
+| 1a / 1b | Create the Tier 1 runtime, or inventory/adopt an existing one | 2 |
+| 2 | Configure Spinnaker for Flux orchestration; alternatives are explicit | 3 |
+| 3 | Retain private credentials and export SOPS Secrets | 4 |
+| 4-6 | Render, review/publish, then reconcile the exact approved platform revision | 7 |
+| 7 | Accept authorization, promotion, drift and independent recovery | 8 |
+| 8a / 8b | Flux-managed Harbor, or an existing approved registry | 9-11 / 11 |
+| 12 | Optional acceleration/private Tier 2 edge | 13 |
+| 13 | Record acceptance; select Stage 8 when required | Stage 8 |
+
+## Contents
+
+- [1. Runtime](#step-1-create-the-platform-runtime)
+- [2. Controller responsibilities](#step-2-select-and-qualify-delivery)
+- [3. Secrets](#3-choose-the-secret-owner)
+- [4–6. Render and reconcile](#4-render-the-controller)
+- [7. Acceptance](#7-accept-controller-authorization-and-recovery)
+- [8–11. Artifact supply](#8-select-and-configure-artifact-supply)
+- [12–13. Options and handoff](#12-complete-selected-distribution-and-edge-options)
 
 <a id="step-1-deploy-shared-delivery-services"></a>
+<a id="step-1-create-or-accept-the-tier-1-runtime"></a>
 <a id="step-1-create-the-platform-runtime"></a>
 <a id="1-create-or-accept-the-tier-1-runtime"></a>
 
 ## Step 1: Create or accept the Tier 1 runtime
 
-For **1a: a new cluster**, complete the [platform-cluster lifecycle](procedures/platform-cluster.md)
-using Tier 1 inventory, original state and credentials. It gives the saved-plan creation/apply,
-credential export and basic-platform commands. This is a separate selected runtime installation,
-not part of a controller's Helm apply.
+For **1a**, complete [platform-cluster lifecycle](procedures/platform-cluster.md) using Tier 1's
+inventory, original state and credentials. Set `cluster_platform_tier: 1` and
+`cluster_platform_management: flux`. Accept Cilium, independent source access and initial Flux,
+then Flux ownership of Cilium/Flux, storage, certificates, ingress and database controllers.
 
-For **1b: an existing cluster**, skip creation. Verify the same CNI, persistent storage, private
-ingress, protected logging, physical placement, capacity and independent recovery gates.
-Keep the accepted Tier 1 kubeconfig/context for Action 2; no Tier 0 credentials are used.
-
-**Expected:** the three-node starter or accepted equivalent in the [runtime figure](#figure-platform-runtime),
-ready for applications. An `init` command alone is not a deployed cluster.
+For **1b**, preserve the original cluster and complete [explicit adoption](procedures/flux-adoption.md).
+Do not rerun fresh bootstrap or recreate storage. Require the same readiness gates, private
+Tier 1-only context and enough worker capacity. Node provisioning alone installs no application.
 
 <a id="step-2-select-and-qualify-delivery"></a>
+<a id="step-2-create-and-configure-the-selected-controller"></a>
 <a id="2-create-and-configure-the-selected-controller"></a>
 
-## Step 2: Create and configure the selected controller
+## Step 2: Configure the selected controller responsibilities
 
-Run from **`<prefix>-tier-1/`**.
+Create the local input copy **from `<prefix>-tier-1/`**:
 
 ```bash
 cp -n ansible/group_vars/delivery_platform.yml.example ansible/group_vars/delivery_platform.yml
 ```
 
-Edit **`<prefix>-tier-1/ansible/group_vars/delivery_platform.yml`**. Keep
-`delivery_platform_install_harbor: false`, set the accepted kubeconfig/context, private endpoints,
-ingress, OIDC issuer/CA and local CA bundle, then choose:
+The selected **2b** path uses [Spinnaker native inputs](step-2b-spinnaker.md) with
+`delivery_platform_owner: flux` and `delivery_platform_spinnaker_delivery_mode: flux`.
+Keep `delivery_platform_install_harbor: false` for this controller export. Fill exact Tier 1 context,
+private TLS/OIDC, independent backup, stable credentials, lifecycle and Job revision.
 
-- **2a: Argo CD** - complete the [controller fields and exact source/destination policy](step-2a-argocd.md#step-1-prepare-the-controller-inputs).
-- **2b: Spinnaker** - complete the [native controller, certificate and backup inputs](step-2b-spinnaker.md#step-1-prepare-local-inputs).
-  Its independent NAS-file or existing object backup repository and ten leaf identities must be ready before apply.
+[Flux platform installation](procedures/flux-platform.md) owns the complete selected sequence.
+Follow it through service export and reconciliation, then rejoin at Step 7 below.
 
-These pages define the selected product's inputs and boundary. Return here to Action 3 for the
-installation commands. The [Argo CD figure](step-2a-argocd.md#figure-argocd-installation) or
-[Spinnaker figure](step-2b-spinnaker.md#figure-spinnaker-installation) shows what the run adds.
-Retain the approved software pins and bootstrap Git/OCI source; Stage 9 GitLab does not exist yet.
+**Alternatives:** **2a** [Argo CD](step-2a-argocd.md) and explicitly selected **direct** Spinnaker
+deployment retain the [native installation procedure](procedures/delivery-installer.md).
+Legacy role defaults remain Ansible. Record a separate approved scope and one writer per object;
+refresh never migrates an existing installation or enables alternative controllers over Flux objects.
+Tier 2 destinations require separate approved integration.
 
-
+<a id="step-3-choose-the-secret-owner"></a>
 <a id="3-choose-the-secret-owner"></a>
 
-## Step 3: Choose the Secret owner
+## Step 3: Retain and export the Secret owner
 
-Both branches continue at Action 4. Use the same branch for render and apply.
+For the selected Flux path, retain stable protected inputs and independently recoverable age keys.
+Follow [Flux export inputs](procedures/flux-platform.md#render-services-into-the-platform-source).
+The renderer emits SOPS-encrypted service Secrets, including binary TLS/PKCS12 contracts, into the
+private platform source. Plaintext private render directories and Helm release Secrets stay outside Git.
 
-**3a: existing Secret controller.** Keep `delivery_platform_manage_secrets: false` and provision
-the selected product's [exact namespace/name/key contracts](../../../tier-1/ansible/group_vars/delivery_platform_secrets.yml.example)
-through that owner. Use commands **4a** and **6a**.
-
-**3b: encrypted bootstrap inputs.** Create the local private file:
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-umask 077
-mkdir -p secrets
-cp -n ansible/group_vars/delivery_platform_secrets.yml.example secrets/delivery-platform.yml
-```
-
-In **`<prefix>-tier-1/secrets/delivery-platform.yml`**, retain `delivery_platform_manage_secrets: true`
-and fill only the selected product's required credentials, TLS and OIDC values.
-Spinnaker preserves its stable dependency-password directory and preissued-keystore password.
-Encrypt the completed file:
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ansible-vault encrypt secrets/delivery-platform.yml
-```
-
-Retain decryption material independently. Use commands **4b** and **6b**; an approved unattended job
-supplies an Ansible Vault identity instead of `--ask-vault-pass`. Do not run two Secret owners.
-
+An accepted external Secret controller is a separate explicit owner; do not reconcile the same
+Secrets through two tools. Alternative direct installers retain their existing Secret branches.
 
 <a id="4-render-the-controller"></a>
 
 ## Step 4: Render the controller
 
-The playbook prepares/checks the selected controller libraries and collections before rendering.
-Use the accepted controller environment and approved source access; disconnected controllers
-pre-stage those dependencies and use `CONTROL_NODE_COLLECTIONS_MODE=check`.
-
-### 4a. Existing Secret owner
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/delivery-platform.yml \
-  -e @ansible/group_vars/delivery_platform.yml -e delivery_platform_action=render
-```
-
-### 4b. Encrypted bootstrap inputs
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/delivery-platform.yml \
-  -e @ansible/group_vars/delivery_platform.yml \
-  -e @secrets/delivery-platform.yml --ask-vault-pass -e delivery_platform_action=render
-```
-
-**Expected:** private values/manifests in `secrets/delivery-platform/`. Render contacts no cluster;
-Harbor/Argo chart acquisition still needs approved chart access. Native Spinnaker uses its supplied base.
-
+Use [the native render command and Flux inputs](procedures/flux-platform.md#render-services-into-the-platform-source).
+Review the existing pinned base and the actual exported lifecycle graph. Rendering contacts no
+Kubernetes cluster and grants no approval. It must produce real resources, not only directory starters.
 
 <a id="5-review-the-controller-output"></a>
 
 ## Step 5: Review the controller output
 
-Inspect the selected values/manifests under **`<prefix>-tier-1/secrets/delivery-platform/`**.
-Check the Tier 1 destination, pins, TLS/OIDC, namespace authority and persistence against its figure.
+Inspect the private native output and encrypted Flux graph against Spinnaker's complete
+[TLS/state/backup lifecycle](step-2b-spinnaker.md). Check repository commissioning, data readiness,
+finite versioned Jobs, schemas, stable identities, network/RBAC, backup verification and ingress gates.
+Never apply combined Spinnaker YAML as a substitute for that lifecycle.
 
-For **Spinnaker**, read the complete render checksum:
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-cat secrets/delivery-platform/spinnaker.sha256
-```
-
-Record that value as `delivery_platform_spinnaker_review_sha256` in
-`ansible/group_vars/delivery_platform.yml`. Its [output reference](step-2b-spinnaker.md#step-3-render-review-and-install)
-explains the included native resources. Do not apply the combined YAML directly.
-
+Retain the reviewed checksum, exact platform commit and independent configuration/artifact custody
+receipt. Publish only through the existing manual signed-commit and push policy.
 
 <a id="6-apply-the-reviewed-controller"></a>
 
-## Step 6: Apply the reviewed controller
+## Step 6: Reconcile the approved controller
 
-Use the same inputs and Secret owner as the render. Ansible changes the cluster immediately;
-there is no Terraform-style `yes` prompt.
-
-### 6a. Existing Secret owner
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/delivery-platform.yml \
-  -e @ansible/group_vars/delivery_platform.yml -e delivery_platform_action=apply
-```
-
-### 6b. Encrypted bootstrap inputs
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/delivery-platform.yml \
-  -e @ansible/group_vars/delivery_platform.yml \
-  -e @secrets/delivery-platform.yml --ask-vault-pass \
-  -e delivery_platform_action=apply
-```
-
-**Expected:** healthy controller workloads and private HTTPS. Native Spinnaker validates the reviewed
-checksum, repository binding, certificates and scoped identities; then commissions/validates backup
-storage, provisions SQL/Redis, starts services and verifies a first backup before publishing ingress.
-The cluster, ingress, storage provisioner and identity provider remain their existing installations.
-
+[Advance the separate approved platform revision](procedures/flux-platform.md#approve-a-platform-revision)
+through external authorized maintenance. Bootstrap `platform` remains immutable RBAC/canary only;
+`tier1-platform` reconciles services and Flux's own matching `flux2` HelmRelease.
+Normal Ansible must stop writing adopted resources. Require the intended revision and all lifecycle
+health gates, including verified backup before ingress. A Git push alone is not success.
 
 <a id="7-accept-controller-authorization-and-recovery"></a>
 
 ## Step 7: Accept controller authorization and recovery
 
-Test permitted and denied SSO/direct API access, a bounded application delivery, blocked destinations,
-rollback and clean-target recovery. Use [Argo CD acceptance](step-2a-argocd.md#acceptance)
-or [Spinnaker acceptance](step-2b-spinnaker.md#step-4-qualify-delivery) for its product checks.
-Neither controller receives Tier 0 API credentials.
+Complete [the live acceptance matrix](procedures/flux-platform.md#promotion-and-acceptance) and
+[Spinnaker checks](step-2b-spinnaker.md#step-4-qualify-delivery). Test denied direct API/Git paths,
+revoked old direct-deploy tokens, exact-revision promotion, conflicts/retries, drift, compatible rollback
+and independent maintenance with Spinnaker unavailable. Record actual
+[approval limitations](../../01-architecture/10-delivery/approval-controls.md).
 
-For newly initialized Spinnaker file repositories, now set `filesystem_initialize: false` under
-the existing backup prefix, render again, record the new checksum and reapply using Actions 4-6.
-That reconciles the accepted repository; it does not create another one.
-Keep the bootstrap Git/image source and recovery administrators until acceptance passes.
+After fresh filesystem repository commissioning, disable `filesystem_initialize`, render a new
+reviewed platform revision and reconcile it. Reconciliation must never initialize existing state
+or replay data restoration. Keep triggers fenced until product and recovery checks pass.
 
 <a id="step-3-connect-approved-artifact-supply"></a>
 <a id="8-select-and-configure-artifact-supply"></a>
 
 ## Step 8: Select and configure artifact supply
 
-Choose **8a: install Harbor** or **8b: accept an existing registry**.
+Choose **8a: Harbor** or **8b: existing approved registry**.
 
-For **8a**, in **`<prefix>-tier-1/ansible/group_vars/delivery_platform.yml`**, set
-`delivery_platform_install_harbor: true` and `delivery_platform_controller: none` for this Harbor-only run.
-Retain the accepted controller's configuration and ownership; `none` does not uninstall it.
-Fill [Harbor's endpoint, storage, identity and Secret contracts](procedures/registry.md#install-harbor),
-including all five persistent allocations and the private database password. Register its Keycloak
-client and prepare the TLS/OIDC/stable credential map using the Action 3 owner. Continue with 9.
-The [Harbor figure](procedures/registry.md#figure-harbor-installation) shows this addition.
-
-For **8b**, retain the existing registry owner and verify its equivalent trust/policy/backup contracts;
-skip 9-10 and join 11. A new Stage 9 GitLab instance is not a prerequisite available here.
-GitLab's supplied Kubernetes chart does not enable its bundled registry.
-
+For **8a**, keep `delivery_platform_owner: flux`, select `delivery_platform_controller: none`
+and `delivery_platform_install_harbor: true` for this export. Set
+`delivery_platform_flux_component: platform/artifact-registry` so the Harbor-only run cannot overwrite
+Spinnaker's accepted `platform/delivery` graph. Include `artifact-registry` in the authored platform
+root after review; retain both entries. Preserve the separate controller input profile for later
+Spinnaker exports. Fill [Harbor endpoint/storage/SSO/Secrets](procedures/registry.md).
+For **8b**, retain its existing owner, skip Steps 9-10 and rejoin at 11.
 
 <a id="9-render-and-review-harbor"></a>
 
 ## Step 9: Render and review Harbor
 
-Use the Action 3 Secret owner. Harbor's database password must be supplied privately even when
-Kubernetes Secrets are externally owned. The installer reference lists the [private input contract](procedures/delivery-installer.md#inputs-and-secrets).
-
-### 9a. Existing Secret owner
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/delivery-platform.yml \
-  -e @ansible/group_vars/delivery_platform.yml -e delivery_platform_action=render
-```
-
-### 9b. Encrypted bootstrap inputs
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/delivery-platform.yml \
-  -e @ansible/group_vars/delivery_platform.yml \
-  -e @secrets/delivery-platform.yml --ask-vault-pass -e delivery_platform_action=render
-```
-
-Review `harbor-values.yml`, `harbor-manifests.yml`, storage, OIDC and private credential custody in
-`secrets/delivery-platform/`. Helm release state also contains secrets; exclude it from public artifacts.
-
+Use the same [Flux export procedure](procedures/flux-platform.md#render-services-into-the-platform-source).
+Retain the native chart pin, all five volume allocations and private database password. Review
+Helm identity, encrypted values, dependencies, storage retention and explicit Helm drift correction.
 
 <a id="10-apply-harbor"></a>
 
-## Step 10: Apply Harbor
+## Step 10: Reconcile Harbor
 
-Use the same reviewed Harbor-only inputs and Secret owner.
-
-### 10a. Existing Secret owner
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/delivery-platform.yml \
-  -e @ansible/group_vars/delivery_platform.yml -e delivery_platform_action=apply
-```
-
-### 10b. Encrypted bootstrap inputs
-
-Run from **`<prefix>-tier-1/`**.
-
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/delivery-platform.yml \
-  -e @ansible/group_vars/delivery_platform.yml \
-  -e @secrets/delivery-platform.yml --ask-vault-pass \
-  -e delivery_platform_action=apply
-```
-
-**Expected:** accepted Harbor component health and private HTTPS. This is a single-instance chart
-realization with retained data, not an HA claim. No controller reinstall or proxy/cache deployment is needed.
-
+Approve/publish and externally advance the exact platform commit using Step 6's procedure.
+Require Harbor component health and private HTTPS. Existing Ansible-owned Harbor installations
+require [adoption](procedures/flux-adoption.md); do not uninstall/recreate their data for handover.
 
 <a id="11-accept-artifact-access-and-recovery"></a>
 
 ## Step 11: Accept artifact access and recovery
 
-Push/pull a disposable artifact with the intended runner and consumer identities. Test denied access,
-immutable promotion policy and clean-target restore of registry data, database and stable Secrets.
-Keep independent bootstrap artifacts until this replacement supply and recovery path work.
-The [registry acceptance contract](procedures/registry.md#acceptance) applies to both registry choices.
-
+Push/pull an approved disposable artifact by digest; test denied access and clean-target recovery
+of blobs, database and stable Secrets. Follow [registry acceptance](procedures/registry.md#acceptance).
+Keep independent bootstrap supply and pinned recovery artifacts after cutover; Harbor cannot be
+the sole source of its own reinstall artifacts. This single-instance reference is not an HA claim.
 
 <a id="12-complete-selected-distribution-and-edge-options"></a>
 
 ## Step 12: Complete selected distribution and edge options
 
-- **12a: registry acceleration** is an optional [product integration](procedures/registry.md#select-the-procedure)
-  after the registry works. The Harbor installer does not install Dragonfly. Qualify selected clients,
-  preheat and fallback separately, then return here.
-- **12b: an optional private Tier 2 edge pool** uses the [edge IaC](procedures/edge-proxy.md) for an
-  existing approved backend. Complete its listener, TLS and failover checks, then return here.
-  Keep public DNS/NAT closed; website publication/certificate renewal belongs to Stage 10.
+- **12a:** optional [registry acceleration](procedures/registry.md#select-the-procedure) is separate
+  product integration; qualify clients, preheat and fallback before returning.
+- **12b:** optional [private Tier 2 edge](procedures/edge-proxy.md) uses the existing approved backend.
+  Keep public DNS/NAT closed until Stage 10 publication/renewal acceptance.
 
-If neither is selected, continue directly to 13. Private controller APIs require no public edge.
-
+If neither is selected, continue directly to 13.
 
 <a id="13-record-acceptance-and-continue"></a>
 
 ## Step 13: Record acceptance and continue
 
-Record the selected runtime, controller, registry and completed options in
-**`<prefix>-architecture/deployments.md`**. Retain independent configuration/data/key recovery and
-live acceptance evidence. Continue with [Stage 8: Observability](../stage-08-observability/README.md).
+Record exact owners, accepted revisions, custody receipts, live evidence and named transition exceptions
+in `<prefix>-architecture/deployments.md`. Select [Stage 8](../stage-08-observability/README.md) when
+required; GitLab/general runners remain [Stage 9](../stage-09-development/README.md).
+Retain the verified [independent recovery package](../../05-operations/05-delivery.md#prepare-independent-custody).
+No later service is needed to repair this delivery platform.
 
 <a id="step-2-enable-protected-execution"></a>
 <a id="step-3-deploy-shared-investigation"></a>
 <a id="step-3-deploy-observability"></a>
 
-Runner installation and original-state handover belong to [Stage 9](../stage-09-development/README.md),
-after GitLab and Vault job authority exist. This stage transfers no Tier 0 execution authority.
+Tier 0 infrastructure runner/Vault handover remains Stage 9's separate trust decision.
+This stage transfers no Tier 0 execution authority.

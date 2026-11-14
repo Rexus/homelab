@@ -2,16 +2,28 @@
 # Local Tier 1 inputs; run deployment/delivery-platform.yml from this repository.
 # Service DNS: docs/02-conventions/service-dns.md
 delivery_platform_action: render
+delivery_platform_owner: flux
+# Private checkout of the independently maintained Tier 1 platform source.
+delivery_platform_flux_output: "{{ playbook_dir }}/../../../clusters/tier1"
+delivery_platform_flux_component: platform/delivery
+delivery_platform_flux_dependencies: [{name: platform-base}]
+delivery_platform_flux_sops_age_recipients: []
+delivery_platform_flux_secret_owner: generated
+delivery_platform_flux_credentials_directory: /srv/platform-recovery/tier1/delivery-credentials
+# Enable after commissioning independent custody of this stable private cache and the age key.
+delivery_platform_flux_credentials_retained: false
+# Enable only for the first render of a fresh installation, then return to false.
+delivery_platform_flux_initialize_credentials: false
 delivery_platform_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
 delivery_platform_context: REPLACE_WITH_TIER1_CONTEXT
 # Choose explicitly: argocd, spinnaker, or none (Harbor only).
-delivery_platform_controller: ""
+delivery_platform_controller: spinnaker
 delivery_platform_install_harbor: true
 delivery_platform_ingress_class: REPLACE_WITH_ACCEPTED_INGRESS_CLASS
 delivery_platform_oidc_issuer: https://sso.internal.example.com/realms/platform
 delivery_platform_oidc_ca_pem: ""
 delivery_platform_ca_path: ""
-# Qualified product/chart versions are centralized in delivery_platform/files/software.yml.
+# Existing product/chart pins are centralized in delivery_platform/files/software.yml.
 delivery_platform_harbor_host: harbor.internal.example.com
 delivery_platform_harbor_storage_class: REPLACE_WITH_PERSISTENT_STORAGE_CLASS
 # Private input, including for render. Helm's internal PostgreSQL password is a value.
@@ -27,6 +39,17 @@ delivery_platform_argocd_destinations: []
 # Installation contract: docs/03-deployment/stage-07-delivery/step-2b-spinnaker.md.
 delivery_platform_spinnaker_host: release.internal.example.com
 delivery_platform_spinnaker_mode: native
+delivery_platform_spinnaker_delivery_mode: flux
+# Exact Kubernetes account supplied to delivery_promotion pipeline definitions.
+delivery_platform_spinnaker_promotion_namespace: delivery-promotion
+# Choose fresh/adopt/upgrade/recover explicitly. Retain completed Jobs without TTL cleanup.
+delivery_platform_spinnaker_lifecycle: fresh
+# Bump after reviewing changed Job bodies or an intentional retry of a failed Job.
+delivery_platform_spinnaker_job_revision: '1'
+# Recovery requires both restored data claims with matching .delivery-restored markers.
+# Echo, Orca and Gate stay at zero replicas, ingress withheld and scheduled backups suspended.
+delivery_platform_spinnaker_recovery_id: ""
+delivery_platform_spinnaker_recovery_fenced: false
 delivery_platform_spinnaker_certificate_mode: preissued
 delivery_platform_spinnaker_storage_class: ""
 delivery_platform_spinnaker_issuer: {name: platform, kind: ClusterIssuer, group: cert-manager.io}
@@ -65,6 +88,10 @@ delivery_platform_spinnaker_backup_egress: []
 delivery_platform_spinnaker_admin_group: tier1-delivery-admins
 delivery_platform_spinnaker_reader_group: tier1-delivery-readers
 delivery_platform_spinnaker_writer_group: tier1-delivery-writers
+# Match delivery_promotion's requester/approver/executor role inputs.
+delivery_platform_spinnaker_promotion_requester_group: tier1-promotion-requesters
+delivery_platform_spinnaker_promotion_approver_group: tier1-promotion-approvers
+delivery_platform_spinnaker_promotion_executor_group: tier1-promotion-executors
 delivery_platform_spinnaker_oidc_client_id: spinnaker
 delivery_platform_spinnaker_oidc_roles_claim: groups
 delivery_platform_spinnaker_secret_revision: '1'
@@ -72,4 +99,4 @@ delivery_platform_spinnaker_secret_revision: '1'
 delivery_platform_spinnaker_overlay: ""
 delivery_platform_spinnaker_review_sha256: ""
 delivery_platform_spinnaker_required_secrets: []
-delivery_platform_manage_secrets: false
+delivery_platform_manage_secrets: true

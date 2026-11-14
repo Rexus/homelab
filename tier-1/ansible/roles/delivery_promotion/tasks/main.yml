@@ -1,0 +1,159 @@
+---
+- name: Validate promotion boundary before writing artifacts or contacting Gate
+  ansible.builtin.assert:
+    that:
+      - delivery_promotion_action in ['render', 'import']
+      - delivery_promotion_worker_image is match('^[^\s]+@sha256:[0-9a-f]{64}$')
+      - delivery_promotion_repository is match('^https://[^/@\s]+/[^\s]+$')
+      - delivery_promotion_platform_repositories | length > 0
+      - delivery_promotion_repository not in delivery_promotion_platform_repositories
+      - delivery_promotion_branch is match('^[a-zA-Z0-9][a-zA-Z0-9/_-]*$')
+      - delivery_promotion_manifest_path is match('^[a-zA-Z0-9_/-]+\.json$')
+      - "'..' not in delivery_promotion_manifest_path"
+      - delivery_promotion_kustomization_path is match('^\./[a-zA-Z0-9_/-]+$')
+      - "'..' not in delivery_promotion_kustomization_path"
+      - delivery_promotion_manifest_path.startswith(delivery_promotion_kustomization_path[2:] ~ '/')
+      - delivery_promotion_target.kind in ['HelmRelease', 'Deployment']
+      - delivery_promotion_target.namespace is match('^[a-z][a-z0-9-]*$')
+      - delivery_promotion_target.name is match('^[a-z][a-z0-9-]*$')
+      - delivery_promotion_target.namespace not in ['flux-system', 'spinnaker', 'delivery-promotion', 'kube-system', 'default']
+      - delivery_promotion_target.namespace in delivery_promotion_application_namespaces
+      - delivery_promotion_image_repository is match('^[a-zA-Z0-9][a-zA-Z0-9./:_-]+$')
+      - delivery_promotion_initial_image_digest is match('^sha256:[0-9a-f]{64}$')
+      - delivery_promotion_commit_email | length > 3
+      - delivery_promotion_owner_email | length > 3
+      - delivery_promotion_application is match('^[a-z][a-z0-9]*$')
+      - delivery_promotion_pipeline_ids.promote != delivery_promotion_pipeline_ids.rollback
+      - delivery_promotion_timeout_seconds | int > 0
+      - delivery_promotion_egress | length > 0
+      - delivery_promotion_controls_accepted.single_judgment_and_possible_self_approval | bool
+      - delivery_promotion_controls_accepted.executor_api_job_and_credential_bypass | bool
+      - delivery_promotion_controls_accepted.pipeline_fiat_gitlab_and_cluster_admin_bypass | bool
+      - delivery_promotion_controls_accepted.gitlab_ce_separate_project_bot_maintainer | bool
+    fail_msg: >-
+      Supply the separate application GitLab CE project, real worker image digest, bounded application
+      target, private endpoint egress and explicit approval/bypass acceptance. See delivery_promotion.yml.example.
+
+- name: Validate the platform-owned chart source for Helm targets
+  ansible.builtin.assert:
+    that:
+      - delivery_promotion_chart_source.kind == 'HelmRepository'
+      - delivery_promotion_chart_source.namespace == delivery_promotion_target.namespace
+      - delivery_promotion_chart_source.name is match('^[a-z][a-z0-9-]*$')
+      - delivery_promotion_chart_repository is match('^https://[^/@\s]+/[^\s]*$')
+      - delivery_promotion_chart is match('^[a-zA-Z0-9][a-zA-Z0-9._/-]+$')
+      - delivery_promotion_chart_version is match('^[0-9]+\.[0-9]+\.[0-9]+([-+][a-zA-Z0-9.-]+)?$')
+      - delivery_promotion_chart_values is mapping
+  when: delivery_promotion_target.kind == 'HelmRelease'
+
+- name: Validate the configured promotion roles
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-zA-Z0-9][a-zA-Z0-9._-]+$')
+  loop: "{{ [delivery_promotion_requester_role, delivery_promotion_approver_role,
+             delivery_promotion_executor_role, delivery_promotion_admin_role] }}"
+
+- name: Create a private review artifact directory
+  ansible.builtin.file:
+    path: "{{ delivery_promotion_output }}"
+    state: directory
+    mode: '0700'
+
+- name: Render the policy consumed by the immutable worker image
+  ansible.builtin.set_fact:
+    delivery_promotion_policy:
+      repository: "{{ delivery_promotion_repository }}"
+      branch: "{{ delivery_promotion_branch }}"
+      manifest_path: "{{ delivery_promotion_manifest_path }}"
+      kustomization_path: "{{ delivery_promotion_kustomization_path }}"
+      application_namespaces: "{{ delivery_promotion_application_namespaces }}"
+      target: "{{ delivery_promotion_target }}"
+      image_repository: "{{ delivery_promotion_image_repository }}"
+      container: "{{ delivery_promotion_container }}"
+      chart_source: "{{ delivery_promotion_chart_source }}"
+      commit_email: "{{ delivery_promotion_commit_email }}"
+      timeout_seconds: "{{ delivery_promotion_timeout_seconds | int }}"
+    delivery_promotion_application_definition:
+      name: "{{ delivery_promotion_application }}"
+      email: "{{ delivery_promotion_owner_email }}"
+      cloudProviders: kubernetes
+      permissions:
+        READ: "{{ [delivery_promotion_requester_role, delivery_promotion_approver_role,
+                   delivery_promotion_executor_role, delivery_promotion_admin_role] | unique | list }}"
+        WRITE: "{{ [delivery_promotion_admin_role] }}"
+        EXECUTE: "{{ [delivery_promotion_requester_role, delivery_promotion_approver_role,
+                      delivery_promotion_executor_role, delivery_promotion_admin_role] | unique | list }}"
+
+- name: Render worker policy and read-only observation resources for Flux publication
+  ansible.builtin.template:
+    src: resources.yml.j2
+    dest: "{{ delivery_promotion_output }}/promotion-resources.yml"
+    mode: '0600'
+
+- name: Prepare the representative application source artifact
+  ansible.builtin.file:
+    path: "{{ delivery_promotion_application_source_output }}/{{ delivery_promotion_manifest_path | dirname }}"
+    state: directory
+    mode: '0700'
+
+- name: Render the selected immutable application configuration
+  ansible.builtin.copy:
+    content: "{{ lookup('ansible.builtin.template', 'application.yml.j2') | from_yaml | to_nice_json }}\n"
+    dest: "{{ delivery_promotion_application_source_output }}/{{ delivery_promotion_manifest_path }}"
+    mode: '0600'
+
+- name: Render the application source Kustomize index
+  ansible.builtin.copy:
+    content: |
+      apiVersion: kustomize.config.k8s.io/v1beta1
+      kind: Kustomization
+      resources:
+        - {{ delivery_promotion_manifest_path | relpath(delivery_promotion_kustomization_path[2:]) }}
+    dest: "{{ delivery_promotion_application_source_output }}/{{ delivery_promotion_kustomization_path[2:] }}/kustomization.yaml"
+    mode: '0600'
+
+- name: Render stable promotion and rollback pipeline definitions
+  ansible.builtin.copy:
+    content: >-
+      {{ lookup('ansible.builtin.template', delivery_promotion_repository_root ~
+         '/pipelines/flux-promotion.yml.j2') | from_yaml | to_nice_json }}
+    dest: "{{ delivery_promotion_output }}/{{ delivery_promotion_mode }}.json"
+    mode: '0600'
+  loop: [promote, rollback]
+  loop_control:
+    loop_var: delivery_promotion_mode
+
+- name: Render application permissions for review and recovery
+  ansible.builtin.copy:
+    content: "{{ delivery_promotion_application_definition | to_nice_json }}\n"
+    dest: "{{ delivery_promotion_output }}/application.json"
+    mode: '0600'
+
+- name: Publish the worker resources through the shared Flux renderer
+  ansible.builtin.include_role:
+    name: flux_payload
+  vars:
+    flux_payload_root: "{{ delivery_promotion_flux_output }}"
+    flux_payload_component: "{{ delivery_promotion_flux_component }}"
+    flux_payload_age_recipients: "{{ delivery_promotion_flux_sops_age_recipients }}"
+    flux_payload_depends_on: "{{ delivery_promotion_flux_dependencies }}"
+    flux_payload_releases: []
+    flux_payload_secrets: {}
+    flux_payload_stages:
+      - name: delivery-promotion-worker
+        resources: >-
+          {{ lookup('ansible.builtin.file', delivery_promotion_output ~ '/promotion-resources.yml') |
+             from_yaml_all | select('mapping') | list }}
+        depends_on: "{{ delivery_promotion_flux_dependencies }}"
+        health: >-
+          {{ [{'apiVersion': 'source.toolkit.fluxcd.io/v1', 'kind': 'HelmRepository',
+               'namespace': delivery_promotion_target.namespace, 'name': delivery_promotion_chart_source.name}]
+             if delivery_promotion_target.kind == 'HelmRelease' else [] }}
+    flux_payload_source_name: tier1-platform
+    flux_payload_namespace: flux-system
+    flux_payload_service_account: platform-reconciler
+  when: delivery_promotion_flux_output | length > 0
+
+- name: Import the reviewed application permissions and pipeline definitions through Gate
+  ansible.builtin.include_tasks: import.yml
+  when: delivery_promotion_action == 'import'

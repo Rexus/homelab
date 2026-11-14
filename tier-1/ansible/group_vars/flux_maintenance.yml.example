@@ -1,0 +1,19 @@
+---
+# Schema: ../shared/ansible/roles/flux_maintenance/defaults/main.yml
+# Guide: docs/05-operations/05-delivery.md
+flux_maintenance_action: render
+flux_maintenance_operation: inspect
+flux_maintenance_kubeconfig: REPLACE_WITH_INDEPENDENT_TIER1_KUBECONFIG
+flux_maintenance_context: REPLACE_WITH_TIER1_CONTEXT
+flux_maintenance_source: tier1-platform
+flux_maintenance_revision: REPLACE_WITH_APPROVED_FULL_COMMIT
+flux_maintenance_approved: false
+flux_maintenance_recovery_directory: REPLACE_WITH_VERIFIED_INDEPENDENT_PACKAGE_DIRECTORY
+flux_maintenance_custody_accepted: false
+flux_maintenance_artifact_lock_sha256: REPLACE_WITH_INDEPENDENTLY_APPROVED_ARTIFACT_LOCK_SHA256
+flux_maintenance_health_checks: []
+# Use affected Flux Kustomizations and/or HelmReleases, never an unrelated existing healthy resource.
+# - {api_version: kustomize.toolkit.fluxcd.io/v1, kind: Kustomization, name: platform-base-flux2-release, namespace: flux-system, condition: Ready}
+# Applications stay fenced during recovery; accept both only after actual product recovery/cancellation.
+flux_maintenance_data_restored: false
+flux_maintenance_executions_fenced: false

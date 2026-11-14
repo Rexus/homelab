@@ -1,0 +1,68 @@
+# Tier 1 Flux figure render record
+
+The [editable SVG](tier1-flux-ownership.svg) is the source for the selected
+[ownership view](../../01-architecture/10-delivery/flux-ownership.md#figure-tier1-flux-ownership).
+The [platform runtime SVG](platform-cluster-runtime.svg) is the focused node/runtime placement view.
+Neither figure establishes live deployment, authorization, data restoration or high availability.
+
+## Previews
+
+| Reading width | Light page | Dark page |
+| --- | --- | --- |
+| 1100 px | [Preview](tier1-flux-ownership-1100-light.png) | [Preview](tier1-flux-ownership-1100-dark.png) |
+| 760 px | [Preview](tier1-flux-ownership-760-light.png) | [Preview](tier1-flux-ownership-760-dark.png) |
+
+## Reproduce
+
+Reviewed 2026-11-14 with Node.js 24.14.1, Playwright `1.66.0-alpha-2026-11-09` and Microsoft Edge
+`157.0.4341.46` on Windows, Arial/sans-serif. The SVG has explicit palette colours and coordinates;
+no Mermaid dependency is used for the SVG figures. The inline controller/operating diagrams were rendered
+with Mermaid `11.17.2`. The page backgrounds are `#ffffff` and `#0d1117`.
+The approval-control sequence is included in the same renderer and final review.
+The final integration review on 2026-11-15 rendered 20 cases without SVG text overflow and inspected
+the ownership and approval views at normal/narrow light/dark widths. Long sequence labels are wrapped.
+Source dimensions are 1200×900; the responsive image has a 20 px page margin at each review width.
+
+Prepare the same versioned renderer **from the upstream checkout**, using existing Microsoft Edge:
+
+```powershell
+npm install --prefix .tmp/tier1-flux-render-tools --no-save playwright@1.66.0-alpha-2026-11-09 mermaid@11.17.2
+$env:DIAGRAM_PLAYWRIGHT = (Resolve-Path .tmp/tier1-flux-render-tools/node_modules/playwright).Path
+$env:DIAGRAM_MERMAID = (Resolve-Path .tmp/tier1-flux-render-tools/node_modules/mermaid/dist/mermaid.min.js).Path
+node docs/08-reference/diagrams/render-tier1-flux.cjs
+```
+
+[Rendering source](render-tier1-flux.cjs) exports the four previews and writes geometry, computed
+palette, font and browser information to `.tmp/tier1-flux-render/report.json`. The reviewed run reused
+an already installed copy of that exact Playwright version. Headless Edge required execution outside
+the restricted sandbox; the first restricted launch failed before rendering. Hosted Markdown/GitHub
+parity was not tested.
+
+The controller bundle SHA-256 was
+`581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8`.
+Platform-runtime, controller and operating previews are temporary outputs under `.tmp/tier1-flux-render/`;
+the retained four PNGs above are regenerated from the ownership SVG.
+
+## Review and source correspondence
+
+The selected view accounts for bootstrap, separate sources, Flux identities, platform services,
+promotion Jobs, application namespaces, persistent state and independent custody. Tier 2 is separate
+optional integration; Tier 0 has its own Flux/infrastructure owners. Placement implies no API access.
+
+| Unit or flow | Source / contract |
+| --- | --- |
+| Bootstrap Cilium/Flux, exact RBAC/canary source | Shared `cluster_platform` tasks `tier1-gitops.yml`, templates `tier1-bootstrap.yml.j2`, `tier1-sources.yml.j2`; Tier 1 inputs |
+| Platform/app identities and source separation | Same bootstrap/source templates; application RoleBindings and separate scoped source credentials |
+| Flux2 self-management and service graphs | `platform-base` export plus Shared `flux_payload`; preserved Helm identities; selected native product renderers |
+| Spinnaker and Job-only application promotion | `delivery_platform` Flux accounts; Tier 1 `delivery_promotion`, pipeline definitions and promotion worker |
+| External maintenance / retained inputs | Shared `flux_maintenance`, `flux_recovery_git` and Tier 1 `scripts/flux-recovery.py`; source advancement and recovery custody |
+| Persistent state | Native product restore procedures; Flux reconstructs resources, not their contents |
+| Tier 0 / Tier 2 | Existing infrastructure/control-service ownership / separately approved Tier 2 integration |
+| `pctl-1` through `pctl-3` in the runtime view | Tier 1 Kubernetes Terraform node inputs; logical services do not assign individual pods to those VMs |
+| Operating delivery/data view | Tier 1 native delivery/development inputs and GitLab data-VM Terraform/inventory; external `db-1`, `kv-1`, `repo-1` retain their owners |
+
+Checks include XML parsing, text within enclosing rectangles, computed palette, tier order and visual
+inspection on both page backgrounds at both widths. Shared style resets affect dash patterns only.
+The source-reading arrow targets the source collection; Flux reads each source, while only the
+promotion Job writes the application project. External maintenance advances approved platform pins.
+Live tests and service/pipeline behavior remain the separate deployment acceptance procedures.

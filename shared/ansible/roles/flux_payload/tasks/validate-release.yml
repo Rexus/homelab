@@ -1,0 +1,24 @@
+---
+- name: Validate preserved Helm release identity and exact chart selection
+  ansible.builtin.assert:
+    that:
+      - flux_payload_release.name is match('^[a-z0-9][a-z0-9-]{0,52}$')
+      - flux_payload_release.namespace is match('^[a-z0-9][a-z0-9-]{0,62}$')
+      - flux_payload_release.repository is match('^https://')
+      - flux_payload_release.chart is match('^[a-zA-Z0-9_./-]+$')
+      - flux_payload_release.version is match('^[0-9]+\.[0-9]+\.[0-9]+([+-][a-zA-Z0-9.-]+)?$')
+      - flux_payload_release['values'] is mapping
+  no_log: true
+
+- name: Require complete stable credentials before emitting encrypted resources
+  ansible.builtin.assert:
+    that:
+      - secret_id in flux_payload_secrets
+      - item['keys'] | difference(flux_payload_secrets.get(secret_id, {}).keys() | list) | length == 0
+      - item['keys'] | map('extract', flux_payload_secrets.get(secret_id, {})) | select('equalto', '') | list | length == 0
+      - item['keys'] | map('extract', flux_payload_secrets.get(secret_id, {})) | select('string') | list | length == item['keys'] | length
+    fail_msg: Supply every required namespace/name secret through protected inputs before rendering the Flux payload.
+  vars:
+    secret_id: "{{ flux_payload_release.namespace }}/{{ item.name }}"
+  loop: "{{ flux_payload_release.required_secrets | default([]) }}"
+  no_log: true

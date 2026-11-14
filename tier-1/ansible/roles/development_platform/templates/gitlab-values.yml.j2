@@ -22,6 +22,10 @@ global:
   initialRootPassword:
     secret: gitlab-root
     key: password
+{% if development_platform_owner == 'flux' %}
+  railsSecrets:
+    secret: gitlab-rails-secret
+{% endif %}
   psql:
     host: {{ development_platform_database_host | to_json }}
     database: gitlabhq_production
@@ -103,6 +107,11 @@ gitlab-runner:
   install: false
 registry:
   enabled: false
+{% if development_platform_owner == 'flux' %}
+# The encrypted prerequisites own these stable identities after migration.
+shared-secrets:
+  enabled: false
+{% endif %}
 gitlab:
   webservice:
     minReplicas: 2

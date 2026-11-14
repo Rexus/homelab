@@ -3,6 +3,11 @@
   ansible.builtin.assert:
     that:
       - delivery_platform_action in ['render', 'apply']
+      - delivery_platform_owner in ['ansible', 'flux']
+      - delivery_platform_spinnaker_delivery_mode in ['direct', 'flux']
+      - delivery_platform_owner != 'flux' or delivery_platform_action == 'render'
+      - delivery_platform_owner != 'flux' or delivery_platform_controller != 'argocd'
+      - delivery_platform_spinnaker_delivery_mode != 'flux' or delivery_platform_spinnaker_mode == 'native'
       - delivery_platform_controller in ['none', 'argocd', 'spinnaker']
       - delivery_platform_install_harbor | bool or delivery_platform_controller != 'none'
       - delivery_platform_ingress_class | length > 0
@@ -12,6 +17,10 @@
       - delivery_platform_action != 'apply' or delivery_platform_context | length > 0
       - delivery_platform_action != 'apply' or delivery_platform_ca_path | length > 0
     fail_msg: Select none/argocd/spinnaker explicitly, TLS/OIDC trust, ingress and the exact apply context.
+
+- name: Validate the independently retained secret owner before Flux rendering
+  ansible.builtin.include_tasks: flux-preflight.yml
+  when: delivery_platform_owner == 'flux'
 
 - name: Keep registry and controller namespaces distinct
   ansible.builtin.assert:

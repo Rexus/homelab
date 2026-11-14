@@ -280,21 +280,29 @@ This file keeps durable context for AI-assisted work across sessions.
 - all three tiers own a Kubernetes root, inventory/IP map, state and credentials;
   shared/scripts/kubernetes-cluster.sh is execution only, with tier-local shortcuts
 - all tiers use tier-owned cluster-platform playbooks/inputs with Shared's stateless
-  cluster_platform, kubernetes_applications and helm_release roles. Tier 0 selects Flux;
-  Tier 1/2 omit it unless a separate explicit design selects it. CNI/CSI, cert-manager,
+  cluster_platform, kubernetes_applications and helm_release roles. Tier 0 retains its Flux;
+  D-041 selects independent Tier 1 Flux and Spinnaker promotion orchestration. Tier 2 remains
+  separate explicit scope. Legacy local inputs keep Ansible ownership until accepted adoption. CNI/CSI, cert-manager,
   Traefik CRDs and CNPG are native pinned products, not empty GitOps starters;
   Barman is an explicit object/WAL backup selection, not required by scheduled NAS file copies
 - Tier 0 control_applications installs Keycloak/LDAP, Vault/Raft/audit, NetBox and Headlamp;
   initialization/unseal and custody remain explicit. Tier 1 delivery/observability/development
-  roles and Tier 2 lab/telemetry roles own their releases and interfaces
+  roles render Flux payloads for selected Kubernetes services, while external services retain their
+  existing installers. Tier 2 lab/telemetry roles keep their separate owners and interfaces
 - tier-local machine_config_patches supplies native Talos proxy, DNS/time and registry documents;
   default [] preserves existing behavior, not restricted-network readiness; Linux proxy inputs do not apply
 - new cluster examples use three schedulable control planes with optional workers;
   existing configs default to disabled control-plane scheduling; never remove live workers to match examples
 - pool inputs emit node-pool labels; authorized Kubernetes operations own worker taints;
   pools are not independent security boundaries and no autoscaler is supplied
-- Tier 0 uses Flux; Tier 1 delivery remains unselected between Argo CD and Spinnaker;
-  Tier 1 delivery never owns Tier 0 credentials or cluster/infrastructure lifecycle
+- Tier 1 bootstraps initial networking, source/decryption credentials and Flux through the existing
+  cluster_platform installer. Flux then owns its own matching Helm release and Tier 1 Kubernetes
+  platform services; normal Ansible runs stop applying transferred components. Bootstrap `platform`
+  stays immutable/canary-checked. `tier1-platform` is a separately approved exact Git revision,
+  advanced by independent external maintenance. `tier1-applications` uses a protected delivery branch
+  in another enforceably scoped project. No Tier 0 credentials are reused. Spinnaker orchestrates
+  application promotion and observes exact Flux results, without direct workload/platform writes.
+  Direct Spinnaker and Argo CD stay explicit alternatives, never co-writers.
 - Stage 9 supplies native GitLab and Kubernetes runner Helm recipes in Tier 1;
   its separate development-data setup supplies native PostgreSQL/Redis/Gitaly VMs,
   scoped object-storage handoff and backup jobs. The development setup retains
@@ -315,7 +323,8 @@ This file keeps durable context for AI-assisted work across sessions.
   Shared's stateless postgresql_file_backup role executes the tier-owned database/backup
   contracts; it owns no inventory, storage server or resource state.
 - Tier 1's complete native Spinnaker path includes the pinned upstream service base,
-  SQL/cache dependencies, scoped target identities, SSO and recovery jobs. Argo CD
+  SQL/cache dependencies, scoped target identities, SSO and recovery jobs; Flux ownership preserves
+  versioned initialization/backup gates, explicit adoption/data recovery and trigger fencing. Argo CD
   remains a separate complete alternative; a custom Spinnaker overlay is no longer required.
 - Direct infrastructure CI is opt-in: the dedicated project, GitLab control plane and
   administrators able to alter its hosting are accepted as Tier 0 authorities.
@@ -428,7 +437,8 @@ This file keeps durable context for AI-assisted work across sessions.
   Unknown existing paths and new project files remain protected. Recreate missing current
   generated targets, including owned starters. Deletion resets a target to its current template;
   Kubernetes Terraform currently uses Talos in tier-owned automation; `clusters/` service starters
-  remain project-owned adoption points, not the native application installers
+  remain project-owned configuration. Tier 1's selected Flux path receives real rendered service
+  graphs with pinned Helm releases/native resources; legacy direct-owner paths remain explicit alternatives
 - Refresh ends with a manifest-scoped review: yellow preserved differences get current rendered
   templates under collection-level .refresh-review/, outside Git repositories; red identifies
   retained retired outputs outside auto-docs; REPLACED prints the previous code's backup path.

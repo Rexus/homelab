@@ -26,9 +26,27 @@
     label: "{{ security_logging_node.name }}"
   when: cluster_security_logging_action == 'apply' or cluster_security_logging_manage_secrets | bool
 
+- name: Reset this render's collector inventory
+  ansible.builtin.set_fact:
+    security_logging_flux_releases: []
+
 - name: Install or render one narrowly selected collector per node
   ansible.builtin.include_tasks: agent.yml
   loop: "{{ cluster_security_logging_nodes }}"
   loop_control:
     loop_var: security_logging_node
     label: "{{ security_logging_node.name }}"
+
+- name: Publish all selected Tier 1 collectors under one encrypted Flux component
+  ansible.builtin.include_role:
+    name: flux_payload
+  vars:
+    flux_payload_root: "{{ cluster_security_logging_flux_root }}"
+    flux_payload_component: platform/security-logging
+    flux_payload_releases: "{{ security_logging_flux_releases }}"
+    flux_payload_secrets: "{{ cluster_security_logging_secrets }}"
+    flux_payload_age_recipients: "{{ cluster_security_logging_flux_age_recipients }}"
+    flux_payload_depends_on: [{name: platform-base}]
+  when:
+    - cluster_security_logging_owner == 'flux'
+    - cluster_security_logging_flux_phase == 'publish'

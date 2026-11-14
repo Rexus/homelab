@@ -28,7 +28,7 @@ connects these implementation choices to the overall system design.
 | Storage | Reference: Proxmox/Ceph live volumes, separate NAS backups | [Storage interfaces](auto-docs/01-architecture/06-data/README.md#storage-interfaces) |
 | Trust | Reference: software custody; record USB/network HSM selection if used | [Cryptography variants](auto-docs/01-architecture/08-cryptography/README.md) |
 | Kubernetes | Reference: Talos; retain exact image/schematic in Tier 0 inputs | [Cluster design](auto-docs/01-architecture/04-hosting/03-kubernetes.md) |
-| Delivery | Select Argo CD or Spinnaker in Tier 1; Flux in Tier 0 | [Controller choices](auto-docs/01-architecture/10-delivery/02-controllers.md) |
+| Delivery | Independent Tier 1 Flux owns Kubernetes services; Spinnaker orchestrates approved application promotions | [Controller choices](auto-docs/01-architecture/10-delivery/02-controllers.md) |
 
 Record consequential choices with the [selection guidance](auto-docs/01-architecture/02-organization/README.md#selected-design).
 The [interaction index](auto-docs/01-architecture/README.md#how-the-platform-works-together)
@@ -37,7 +37,7 @@ opens the communication examples beside their owning capability.
 ## Deployment checklist
 
 Use [deployments.md](../deployments.md) for completed IaC paths and their nested options.
-After Terraform and/or Ansible completes the linked installation, check that entry;
+After the linked installation and its selected Flux/service readiness checks complete, check that entry;
 strike through unselected options. Terraform-only can leave service configuration pending.
 Keep non-secret acceptance/recovery evidence in the operating records below;
 generation proves no operational result. Existing accepted services can satisfy prerequisites.

@@ -278,7 +278,7 @@ class DiagramConventions(TierRepositoryTestCase):
         controllers = diagrams(root / "10-delivery/02-controllers.md")[0]
         self.assertIn("flowchart BT", controllers)
         self.assertIn("T0 ~~~ T1", controllers)
-        self.assertIn('T1 -- "Controller: approved application scope" --> T2', controllers)
+        self.assertIn('T1 -. "Optional approved integration" .-> T2', controllers)
         self.assertEqual(controllers.count('subgraph T0["'), 1)
         for name in ("08-cryptography/03-hsm-selection.md", "08-cryptography/05-network-hsm.md",
                      "08-cryptography/06-vault-seal.md"):

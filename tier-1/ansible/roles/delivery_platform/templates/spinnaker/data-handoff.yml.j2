@@ -1,0 +1,92 @@
+---
+# Review and run from an independent maintenance host before enabling the Flux data guard.
+# Existing SQL/Redis RWO volumes must be released for read-only inspection or explicit restoration.
+- name: Quiesce existing Spinnaker resources for Flux adoption or data recovery
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Require deliberate handoff scope with previous reconcilers disabled
+      ansible.builtin.assert:
+        that:
+          - adoption_kubeconfig | default('') | length > 0
+          - adoption_context | default('') | length > 0
+          - adoption_writers_disabled | default(false) | bool
+          - adoption_data_action | default('') in ['adopt', 'recover']
+    - name: Suspend scheduled backups and drain an active snapshot before stopping its sources
+      kubernetes.core.k8s:
+        kubeconfig: {% raw %}"{{ adoption_kubeconfig }}"{% endraw %}
+
+        context: {% raw %}"{{ adoption_context }}"{% endraw %}
+
+        validate_certs: true
+        definition:
+          apiVersion: batch/v1
+          kind: CronJob
+          metadata: {name: spinnaker-backup, namespace: {{ delivery_platform_spinnaker_namespace }}}
+          spec: {suspend: true}
+    - name: Wait for scheduled independent backup activity to finish
+      kubernetes.core.k8s_info:
+        kubeconfig: {% raw %}"{{ adoption_kubeconfig }}"{% endraw %}
+
+        context: {% raw %}"{{ adoption_context }}"{% endraw %}
+
+        validate_certs: true
+        api_version: batch/v1
+        kind: CronJob
+        name: spinnaker-backup
+        namespace: {{ delivery_platform_spinnaker_namespace }}
+      register: backup_state
+      until: {% raw %}"backup_state.resources[0].get('status', {}).get('active', []) | length == 0"{% endraw %}
+
+      retries: 240
+      delay: 15
+    - name: Stop application writes while preserving every Deployment and its configuration
+      kubernetes.core.k8s_scale:
+        kubeconfig: {% raw %}"{{ adoption_kubeconfig }}"{% endraw %}
+
+        context: {% raw %}"{{ adoption_context }}"{% endraw %}
+
+        validate_certs: true
+        api_version: apps/v1
+        kind: Deployment
+        name: {% raw %}"{{ item }}"{% endraw %}
+
+        namespace: {{ delivery_platform_spinnaker_namespace }}
+        replicas: 0
+        wait: true
+        wait_timeout: 900
+      loop: {{ spinnaker_native_ports.keys() | list | to_json }}
+    - name: Stop data services to release their existing claims for the data guard
+      kubernetes.core.k8s:
+        kubeconfig: {% raw %}"{{ adoption_kubeconfig }}"{% endraw %}
+
+        context: {% raw %}"{{ adoption_context }}"{% endraw %}
+
+        validate_certs: true
+        merge_type: merge
+        definition:
+          apiVersion: apps/v1
+          kind: StatefulSet
+          metadata:
+            name: {% raw %}"{{ item }}"{% endraw %}
+
+            namespace: {{ delivery_platform_spinnaker_namespace }}
+          spec: {replicas: 0}
+      loop: [spinnaker-mysql, spinnaker-redis]
+    - name: Wait for the previous data pods to terminate before mounting their claims
+      kubernetes.core.k8s_info:
+        kubeconfig: {% raw %}"{{ adoption_kubeconfig }}"{% endraw %}
+
+        context: {% raw %}"{{ adoption_context }}"{% endraw %}
+
+        validate_certs: true
+        api_version: v1
+        kind: Pod
+        namespace: {{ delivery_platform_spinnaker_namespace }}
+        label_selectors: ['app.kubernetes.io/name in (spinnaker-mysql,spinnaker-redis)']
+      register: data_pods
+      until: {% raw %}"data_pods.resources | length == 0"{% endraw %}
+
+      retries: 90
+      delay: 10

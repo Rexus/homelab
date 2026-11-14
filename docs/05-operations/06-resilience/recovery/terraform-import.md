@@ -1,4 +1,4 @@
-﻿# Rebind a Linux VM after a full clone or restore
+# Rebind a Linux VM after a full clone or restore
 
 Bind a validated replacement VMID to the existing logical Terraform resource address.
 Use this after a full clone or an accepted restore, with the old VM fenced and all writers paused.

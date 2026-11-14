@@ -1,0 +1,46 @@
+{% set prefix = flux_payload_component | replace('/', '-') %}
+- name: {{ prefix }}-inputs
+  depends_on: {{ flux_payload_depends_on | to_json }}
+{% if flux_payload_releases | length > 0 %}
+  resources:
+{% filter indent(4, true) %}{% include 'inputs.yml.j2' %}{% endfilter %}{{ '\n' }}
+{% else %}
+  resources: []
+{% endif %}
+{% for stage in flux_payload_stages %}
+{{ [stage] | to_nice_yaml }}
+{% endfor %}
+{% for release in flux_payload_releases %}
+{% set identity_base = prefix ~ '-' ~ release.name %}
+{% set identity = identity_base if identity_base | length <= 55 else identity_base[:44] ~ '-' ~ (identity_base | hash('sha256'))[:10] %}
+{% set prerequisites = [{'name': prefix ~ '-inputs'}] + (release.depends_on | default([])) %}
+{% if release.before | default([]) | length > 0 %}
+{% set before = namespace(health=[]) %}
+{% for resource in release.before if resource.kind in ['Cluster', 'Certificate', 'ClusterIssuer', 'Job'] %}
+{% set before.health = before.health + [{'apiVersion': resource.apiVersion, 'kind': resource.kind, 'name': resource.metadata.name} | combine({'namespace': resource.metadata.namespace} if resource.metadata.namespace is defined else {})] %}
+{% endfor %}
+- name: {{ identity }}-before
+  depends_on: {{ prerequisites | to_json }}
+  resources: {{ release.before | to_json }}
+  health: {{ release.before_health | default(before.health) | to_json }}
+  health_check_exprs: {{ release.before_health_check_exprs | default([]) | to_json }}
+{% set prerequisites = [{'name': identity ~ '-before'}] %}
+{% endif %}
+- name: {{ identity }}-release
+  depends_on: {{ prerequisites | to_json }}
+  health: {{ ([{'apiVersion': 'helm.toolkit.fluxcd.io/v2', 'kind': 'HelmRelease', 'name': identity, 'namespace': flux_payload_namespace}] + (release.health | default([]))) | to_json }}
+  health_check_exprs: {{ release.health_check_exprs | default([]) | to_json }}
+  resources:
+{% filter indent(4, true) %}{% include 'helm-release.yml.j2' %}{% endfilter %}{{ '\n' }}
+{% if release.after | default([]) | length > 0 %}
+{% set after = namespace(health=[]) %}
+{% for resource in release.after if resource.kind in ['Cluster', 'Certificate', 'ClusterIssuer', 'Job'] %}
+{% set after.health = after.health + [{'apiVersion': resource.apiVersion, 'kind': resource.kind, 'name': resource.metadata.name} | combine({'namespace': resource.metadata.namespace} if resource.metadata.namespace is defined else {})] %}
+{% endfor %}
+- name: {{ identity }}-after
+  depends_on: {{ ([{'name': identity ~ '-release'}] + (release.after_depends_on | default([]))) | to_json }}
+  resources: {{ release.after | to_json }}
+  health: {{ release.after_health | default(after.health) | to_json }}
+  health_check_exprs: {{ release.after_health_check_exprs | default([]) | to_json }}
+{% endif %}
+{% endfor %}

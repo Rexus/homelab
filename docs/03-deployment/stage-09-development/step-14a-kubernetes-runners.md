@@ -28,6 +28,9 @@ Never use certificate-verification bypasses.
 
 Choose one Secret owner before rendering:
 
+The selected Flux path uses **1b** with the complete retained map for SOPS export. Branch **1a**
+is the retained direct alternative; an offline export cannot retrieve credentials from a live controller.
+
 - **1a: existing controller** - provision those two Secrets in the selected runner namespace and keep
   `development_platform_manage_secrets: false`. Use the normal commands in Steps 3-4.
 - **1b: encrypted bootstrap file** - create the private input below, then use the corresponding
@@ -99,6 +102,12 @@ Review values, manifests and `gitlab-runner-support.yml` under
 `secrets/development-platform/`.
 
 ## Step 4: Apply the reviewed runner
+
+For the selected **Flux owner**, keep `development_platform_owner: flux`, export the runner component
+and encrypted runner Secrets, then [approve/reconcile the platform revision](../stage-07-delivery/procedures/flux-platform.md#approve-a-platform-revision).
+Require the exact runner HelmRelease and support-policy health, then continue at Step 5.
+The manager's GitLab registration/token and allowed image digests retain their existing contract.
+Skip the direct apply blocks below; those are only for the retained **Ansible owner** alternative.
 
 Use the same accepted kubeconfig/context and Secret inputs as the render:
 

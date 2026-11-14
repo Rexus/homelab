@@ -1,0 +1,95 @@
+---
+# Run from the Tier 1 repository after preparing a supported Linux Ansible controller.
+# ansible-playbook ansible/playbooks/deployment/delivery-promotions.yml -e @ansible/group_vars/delivery_promotion.yml
+# render only creates private artifacts. Publish promotion-resources.yml through the Tier 1
+# platform flux_payload. Import uses authenticated Gate APIs and can be rerun after recovery.
+# delivery_platform owns delivery-promotion Namespace/PSS and the Clouddriver Job-only binding.
+# This role owns delivery-promoter, its exact-object observer grants, policy, NetworkPolicy and
+# the selected HelmRepository in the platform bundle. Its application-source seed is reviewed separately.
+delivery_promotion_action: render  # render | import
+delivery_promotion_worker_image: ""  # Real built worker registry/image@sha256:<64 hex digits>.
+# Build tier-1/scripts/promotion/Dockerfile from tier-1/scripts with an approved digest-pinned
+# base already containing Python 3, Git, OpenSSH and private Git CA trust. Retain image independently.
+delivery_promotion_repository: https://gitlab.example.test/delivery/application-config.git
+delivery_promotion_platform_repositories:
+  - https://recovery.example.test/platform/bootstrap.git
+  - https://recovery.example.test/platform/tier1.git
+delivery_promotion_branch: delivery
+delivery_promotion_manifest_path: clusters/tier1/applications/example/helmrelease.json
+# Must equal cluster_platform_flux_application_path for flux-system/tier1-applications.
+delivery_promotion_kustomization_path: ./clusters/tier1/applications
+# Must match cluster_platform_flux_application_namespaces, provisioned by independent bootstrap.
+delivery_promotion_application_namespaces: [applications]
+delivery_promotion_target: {kind: HelmRelease, namespace: applications, name: example}
+delivery_promotion_image_repository: registry.example.test/apps/example
+delivery_promotion_chart_source: {kind: HelmRepository, name: application-charts, namespace: applications}
+delivery_promotion_chart_repository: ""  # Approved HTTPS chart URL, published by the platform bundle.
+delivery_promotion_chart: ""  # Actual chart that honors values.image.repository and values.image.digest.
+delivery_promotion_chart_version: ""  # Exact approved chart version.
+delivery_promotion_chart_values: {}  # Accepted values for that chart.
+delivery_promotion_initial_image_digest: ""  # Actual initial sha256:<64 hex digits>.
+delivery_promotion_commit_email: delivery-bot@example.test
+delivery_promotion_owner_email: platform@example.test
+delivery_promotion_timeout_seconds: 900
+# Default pipeline IDs use Ansible to_uuid over application, target namespace/name and mode.
+# Keep those identities stable. Explicit delivery_promotion_pipeline_ids overrides support adoption.
+# Import checks the global Gate catalog and rejects identifiers owned by another app or name.
+# The configured file is one JSON Kubernetes manifest, also valid YAML. The role renders
+# application-source/clusters/tier1/applications/kustomization.yaml and the selected manifest.
+# Review this seed and copy it into the dedicated application project using the established
+# signed commit procedure, then select its immutable configRevision from that same project.
+# Keep application-source output separate from an existing project checkout to preserve its index.
+# HelmRepository is platform-owned in promotion-resources.yml because application-reconciler
+# cannot create sources. Initial image and chart pins require actual approved operator inputs.
+# The worker overlays the digest, exact target annotations and drift mode.
+# HelmRelease must use chart.spec.sourceRef above, an exact chart version and
+# spec.serviceAccountName=application-reconciler. The chart must honor values.image.repository/digest.
+# Deployment targets use delivery_promotion_container (default app) and apps/v1.
+# Keep other Git content under separate review. The worker changes only manifest_path.
+# Bootstrap creates flux-system/tier1-applications GitRepository and Kustomization, and
+# application-reconciler identities and namespace-scoped permissions in flux-system and applications.
+# The application reconciler needs namespace-scoped tenant permissions and admission controls.
+# Do not grant application configuration cluster-scoped resources or privileged pod access.
+# Secrets are separately provisioned, encrypted inputs. Git Secret keys are username/password
+# for a dedicated bot's write_repository-only credential, signing Secret key is key (unencrypted
+# retained SSH Ed25519). ssh-keygen -y checks its type before signing. Other algorithms are rejected
+# because preview and execution reconstruct byte-identical signed commits in separate Jobs.
+# Retain its public key and enforce signed commits through the established review policy.
+delivery_promotion_git_secret: delivery-promotion-git
+delivery_promotion_signing_secret: delivery-promotion-signing
+# GitLab CE pattern uses a separate project and a bot as its sole ordinary Maintainer.
+# Protect delivery with push_access_level=40, merge_access_level=0, allow_force_push=false.
+# Human requesters/approvers stay below Maintainer. Audit inherited/group access and every matching
+# exact/wildcard branch rule because the most permissive matching protection can broaden access.
+# The bot has no API scope, other-project membership or platform/bootstrap credential.
+# Do not depend on selected deploy-key permissions on older GitLab CE versions.
+delivery_promotion_controls_accepted:
+  single_judgment_and_possible_self_approval: false
+  executor_api_job_and_credential_bypass: false
+  pipeline_fiat_gitlab_and_cluster_admin_bypass: false
+  gitlab_ce_separate_project_bot_maintainer: false
+# Fiat must enable application resource permissions and remove the old wildcard writer prefix.
+# Requesters need application EXECUTE. Starting a Job also requires the executor role on
+# the delivery-promotion account. Approvers need EXECUTE and their judgment role.
+# Pipeline editors and permission administrators hold admin only. Revocation of legacy
+# namespace deployer bindings/accounts is owned by delivery_platform's explicit migration.
+# Manual judgment is one decision by any listed approver or Fiat admin. It provides neither
+# distinct multiple approvers nor immutable audit evidence. Role overlap permits self-approval.
+# Gate API arbitrary stage/Job execution, restarts, pipeline modification and direct Git pushes
+# are explicit trusted bypass surfaces. Exercise them with each role during live acceptance.
+# A skipped judgment fails the following native precondition. CAS requires fresh approval
+# after another release advances delivery. Retrying the exact published candidate only observes.
+# Rollback uses the same preview/judgment/CAS pipeline and requires application/data compatibility
+# evidence. It creates a new signed commit, with no automatic database migration reversal.
+# Recovery import does not re-enable triggers (definitions contain none). Fence restored stale
+# Orca executions and rotate/disable the bot credential until accepted recovery is complete.
+delivery_promotion_gate_url: https://spinnaker.example.test/api/v1
+delivery_promotion_gate_ca_path: /secure/platform-ca.pem
+delivery_promotion_gate_headers: {}  # Encrypted authenticated session Cookie or supported Gate auth headers.
+# Exact site-specific API, Git HTTPS and DNS NetworkPolicy destinations, e.g. /32 API/Git VIPs.
+delivery_promotion_egress: []
+# Optional shared flux_payload publication into the independent private platform checkout.
+delivery_promotion_flux_output: "{{ playbook_dir }}/../../../clusters/tier1"
+delivery_promotion_flux_component: platform/delivery-promotion
+delivery_promotion_flux_sops_age_recipients: []
+delivery_promotion_flux_dependencies: [{name: platform-delivery}]

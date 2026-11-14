@@ -1,17 +1,17 @@
 ---
-- name: Validate development platform contract
-  ansible.builtin.import_tasks: preflight.yml
+- name: Require one explicit ongoing deployment owner
+  ansible.builtin.assert:
+    that:
+      - development_platform_owner in ['ansible', 'flux']
+      - development_platform_owner != 'flux' or development_platform_action == 'render'
+      - development_platform_owner != 'flux' or development_platform_flux_migration in ['fresh', 'adopt']
+      - development_platform_owner != 'flux' or development_platform_flux_migration != 'adopt' or development_platform_previous_writer_disabled | bool
+    fail_msg: Flux mode renders only. Select fresh or acknowledge adoption after disabling the previous writer.
 
-- name: Prepare private render directory
-  ansible.builtin.file:
-    path: "{{ development_platform_output }}"
-    state: directory
-    mode: "0700"
+- name: Render the reviewed Flux-owned component
+  ansible.builtin.include_tasks: flux.yml
+  when: development_platform_owner == 'flux'
 
-- name: Install or render GitLab
-  ansible.builtin.include_tasks: gitlab.yml
-  when: "'gitlab' in development_platform_components"
-
-- name: Install or render Kubernetes job runners
-  ansible.builtin.include_tasks: runners.yml
-  when: "'runners' in development_platform_components"
+- name: Run the retained legacy Ansible lifecycle
+  ansible.builtin.include_tasks: legacy.yml
+  when: development_platform_owner == 'ansible'

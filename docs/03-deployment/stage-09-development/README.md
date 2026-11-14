@@ -1,5 +1,12 @@
 # Stage 9: Development platform
 
+**Selected Kubernetes owner:** Flux, enabled only when this stage is selected. Set
+`development_platform_owner: flux`, the absolute `development_platform_flux_root`, age recipients
+and `development_platform_flux_migration: fresh` (or complete
+[adoption](../stage-07-delivery/procedures/flux-adoption.md)). The native renderer exports the real
+GitLab/runner charts and encrypted Secrets. Terraform/Ansible still own external data VMs, standalone
+GitLab and Podman alternatives. This stage is not needed for earlier bootstrap, maintenance or recovery.
+
 **Related:** [Architecture](../../01-architecture/10-delivery/03-development-platform.md) · [Operations](../../05-operations/05-delivery.md)
 
 Deploy source control and CI, then transfer routine infrastructure execution from
@@ -302,6 +309,10 @@ It does not require provisioning the Action 8 data services again.
 
 ## Step 10: Choose the GitLab Secret owner
 
+For the selected **Flux owner**, choose **10b** and retain the complete native Secret map for the
+encrypted export. Live external Secrets alone do not provide offline recovery configuration.
+The **10a** branch remains for the retained direct alternative.
+
 Choose **10a** or **10b**, then use the matching render/apply commands below.
 
 **10a: existing Secret controller.** Keep `development_platform_manage_secrets: false`.
@@ -378,8 +389,13 @@ live Secrets or chart release.
 
 ## Step 12: Select the release owner and install GitLab
 
-Choose **12a: direct Ansible** or **12b: the accepted delivery controller** before any chart apply.
-For 12a, use the same reviewed inputs and Secret owner:
+The selected path is **12b: Flux**. Include only the reviewed GitLab component in the platform source
+and [approve/reconcile its exact revision](../stage-07-delivery/procedures/flux-platform.md#approve-a-platform-revision).
+Preserve external data readiness, matched package/chart versions, encrypted values and Helm identity.
+Continue at Step 13 after native readiness; skip all direct apply commands.
+
+**12a: direct Ansible** is a retained explicit alternative with `development_platform_owner: ansible`.
+Use the same reviewed inputs and Secret owner only for that alternative:
 
 ### 12a. Direct Ansible ownership
 
@@ -411,8 +427,9 @@ Approved unattended jobs use a Vault identity instead of `--ask-vault-pass`.
 
 ### 12b. Delivery-controller ownership
 
-Complete the [selected controller adoption/integration](procedures/gitlab.md#delivery-ownership) using
-the same authoritative rendered values, support resources and independently provisioned Secrets.
+Complete the [Flux ownership procedure](procedures/gitlab.md#delivery-ownership) using the same native
+rendered values, support resources and SOPS-encrypted stable Secrets. Existing releases first require
+stopped-writer adoption; fresh installs deploy through Flux from the start.
 Skip direct Ansible apply. Retain one release owner; never uninstall a stateful release to adopt it.
 Both choices rejoin at 13.
 

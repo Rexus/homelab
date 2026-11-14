@@ -10,7 +10,14 @@
       - cluster_platform_action != 'apply' or cluster_platform_kubeconfig | length > 0
       - cluster_platform_health_retries | int > 0
       - cluster_platform_health_delay | int > 0
+      - cluster_platform_tier | int in [0, 1, 2]
+      - cluster_platform_management in ['ansible', 'flux']
+      - cluster_platform_management != 'flux' or cluster_platform_tier | int == 1
     fail_msg: Select supported components, render/apply, private output and an explicit kubeconfig for apply.
+
+- name: Validate the independent Tier 1 GitOps ownership boundary
+  ansible.builtin.import_tasks: tier1-preflight.yml
+  when: cluster_platform_management == 'flux'
 
 - name: Require exact chart pins and operator-approved repositories for every installer
   ansible.builtin.assert:

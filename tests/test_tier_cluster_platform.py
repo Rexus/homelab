@@ -155,6 +155,21 @@ class ClusterPlatform(TierRepositoryTestCase):
                 "status": {"observedGeneration": 1, "conditions": [{"type": "Ready", "status": "True"}],
                            "lastAppliedRevision": "sha1:" + "a" * 40},
             }, False, {"condition": "Ready", "revision": "a" * 40}),
+            ("still-reconciling", "HelmRelease", {
+                "metadata": {"generation": 2},
+                "status": {"observedGeneration": 2, "conditions": [
+                    {"type": "Ready", "status": "True"}, {"type": "Reconciling", "status": "True"}]},
+            }, False, {"condition": "Ready"}),
+            ("healthy-stateful", "StatefulSet", {
+                "metadata": {"generation": 2}, "spec": {"replicas": 1},
+                "status": {"observedGeneration": 2, "readyReplicas": 1, "updatedReplicas": 1,
+                           "currentRevision": "current", "updateRevision": "current"},
+            }, True, {}),
+            ("old-stateful", "StatefulSet", {
+                "metadata": {"generation": 2}, "spec": {"replicas": 1},
+                "status": {"observedGeneration": 2, "readyReplicas": 1, "updatedReplicas": 0,
+                           "currentRevision": "old", "updateRevision": "current"},
+            }, False, {}),
         ]
         tasks = []
         for name, kind, resource, expected, extra in cases:

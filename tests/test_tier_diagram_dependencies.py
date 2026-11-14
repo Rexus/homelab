@@ -129,14 +129,16 @@ class DiagramDependencies(unittest.TestCase):
         for tier in (1, 0):
             self.assertRegex(code, rf'subgraph T{tier}\["[^\n]+\n    direction LR')
         normalized = code.replace("<br/>", " ")
-        for edge in ('D -- "Read approved inputs" --> Release', 'D -- "Scoped changes" --> Platform',
+        for edge in ('PF -- "Read separate sources" --> Release', 'PF -- "Scoped reconciliation" --> Platform',
+                     'D -- "Approved app Git change" --> Release',
                      'F -- "Read approved inputs" --> Approved', 'F -- "Scoped changes" --> Control'):
             self.assertIn(edge, normalized)
-        for destination, controller, provider in (("Platform", "D", "Release"), ("Control", "F", "Approved")):
-            positions = [code.index(f'{name}["') for name in (destination, controller, provider)]
+        for destination, controller, provider in (("Platform", "PF", "Release"), ("Control", "F", "Approved")):
+            positions = [re.search(rf'(?m)^\s+{name}\["', code).start()
+                         for name in (destination, controller, provider)]
             self.assertEqual(positions, sorted(positions))
         self.assertIn("T0 ~~~ T1", code)
-        self.assertIn('T1 -- "Controller: approved application scope" --> T2', code)
+        self.assertIn('T1 -. "Optional approved integration" .-> T2', code)
 
     def test_cluster_foundation_and_runner_providers_keep_declared_order(self):
         namespace = {'svg': 'http://www.w3.org/2000/svg'}
@@ -194,8 +196,8 @@ class DiagramDependencies(unittest.TestCase):
         self.assertEqual(names, re.findall(r'^  (pctl-\d+) = \{', inputs, re.M))
         self.assertEqual(positions, sorted(set(positions)))
         controller = ''.join(nodes['Controller'].itertext())
-        self.assertIn('A: Argo CD', controller)
-        self.assertIn('or B: Spinnaker', controller)
+        self.assertIn('Tier 1 Flux / platform owner', controller)
+        self.assertIn('Spinnaker / app promotion', controller)
         self.assertEqual(figure_sources(DOCS / '03-deployment/stage-07-delivery/README.md')[0],
                          PLATFORM_SVG.read_text())
 

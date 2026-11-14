@@ -1,0 +1,23 @@
+---
+- name: Reset this component's staged native resource inventory
+  ansible.builtin.set_fact:
+    delivery_platform_flux_stages: []
+
+- name: Partition the native Spinnaker lifecycle for Flux
+  ansible.builtin.include_tasks: spinnaker-flux.yml
+  when: delivery_platform_controller == 'spinnaker'
+
+- name: Materialize the selected releases and native stages through the shared encrypted renderer
+  ansible.builtin.include_role:
+    name: flux_payload
+  vars:
+    flux_payload_root: "{{ delivery_platform_flux_output }}"
+    flux_payload_component: "{{ delivery_platform_flux_component }}"
+    flux_payload_releases: "{{ delivery_platform_releases }}"
+    flux_payload_stages: "{{ delivery_platform_flux_stages }}"
+    flux_payload_secrets: "{{ delivery_platform_checked_secrets }}"
+    flux_payload_age_recipients: "{{ delivery_platform_flux_sops_age_recipients }}"
+    flux_payload_depends_on: "{{ delivery_platform_flux_dependencies }}"
+    flux_payload_source_name: tier1-platform
+    flux_payload_namespace: flux-system
+    flux_payload_service_account: platform-reconciler

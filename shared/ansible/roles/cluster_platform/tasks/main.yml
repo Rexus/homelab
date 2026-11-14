@@ -31,6 +31,11 @@
     - "'storage' in cluster_platform_components"
     - cluster_platform_storage_provider == 'existing'
     - cluster_platform_action == 'apply'
+    - cluster_platform_management == 'ansible'
+
+- name: Bootstrap independent Tier 1 Flux and publish its platform payload
+  ansible.builtin.include_tasks: tier1-gitops.yml
+  when: cluster_platform_management == 'flux'
 
 - name: Process products with readiness gates between releases
   ansible.builtin.include_tasks: product.yml
@@ -38,3 +43,4 @@
   loop_control:
     loop_var: cluster_platform_release
     label: "{{ cluster_platform_release.name }}"
+  when: cluster_platform_management == 'ansible'

@@ -1,0 +1,145 @@
+# Spinnaker 2026.3.2 native stages. Rendered twice with fixed promote/rollback IDs.
+# Import requires Fiat application resource permissions and an executor-only Job account.
+# Requesting a run needs application EXECUTE plus delivery-promotion account WRITE.
+# Assign requester and executor roles together to authorized operators. Approvers need
+# application EXECUTE and requiredJudgmentRoles, without application WRITE.
+# A single matching approver or Fiat admin can judge. Role overlap permits self-approval.
+# Pipeline editors, API executors able to submit arbitrary Jobs, credential holders,
+# Kubernetes administrators and GitLab inherited/project/instance administrators remain trusted.
+# UI pipeline locking is an editing affordance. Qualification must exercise direct API/Git paths.
+# Native behavior and Apache-2.0 licensing were checked at the existing immutable release revision.
+# https://github.com/spinnaker/spinnaker/tree/42da7f83e7db090429bfa3f2fddeff34f0b124a7/orca/orca-echo
+# https://github.com/spinnaker/spinnaker/tree/42da7f83e7db090429bfa3f2fddeff34f0b124a7/orca/orca-clouddriver
+# https://github.com/spinnaker/spinnaker/blob/42da7f83e7db090429bfa3f2fddeff34f0b124a7/LICENSE
+# Output contract at that same revision, verified in these source files.
+# orca/orca-clouddriver/src/main/java/com/netflix/spinnaker/orca/clouddriver/pipeline/job/RunJobStage.java
+# orca/orca-clouddriver/src/main/groovy/com/netflix/spinnaker/orca/clouddriver/tasks/job/WaitOnJobCompletion.groovy
+# clouddriver/clouddriver-kubernetes/src/main/java/com/netflix/spinnaker/clouddriver/kubernetes/provider/view/KubernetesJobProvider.java
+# clouddriver/clouddriver-kubernetes/src/main/java/com/netflix/spinnaker/clouddriver/kubernetes/provider/view/PropertyParser.java
+# WaitOnJobCompletion forwards propertyFile to KubernetesJobProvider.getFileContents as
+# containerName. propertyFile=worker selects worker container logs. PropertyParser reads each
+# SPINNAKER_CONFIG_JSON=<one-line JSON object> into stage outputs, including nested values.
+id: {{ delivery_promotion_pipeline_ids[delivery_promotion_mode] }}
+name: Flux {{ delivery_promotion_mode }}
+application: {{ delivery_promotion_application }}
+description: Signed application Git change with exact Flux and workload observation
+keepWaitingPipelines: true
+limitConcurrent: true
+executionEngine: v3
+spelEvaluator: v4
+triggers: []
+notifications: []
+parameterConfig:
+  - {name: configRevision, label: Full application configuration Git SHA, required: true}
+  - {name: imageDigest, label: Immutable image sha256 digest, required: true}
+  - {name: releaseId, label: Release identifier, required: true}
+  - {name: compatibilityReference, label: Application and data compatibility evidence, required: true}
+stages:
+{% for operation in ['preview', 'execute'] %}
+{% if operation == 'execute' %}
+  - refId: approval
+    name: Approve exact change
+    type: manualJudgment
+    requisiteStageRefIds: [preview]
+    failPipeline: true
+    continuePipeline: false
+    requiredJudgmentRoles: {{ [delivery_promotion_approver_role] | to_json }}
+    selectedStageRoles: {{ [delivery_promotion_approver_role] | to_json }}
+    propagateAuthenticationContext: false
+    instructions: |
+      {{ delivery_promotion_mode | upper }} application configuration and image together.
+      Candidate ${ #stage('Preview').outputs.candidate}
+      Expected delivery head ${ #stage('Preview').outputs.base}
+      Configuration ${ #stage('Preview').outputs.config_revision}
+      Image ${ #stage('Preview').outputs.image_digest}
+      Compatibility evidence ${ #stage('Preview').outputs.compatibility_reference}
+      Review the complete diff below. Continuing approves this exact preview.
+      ${ #stage('Preview').outputs.diff}
+  - refId: verify-approval
+    name: Verify approval dependency
+    type: checkPreconditions
+    requisiteStageRefIds: [approval]
+    failPipeline: true
+    continuePipeline: false
+    preconditions:
+      - type: expression
+        failPipeline: true
+        context:
+          expression: "${ #stage('Preview').status.toString() == 'SUCCEEDED' && #stage('Approve exact change').status.toString() == 'SUCCEEDED' && #stage('Approve exact change').context.judgmentStatus == 'continue'}"
+{% endif %}
+  - refId: {{ operation }}
+    name: {{ 'Preview' if operation == 'preview' else 'Publish and verify release' }}
+    type: runJobManifest
+    requisiteStageRefIds: {{ [] if operation == 'preview' else ['verify-approval'] }}
+    account: delivery-promotion
+    cloudProvider: kubernetes
+    credentials: delivery-promotion
+    source: text
+    waitForCompletion: true
+    propertyFile: worker
+    failPipeline: true
+    continuePipeline: false
+    stageTimeoutMs: {{ ((delivery_promotion_timeout_seconds | int) + 300) * 1000 }}
+    manifest:
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        generateName: delivery-{{ operation }}-
+        namespace: delivery-promotion
+        labels: {app.kubernetes.io/name: delivery-promotion-worker}
+      spec:
+        backoffLimit: 0
+        activeDeadlineSeconds: {{ (delivery_promotion_timeout_seconds | int) + 240 }}
+        ttlSecondsAfterFinished: 86400
+        template:
+          metadata:
+            labels: {app.kubernetes.io/name: delivery-promotion-worker}
+          spec:
+            serviceAccountName: delivery-promoter
+            automountServiceAccountToken: true
+            restartPolicy: Never
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65532
+              runAsGroup: 65532
+              fsGroup: 65532
+              seccompProfile: {type: RuntimeDefault}
+            containers:
+              - name: worker
+                image: {{ delivery_promotion_worker_image }}
+                command: [python3, /worker/promote.py]
+                args: [{{ operation }}]
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
+                  capabilities: {drop: [ALL]}
+                resources:
+                  requests: {cpu: 50m, memory: 64Mi}
+                  limits: {cpu: '1', memory: 256Mi}
+                env:
+                  - {name: HOME, value: /tmp}
+                  - {name: PYTHONDONTWRITEBYTECODE, value: '1'}
+{% if operation == 'preview' %}
+                  - {name: PROMOTION_CONFIG_REVISION, value: "${parameters.configRevision}"}
+                  - {name: PROMOTION_IMAGE_DIGEST, value: "${parameters.imageDigest}"}
+                  - {name: PROMOTION_RELEASE_ID, value: "${parameters.releaseId}"}
+                  - {name: PROMOTION_COMPATIBILITY_REFERENCE, value: "${parameters.compatibilityReference}"}
+                  - {name: PROMOTION_MODE, value: {{ delivery_promotion_mode }}}
+{% else %}
+                  - {name: PROMOTION_PLAN_B64, value: "${ #stage('Preview').outputs.plan_b64}"}
+{% endif %}
+                volumeMounts:
+                  - {name: policy, mountPath: /policy, readOnly: true}
+                  - {name: git-credential, mountPath: /git-credential, readOnly: true}
+                  - {name: signing, mountPath: /signing, readOnly: true}
+                  - {name: scratch, mountPath: /tmp}
+            volumes:
+              - name: policy
+                configMap: {name: delivery-promotion-policy}
+              - name: git-credential
+                secret: {secretName: {{ delivery_promotion_git_secret }}, defaultMode: 288}
+              - name: signing
+                secret: {secretName: {{ delivery_promotion_signing_secret }}, defaultMode: 288}
+              - name: scratch
+                emptyDir: {sizeLimit: 256Mi}
+{% endfor %}

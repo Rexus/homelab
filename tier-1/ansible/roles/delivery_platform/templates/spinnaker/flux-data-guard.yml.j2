@@ -1,0 +1,50 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: spinnaker-data-{{ delivery_platform_spinnaker_lifecycle }}-{{ delivery_platform_spinnaker_job_revision }}{{
+    '-' ~ (delivery_platform_spinnaker_recovery_id | hash('sha256') | truncate(10, true, ''))
+    if delivery_platform_spinnaker_lifecycle == 'recover' else '' }}
+  namespace: {{ delivery_platform_spinnaker_namespace }}
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 300
+  template:
+    metadata: {labels: {app.kubernetes.io/name: spinnaker-data-guard}}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 999, runAsGroup: 999, runAsNonRoot: true, fsGroup: 999}
+      containers:
+        - name: verify-data-lifecycle
+          image: {{ delivery_platform_software.mysql_image | to_json }}
+          command: [sh, -ec]
+          args:
+            - |
+{% if delivery_platform_spinnaker_lifecycle == 'fresh' %}
+              for directory in /mysql /redis; do
+                test -z "$(find "$directory" -mindepth 1 -maxdepth 1 ! -name lost+found -print -quit)" || {
+                  echo 'Fresh initialization requires empty accepted data claims' >&2
+                  exit 1
+                }
+              done
+{% else %}
+              test -d /mysql/mysql
+              test -s /redis/dump.rdb || test -d /redis/appendonlydir
+{% if delivery_platform_spinnaker_lifecycle == 'recover' %}
+              for directory in /mysql /redis; do
+                test "$(cat "$directory/.delivery-restored")" = "$RECOVERY_ID"
+              done
+{% endif %}
+{% endif %}
+          env:
+            - {name: RECOVERY_ID, value: {{ delivery_platform_spinnaker_recovery_id | to_json }}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: mysql, mountPath: /mysql, readOnly: true}
+            - {name: redis, mountPath: /redis, readOnly: true}
+      volumes:
+        - {name: mysql, persistentVolumeClaim: {claimName: data-spinnaker-mysql-0}}
+        - {name: redis, persistentVolumeClaim: {claimName: data-spinnaker-redis-0}}

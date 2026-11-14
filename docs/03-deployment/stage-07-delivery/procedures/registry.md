@@ -7,6 +7,13 @@
 The supplied **8a** path installs an independent Harbor service. Select an already accepted registry
 instead when it satisfies the same artifact, access and recovery contract.
 
+The selected fresh path sets `delivery_platform_owner: flux`: the native renderer exports Harbor's
+pinned HelmRelease and encrypted values, then [external platform revision maintenance](flux-platform.md#approve-a-platform-revision)
+enables reconciliation. Direct Ansible apply is a retained alternative; existing Harbor adoption must
+preserve Helm release identity, storage and stable Secrets. Keep independent reinstall artifacts.
+For a Harbor-only run, set `delivery_platform_flux_component: platform/artifact-registry` and add that
+entry to the approved platform root; preserve Spinnaker's separate `platform/delivery` graph.
+
 <a id="figure-harbor-installation"></a>
 
 ## Expected outcome: independent Harbor registry (8a)

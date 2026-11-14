@@ -1,0 +1,17 @@
+---
+- name: Prepare independently available Flux maintenance tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: flux-maintenance
+    control_node_require_terraform: false
+
+- name: Maintain only the selected Tier 1 configuration source
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  tasks:
+    - name: Execute only after control-node preparation
+      ansible.builtin.include_role:
+        name: flux_maintenance

@@ -15,6 +15,7 @@
 - [Edge ownership upgrade](#edge-ownership-upgrade)
 - [Terraform layout upgrade](#terraform-layout-upgrade)
 - [Implementation scope](#implementation-scope)
+- [Tier 1 Flux adoption and refresh](#tier-1-flux-adoption-and-refresh)
 - [References](#references)
 
 ## Purpose and prerequisites
@@ -734,12 +735,40 @@ Generation includes Linux Terraform/Ansible setups, each tier's Kubernetes lifec
 and upstream documentation.
 Native application recipes install the selected platform, identity, secrets,
 delivery, Observability and lab capabilities. Their inputs stay tier-local;
-Shared executes reusable roles. Owned GitOps directories and the documentation
-website remain project starters. Kustomization resource lists do not enforce the
-control-service deployment sequence. See the [stage map](../08-reference/implementation-support.md#stage-coverage).
+Shared executes reusable roles. Selected fresh Tier 1 Kubernetes services use real native-renderer
+Flux exports; other owned GitOps directories and the documentation website retain their documented
+starter scope. Empty resource lists do not enforce a deployment sequence. See the
+[stage map](../08-reference/implementation-support.md#stage-coverage).
 
 Run the [repository verification suite](testing.md) against source and generated
 output. Native validation is distinct from installation and operational acceptance.
+
+## Tier 1 Flux adoption and refresh
+
+Fresh Tier 1 examples explicitly choose Flux. Legacy role defaults remain Ansible; refresh preserves
+existing local inputs, `clusters/`, project CI definitions and deployment records. Adding renderer,
+worker or pipeline code is not permission to change existing live ownership.
+
+1. Refresh and inspect the report. Review kit code separately from preserved project-authored cluster
+   content/CI. Confirm the generated payload contains Shared `flux_payload` / `flux_maintenance`,
+   product renderers, promotion role/worker/pipelines, recovery tool and required YAML/JSON/Dockerfile/
+   license assets. File extensions alone do not establish inclusion; run source/generated checks.
+2. Port bootstrap RBAC/canary and authored platform entry points deliberately. Render actual native
+   services into a separate private configuration checkout with retained SOPS recipients. Include only
+   selected stage/component entries; do not overwrite authored roots wholesale.
+3. Separate bootstrap/platform and application Git project credentials. Retain exact immutable
+   bootstrap and approved platform revisions plus the protected application branch. Supply the SOPS
+   canary at the accepted bootstrap commit before bootstrap acceptance.
+4. For existing resources follow [Flux adoption](../03-deployment/stage-07-delivery/procedures/flux-adoption.md):
+   inventory releases/data, preserve identities/storage, disable former writers and revoke old direct
+   Spinnaker credentials. Verify reconciliation and independent recovery. Do not uninstall stateful
+   releases or bootstrap a second controller as a refresh shortcut.
+5. Retain accepted source/artifact custody packages and record live evidence in the preserved
+   architecture deployment record. List unresolved services as named transition exceptions.
+
+Native exports write the selected component in the operator-selected private platform checkout.
+Generator refresh does not publish commits, advance Flux sources, merge authored desired state or
+restore product data. Use [external maintenance](../05-operations/05-delivery.md) for source changes.
 
 ## References
 

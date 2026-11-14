@@ -1,0 +1,16 @@
+---
+- name: Prepare independent recovery Git tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: flux-recovery-git
+    control_node_require_terraform: false
+
+- name: Serve retained configuration from the recovered bootstrap host
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Establish scoped read-only recovery sources
+      ansible.builtin.include_role:
+        name: flux_recovery_git

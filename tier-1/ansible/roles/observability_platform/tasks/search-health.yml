@@ -13,7 +13,7 @@
     wait_condition: {type: Complete, status: 'True'}
   vars:
     observability_search_job: >-
-      search-security-{{ (lookup('ansible.builtin.template', 'search-policy.yml.j2') ~ observability_search_users_checksum ~ (observability_search_replicas | string)) | hash('sha256') | truncate(10, true, '') }}
+      search-security-{{ (lookup('ansible.builtin.template', 'search-policy.yml.j2') ~ observability_search_users_checksum ~ (observability_search_replicas | string) ~ observability_search_policy_revision) | hash('sha256') | truncate(10, true, '') }}
   register: observability_security_job
 
 - name: Select the successfully completed policy-bootstrap pod

@@ -1,0 +1,3 @@
+{% for name, key in flux_recovery_git_source_keys.items() %}
+restrict,command="git-upload-pack '{{ flux_recovery_git_root }}/{{ name }}.git'" {{ key }}
+{% endfor %}

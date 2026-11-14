@@ -1,0 +1,47 @@
+{% if delivery_promotion_target.kind == 'HelmRelease' %}
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: {{ delivery_promotion_target.name }}
+  namespace: {{ delivery_promotion_target.namespace }}
+spec:
+  interval: 1m
+  releaseName: {{ delivery_promotion_target.name }}
+  targetNamespace: {{ delivery_promotion_target.namespace }}
+  serviceAccountName: application-reconciler
+  chart:
+    spec:
+      chart: {{ delivery_promotion_chart | to_json }}
+      version: {{ delivery_promotion_chart_version | to_json }}
+      sourceRef: {{ delivery_promotion_chart_source | to_json }}
+  driftDetection: {mode: enabled}
+  values: {{ delivery_promotion_chart_values | combine({'image': {
+    'repository': delivery_promotion_image_repository, 'digest': delivery_promotion_initial_image_digest}}, recursive=true) | to_json }}
+{% else %}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ delivery_promotion_target.name }}
+  namespace: {{ delivery_promotion_target.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: {{ delivery_promotion_target.name }}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: {{ delivery_promotion_target.name }}}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: {{ delivery_promotion_container }}
+          image: {{ (delivery_promotion_image_repository ~ '@' ~ delivery_promotion_initial_image_digest) | to_json }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {cpu: '1', memory: 256Mi}
+{% endif %}

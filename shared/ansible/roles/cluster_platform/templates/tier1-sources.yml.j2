@@ -1,0 +1,51 @@
+  - apiVersion: source.toolkit.fluxcd.io/v1
+    kind: GitRepository
+    metadata: {name: tier1-platform, namespace: flux-system}
+    spec:
+      interval: 1m
+      url: {{ cluster_platform_flux_platform_url | to_json }}
+      ref: {commit: {{ cluster_platform_flux_platform_commit | to_json }}}
+      secretRef: {name: {{ cluster_platform_flux_platform_git_secret | to_json }}}
+  - apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    metadata: {name: tier1-platform, namespace: flux-system}
+    spec:
+      interval: 5m
+      retryInterval: 1m
+      timeout: 10m
+      serviceAccountName: platform-reconciler
+      dependsOn: [{name: platform}]
+      path: {{ cluster_platform_flux_platform_path | to_json }}
+      prune: false
+      deletionPolicy: Orphan
+      wait: false
+      sourceRef: {kind: GitRepository, name: tier1-platform}
+      decryption:
+        provider: sops
+        secretRef: {name: {{ cluster_platform_flux_platform_age_secret | to_json }}}
+  - apiVersion: source.toolkit.fluxcd.io/v1
+    kind: GitRepository
+    metadata: {name: tier1-applications, namespace: flux-system}
+    spec:
+      interval: 30s
+      url: {{ cluster_platform_flux_application_url | to_json }}
+      ref: {branch: {{ cluster_platform_flux_application_branch | to_json }}}
+      secretRef: {name: {{ cluster_platform_flux_application_git_secret | to_json }}}
+  - apiVersion: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    metadata: {name: tier1-applications, namespace: flux-system}
+    spec:
+      interval: 1m
+      retryInterval: 30s
+      timeout: 10m
+      serviceAccountName: application-reconciler
+      dependsOn: [{name: platform}]
+      path: {{ cluster_platform_flux_application_path | to_json }}
+      suspend: {{ cluster_platform_flux_applications_suspended | bool | lower }}
+      prune: true
+      deletionPolicy: Orphan
+      wait: true
+      sourceRef: {kind: GitRepository, name: tier1-applications}
+      decryption:
+        provider: sops
+        secretRef: {name: {{ cluster_platform_flux_application_age_secret | to_json }}}

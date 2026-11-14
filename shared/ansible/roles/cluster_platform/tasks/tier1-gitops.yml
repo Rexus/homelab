@@ -1,0 +1,122 @@
+---
+- name: Resolve explicit controller and storage dependencies for GitOps
+  ansible.builtin.include_tasks: tier1-dependencies.yml
+
+- name: Publish platform controllers through the common Flux renderer
+  ansible.builtin.include_role:
+    name: flux_payload
+  vars:
+    flux_payload_root: "{{ cluster_platform_gitops_root }}"
+    flux_payload_component: platform/base
+    flux_payload_stages: "{{ cluster_platform_flux_stages }}"
+    flux_payload_releases: >-
+      {{ (cluster_platform_flux_releases | rejectattr('component', 'equalto', 'flux') | list)
+         + [(cluster_platform_flux_releases | selectattr('component', 'equalto', 'flux') | first)
+              | combine({'before': [], 'after': [], 'required_secrets': []})] }}
+    flux_payload_secrets: "{{ cluster_platform_secrets }}"
+    flux_payload_age_recipients: "{{ cluster_platform_gitops_age_recipients }}"
+    flux_payload_source_name: tier1-platform
+    flux_payload_service_account: platform-reconciler
+
+- name: Prepare the owned immutable bootstrap directory
+  ansible.builtin.file:
+    path: "{{ cluster_platform_gitops_root }}/bootstrap"
+    state: directory
+    mode: '0700'
+
+- name: Render bootstrap RBAC separately from moving service configuration
+  ansible.builtin.template:
+    src: tier1-bootstrap.yml.j2
+    dest: "{{ cluster_platform_gitops_root }}/bootstrap/ownership.yaml"
+    mode: '0600'
+
+- name: Inspect the separately encrypted bootstrap acceptance canary
+  ansible.builtin.stat:
+    path: "{{ cluster_platform_gitops_root }}/bootstrap/canary.sops.yaml"
+  register: cluster_platform_tier1_canary
+
+- name: Register only materialized bootstrap resources
+  ansible.builtin.copy:
+    dest: "{{ cluster_platform_gitops_root }}/bootstrap/kustomization.yaml"
+    content: >-
+      {{ {'apiVersion': 'kustomize.config.k8s.io/v1beta1', 'kind': 'Kustomization',
+          'resources': ['ownership.yaml'] +
+            (['canary.sops.yaml'] if cluster_platform_tier1_canary.stat.exists else [])} | to_nice_yaml }}
+    mode: '0600'
+
+- name: Inspect Flux's ongoing Helm owner before selecting a bootstrap writer
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ cluster_platform_kubeconfig }}"
+    context: "{{ cluster_platform_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: helm.toolkit.fluxcd.io/v2
+    kind: HelmRelease
+    namespace: flux-system
+    name: platform-base-flux2
+  register: cluster_platform_flux_owner
+  when: cluster_platform_action == 'apply'
+
+- name: Detect a legacy Helm installation before any ownership handoff
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ cluster_platform_kubeconfig }}"
+    context: "{{ cluster_platform_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: flux-system
+    label_selectors: [owner=helm, name=flux2]
+  register: cluster_platform_flux_helm_records
+  when: cluster_platform_action == 'apply'
+  no_log: true
+
+- name: Detect an existing networking Helm owner before bootstrap adoption
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ cluster_platform_kubeconfig }}"
+    context: "{{ cluster_platform_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: kube-system
+    label_selectors: [owner=helm, name=cilium]
+  register: cluster_platform_cilium_helm_records
+  when:
+    - cluster_platform_action == 'apply'
+    - "'cilium' in cluster_platform_components"
+  no_log: true
+
+- name: Require explicit adoption when handing an existing cluster to Flux
+  ansible.builtin.assert:
+    that:
+      - not cluster_platform_flux_recovery | bool or cluster_platform_flux_adoption_accepted | bool
+      - >-
+        cluster_platform_action != 'apply' or
+        ((cluster_platform_flux_helm_records.resources | default([]) | length == 0) and
+         (cluster_platform_cilium_helm_records.resources | default([]) | length == 0)) or
+        cluster_platform_flux_owner.resources | default([]) | length > 0 or
+        cluster_platform_flux_adoption_accepted | bool
+    fail_msg: Explicit recovery must use the retained accepted revisions and an approved stopped-writer/adoption plan.
+
+- name: Install only networking and Flux until their GitOps owners exist
+  ansible.builtin.include_tasks: product.yml
+  loop: "{{ cluster_platform_releases | selectattr('component', 'in', ['cilium', 'flux']) | list }}"
+  loop_control:
+    loop_var: cluster_platform_release
+    label: "{{ cluster_platform_release.name }}"
+  when: >-
+    cluster_platform_action == 'render' or
+    (cluster_platform_flux_owner.resources | default([]) | length == 0) or
+    cluster_platform_flux_recovery | bool
+
+- name: Check the retained immutable source without rewriting Flux-owned releases
+  ansible.builtin.include_tasks: flux.yml
+  when:
+    - cluster_platform_action == 'apply'
+    - cluster_platform_flux_owner.resources | default([]) | length > 0
+    - not cluster_platform_flux_recovery | bool
+
+- name: Explain the single ongoing Tier 1 writer
+  ansible.builtin.debug:
+    msg: >-
+      Review and publish {{ cluster_platform_gitops_root }} through the approved platform revision workflow.
+      Flux owns platform-base (including its own flux2 Helm release) after bootstrap. Normal Ansible
+      runs render configuration and validate bootstrap; they do not reinstall Flux-owned components.

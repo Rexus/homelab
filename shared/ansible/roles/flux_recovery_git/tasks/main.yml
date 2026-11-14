@@ -1,0 +1,133 @@
+---
+- name: Require the retained recovery package and one read-only source identity per repository
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['RedHat', 'Debian']
+      - flux_recovery_git_package | length > 0
+      - flux_recovery_git_artifact_lock_sha256 is match('^[a-f0-9]{64}$')
+      - flux_recovery_git_root is match('^/([a-zA-Z0-9_-]+/)*[a-zA-Z0-9_-]+$')
+      - "'..' not in flux_recovery_git_root"
+      - flux_recovery_git_user is match('^[a-z][a-z0-9-]+$')
+      - flux_recovery_git_source_keys.keys() | sort == ['platform', 'tier1-applications', 'tier1-platform']
+    fail_msg: Select the independently verified package and three distinct SSH public keys; this host only supplies read-only recovery Git.
+
+- name: Reject multiline keys and embedded authorized-key options
+  ansible.builtin.assert:
+    that:
+      - item is match('^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)) [A-Za-z0-9+/=]+( [^\r\n]*)?$')
+      - item is not search('[\r\n]')
+    fail_msg: Supply one ordinary SSH public key per source; forced commands and restrictions are owned by this role.
+  loop: "{{ flux_recovery_git_source_keys.values() | list }}"
+
+- name: Require distinct key material independently of public key comments
+  ansible.builtin.assert:
+    that:
+      - flux_recovery_git_source_keys.values() | map('split', ' ') | map(attribute=1) | unique | length == 3
+
+- name: Install native Git and SSH tools from the bootstrap host's accepted supply
+  ansible.builtin.package:
+    name: "{{ ['git', 'openssh-server', 'python3-pyyaml'] if ansible_os_family == 'RedHat' else ['git', 'openssh-server', 'python3-yaml'] }}"
+    state: present
+
+- name: Validate the application delivery branch before restoring repositories
+  ansible.builtin.command:
+    argv: [git, check-ref-format, "refs/heads/{{ flux_recovery_git_application_branch }}"]
+  changed_when: false
+
+- name: Create the private recovery repository group
+  ansible.builtin.group:
+    name: "{{ flux_recovery_git_user }}"
+    system: true
+
+- name: Create a noninteractive read-only repository identity
+  ansible.builtin.user:
+    name: "{{ flux_recovery_git_user }}"
+    system: true
+    create_home: true
+    shell: /usr/bin/git-shell
+    group: "{{ flux_recovery_git_user }}"
+  register: flux_recovery_git_identity
+
+- name: Restore exact accepted repositories without replacing an existing recovery copy
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_python_interpreter | default('/usr/bin/python3') }}"
+      - "{{ flux_recovery_git_tool }}"
+      - restore
+      - --directory
+      - "{{ flux_recovery_git_package }}"
+      - --output
+      - "{{ flux_recovery_git_root }}"
+      - --expect-lock
+      - "{{ flux_recovery_git_artifact_lock_sha256 }}"
+      - --application-branch
+      - "{{ flux_recovery_git_application_branch }}"
+    creates: "{{ flux_recovery_git_root }}/recovery-manifest.sha256"
+
+- name: Verify the retained package on every run
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_python_interpreter | default('/usr/bin/python3') }}"
+      - "{{ flux_recovery_git_tool }}"
+      - restore
+      - --directory
+      - "{{ flux_recovery_git_package }}"
+      - --output
+      - "{{ flux_recovery_git_root }}"
+      - --expect-lock
+      - "{{ flux_recovery_git_artifact_lock_sha256 }}"
+      - --application-branch
+      - "{{ flux_recovery_git_application_branch }}"
+  changed_when: false
+
+- name: Verify the served application branch still matches the retained recovery revision
+  ansible.builtin.command:
+    argv: [git, -C, "{{ flux_recovery_git_root }}/tier1-applications.git", rev-parse,
+           "refs/heads/{{ flux_recovery_git_application_branch }}", refs/heads/recovery]
+  register: flux_recovery_git_branch
+  changed_when: false
+
+- name: Reject drift in the read-only application recovery branch
+  ansible.builtin.assert:
+    that:
+      - flux_recovery_git_branch.stdout_lines | length == 2
+      - flux_recovery_git_branch.stdout_lines[0] == flux_recovery_git_branch.stdout_lines[1]
+
+- name: Allow the recovery identity to read root-owned repositories without writing them
+  ansible.builtin.file:
+    path: "{{ flux_recovery_git_root }}"
+    owner: root
+    group: "{{ flux_recovery_git_user }}"
+    mode: u=rwX,g=rX,o=
+    recurse: true
+
+- name: Prepare the recovery identity's SSH directory
+  ansible.builtin.file:
+    path: "{{ flux_recovery_git_identity.home }}/.ssh"
+    owner: "{{ flux_recovery_git_user }}"
+    group: "{{ flux_recovery_git_user }}"
+    state: directory
+    mode: '0700'
+
+- name: Replace the owned key list so removed source identities lose access
+  ansible.builtin.template:
+    src: authorized_keys.j2
+    dest: "{{ flux_recovery_git_identity.home }}/.ssh/authorized_keys"
+    owner: "{{ flux_recovery_git_user }}"
+    group: "{{ flux_recovery_git_user }}"
+    mode: '0600'
+  no_log: true
+
+- name: Trust only the three root-owned recovery repositories for this read-only Git identity
+  ansible.builtin.template:
+    src: gitconfig.j2
+    dest: "{{ flux_recovery_git_identity.home }}/.gitconfig"
+    owner: root
+    group: "{{ flux_recovery_git_user }}"
+    mode: '0640'
+
+- name: Keep native SSH available without broadening its existing access policy
+  ansible.builtin.service:
+    name: "{{ 'sshd' if ansible_os_family == 'RedHat' else 'ssh' }}"
+    enabled: true
+    state: started

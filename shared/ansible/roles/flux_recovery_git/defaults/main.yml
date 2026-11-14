@@ -1,0 +1,9 @@
+---
+# Recovered bootstrap host; no GitLab, registry, Spinnaker or cluster is required.
+flux_recovery_git_package: ""
+flux_recovery_git_root: /srv/flux-recovery
+flux_recovery_git_user: flux-recovery
+flux_recovery_git_artifact_lock_sha256: ""
+flux_recovery_git_application_branch: delivery
+flux_recovery_git_source_keys: {}
+flux_recovery_git_tool: "{{ playbook_dir }}/../../../scripts/flux-recovery.py"

@@ -1,0 +1,56 @@
+---
+- name: Require an explicit recoverable Flux secret contract
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_manage_secrets | bool
+      - delivery_platform_flux_secret_owner in ['retained', 'generated']
+      - delivery_platform_flux_sops_age_recipients | length > 0
+      - delivery_platform_flux_output | length > 0
+      - delivery_platform_flux_dependencies | length > 0
+      - delivery_platform_flux_output | ansible.builtin.realpath != delivery_platform_output | ansible.builtin.realpath
+    fail_msg: Supply retained private secret inputs, SOPS recipients and a separate Flux payload destination.
+
+- name: Resolve the platform checkout before generating independent credentials
+  ansible.builtin.command:
+    argv: [git, -C, "{{ delivery_platform_flux_output }}", rev-parse, --show-toplevel]
+  changed_when: false
+  register: delivery_platform_flux_checkout
+  when: delivery_platform_flux_secret_owner == 'generated'
+
+- name: Require independent custody before generating stable credentials
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_flux_credentials_directory is match('^/')
+      - delivery_platform_flux_credentials_retained | bool
+      - >-
+        not (delivery_platform_flux_credentials_directory | ansible.builtin.realpath).startswith(
+          (delivery_platform_flux_output | ansible.builtin.realpath) ~ '/')
+      - >-
+        delivery_platform_flux_credentials_directory | ansible.builtin.realpath !=
+        delivery_platform_flux_output | ansible.builtin.realpath
+      - >-
+        not (delivery_platform_flux_credentials_directory | ansible.builtin.realpath).startswith(
+          (delivery_platform_flux_checkout.stdout | ansible.builtin.realpath) ~ '/')
+      - >-
+        delivery_platform_flux_credentials_directory | ansible.builtin.realpath !=
+        delivery_platform_flux_checkout.stdout | ansible.builtin.realpath
+    fail_msg: Retain the private credential cache independently of the cluster and published payload before rendering.
+  when: delivery_platform_flux_secret_owner == 'generated'
+
+- name: Require a deliberate native data lifecycle and persistent Job revision
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_spinnaker_mode == 'native'
+      - delivery_platform_spinnaker_lifecycle in ['fresh', 'adopt', 'upgrade', 'recover']
+      - delivery_platform_spinnaker_job_revision is match('^[a-z0-9][a-z0-9-]{0,15}$')
+      - >-
+        delivery_platform_spinnaker_lifecycle == 'fresh' or
+        not delivery_platform_spinnaker_backup_filesystem_initialize | bool
+      - >-
+        delivery_platform_spinnaker_lifecycle != 'recover' or
+        delivery_platform_spinnaker_recovery_id is match('^[A-Za-z0-9_-]{16,64}$')
+      - >-
+        delivery_platform_spinnaker_lifecycle != 'recover' or
+        delivery_platform_spinnaker_recovery_fenced | bool
+    fail_msg: Select the data lifecycle explicitly. Recovery requires restored data and fenced triggers/executions.
+  when: delivery_platform_controller == 'spinnaker'

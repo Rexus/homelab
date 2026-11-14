@@ -14,7 +14,7 @@ SHARED_TREES = {
     "config": ("*.json", "platform.tfvars"),
     "ansible/roles": ("*.yml", "*.yaml", "*.j2"),
     "ansible/playbooks": ("*.yml",),
-    "scripts": ("*.sh", "*.py"),
+    "scripts": ("*.sh", "*.py", "Dockerfile", "*.example"),
     "ci": ("*.example",),
     "templates": ("proxmox-catalog.tfvars",),
 }
@@ -23,18 +23,19 @@ TIER_TREES = {
     "ansible": ("ansible.cfg", "*requirements.txt", "*.example"),
     "ansible/playbooks": ("*.yml", "*.yaml"),
     "ansible/vars": ("*.yml", "*.yaml"),
-    "ansible/roles": ("*.yml", "*.yaml", "*.j2", "*.py", "*.hcl", "*.sh", "*.js", "*.cnf", "*.conf",
-                      "LICENSE", "NOTICE", "LICENSE.txt", "NOTICE.txt", ".gitkeep"),
-    "scripts": ("*.sh", "*.py"),
+    "ansible/roles": ("*.yml", "*.yaml", "*.json", "*.j2", "*.py", "*.hcl", "*.sh", "*.js", "*.cnf", "*.conf",
+                      "Dockerfile", "LICENSE", "NOTICE", "LICENSE.txt", "NOTICE.txt", ".gitkeep"),
+    "scripts": ("*.sh", "*.py", "Dockerfile", "*.example"),
     "packer": ("*.example", "*.pkr.hcl"),
     "templates": ("*.example", ".gitkeep"),
     "ci": ("*.example",),
+    "pipelines": ("*.json", "*.yaml", "*.yml", "*.j2", "*.example", ".gitkeep"),
     "bootstrap": ("*.tf", "*.yaml", ".gitkeep"),
-    "clusters": ("*.yaml", ".gitkeep"),
+    "clusters": ("*.yaml", "*.yml", "*.json", "*.example", ".gitkeep"),
     "environments": (".gitkeep",),
     "workloads": (".gitkeep", "*.example"),
 }
-OWNED_TREES = {"bootstrap", "clusters", "environments", "workloads", "ci"}
+OWNED_TREES = {"bootstrap", "clusters", "environments", "workloads", "ci", "pipelines"}
 
 
 def read_file(path):

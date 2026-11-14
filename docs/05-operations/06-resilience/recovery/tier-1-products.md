@@ -10,9 +10,55 @@ and a known-good recovery point. Follow [tier sequencing](../README.md) and
 
 ## Operator tasks
 
+- [How to rebuild Tier 1 without its hosted services?](#rebuild-tier-1-without-its-services)
 - [How to select the native product restore procedure?](#select-the-authoritative-product-procedure)
 - [How to guard the target and verify recovery?](#guard-the-target-and-validate)
 - [References](#references)
+
+## Rebuild Tier 1 without its services
+
+Use this route for Tier 1 loss, or after Proxmox survives but every VM/cluster is rebuilt.
+In the larger loss scenario first restore independent Tier 0 access, trust, identity, storage,
+original infrastructure state and its own Flux/control services. Reuse mechanisms, never Tier 0
+credentials or Flux in Tier 1. A surviving hypervisor does not imply any service data survives.
+
+1. Retrieve the accepted-revision custody package, three Git bundles, pinned chart/image/tool files,
+   original Terraform state, private inputs, source credentials, SOPS keys and product backup IDs.
+   Verify checksums and that bundles contain the accepted commits before provisioning. Use
+   [external custody/maintenance](../../05-delivery.md#prepare-independent-custody); the recovery
+   host and sources must work without GitLab/Harbor/Spinnaker/runners.
+2. Fence old controllers, GitLab webhooks, runners, scheduled pipelines, promotion bot credentials
+   and stale Orca executions. [Serve the verified bundles from the recovered bootstrap host](../../05-delivery.md#serve-accepted-recovery-sources)
+   with separate read-only source keys and pinned SSH host trust. Load retained image/chart files
+   through accepted independent supply; the Git server does not provide registry pulls.
+3. Recreate Tier 1 VMs/cluster through original inputs/state and independent artifacts. Do not
+   initialize empty state over surviving resources. Use the
+   [bootstrap procedure](../../../03-deployment/stage-07-delivery/procedures/flux-platform.md)
+   with retained immutable bootstrap, canary and separate Tier 1 keys. Before enabling platform
+   reconciliation, externally approve a recovery revision derived from the accepted platform commit,
+   with product recovery lifecycles and initialization/consumer fences; retain its verified package.
+   A historic fresh-install payload is not safe recovery configuration for empty replacement volumes.
+   Keep applications suspended from bootstrap. Once its source objects exist, external operation
+   `recover` pins the accepted application commit and retains suspension.
+4. Reconcile only dependencies/controllers and retained storage needed for recovery. Hold consumers,
+   schema initialization and fresh-install Jobs until product restore is accepted. Use a reviewed
+   recovery lifecycle/payload; never select `fresh` against data intended for restoration.
+   A PVC/PV declaration restores no contents.
+5. Restore each complete product dataset with the native procedure below. Spinnaker needs all five
+   SQL schemas, Redis recovery point, stable keystore/OIDC/dependency credentials, backup repository
+   identity and pipeline definitions. Git alone does not restore those databases/queues. Keep triggers
+   and stale executions fenced; cancellation/review and bot credential control are explicit actions.
+6. Require exact accepted revisions, affected resource/Job health, known contents, TLS/SSO and denied
+   access. Reimport approved pipelines with stable IDs while triggers remain off. Verify recovery
+   configuration/artifacts remain retrievable with GitLab/Harbor down.
+7. Use external maintenance `resume` for applications only after actual data restoration and execution
+   fencing are accepted. Enable delivery triggers and CI individually after verification. Record lost
+   data, RPO/RTO, source/custody receipts and each resumed writer.
+
+Platform maintenance remains possible during a Spinnaker outage. A GitLab/Harbor installation cannot
+hold its sole reinstall source, image or key. A backup/mirror is usable only after custody,
+accepted-revision alignment and independent retrieval are demonstrated. Resource readiness does not
+prove data restoration, and Git rollback does not reverse product schema migrations.
 
 <a id="select-the-authoritative-product-procedure"></a>
 

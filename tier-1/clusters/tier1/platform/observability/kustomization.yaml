@@ -1,6 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-# Project integration only: Netdata, Collector, metrics, search and access policy.
-# Upstream guide: docs/03-deployment/stage-08-observability/README.md
-# Proxmox/BMC collection and credentials remain in Tier 0.
+# Stage 8 opt-in. observability_platform with owner=flux replaces this entry in the
+# private platform checkout with the encrypted native dependency graph.
+# Add this component to the platform source index after reviewing that payload.
 resources: []

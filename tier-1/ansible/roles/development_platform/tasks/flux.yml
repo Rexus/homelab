@@ -1,0 +1,17 @@
+---
+- name: Validate pinned development platform inputs without cluster access
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Prepare private review output
+  ansible.builtin.file:
+    path: "{{ development_platform_output }}"
+    state: directory
+    mode: '0700'
+
+- name: Resolve and render the selected GitLab Flux contract
+  ansible.builtin.include_tasks: gitlab.yml
+  when: "'gitlab' in development_platform_components"
+
+- name: Resolve and render the selected runner Flux contract
+  ansible.builtin.include_tasks: runners.yml
+  when: "'runners' in development_platform_components"

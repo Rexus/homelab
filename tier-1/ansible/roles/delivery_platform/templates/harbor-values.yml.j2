@@ -13,7 +13,20 @@ existingSecretAdminPassword: harbor-admin
 existingSecretAdminPasswordKey: HARBOR_ADMIN_PASSWORD
 existingSecretSecretKey: harbor-credentials
 caBundleSecretName: harbor-ca
+{% if delivery_platform_owner == 'flux' %}
+internalTLS:
+  enabled: true
+  # Keep chart-owned Secret identities present across adoption and subsequent upgrades.
+  certSource: manual
+  trustCa: {{ delivery_platform_secrets[delivery_platform_harbor_namespace ~ '/harbor-core-internal-tls']['ca.crt'] | to_json }}
+{% for service in ['core', 'jobservice', 'registry', 'portal', 'trivy'] %}
+  {{ service }}:
+    crt: {{ delivery_platform_secrets[delivery_platform_harbor_namespace ~ '/harbor-' ~ service ~ '-internal-tls']['tls.crt'] | to_json }}
+    key: {{ delivery_platform_secrets[delivery_platform_harbor_namespace ~ '/harbor-' ~ service ~ '-internal-tls']['tls.key'] | to_json }}
+{% endfor %}
+{% else %}
 internalTLS: {enabled: true, certSource: auto}
+{% endif %}
 updateStrategy: {type: Recreate}
 persistence:
   enabled: true

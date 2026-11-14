@@ -21,6 +21,10 @@
 - name: Validate product credentials before applying releases
   ansible.builtin.include_tasks: credentials.yml
 
+- name: Render the staged platform payload for independent Flux reconciliation
+  ansible.builtin.include_tasks: flux.yml
+  when: delivery_platform_owner == 'flux'
+
 - name: Inspect the selected persistent storage provisioner
   kubernetes.core.k8s_info:
     kubeconfig: "{{ delivery_platform_kubeconfig }}"
@@ -32,6 +36,7 @@
   register: delivery_platform_storage
   when:
     - delivery_platform_action == 'apply'
+    - delivery_platform_owner == 'ansible'
     - delivery_platform_install_harbor | bool
 
 - name: Reject unavailable persistent storage
@@ -40,6 +45,7 @@
       - delivery_platform_storage.resources | length == 1
   when:
     - delivery_platform_action == 'apply'
+    - delivery_platform_owner == 'ansible'
     - delivery_platform_install_harbor | bool
 
 - name: Verify identity discovery before application changes
@@ -49,7 +55,7 @@
     validate_certs: true
     return_content: true
   register: delivery_platform_discovery
-  when: delivery_platform_action == 'apply'
+  when: delivery_platform_action == 'apply' and delivery_platform_owner == 'ansible'
 
 - name: Check the discovered authority
   ansible.builtin.assert:
@@ -57,7 +63,7 @@
       - delivery_platform_discovery.json.issuer == delivery_platform_oidc_issuer
       - delivery_platform_discovery.json.authorization_endpoint is match('^https://')
       - delivery_platform_discovery.json.token_endpoint is match('^https://')
-  when: delivery_platform_action == 'apply'
+  when: delivery_platform_action == 'apply' and delivery_platform_owner == 'ansible'
 
 - name: Execute tier-owned native Helm releases
   ansible.builtin.include_role:
@@ -70,14 +76,15 @@
     kube_apps_releases: "{{ delivery_platform_releases }}"
     kube_apps_manage_secrets: "{{ delivery_platform_manage_secrets }}"
     kube_apps_secrets: "{{ delivery_platform_secrets }}"
-  when: delivery_platform_releases | length > 0
+  when: delivery_platform_releases | length > 0 and delivery_platform_owner == 'ansible'
 
 - name: Apply the reviewed Spinnaker resources
   ansible.builtin.include_tasks: spinnaker-apply.yml
   when:
     - delivery_platform_controller == 'spinnaker'
     - delivery_platform_action == 'apply'
+    - delivery_platform_owner == 'ansible'
 
 - name: Qualify application endpoints
   ansible.builtin.include_tasks: readiness.yml
-  when: delivery_platform_action == 'apply'
+  when: delivery_platform_action == 'apply' and delivery_platform_owner == 'ansible'

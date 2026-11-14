@@ -3,6 +3,44 @@
   ansible.builtin.set_fact:
     security_logging_values: "{{ lookup('ansible.builtin.template', 'values.yml.j2') | from_yaml }}"
 
+- name: Preserve the collector Helm identity and node health contract
+  ansible.builtin.set_fact:
+    security_logging_release:
+      name: "security-log-{{ security_logging_node.stream }}"
+      namespace: "{{ cluster_security_logging_namespace }}"
+      namespace_labels:
+        pod-security.kubernetes.io/enforce: privileged
+      repository: "{{ cluster_security_logging_chart_repository }}"
+      chart: fluent-bit
+      version: "{{ cluster_security_logging_chart_version }}"
+      values: "{{ security_logging_values }}"
+      required_secrets:
+        - name: "{{ security_logging_node.tls_secret }}"
+          type: kubernetes.io/tls
+          keys: [ca.crt, tls.crt, tls.key]
+      health:
+        - api_version: apps/v1
+          kind: DaemonSet
+          name: "security-log-{{ security_logging_node.stream }}"
+          namespace: "{{ cluster_security_logging_namespace }}"
+      health_check_exprs:
+        - apiVersion: apps/v1
+          kind: DaemonSet
+          current: >-
+            has(status.observedGeneration) && status.observedGeneration >= metadata.generation &&
+            has(status.desiredNumberScheduled) && status.desiredNumberScheduled == 1 &&
+            has(status.numberReady) && status.numberReady == 1 &&
+            has(status.updatedNumberScheduled) && status.updatedNumberScheduled == 1 &&
+            (!has(status.numberUnavailable) || status.numberUnavailable == 0) &&
+            (!has(status.numberMisscheduled) || status.numberMisscheduled == 0)
+      before: []
+      after: []
+
+- name: Accumulate each selected node without replacing the previous collector graph
+  ansible.builtin.set_fact:
+    security_logging_flux_releases: "{{ security_logging_flux_releases | default([]) + [security_logging_release] }}"
+  when: cluster_security_logging_owner == 'flux'
+
 - name: Render or install the native Fluent Bit collector with node-specific credentials
   ansible.builtin.include_role:
     name: kubernetes_applications
@@ -13,21 +51,8 @@
     kube_apps_output: "{{ cluster_security_logging_output }}"
     kube_apps_manage_secrets: "{{ cluster_security_logging_manage_secrets }}"
     kube_apps_secrets: "{{ cluster_security_logging_secrets }}"
-    kube_apps_releases:
-      - name: "security-log-{{ security_logging_node.stream }}"
-        namespace: "{{ cluster_security_logging_namespace }}"
-        namespace_labels:
-          pod-security.kubernetes.io/enforce: privileged
-        repository: "{{ cluster_security_logging_chart_repository }}"
-        chart: fluent-bit
-        version: "{{ cluster_security_logging_chart_version }}"
-        values: "{{ security_logging_values }}"
-        required_secrets:
-          - name: "{{ security_logging_node.tls_secret }}"
-            type: kubernetes.io/tls
-            keys: [ca.crt, tls.crt, tls.key]
-        before: []
-        after: []
+    kube_apps_releases: "{{ [security_logging_release] }}"
+  when: cluster_security_logging_owner == 'ansible' or cluster_security_logging_flux_phase == 'prepare'
 
 - name: Require the current collector rollout on the selected node
   ansible.builtin.include_tasks: health.yml

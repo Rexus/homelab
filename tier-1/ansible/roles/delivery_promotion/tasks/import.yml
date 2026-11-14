@@ -1,0 +1,65 @@
+---
+- name: Require an authenticated HTTPS Gate session and private CA
+  ansible.builtin.assert:
+    that:
+      - delivery_promotion_gate_url is match('^https://')
+      - delivery_promotion_gate_headers | length > 0
+      - delivery_promotion_gate_ca_path | length > 0
+
+- name: Read the current application definition
+  ansible.builtin.uri:
+    url: "{{ delivery_promotion_gate_url }}/applications/{{ delivery_promotion_application }}?expand=false"
+    headers: "{{ delivery_promotion_gate_headers }}"
+    ca_path: "{{ delivery_promotion_gate_ca_path }}"
+    validate_certs: true
+    return_content: true
+    status_code: [200, 404]
+  register: delivery_promotion_existing_app
+  no_log: true
+
+- name: Save application permissions through the native Gate task endpoint
+  ansible.builtin.uri:
+    url: "{{ delivery_promotion_gate_url }}/applications/{{ delivery_promotion_application }}/tasks"
+    method: POST
+    headers: "{{ delivery_promotion_gate_headers }}"
+    ca_path: "{{ delivery_promotion_gate_ca_path }}"
+    validate_certs: true
+    body_format: json
+    body:
+      application: "{{ delivery_promotion_application }}"
+      description: Reconcile Tier 1 promotion application permissions
+      job:
+        - type: createApplication
+          application: >-
+            {{ (delivery_promotion_existing_app.json.get('attributes', delivery_promotion_existing_app.json)
+                if delivery_promotion_existing_app.status == 200 else {}) |
+                combine(delivery_promotion_application_definition) }}
+    return_content: true
+  register: delivery_promotion_app_task
+  changed_when: true
+  when: >-
+    delivery_promotion_existing_app.status == 404 or
+    delivery_promotion_existing_app.json.get('attributes', delivery_promotion_existing_app.json).get('permissions', {})
+    != delivery_promotion_application_definition.permissions
+  no_log: true
+
+- name: Wait for the application permission task to finish successfully
+  ansible.builtin.uri:
+    url: "{{ delivery_promotion_gate_url }}{{ delivery_promotion_app_task.json.ref }}"
+    headers: "{{ delivery_promotion_gate_headers }}"
+    ca_path: "{{ delivery_promotion_gate_ca_path }}"
+    validate_certs: true
+    return_content: true
+  register: delivery_promotion_app_task_result
+  until: delivery_promotion_app_task_result.json.status in ['SUCCEEDED', 'TERMINAL', 'CANCELED']
+  failed_when: delivery_promotion_app_task_result.json.status in ['TERMINAL', 'CANCELED']
+  retries: 30
+  delay: 2
+  when: delivery_promotion_app_task is changed
+  no_log: true
+
+- name: Reconcile each stable pipeline independently
+  ansible.builtin.include_tasks: import-pipeline.yml
+  loop: [promote, rollback]
+  loop_control:
+    loop_var: delivery_promotion_mode

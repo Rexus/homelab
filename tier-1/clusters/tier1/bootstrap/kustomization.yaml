@@ -1,0 +1,4 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# The bootstrap renderer supplies ownership.yaml; include the real encrypted canary before pinning a commit.
+resources: []

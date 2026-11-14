@@ -1,0 +1,13 @@
+---
+# Rendered only into the independently checked-out private platform repository.
+flux_payload_root: ""
+flux_payload_component: ""
+flux_payload_releases: []
+flux_payload_stages: []
+flux_payload_secrets: {}
+flux_payload_age_recipients: []
+flux_payload_age_secret: platform-sops-age
+flux_payload_source_name: tier1-platform
+flux_payload_namespace: flux-system
+flux_payload_service_account: platform-reconciler
+flux_payload_depends_on: []

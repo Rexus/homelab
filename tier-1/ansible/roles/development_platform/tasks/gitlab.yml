@@ -20,6 +20,21 @@
       - {name: gitlab-tls, keys: [tls.crt, tls.key], type: kubernetes.io/tls}
       - {name: "{{ development_platform_ca_secret }}", keys: [ca.crt]}
 
+- name: Retain chart-generated stable GitLab identities under the encrypted owner
+  ansible.builtin.set_fact:
+    development_platform_required_secrets: >-
+      {{ development_platform_required_secrets + [
+         {'name': 'gitlab-rails-secret', 'keys': ['secrets.yml']},
+         {'name': 'gitlab-gitlab-runner-secret', 'keys': ['runner-registration-token']},
+         {'name': 'gitlab-gitlab-workhorse-secret', 'keys': ['shared_secret']},
+         {'name': 'gitlab-registry-notification', 'keys': ['secret']},
+         {'name': 'gitlab-registry-secret', 'keys': ['registry-auth.crt', 'registry-auth.key']},
+         {'name': 'gitlab-gitlab-shell-host-keys', 'keys': [
+           'ssh_host_rsa_key', 'ssh_host_rsa_key.pub', 'ssh_host_ecdsa_key',
+           'ssh_host_ecdsa_key.pub', 'ssh_host_ed25519_key', 'ssh_host_ed25519_key.pub']}
+      ] }}
+  when: development_platform_owner == 'flux'
+
 - name: Prepare and check GitLab secrets
   ansible.builtin.include_tasks: secrets.yml
 
@@ -35,6 +50,44 @@
     provider: "{{ (oidc.resources[0].data.provider | b64decode | from_yaml) }}"
     oidc: "{{ development_platform_secret_checks.results | selectattr('item.name', 'equalto', 'gitlab-oidc') | first }}"
   when: development_platform_action == 'apply'
+  no_log: true
+
+- name: Validate the encrypted OIDC provider before Flux rendering
+  ansible.builtin.assert:
+    that:
+      - provider.name == 'openid_connect'
+      - provider.args.issuer == development_platform_oidc_issuer
+      - provider.args.uid_field == 'sub'
+      - provider.args.discovery | bool
+      - provider.args.client_options.redirect_uri == 'https://' ~ development_platform_host ~ '/users/auth/openid_connect/callback'
+  vars:
+    provider: "{{ development_platform_secrets.get('gitlab-oidc', {}).get('provider', '') | from_yaml }}"
+  when: development_platform_owner == 'flux'
+  no_log: true
+
+- name: Require retained Rails encryption fields before disabling native secret generation
+  ansible.builtin.assert:
+    that:
+      - rails is mapping
+      - rails.production is mapping
+      - required | difference(rails.production.keys() | list) | length == 0
+      - required | map('extract', rails.production) | select('equalto', '') | list | length == 0
+      - required | map('extract', rails.production) | select('none') | list | length == 0
+      - rails.production.active_record_encryption_primary_key | length > 0
+      - rails.production.active_record_encryption_deterministic_key | length > 0
+    fail_msg: Export the complete existing Rails secrets.yml for adoption or retain independently generated fresh keys.
+  vars:
+    rails: "{{ development_platform_secrets.get('gitlab-rails-secret', {}).get('secrets.yml', '') | from_yaml }}"
+    required:
+      - secret_key_base
+      - otp_key_base
+      - db_key_base
+      - encrypted_settings_key_base
+      - openid_connect_signing_key
+      - active_record_encryption_primary_key
+      - active_record_encryption_deterministic_key
+      - active_record_encryption_key_derivation_salt
+  when: development_platform_owner == 'flux'
   no_log: true
 
 - name: Render or apply GitLab

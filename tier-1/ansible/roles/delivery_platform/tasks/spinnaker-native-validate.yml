@@ -40,7 +40,7 @@
       - >-
         (item.kind == 'Namespace' and item.metadata.name in allowed_namespaces) or
         (item.kind != 'Namespace' and item.metadata.get('namespace', '') in allowed_namespaces)
-      - item.kind not in ['Role', 'RoleBinding'] or item.metadata.namespace in delivery_platform_spinnaker_destinations
+      - item.kind not in ['Role', 'RoleBinding'] or item.metadata.namespace in spinnaker_native_account_namespaces
       - item.kind != 'RoleBinding' or item.roleRef.kind == 'Role'
       - >-
         item.kind != 'Secret' or (item.type == 'kubernetes.io/service-account-token'
@@ -48,6 +48,6 @@
         and not item.get('data', {}) and not item.get('stringData', {}))
     fail_msg: Native delivery resources may own only their namespace and the explicitly declared local target Roles.
   vars:
-    allowed_namespaces: "{{ [delivery_platform_spinnaker_namespace] + delivery_platform_spinnaker_destinations }}"
+    allowed_namespaces: "{{ [delivery_platform_spinnaker_namespace] + spinnaker_native_account_namespaces }}"
   loop: "{{ delivery_platform_spinnaker_documents }}"
   loop_control: {label: "{{ item.kind }}/{{ item.metadata.name }}"}

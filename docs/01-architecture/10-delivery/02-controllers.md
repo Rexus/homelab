@@ -1,8 +1,9 @@
 # Delivery controller patterns
 
 Tier 0 uses Flux for its independently recoverable control-service deployment.
-Tier 1 selects its own delivery platform for shared services and approved Tier 2
-applications. Its controller is not selected by this kit.
+Tier 1 selects independent Flux for Kubernetes services/application reconciliation and Spinnaker
+for approved application Git promotion. [D-041](../../07-decisions/README.md#d-041) retains Tier 0's
+boundary. Tier 2 integration remains a separate explicit scope.
 
 ## Authority and ownership
 
@@ -10,16 +11,18 @@ applications. Its controller is not selected by this kit.
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"wrappingWidth":300,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart BT
   subgraph T2["Tier 2"]
-    Workload["Approved applications<br/>Explicitly selected destinations"]
+    Workload["Application runtimes<br/>Separate integration scope"]
   end
   subgraph T1["Tier 1"]
     direction LR
-    Platform["Tier 1<br/>applications"]
-    D["Selected controller<br/>Argo CD<br/>or Spinnaker"]
-    Release["Approved source<br/>Release intent"]
-    Platform ~~~ D
-    D -- "Scoped<br/>changes" --> Platform
-    D -- "Read approved<br/>inputs" --> Release
+    Platform["Platform services<br/>Approved app namespaces"]
+    D["Spinnaker<br/>Release promotion"]
+    PF["Tier 1 Flux<br/>Separate reconcile identities"]
+    Release["Separate platform / app Git<br/>Approved release intent"]
+    Platform ~~~ PF
+    PF -- "Scoped reconciliation" --> Platform
+    PF -- "Read separate sources" --> Release
+    D -- "Approved app Git change" --> Release
   end
   subgraph T0["Tier 0"]
     direction LR
@@ -31,12 +34,12 @@ flowchart BT
     F -- "Read approved<br/>inputs" --> Approved
   end
   T0 ~~~ T1
-  T1 -- "Controller: approved application scope" --> T2
+  T1 -. "Optional approved integration" .-> T2
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Workload,Platform,D services
+  class Workload,Platform,D,PF services
   class F,Control control
   class Release,Approved data
   classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
@@ -47,12 +50,12 @@ flowchart BT
   class T2 tier2
 ```
 
-*Figure: Each controller reads its own approved source to the right and changes authorized
-targets to the left or above. The Tier 1 boundary arrow denotes its controller's approved application
-scope in Tier 2. Tier 1 has no release path into Tier 0.*
+*Figure: Tier 1 Flux reads separate platform/application sources and reconciles authorized targets;
+Spinnaker promotes application Git. Tier 0 Flux remains independent. The dashed Tier 2 integration
+is separately approved. There is no Tier 1 release path into Tier 0.*
 
-The controller reads a selected revision, evaluates its release policy and submits changes
-using destination credentials. Applications sit left of their controller; authoritative
+Flux reads the selected source revision and reconciles with its scoped identity; Spinnaker's
+application approval/promotion is the separate Git change. Targets sit left of the reconciler; authoritative
 source inputs sit to its right. Runtime image retrieval uses the separate artifact-supply
 interface shown in the [delivery sequence](README.md#application-delivery).
 
@@ -75,15 +78,15 @@ remains distinct from scoped application deployment to that cluster.
 
 ## Choices
 
-Tier 0 favors a focused reconciliation path. Tier 1 chooses between two operating
-models according to application ownership and release policy. Cluster size alone
-does not select the controller.
+Tier 0 retains focused independent reconciliation. The selected Tier 1 pattern combines release
+orchestration and reconciliation with separate authorities; alternatives remain explicit choices.
 
 | Scope or option | Design role | Consequence |
 | --- | --- | --- |
 | Tier 0: Flux | Reconcile approved control-service definitions | Independent source credentials, decryption keys and recovery copies |
-| Tier 1 A: Argo CD | Application-centric Kubernetes GitOps | Projects scope sources, destinations, resource kinds and application roles [1] |
-| Tier 1 B: Spinnaker | Release orchestration through deployment pipelines | Pipeline stages express promotion, approval and deployment actions [2] |
+| Selected Tier 1: Flux plus Spinnaker | Flux owns platform/application resources; Spinnaker promotes application Git | [Separate sources, identities, lifecycle and recovery](flux-ownership.md); no direct application writes from Spinnaker |
+| Tier 1 alternative A: Argo CD | Application-centric Kubernetes GitOps | Projects scope sources, destinations, resource kinds and application roles [1] |
+| Tier 1 alternative B: direct Spinnaker | Release orchestration and direct deployment pipelines | Pipeline stages express promotion, approval and deployment actions [2] |
 | Tier 2 | Application target with scoped delivery access | May consume Tier 1 delivery or a separately selected local controller |
 
 Argo CD projects bound the approved sources, Kubernetes destinations and application roles.
@@ -105,8 +108,10 @@ replacement for target authorization. [1][2]
 ## Realization
 
 [Stage 7](../../03-deployment/stage-07-delivery/README.md) provisions the platform runtime
-and guides selection of [Argo CD](../../03-deployment/stage-07-delivery/step-2a-argocd.md)
-or [Spinnaker](../../03-deployment/stage-07-delivery/step-2b-spinnaker.md).
+and selects [Flux ownership](flux-ownership.md) with
+[Spinnaker promotion](../../03-deployment/stage-07-delivery/step-2b-spinnaker.md).
+[Argo CD](../../03-deployment/stage-07-delivery/step-2a-argocd.md) and direct Spinnaker remain
+alternatives; existing installations require explicit adoption and one writer per resource.
 [Cluster foundation](../../03-deployment/stage-04-kubernetes/procedures/kubernetes.md#cluster-foundation)
 defines shared readiness gates. Native installation does not replace controller
 commissioning, scoped destination approval or recovery qualification.

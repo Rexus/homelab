@@ -1,0 +1,88 @@
+---
+- name: Load the reviewed pipeline definition
+  ansible.builtin.set_fact:
+    delivery_promotion_pipeline: >-
+      {{ lookup('ansible.builtin.file', delivery_promotion_output ~ '/' ~ delivery_promotion_mode ~ '.json') | from_json }}
+
+- name: Read global pipeline identities before importing an identifier
+  ansible.builtin.uri:
+    url: "{{ delivery_promotion_gate_url }}/pipelineConfigs"
+    headers: "{{ delivery_promotion_gate_headers }}"
+    ca_path: "{{ delivery_promotion_gate_ca_path }}"
+    validate_certs: true
+    return_content: true
+  register: delivery_promotion_pipeline_catalog
+  no_log: true
+
+- name: Reject a pipeline identifier already owned by another application or name
+  ansible.builtin.assert:
+    that:
+      - item.application == delivery_promotion_pipeline.application
+      - item.name == delivery_promotion_pipeline.name
+    fail_msg: The configured pipeline identifier belongs to another application or pipeline name.
+  loop: >-
+    {{ delivery_promotion_pipeline_catalog.json | selectattr('id', 'equalto', delivery_promotion_pipeline.id) | list }}
+  loop_control:
+    label: "{{ item.id }}"
+
+- name: Read the current pipeline by its fixed application and name
+  ansible.builtin.uri:
+    url: >-
+      {{ delivery_promotion_gate_url }}/applications/{{ delivery_promotion_application }}/pipelineConfigs/{{
+         delivery_promotion_pipeline.name | urlencode }}
+    headers: "{{ delivery_promotion_gate_headers }}"
+    ca_path: "{{ delivery_promotion_gate_ca_path }}"
+    validate_certs: true
+    return_content: true
+    status_code: [200, 404]
+  register: delivery_promotion_existing_pipeline
+  no_log: true
+
+- name: Reject an existing pipeline with a conflicting identifier
+  ansible.builtin.assert:
+    that:
+      - delivery_promotion_existing_pipeline.json.id == delivery_promotion_pipeline.id
+    fail_msg: Adopt the existing pipeline identifier explicitly before import.
+  when: delivery_promotion_existing_pipeline.status == 200
+
+- name: Keep server-owned pipeline fields out of comparison
+  ansible.builtin.set_fact:
+    delivery_promotion_current_pipeline: >-
+      {{ delivery_promotion_existing_pipeline.json | default({}) | dict2items |
+         selectattr('key', 'in', delivery_promotion_pipeline.keys() | list) | items2dict }}
+
+- name: Save only changed definitions using the Gate stale-write check
+  ansible.builtin.uri:
+    url: "{{ delivery_promotion_gate_url }}/pipelines?staleCheck=true"
+    method: POST
+    headers: "{{ delivery_promotion_gate_headers }}"
+    ca_path: "{{ delivery_promotion_gate_ca_path }}"
+    validate_certs: true
+    body_format: json
+    body: >-
+      {{ delivery_promotion_pipeline | combine(
+         {'updateTs': delivery_promotion_existing_pipeline.json.updateTs}
+         if delivery_promotion_existing_pipeline.status == 200 else {}) }}
+    status_code: [200]
+  changed_when: true
+  when: delivery_promotion_current_pipeline != delivery_promotion_pipeline
+  no_log: true
+
+- name: Read back the saved pipeline definition
+  ansible.builtin.uri:
+    url: >-
+      {{ delivery_promotion_gate_url }}/applications/{{ delivery_promotion_application }}/pipelineConfigs/{{
+         delivery_promotion_pipeline.name | urlencode }}
+    headers: "{{ delivery_promotion_gate_headers }}"
+    ca_path: "{{ delivery_promotion_gate_ca_path }}"
+    validate_certs: true
+    return_content: true
+  register: delivery_promotion_saved_pipeline
+  no_log: true
+
+- name: Verify every owned pipeline field after import
+  ansible.builtin.assert:
+    that:
+      - delivery_promotion_saved_pipeline.json[item.key] == item.value
+  loop: "{{ delivery_promotion_pipeline | dict2items }}"
+  no_log: true

@@ -5,7 +5,9 @@
 This reusable installer supports later render/reconciliation, existing data-service integrations and
 release-owner adoption. Preserve accepted inputs, dependency identities, the original release owner
 and stable Secrets; do not provision data VMs again for a chart update.
-The native Ansible recipe uses the official Community Edition Helm chart.
+The native renderer uses the official Community Edition Helm chart. The selected fresh Kubernetes
+path sets `development_platform_owner: flux`, private export root/age recipients and explicit
+`development_platform_flux_migration: fresh`. Direct Ansible apply remains a separate legacy alternative.
 
 ## Contents
 
@@ -98,6 +100,10 @@ or pip installation. Pre-stage declared dependencies before disconnected
 `CONTROL_NODE_COLLECTIONS_MODE=check` runs.
 
 ## 5. Prepare the GitLab Secrets
+
+The selected Flux path uses **5b**, supplying all stable private inputs for SOPS export. Existing
+live Secrets alone are insufficient for a deployable offline payload. Branch **5a** belongs to the
+retained direct owner; do not let two owners reconcile the same Secret.
 
 Supply the exact Secrets named in
 [the secret example](../../../../tier-1/ansible/group_vars/development_platform_secrets.yml.example)
@@ -201,10 +207,11 @@ Treat outputs as private; edit the authored inputs, not a second copy of the
 
 ## 8. Choose the release owner
 
-Direct Ansible installation is a valid first path. Alternatively, render values
-and use the selected [Argo CD](../../stage-07-delivery/step-2a-argocd.md) or
-[Spinnaker](../../stage-07-delivery/step-2b-spinnaker.md) owner.
-Pre-provision Secrets in that path too; rendering creates no live Secrets.
+The selected fresh path renders GitLab and SOPS Secrets into the approved platform source and
+[advances its exact approved revision](../../stage-07-delivery/procedures/flux-platform.md#approve-a-platform-revision).
+Flux owns the release from its first deployment; Spinnaker's application bot cannot change it.
+Existing installations complete [adoption](../../stage-07-delivery/procedures/flux-adoption.md).
+Direct Ansible, Argo CD and direct Spinnaker remain explicit separate alternatives.
 Record one owner and stop direct Ansible apply before adopting an existing release.
 Review the adoption diff with pruning disabled; never uninstall a stateful release to hand it over.
 
@@ -212,6 +219,9 @@ For direct Ansible ownership, continue at Step 9. For controller ownership, comp
 selected controller's installation/adoption path, then rejoin at Step 10; skip Step 9.
 
 ## 9. Apply with Ansible
+
+This section is only the explicit `development_platform_owner: ansible` alternative. The selected
+Flux owner skips it and rejoins at Step 10 after exact-revision reconciliation and native readiness.
 
 Choose the same Secret branch as the render. For independently commissioned existing services,
 omit the generated overlay argument as described in Step 6.

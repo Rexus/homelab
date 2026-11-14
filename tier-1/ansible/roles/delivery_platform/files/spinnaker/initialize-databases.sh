@@ -1,5 +1,17 @@
 #!/bin/sh
 set -eu
+case "${SPINNAKER_DATABASE_ACTION:-initialize}" in
+  initialize) ;;
+  verify)
+    # Adoption, upgrade and recovery must never create missing databases or reset users.
+    for service in clouddriver echo fiat front50 orca; do
+      mysql --host=spinnaker-mysql --user=root --ssl-mode=VERIFY_IDENTITY --ssl-ca=/roots/platform.crt \
+        --database="$service" --execute='SELECT 1' >/dev/null
+    done
+    exit 0
+    ;;
+  *) echo 'Unsupported database lifecycle action' >&2; exit 1 ;;
+esac
 for service in clouddriver echo fiat front50 orca; do
   password=$(cat "/credentials/$service-password")
   migration_password=$(cat "/credentials/$service-migration-password")

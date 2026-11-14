@@ -1,0 +1,11 @@
+---
+# Schema: ../shared/ansible/roles/flux_recovery_git/defaults/main.yml
+# Run only on the recovered independent bootstrap/execution host.
+flux_recovery_git_package: REPLACE_WITH_RETAINED_PACKAGE_DIRECTORY
+flux_recovery_git_root: /srv/flux-recovery
+flux_recovery_git_artifact_lock_sha256: REPLACE_WITH_APPROVED_ARTIFACT_LOCK_SHA256
+flux_recovery_git_application_branch: delivery
+flux_recovery_git_source_keys:
+  platform: REPLACE_WITH_BOOTSTRAP_FLUX_SSH_PUBLIC_KEY
+  tier1-platform: REPLACE_WITH_PLATFORM_FLUX_SSH_PUBLIC_KEY
+  tier1-applications: REPLACE_WITH_APPLICATION_FLUX_SSH_PUBLIC_KEY

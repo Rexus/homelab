@@ -37,14 +37,14 @@ class DeliveryPlatform(TierRepositoryTestCase):
             "delivery_platform_argocd_destinations": ["gitlab", "harbor"],
         }, **overrides)
 
-    def run_role(self, repo, inputs, environment=None):
+    def run_role(self, repo, inputs, environment=None, timeout=300):
         fixture = Path(self.temp.name) / "inputs.yml"
         fixture.write_text(yaml.safe_dump(inputs))
         return subprocess.run(
             ["ansible-playbook", "-i", "localhost,", "ansible/playbooks/deployment/delivery-platform.yml",
              "-e", f"@{fixture}"], cwd=repo,
             env=dict(os.environ, ANSIBLE_CONFIG=str(repo / "ansible/ansible.cfg"), **(environment or {})),
-            capture_output=True, text=True, timeout=300,
+            capture_output=True, text=True, timeout=timeout,
         )
 
     def test_generated_payload_has_tier_owned_products_and_no_implicit_controller(self):
@@ -53,10 +53,16 @@ class DeliveryPlatform(TierRepositoryTestCase):
         defaults = yaml.safe_load((repo / "ansible/roles/delivery_platform/defaults/main.yml").read_text())
         self.assertEqual(defaults["delivery_platform_controller"], "")
         self.assertEqual(defaults["delivery_platform_action"], "render")
+        self.assertEqual(defaults["delivery_platform_owner"], "ansible")
+        self.assertEqual(defaults["delivery_platform_spinnaker_delivery_mode"], "direct")
         self.assertFalse(defaults["delivery_platform_manage_secrets"])
         self.assertTrue((repo / "ansible/playbooks/deployment/delivery-platform.yml").is_file())
         self.assertTrue((repo / "ansible/group_vars/delivery_platform_secrets.yml.example").is_file())
         self.assertFalse((self.root / "verify-shared/ansible/roles/delivery_platform").exists())
+        example = yaml.safe_load((repo / "ansible/group_vars/delivery_platform.yml.example").read_text())
+        self.assertEqual(example["delivery_platform_owner"], "flux")
+        self.assertEqual(example["delivery_platform_spinnaker_delivery_mode"], "flux")
+        self.assertTrue((repo / "ansible/roles/delivery_platform/templates/spinnaker/flux-stages.yml.j2").is_file())
 
     @unittest.skipUnless(NATIVE, "Requires native Ansible, kubernetes.core and Helm")
     def test_pinned_official_charts_render_source_and_generated_resources(self):
@@ -113,6 +119,10 @@ class DeliveryPlatform(TierRepositoryTestCase):
     def test_native_admission_rejects_incomplete_unbounded_and_invalid_oidc_inputs(self):
         cases = [
             {"delivery_platform_controller": ""},
+            {"delivery_platform_owner": "unknown"},
+            {"delivery_platform_spinnaker_delivery_mode": "unknown"},
+            {"delivery_platform_owner": "flux", "delivery_platform_action": "apply"},
+            {"delivery_platform_owner": "flux", "delivery_platform_manage_secrets": False},
             {"delivery_platform_harbor_version": "latest"},
             {"delivery_platform_argocd_repositories": ["*"]},
             {"delivery_platform_argocd_destinations": ["kube-system"]},

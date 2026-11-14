@@ -11,7 +11,20 @@
       orca: 8083
       rosco: 8087
     spinnaker_native_sql_services: [clouddriver, echo, fiat, front50, orca]
+    spinnaker_native_identity_groups: >-
+      {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_reader_group,
+          delivery_platform_spinnaker_writer_group] +
+         ([delivery_platform_spinnaker_promotion_requester_group, delivery_platform_spinnaker_promotion_approver_group,
+           delivery_platform_spinnaker_promotion_executor_group]
+          if delivery_platform_spinnaker_delivery_mode == 'flux' else []) }}
     spinnaker_native_directory: "{{ delivery_platform_output }}/spinnaker-native"
+    spinnaker_native_credentials_directory: >-
+      {{ delivery_platform_flux_credentials_directory if delivery_platform_owner == 'flux'
+         else delivery_platform_output ~ '/credentials' }}
+    spinnaker_native_account_namespaces: >-
+      {{ delivery_platform_spinnaker_destinations +
+         ([delivery_platform_spinnaker_promotion_namespace]
+          if delivery_platform_spinnaker_delivery_mode == 'flux' else []) }}
 
 - name: Check native reference inputs before generating resources
   ansible.builtin.import_tasks: spinnaker-native-preflight.yml
@@ -105,11 +118,14 @@
 - name: Bind the complete native reference and destination contracts to one review output
   ansible.builtin.set_fact:
     # The comment binds separate owned-storage bytes without admitting cluster-scoped kinds to application apply.
-    delivery_platform_spinnaker_render: >-
-      {{ spinnaker_native_application_render ~ '\n---\n' ~ spinnaker_native_accounts_render
-         ~ ('\n# Managed backup storage SHA256: ' ~ (backup_repository_storage_render | hash('sha256')) ~ '\n'
-            if delivery_platform_spinnaker_backup_backend == 'filesystem'
-               and delivery_platform_spinnaker_backup_storage.get('mode', 'existing') == 'static_nfs' else '') }}
+    delivery_platform_spinnaker_render: |
+      {{ spinnaker_native_application_render }}
+      ---
+      {{ spinnaker_native_accounts_render }}
+      {% if delivery_platform_spinnaker_backup_backend == 'filesystem' and
+            delivery_platform_spinnaker_backup_storage.get('mode', 'existing') == 'static_nfs' %}
+      # Managed backup storage SHA256: {{ backup_repository_storage_render | hash('sha256') }}
+      {% endif %}
     spinnaker_native_generated_secrets: {}
     delivery_platform_spinnaker_spec:
       namespace: "{{ delivery_platform_spinnaker_namespace }}"
@@ -134,7 +150,9 @@
 
 - name: Prepare stable private bootstrap credentials when explicitly owned
   ansible.builtin.include_tasks: spinnaker-native-generate-secrets.yml
-  when: delivery_platform_manage_secrets | bool
+  when: >-
+    delivery_platform_manage_secrets | bool and
+    (delivery_platform_owner == 'ansible' or delivery_platform_flux_secret_owner == 'generated')
 
 - name: Store the complete native installation and its exact review checksum
   ansible.builtin.copy:
@@ -152,6 +170,20 @@
     dest: "{{ delivery_platform_output }}/spinnaker-backup-iam.json"
     mode: '0600'
   when: delivery_platform_spinnaker_backup_backend == 's3'
+
+- name: Render explicit legacy binding and token revocation for independent adoption
+  ansible.builtin.template:
+    src: spinnaker/revoke-direct-access.yml.j2
+    dest: "{{ delivery_platform_output }}/spinnaker-revoke-direct-access.yml"
+    mode: '0600'
+  when: delivery_platform_spinnaker_delivery_mode == 'flux'
+
+- name: Render the explicit maintenance-window data handoff without executing it
+  ansible.builtin.template:
+    src: spinnaker/data-handoff.yml.j2
+    dest: "{{ delivery_platform_output }}/spinnaker-flux-data-handoff.yml"
+    mode: '0600'
+  when: delivery_platform_owner == 'flux'
 
 - name: Remove an obsolete generated S3 policy when selecting file storage
   ansible.builtin.file:

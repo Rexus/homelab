@@ -13,6 +13,29 @@ cluster_platform_secrets: {}
 cluster_platform_health_retries: 120
 cluster_platform_health_delay: 5
 
+# Legacy inputs retain their writer; new Tier 1 inputs explicitly select Flux.
+cluster_platform_tier: 0
+cluster_platform_management: ansible
+cluster_platform_gitops_root: "{{ playbook_dir }}/../../../clusters/tier1"
+cluster_platform_gitops_age_recipients: []
+cluster_platform_flux_recovery: false
+cluster_platform_flux_adoption_accepted: false
+cluster_platform_flux_platform_url: ""
+cluster_platform_flux_platform_commit: ""
+cluster_platform_flux_platform_path: ./clusters/tier1/platform
+cluster_platform_flux_platform_git_secret: platform-git
+cluster_platform_flux_platform_git_secret_keys: [username, password]
+cluster_platform_flux_platform_age_secret: platform-sops-age
+cluster_platform_flux_application_url: ""
+cluster_platform_flux_application_branch: delivery
+cluster_platform_flux_application_path: ./clusters/tier1/applications
+cluster_platform_flux_application_git_secret: application-git
+cluster_platform_flux_application_git_secret_keys: [username, password]
+cluster_platform_flux_application_age_secret: application-sops-age
+cluster_platform_flux_application_namespaces: []
+cluster_platform_flux_additional_platform_namespaces: []
+cluster_platform_flux_applications_suspended: true
+
 # Acknowledges the node-OS configuration, never migrates an existing CNI.
 cluster_platform_talos_cilium_ready: false
 cluster_platform_expected_nodes: []

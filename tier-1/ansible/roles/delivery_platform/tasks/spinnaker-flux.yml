@@ -1,0 +1,32 @@
+---
+- name: Resolve stable native stage and Job identities
+  ansible.builtin.set_fact:
+    spinnaker_flux_prefix: "{{ delivery_platform_flux_component | replace('/', '-') }}-spinnaker"
+    spinnaker_flux_job_suffix: >-
+      {{ delivery_platform_software.spinnaker_release | replace('.', '-') }}-{{ delivery_platform_spinnaker_job_revision }}-{{
+         (delivery_platform_spinnaker_render ~ delivery_platform_spinnaker_lifecycle ~ delivery_platform_spinnaker_recovery_id)
+         | hash('sha256') | truncate(10, true, '') }}
+    spinnaker_flux_database_action: "{{ 'initialize' if delivery_platform_spinnaker_lifecycle == 'fresh' else 'verify' }}"
+
+- name: Require retained preissued TLS and binary JVM keystores before encrypted publication
+  ansible.builtin.assert:
+    that:
+      - secret_id in delivery_platform_flux_secret_data
+      - required | difference(delivery_platform_flux_secret_data[secret_id].keys() | list) | length == 0
+      - required | map('extract', delivery_platform_flux_secret_data[secret_id]) | select('equalto', '') | list | length == 0
+    fail_msg: Retain the preissued TLS Secrets and matching PKCS12 material outside the cluster before rendering.
+  vars:
+    secret_id: "{{ delivery_platform_spinnaker_namespace }}/{{ item }}-tls"
+    required: >-
+      {{ ['tls.crt', 'tls.key'] + (['ca.crt'] if item != 'spinnaker' else []) +
+         (['keystore.p12'] if item in spinnaker_native_ports else []) }}
+  loop: >-
+    {{ ['spinnaker', 'spinnaker-mysql', 'spinnaker-redis'] +
+       (spinnaker_native_ports.keys() | reject('equalto', 'deck') | list) }}
+  when: delivery_platform_spinnaker_certificate_mode == 'preissued'
+  no_log: true
+
+- name: Build separately health-gated native lifecycle stages from the reviewed resource objects
+  ansible.builtin.set_fact:
+    delivery_platform_flux_stages: "{{ lookup('ansible.builtin.template', 'spinnaker/flux-stages.yml.j2') | from_yaml }}"
+  no_log: true

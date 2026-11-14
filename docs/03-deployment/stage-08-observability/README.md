@@ -1,5 +1,13 @@
 # Stage 8: Observability
 
+**Selected Tier 1 owner:** Flux, enabled only when this stage is selected. Keep the native product
+inputs and commissioning sequence below; render real service payloads and SOPS Secrets, then
+[approve/reconcile the platform revision](../stage-07-delivery/procedures/flux-platform.md#approve-a-platform-revision).
+Set `observability_owner: flux`, the absolute `observability_flux_root` and age recipients, and
+`observability_flux_migration: fresh` (or [explicit adoption](../stage-07-delivery/procedures/flux-adoption.md)).
+Legacy role defaults remain Ansible; direct apply blocks below are only that retained alternative.
+This stage is never a prerequisite for Stage 7 bootstrap or Spinnaker recovery.
+
 **Related:** [Architecture](../../01-architecture/11-operations/03-observability.md) Â· [Operations](../../05-operations/06-resilience/observability.md)
 
 Deploy operational visibility for **logs, metrics and distributed traces** in the
@@ -167,6 +175,10 @@ block storage; NAS claims are backups only.
 
 ## Step 4: Prepare certificates and private inputs
 
+For the selected **Flux owner**, use **4b** and provide the complete retained Secret map and real
+ingestion credentials for the SOPS export. Externally owned live Secrets alone cannot supply an
+offline deployable payload. Keep the encrypted input and age decryption material independently.
+
 In **`<prefix>-tier-1/`**, edit `ansible/group_vars/observability_platform_secrets.yml`:
 
 1. Set distinct private UUIDs for `observability_netdata_child_key` and `observability_netdata_peer_key`.
@@ -245,6 +257,13 @@ Rendering does not contact Kubernetes.
 <a id="8-review-and-apply-database-preparation-nas-path"></a>
 
 ## Step 8: Review and apply database preparation (NAS path)
+
+For the selected **Flux owner**, review the exported database-only graph and encrypted Secret set,
+include its entry in the platform source, then [approve/reconcile that exact revision](../stage-07-delivery/procedures/flux-platform.md#approve-a-platform-revision).
+Require `grafana-db` readiness before obtaining its system identifier in Step 9. Skip the direct
+apply command below. The database-only phase does not enable signal/query consumers.
+
+For the retained **Ansible owner** only:
 
 In **`<prefix>-tier-1/`**, review the rendered `grafana-db` resources, live block class,
 TLS identities and physical placement. Then apply those same inputs:
@@ -360,6 +379,13 @@ It should now include the complete selected platform, not database preparation a
 
 ## Step 11: Apply the reviewed full stack
 
+For the selected **Flux owner**, review the full exported graph, then
+[approve/reconcile the platform revision](../stage-07-delivery/procedures/flux-platform.md#approve-a-platform-revision).
+Require completed first backup, database readiness and search-policy Job completion before consumers;
+check the exact revision and native product health. Skip the direct apply command below.
+
+For the retained **Ansible owner** only:
+
 Run from **`<prefix>-tier-1/`**, using the same reviewed inputs:
 
 ```bash
@@ -385,6 +411,8 @@ not install those products again.
 After the first green membership check, in **`<prefix>-tier-1/`**, set
 `observability_search_bootstrap: false` in `ansible/group_vars/observability_platform.yml`.
 Repeat Step 10's render, review the removal of the initial-manager list, then repeat Step 11's apply.
+For Flux ownership, Step 11 means a newly approved platform commit and reconciliation, never direct
+Ansible apply. Preserve the accepted data and Job identities; initialization is not a restart action.
 Require readiness again. Never re-enable the flag for restart, scaling or recovery. [13]
 
 <a id="step-3-connect-infrastructure-monitoring"></a>

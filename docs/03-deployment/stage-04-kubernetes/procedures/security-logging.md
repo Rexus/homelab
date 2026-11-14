@@ -6,6 +6,19 @@ Shared owns the stateless
 [cluster_security_logging role](../../../../shared/ansible/roles/cluster_security_logging).
 Each tier owns node selections, release pins, credentials and local inputs.
 
+**Tier 1 Flux path:** use `cluster_security_logging_owner: flux`. For the early Talos preparation
+render select `cluster_security_logging_flux_phase: prepare`; this creates review artifacts only.
+After enrolling node identities, set `cluster_security_logging_manage_secrets: true`, supply the
+retained private leaf material, `cluster_security_logging_flux_root` and age recipients, then select
+`cluster_security_logging_flux_phase: publish`. Render again, add `security-logging` to the private
+`clusters/tier1/platform/kustomization.yaml`, and advance the approved platform revision through
+[external maintenance](../../../05-operations/05-delivery.md#advance-an-approved-platform-revision).
+Flux preserves each collector's Helm identity and checks exactly one ready instance per selected node.
+Skip direct apply in Step 5 for this owner. For adoption select
+`cluster_security_logging_flux_migration: adopt` only after disabling the previous writer and accepting
+matching credentials/configuration;
+confirm with `cluster_security_logging_previous_writer_disabled: true`. Tier 0/2 retain their owners.
+
 This required cluster-foundation step installs native Fluent Bit collectors,
 one selected DaemonSet per node with a distinct client identity. Collectors accept
 Talos JSON on host loopback, tail API audit files on control planes and pod

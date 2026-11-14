@@ -1,0 +1,117 @@
+{% set prefix = 'platform-observability' %}
+{% set preparing = observability_backup_mode == 'files' and observability_backup_files_phase == 'prepare' %}
+{% set grafana = observability_releases | selectattr('name', 'equalto', 'grafana') | first %}
+{% set database = grafana.before | selectattr('kind', 'equalto', 'Cluster') | first %}
+{% set database_health = [{'apiVersion': 'postgresql.cnpg.io/v1', 'kind': 'Cluster', 'name': 'grafana-db', 'namespace': observability_namespace}] %}
+{% set database_current = 'has(status.readyInstances) && status.readyInstances == 3 && has(status.conditions) && status.conditions.exists(c, c.type == "Ready" && c.status == "True")' %}
+releases:
+{% if preparing %}
+  []
+{% else %}
+{% for release in observability_releases %}
+{% set contract = release %}
+{% if release.name == 'opensearch' %}
+{# Authenticated search readiness requires the securityadmin stage first. #}
+{% set job = release.after | selectattr('kind', 'equalto', 'Job') | first %}
+{% set job_health = [{'apiVersion': 'batch/v1', 'kind': 'Job', 'name': job.metadata.name, 'namespace': observability_namespace}] %}
+{% set contract = contract | combine({'disable_wait': true, 'after_health': job_health}) %}
+{% elif release.name in ['data-prepper', 'otel-gateway', 'dashboards'] %}
+{% set contract = contract | combine({'depends_on': [{'name': prefix ~ '-opensearch-after'}]}) %}
+{% elif release.name == 'grafana' %}
+{% set contract = contract | combine({'before': [], 'depends_on': [{'name': prefix ~ '-backup'}]}) %}
+{% endif %}
+{{ [contract] | to_nice_yaml | indent(2, true) }}
+{% endfor %}
+{% endif %}
+stages:
+{% if preparing %}
+  - name: {{ prefix }}-database
+    depends_on: {{ observability_flux_depends_on | to_json }}
+    resources:
+      - apiVersion: v1
+        kind: Namespace
+        metadata: {name: {{ observability_namespace }}}
+{{ [database] | to_nice_yaml | indent(6, true) }}
+{% for secret in grafana.required_secrets | selectattr('name', 'in', ['grafana-database', 'grafana-db-ca', 'grafana-db-server-tls', 'grafana-db-client-ca', 'grafana-db-replication']) %}
+      - apiVersion: v1
+        kind: Secret
+        metadata: {name: {{ secret.name }}, namespace: {{ observability_namespace }}}
+        type: {{ secret.type | default('Opaque') }}
+        stringData: {{ observability_secrets[observability_namespace ~ '/' ~ secret.name] | to_json }}
+{% endfor %}
+{% else %}
+  - name: {{ prefix }}-grafana-before
+    depends_on: [{name: {{ prefix }}-inputs}]
+    resources: {{ grafana.before | to_json }}
+{% endif %}
+    health: {{ database_health | to_json }}
+    health_check_exprs:
+      - apiVersion: postgresql.cnpg.io/v1
+        kind: Cluster
+        current: {{ database_current | to_json }}
+{% if not preparing %}
+{% if observability_backup_mode == 'files' %}
+  - name: {{ prefix }}-backup-storage
+    depends_on: [{name: {{ prefix }}-grafana-before}]
+    resources: {{ backup_repository_storage_documents | default([]) | rejectattr('kind', 'equalto', 'Namespace') | list | to_json }}
+    health:
+      - {apiVersion: v1, kind: PersistentVolumeClaim, name: {{ observability_backup_files.claim }}, namespace: {{ observability_namespace }}}
+      - {apiVersion: v1, kind: PersistentVolume, name: {{ observability_backup_files.volume_name }}}
+      - {apiVersion: postgresql.cnpg.io/v1, kind: Cluster, name: grafana-db, namespace: {{ observability_namespace }}}
+    health_check_exprs:
+      - apiVersion: v1
+        kind: PersistentVolume
+        current: >-
+          has(status.phase) && status.phase == 'Bound' &&
+          spec.csi.driver == 'nfs.csi.k8s.io' &&
+          spec.csi.volumeHandle == {{ observability_backup_files.volume_handle | to_json }} &&
+          spec.persistentVolumeReclaimPolicy == 'Retain' &&
+          spec.claimRef.name == {{ observability_backup_files.claim | to_json }} &&
+          spec.claimRef.namespace == {{ observability_namespace | to_json }} &&
+          !has(metadata.deletionTimestamp)
+      - apiVersion: postgresql.cnpg.io/v1
+        kind: Cluster
+        current: >-
+          {{ database_current }} &&
+          string(status.systemID) == {{ observability_backup_files.system_identifier | string | to_json }} &&
+          spec.imageName == {{ observability_database_image | to_json }}
+{% endif %}
+  - name: {{ prefix }}-backup
+{% if observability_backup_mode == 'files' %}
+    depends_on: [{name: {{ prefix }}-backup-storage}]
+{% else %}
+    depends_on: [{name: {{ prefix }}-grafana-before}]
+{% endif %}
+    timeout: 65m
+{% if observability_backup_mode == 'files' %}
+{% set backups = lookup('ansible.builtin.file', observability_output ~ '/grafana-db-files.yml') | from_yaml_all | list %}
+{% set initial = backups | selectattr('kind', 'equalto', 'Job') | first %}
+    resources: {{ backups | to_json }}
+    health:
+      - apiVersion: batch/v1
+        kind: Job
+        name: {{ initial.metadata.name }}
+        namespace: {{ observability_namespace }}
+{% else %}
+{% set backup_revision = (observability_database_image ~ observability_backup_destination ~ observability_backup_endpoint) | hash('sha256') %}
+{% set backup_name = 'grafana-db-acceptance-' ~ backup_revision[:10] %}
+    resources:
+      - apiVersion: postgresql.cnpg.io/v1
+        kind: Backup
+        metadata: {name: {{ backup_name }}, namespace: {{ observability_namespace }}}
+        spec:
+          cluster: {name: grafana-db}
+          method: plugin
+          pluginConfiguration: {name: barman-cloud.cloudnative-pg.io}
+    health:
+      - apiVersion: postgresql.cnpg.io/v1
+        kind: Backup
+        name: {{ backup_name }}
+        namespace: {{ observability_namespace }}
+    health_check_exprs:
+      - apiVersion: postgresql.cnpg.io/v1
+        kind: Backup
+        failed: 'has(status.phase) && status.phase == "failed"'
+        current: 'has(status.phase) && status.phase == "completed"'
+{% endif %}
+{% endif %}

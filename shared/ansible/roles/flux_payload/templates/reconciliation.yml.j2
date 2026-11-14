@@ -1,0 +1,43 @@
+{% for stage in flux_payload_graph %}
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: {{ stage.name }}
+  namespace: {{ flux_payload_namespace }}
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled
+spec:
+  interval: 5m
+  retryInterval: 1m
+  timeout: {{ stage.timeout | default('20m') }}
+  path: ./clusters/tier1/{{ flux_payload_component }}/{{ 'accepted' if stage.name == flux_payload_component | replace('/', '-') else 'stages/' ~ stage.name }}
+  sourceRef: {kind: GitRepository, name: {{ flux_payload_source_name }}}
+  serviceAccountName: {{ flux_payload_service_account }}
+  prune: false
+  deletionPolicy: Orphan
+  force: false
+  wait: {{ stage.wait | default(false) | bool | lower }}
+  decryption:
+    provider: sops
+    secretRef: {name: {{ flux_payload_age_secret }}}
+{% if stage.depends_on | default([]) | length > 0 %}
+  dependsOn:
+{{ stage.depends_on | to_nice_yaml | indent(4, true) }}
+{% endif %}
+{% if stage.health | default([]) | length > 0 %}
+  healthChecks:
+{% for health in stage.health %}
+    - apiVersion: {{ health.apiVersion | default(health.api_version | default('apiextensions.k8s.io/v1')) }}
+      kind: {{ health.kind }}
+      name: {{ health.name }}
+{% if health.namespace is defined %}
+      namespace: {{ health.namespace }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if stage.health_check_exprs | default([]) | length > 0 %}
+  healthCheckExprs:
+{{ stage.health_check_exprs | to_nice_yaml | indent(4, true) }}
+{% endif %}
+---
+{% endfor %}

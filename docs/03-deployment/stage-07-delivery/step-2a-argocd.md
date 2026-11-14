@@ -1,5 +1,10 @@
 # Step 2a: Argo CD application GitOps
 
+**Alternative:** the selected fresh Tier 1 path is [Flux with Spinnaker promotion](procedures/flux-platform.md).
+Use this Argo CD path only for an explicitly recorded scope with one deployment writer per object.
+Retain `delivery_platform_owner: ansible` for the direct installer below; do not enable Argo applications
+over Flux-owned resources. Existing sites are preserved until deliberate adoption.
+
 **Working repository:** `<prefix>-tier-1`.
 **Branch from:** [Step 2](README.md#step-2-select-and-qualify-delivery).
 **Return:** after configuring this choice, [Action 3](README.md#step-3-choose-the-secret-owner);

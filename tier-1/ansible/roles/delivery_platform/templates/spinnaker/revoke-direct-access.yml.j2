@@ -1,0 +1,41 @@
+---
+# Run once from an independent maintenance host after disabling old delivery writers.
+# Rendering never executes this recipe.
+- name: Revoke legacy direct deployment identities before Flux orchestration
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Require the explicitly selected maintenance kubeconfig and context
+      ansible.builtin.assert:
+        that:
+          - adoption_kubeconfig | default('') | length > 0
+          - adoption_context | default('') | length > 0
+          - adoption_writers_disabled | default(false) | bool
+    - name: Revoke bindings before removing credentials and previous writer identities
+      kubernetes.core.k8s:
+        kubeconfig: {% raw %}"{{ adoption_kubeconfig }}"{% endraw %}
+
+        context: {% raw %}"{{ adoption_context }}"{% endraw %}
+
+        validate_certs: true
+        state: absent
+        wait: true
+        definition:
+{% for namespace in delivery_platform_spinnaker_destinations %}
+          - apiVersion: rbac.authorization.k8s.io/v1
+            kind: RoleBinding
+            metadata: {name: {{ delivery_platform_spinnaker_namespace }}-deployer, namespace: {{ namespace }}}
+          - apiVersion: v1
+            kind: Secret
+            metadata: {name: {{ delivery_platform_spinnaker_namespace }}-deployer-token, namespace: {{ namespace }}}
+          - apiVersion: rbac.authorization.k8s.io/v1
+            kind: Role
+            metadata: {name: {{ delivery_platform_spinnaker_namespace }}-deployer, namespace: {{ namespace }}}
+          - apiVersion: v1
+            kind: ServiceAccount
+            metadata: {name: {{ delivery_platform_spinnaker_namespace }}-deployer, namespace: {{ namespace }}}
+          - apiVersion: v1
+            kind: Secret
+            metadata: {name: spinnaker-account-{{ namespace }}, namespace: {{ delivery_platform_spinnaker_namespace }}}
+{% endfor %}

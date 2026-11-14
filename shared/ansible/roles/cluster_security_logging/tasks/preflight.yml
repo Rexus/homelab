@@ -1,4 +1,18 @@
 ---
+- name: Require a single explicit security collector owner
+  ansible.builtin.assert:
+    that:
+      - cluster_security_logging_owner in ['ansible', 'flux']
+      - cluster_security_logging_flux_phase in ['prepare', 'publish']
+      - cluster_security_logging_owner != 'flux' or cluster_security_logging_tier | int == 1
+      - cluster_security_logging_owner != 'flux' or cluster_security_logging_action == 'render'
+      - cluster_security_logging_owner != 'flux' or cluster_security_logging_flux_migration in ['fresh', 'adopt']
+      - cluster_security_logging_flux_migration != 'adopt' or cluster_security_logging_previous_writer_disabled | bool
+      - >-
+        cluster_security_logging_owner != 'flux' or cluster_security_logging_flux_phase == 'prepare' or
+        (cluster_security_logging_manage_secrets | bool and cluster_security_logging_flux_age_recipients | length > 0)
+    fail_msg: Tier 1 Flux publishes encrypted collectors after preparation; stop previous writers explicitly for adoption. Direct apply is unavailable for the Flux owner.
+
 - name: Require explicit scope, pinned artifacts and approved repositories
   ansible.builtin.assert:
     that:
@@ -78,4 +92,6 @@
       - cluster_security_logging_talos_configured | bool
       - cluster_security_logging_host_access_accepted | bool
     fail_msg: Enroll every client stream at intake, apply the reviewed Talos patches, and approve collector host access.
-  when: cluster_security_logging_action == 'apply'
+  when: >-
+    cluster_security_logging_action == 'apply' or
+    (cluster_security_logging_owner == 'flux' and cluster_security_logging_flux_phase == 'publish')

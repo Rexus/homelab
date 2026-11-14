@@ -1,0 +1,65 @@
+---
+- name: Validate the independently authorized Tier 1 maintenance scope
+  ansible.builtin.assert:
+    that:
+      - flux_maintenance_action in ['render', 'apply']
+      - flux_maintenance_operation in ['inspect', 'advance', 'suspend', 'resume', 'recover']
+      - flux_maintenance_source in ['platform', 'tier1-platform', 'tier1-applications']
+      - flux_maintenance_action != 'apply' or flux_maintenance_kubeconfig | length > 0
+      - flux_maintenance_operation == 'inspect' or flux_maintenance_approved | bool
+      - flux_maintenance_operation != 'advance' or flux_maintenance_source != 'tier1-applications'
+      - flux_maintenance_operation not in ['advance', 'recover'] or flux_maintenance_revision is match('^([a-f0-9]{40}|[a-f0-9]{64})$')
+      - flux_maintenance_operation != 'recover' or flux_maintenance_source == 'tier1-applications'
+      - flux_maintenance_operation != 'advance' or flux_maintenance_health_checks | length > 0
+      - >-
+        flux_maintenance_source != 'platform' or flux_maintenance_operation not in ['advance', 'resume'] or
+        flux_maintenance_canary_sha256 is match('^[a-f0-9]{64}$')
+      - >-
+        flux_maintenance_operation != 'resume' or flux_maintenance_source != 'tier1-applications' or
+        flux_maintenance_revision is match('^([a-f0-9]{40}|[a-f0-9]{64})$')
+      - >-
+        flux_maintenance_operation != 'resume' or flux_maintenance_source != 'tier1-applications' or
+        (flux_maintenance_data_restored | bool and flux_maintenance_executions_fenced | bool)
+    fail_msg: Select the exact approved Tier 1 operation. Application recovery stays suspended until data and stale execution fencing are accepted; promotions cannot advance platform sources.
+
+- name: Require concrete workload or revision health gates
+  ansible.builtin.assert:
+    that:
+      - item.kind in ['Kustomization', 'HelmRelease', 'Deployment', 'DaemonSet', 'StatefulSet', 'Job']
+      - item.name is match('^[a-z0-9][a-z0-9.-]*$')
+      - item.namespace is match('^[a-z0-9][a-z0-9.-]*$')
+      - item.api_version is defined
+      - item.kind != 'Kustomization' or item.name != flux_maintenance_source
+    fail_msg: Select the affected child reconciliations and actual workloads, not the already checked root or an arbitrary existing object.
+  loop: "{{ flux_maintenance_health_checks }}"
+
+- name: Validate the protected delivery branch before any recovery resume
+  ansible.builtin.command:
+    argv: [git, check-ref-format, "refs/heads/{{ flux_maintenance_application_branch }}"]
+  changed_when: false
+  when:
+    - flux_maintenance_operation == 'resume'
+    - flux_maintenance_source == 'tier1-applications'
+
+- name: Identify this proposed operation independently of a previous success receipt
+  ansible.builtin.set_fact:
+    flux_maintenance_operation_id: "{{ lookup('ansible.builtin.password', '/dev/null', length=24, chars=['ascii_lowercase', 'digits']) }}"
+
+- name: Prepare private maintenance records
+  ansible.builtin.file:
+    path: "{{ flux_maintenance_output }}"
+    state: directory
+    mode: '0700'
+
+- name: Render the exact proposed operation before any cluster access
+  ansible.builtin.copy:
+    dest: "{{ flux_maintenance_output }}/proposed-change.json"
+    content: >-
+      {{ {'version': 1, 'operation_id': flux_maintenance_operation_id, 'operation': flux_maintenance_operation,
+          'source': flux_maintenance_source, 'commit': flux_maintenance_revision,
+          'health_checks': flux_maintenance_health_checks} | to_nice_json }}
+    mode: '0600'
+
+- name: Inspect and maintain only the explicitly selected existing Tier 1 Flux
+  ansible.builtin.include_tasks: apply.yml
+  when: flux_maintenance_action == 'apply'

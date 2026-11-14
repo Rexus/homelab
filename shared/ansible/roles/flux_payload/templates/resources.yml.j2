@@ -1,0 +1,9 @@
+{% for resource in flux_payload_stage.resources %}
+{% set metadata = resource.get('metadata', {}) %}
+{% set annotations = metadata.get('annotations', {}) %}
+{% if resource.kind in ['Namespace', 'PersistentVolume', 'PersistentVolumeClaim', 'Secret', 'Cluster', 'Backup', 'ScheduledBackup', 'ObjectStore', 'Job', 'HelmRelease'] %}
+{% set annotations = annotations | combine({'kustomize.toolkit.fluxcd.io/prune': 'disabled', 'helm.sh/resource-policy': 'keep'}) %}
+{% endif %}
+{{ resource | combine({'metadata': metadata | combine({'annotations': annotations})}) | to_nice_yaml }}
+---
+{% endfor %}

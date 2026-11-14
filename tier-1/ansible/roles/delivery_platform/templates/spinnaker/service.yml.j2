@@ -30,21 +30,25 @@ redis:
   scheduler: {enabled: true}
 kubernetes:
   enabled: true
-  primaryAccount: {{ delivery_platform_spinnaker_destinations[0] }}
+  primaryAccount: {{ delivery_platform_spinnaker_promotion_namespace if delivery_platform_spinnaker_delivery_mode == 'flux'
+                     else delivery_platform_spinnaker_destinations[0] }}
   loadNamespacesInAccount: false
   accounts:
-{% for namespace in delivery_platform_spinnaker_destinations %}
+{% for namespace in spinnaker_native_account_namespaces %}
     - name: {{ namespace }}
       providerVersion: V2
       kubeconfigFile: /accounts/{{ namespace }}/kubeconfig
-      serviceAccount: false
+      serviceAccount: {{ (delivery_platform_spinnaker_delivery_mode == 'flux') | to_json }}
       namespaces: [{{ namespace }}]
-      checkPermissionsOnStartup: true
-      onlySpinnakerManaged: true
+      checkPermissionsOnStartup: {{ (delivery_platform_spinnaker_delivery_mode == 'direct') | to_json }}
+      onlySpinnakerManaged: {{ (delivery_platform_spinnaker_delivery_mode == 'direct') | to_json }}
       permissions:
-        READ: {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_reader_group,
-                   delivery_platform_spinnaker_writer_group] | to_json }}
-        WRITE: {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_writer_group] | to_json }}
+        READ: {{ spinnaker_native_identity_groups | to_json }}
+        WRITE: {{ ([delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_writer_group]
+                   if delivery_platform_spinnaker_delivery_mode == 'direct' else
+                   [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_promotion_executor_group]
+                   if namespace == delivery_platform_spinnaker_promotion_namespace else
+                   [delivery_platform_spinnaker_admin_group]) | to_json }}
 {% endfor %}
 artifacts:
   http:
@@ -84,9 +88,10 @@ auth:
     provider: {application: aggregate}
     source:
       application:
-        resource: {enabled: false}
+        resource: {enabled: {{ (delivery_platform_spinnaker_delivery_mode == 'flux') | to_json }}}
         prefix:
-          enabled: true
+          enabled: {{ (delivery_platform_spinnaker_delivery_mode == 'direct') | to_json }}
+{% if delivery_platform_spinnaker_delivery_mode == 'direct' %}
           prefixes:
             - prefix: '*'
               permissions:
@@ -94,6 +99,7 @@ auth:
                           delivery_platform_spinnaker_writer_group] | to_json }}
                 WRITE: {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_writer_group] | to_json }}
                 EXECUTE: {{ [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_writer_group] | to_json }}
+{% endif %}
 {% elif spinnaker_native_service == 'echo' %}
 scheduler:
   enabled: true
@@ -115,8 +121,7 @@ spring:
         registration:
           user-info-requirements:
             {{ delivery_platform_spinnaker_oidc_roles_claim | to_json }}: {{ ('/^(' ~
-              ([delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_reader_group,
-                delivery_platform_spinnaker_writer_group] | map('regex_escape') | join('|')) ~ ')$/') | to_json }}
+              (spinnaker_native_identity_groups | map('regex_escape') | join('|')) ~ ')$/') | to_json }}
           user-info-mapping:
             username: preferred_username
             email: email

@@ -1,0 +1,112 @@
+---
+- name: Validate the private render destination and independent Flux identity
+  ansible.builtin.assert:
+    that:
+      - flux_payload_root is match('^/')
+      - flux_payload_component is match('^[a-z0-9-]+(/[a-z0-9-]+)*$')
+      - flux_payload_releases is sequence
+      - flux_payload_releases is not string
+      - flux_payload_releases is not mapping
+      - flux_payload_stages is sequence
+      - flux_payload_stages is not string
+      - flux_payload_stages is not mapping
+      - flux_payload_secrets is mapping
+      - flux_payload_age_recipients | length > 0
+      - flux_payload_age_recipients is not string
+      - flux_payload_source_name is match('^[a-z0-9-]+$')
+      - flux_payload_namespace is match('^[a-z0-9-]+$')
+      - flux_payload_service_account is match('^[a-z0-9-]+$')
+      - flux_payload_age_secret is match('^[a-z0-9-]+$')
+    fail_msg: Supply an absolute private clusters/tier1 checkout, component path and independently retained age recipients.
+
+- name: Validate age encryption recipients before writing output
+  ansible.builtin.assert:
+    that:
+      - item is match('^age1[0-9a-z]{58}$')
+  loop: "{{ flux_payload_age_recipients }}"
+
+- name: Require the existing checked-out platform configuration repository
+  ansible.builtin.command:
+    argv: [git, -C, "{{ flux_payload_root }}", rev-parse, --show-toplevel]
+  changed_when: false
+
+- name: Check native SOPS encryption tooling
+  ansible.builtin.command:
+    argv: [sops, --version]
+  changed_when: false
+
+- name: Validate every complete release and its stable secret material
+  ansible.builtin.include_tasks: validate-release.yml
+  loop: "{{ flux_payload_releases }}"
+  loop_control:
+    loop_var: flux_payload_release
+  no_log: true
+
+- name: Assemble native dependency graph from reviewed product contracts
+  ansible.builtin.set_fact:
+    flux_payload_prefix: "{{ flux_payload_component | replace('/', '-') }}"
+    flux_payload_graph: "{{ lookup('ansible.builtin.template', 'graph.yml.j2') | from_yaml }}"
+  no_log: true
+
+- name: Initialize the component readiness dependencies
+  ansible.builtin.set_fact:
+    flux_payload_aggregate_dependencies: []
+
+- name: Include every child stage in component readiness
+  ansible.builtin.set_fact:
+    flux_payload_aggregate_dependencies: "{{ flux_payload_aggregate_dependencies + [{'name': item.name}] }}"
+  loop: "{{ flux_payload_graph }}"
+  no_log: true
+
+- name: Append the stable component readiness aggregate
+  ansible.builtin.set_fact:
+    flux_payload_graph: >-
+      {{ flux_payload_graph + [{'name': flux_payload_prefix, 'resources': [],
+         'depends_on': flux_payload_aggregate_dependencies}] }}
+  no_log: true
+
+- name: Validate unique bounded stage identities
+  ansible.builtin.assert:
+    that:
+      - flux_payload_graph | map(attribute='name') | unique | length == flux_payload_graph | length
+      - flux_payload_releases | map(attribute='name') | unique | length == flux_payload_releases | length
+
+- name: Validate native stage contracts before writing output
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z0-9][a-z0-9-]{0,62}$')
+      - item.resources is sequence
+      - item.resources is not string
+      - item.depends_on | default([]) is sequence
+      - item.health | default([]) is sequence
+  loop: "{{ flux_payload_graph }}"
+  no_log: true
+
+- name: Prepare private component output
+  ansible.builtin.file:
+    path: "{{ flux_payload_root }}/{{ flux_payload_component }}"
+    state: directory
+    mode: '0700'
+
+- name: Render each dependency stage without contacting Kubernetes
+  ansible.builtin.include_tasks: stage.yml
+  loop: "{{ flux_payload_graph }}"
+  loop_control:
+    loop_var: flux_payload_stage
+  no_log: true
+
+- name: Store the reviewable Flux reconciliation graph
+  ansible.builtin.template:
+    src: reconciliation.yml.j2
+    dest: "{{ flux_payload_root }}/{{ flux_payload_component }}/reconciliation.yaml"
+    mode: '0600'
+
+- name: Publish only this component entry after all stages render successfully
+  ansible.builtin.copy:
+    content: |
+      apiVersion: kustomize.config.k8s.io/v1beta1
+      kind: Kustomization
+      resources:
+        - reconciliation.yaml
+    dest: "{{ flux_payload_root }}/{{ flux_payload_component }}/kustomization.yaml"
+    mode: '0600'

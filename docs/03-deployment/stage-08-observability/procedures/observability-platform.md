@@ -1,5 +1,12 @@
 # Observability configuration reference
 
+**Deployment owner:** the fresh Tier 1 path uses `observability_owner: flux` with private
+`observability_flux_root`, age recipients and explicit fresh/adopt selection. Native renderers
+retain the product contracts and export real staged Flux resources with SOPS Secrets.
+Direct `apply` is only for the retained Ansible alternative and is rejected in Flux mode.
+Use [platform revision maintenance](../../stage-07-delivery/procedures/flux-platform.md#approve-a-platform-revision)
+after each commissioning render; preserve the database-only phase before NAS backup acceptance.
+
 **First installation:** follow [Stage 8's numbered actions](../README.md#deployment-actions).
 The main guide owns input creation, Secret/SSO preparation, database-only preparation and the complete
 render/review/apply sequence. This page defines optional fields, identity contracts and later reconciliation.

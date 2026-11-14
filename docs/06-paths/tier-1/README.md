@@ -26,14 +26,15 @@ prerequisites; this is not a requirement to deploy every example.
 | --- | --- | --- |
 | 1. Confirm foundations | Read project conventions and obtain Tier 0-approved templates, networks, storage, and scoped operator access | Inputs are recorded locally; any identity/DNS/PKI prerequisites in the selected service guide exist |
 | 2. Confirm bootstrap supply | Verify the existing approved Git, image and package sources that work before this platform exists | Cluster and service installation can obtain their artifacts without the future GitLab, registry or build runners |
-| 3. Establish Delivery | Follow [Stage 7](../../03-deployment/stage-07-delivery/README.md): create or accept the Tier 1 cluster/basic platform, install one controller, then commission artifact supply | Runtime, scoped controller, registry interfaces and independent recovery are accepted |
-| 4. Add Observability | Follow the [deployment](../../03-deployment/stage-08-observability/README.md) in Kubernetes with separate workload budgets; the VM alternative supplies only a host baseline until project integration is implemented | Netdata, OpenTelemetry, metrics and OpenSearch; scoped queries; Tier 0 retains control credentials and evidence |
+| 3. Establish Delivery | Follow [Stage 7](../../03-deployment/stage-07-delivery/README.md): bootstrap independent Flux, let it own selected Kubernetes services, commission Spinnaker promotion and artifact supply | Separate sources/identities, exact-revision promotion, old-writer revocation and independent recovery are accepted |
+| 4. Add Observability when selected | Follow the [deployment](../../03-deployment/stage-08-observability/README.md) with Flux-owned Kubernetes payloads and separate workload budgets; dedicated VMs retain their native alternative | Netdata, OpenTelemetry, metrics and OpenSearch; scoped queries; Tier 0 retains control credentials and evidence |
 | 5. Add development services | Follow [Stage 9](../../03-deployment/stage-09-development/README.md): data services, GitLab/SSO, general runners, then Tier 0 Vault/runner handover | Application backups, bounded job access, real Vault claims and original-state continuity are verified |
 
 The Linux setups and the optional Kubernetes path are separate. Source control
-on a Linux VM does not require step 3. Cluster service directories are starter
-locations, not working deployments; check each capability guide's implementation
-scope before planning a rollout.
+on a Linux VM does not require step 3. Project-owned cluster directories start as guarded integration
+locations; native renderers export real pinned service payloads for Flux. Empty directories alone
+install nothing. Stage 8/9 remain opt-in later services; existing sites require
+[explicit adoption](../../03-deployment/stage-07-delivery/procedures/flux-adoption.md).
 
 ## Getting started
 
@@ -60,5 +61,8 @@ workload-user access to Tier 0 credentials. For VM mobility, confirm the
 | Shared prerequisites | [Shared services](../../08-reference/implementation-support.md) |
 | Create the platform cluster | [Tier 1 Kubernetes](../../03-deployment/stage-07-delivery/procedures/platform-cluster.md) |
 | Cluster choices and readiness | [Common cluster foundation](../../03-deployment/stage-04-kubernetes/procedures/kubernetes.md) |
+| Flux sources, promotion authority and alternatives | [Tier 1 ownership](../../01-architecture/10-delivery/flux-ownership.md) |
+| Platform maintenance without Spinnaker | [External maintenance and custody](../../05-operations/05-delivery.md) |
+| Whole Tier 1 loss | [Independent rebuild and product recovery](../../05-operations/06-resilience/recovery/tier-1-products.md#rebuild-tier-1-without-its-services) |
 | Ownership and privileged execution | [Infrastructure control](../../01-architecture/04-hosting/02-provisioning.md) |
 | Refresh and project records | [Project documentation](../../04-development/project-documentation.md) |

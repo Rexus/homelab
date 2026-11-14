@@ -1,8 +1,5 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+# Stage renderers register only selected components; later stages are not bootstrap dependencies.
 resources:
-- source-control
-- artifact-registry
-- ci-runners
-- observability
-- cluster-management
+  - base

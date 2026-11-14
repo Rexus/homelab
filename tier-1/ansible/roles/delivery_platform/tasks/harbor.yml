@@ -16,6 +16,22 @@
       - item is match('^[1-9][0-9]*(Mi|Gi|Ti)$')
   loop: "{{ delivery_platform_harbor_volumes.values() | list }}"
 
+- name: Require retained Harbor internal certificates before transferring Helm ownership
+  ansible.builtin.assert:
+    that:
+      - secret_id in delivery_platform_secrets
+      - required | difference(delivery_platform_secrets.get(secret_id, {}).keys() | list) | length == 0
+      - required | map('extract', delivery_platform_secrets[secret_id]) | select('equalto', '') | list | length == 0
+      - delivery_platform_secrets[secret_id]['ca.crt'] == delivery_platform_secrets[core_id]['ca.crt']
+    fail_msg: Retain Harbor's existing internal TLS material and common CA before Flux export.
+  vars:
+    required: [ca.crt, tls.crt, tls.key]
+    secret_id: "{{ delivery_platform_harbor_namespace }}/harbor-{{ item }}-internal-tls"
+    core_id: "{{ delivery_platform_harbor_namespace }}/harbor-core-internal-tls"
+  loop: [core, jobservice, registry, portal, trivy]
+  when: delivery_platform_owner == 'flux'
+  no_log: true
+
 - name: Select the authoritative registry values and credential references
   ansible.builtin.set_fact:
     delivery_platform_releases: >-

@@ -50,7 +50,7 @@ def tier_readme(writer, tier, prefix, setups):
                    "- `terraform/deployments/kubernetes/`: control-cluster VMs and bootstrap; currently Talos\n"
                    "- `packer/` and `clusters/tier0/`: custom image builds and cluster-service starters"),
         "tier-1": ("- `terraform/deployments/kubernetes/`: platform cluster VMs and bootstrap\n"
-                   "- `clusters/tier1/`: platform manifests; select the delivery controller separately"),
+                   "- `clusters/tier1/`: bootstrap/platform/application sources; independent Flux plus Spinnaker promotion"),
         "tier-2": ("- `terraform/deployments/kubernetes/` and `clusters/tier2/`: workload cluster and manifests\n"
                    "- `environments/` and `workloads/`: project and workload definitions"),
     }
@@ -131,10 +131,15 @@ def tier_readme(writer, tier, prefix, setups):
             "uses explicit CSR/pause and signed-certificate completion phases; offline signing remains separate.\n"
         )
     elif tier == "tier-1":
+        prerequisites = prerequisites.replace(
+            "Tier 1 does not inherit Tier 0 Flux automatically.\n",
+            "Fresh Tier 1 selects independent Flux for platform/application reconciliation and Spinnaker\n"
+            "for application Git promotion. Existing installations require explicit ownership adoption.\n"
+        )
         prerequisites += (
             f"\nAfter [Delivery]({docs}/03-deployment/stage-07-delivery/README.md) and Observability,\n"
             f"follow [Stage 9: Development platform]({docs}/03-deployment/stage-09-development/README.md).\n"
-            "Its native Helm recipe installs GitLab and on-demand Kubernetes job runners.\n"
+            "Its native renderer exports GitLab and on-demand Kubernetes job runners for Tier 1 Flux.\n"
             "Stage 9 provisions the dedicated data-service VMs before installing GitLab.\n"
             "The Linux VM quick start below is an alternative.\n"
         )
@@ -176,6 +181,12 @@ def copy_documentation(writer, prefix, upstream):
               "08-reference/diagrams/signal-pipelines.svg",
               "08-reference/diagrams/kubernetes-platform.svg",
               "08-reference/diagrams/vmid-cutover.svg")
+    assets += ("08-reference/diagrams/tier1-flux-ownership.svg",
+               "08-reference/diagrams/tier1-flux-ownership-760-light.png",
+               "08-reference/diagrams/tier1-flux-ownership-760-dark.png",
+               "08-reference/diagrams/tier1-flux-ownership-1100-light.png",
+               "08-reference/diagrams/tier1-flux-ownership-1100-dark.png",
+               "08-reference/diagrams/render-tier1-flux.cjs")
     current_paths = {f"{AUTO_DOCS}/{path.relative_to(upstream / 'docs').as_posix()}" for path in documents}
     referenced = referenced_manual_aliases(writer, prefix)
     aliases = {path: [alias for alias in compatibility_paths(Path("docs") / path.relative_to(upstream / "docs"))
@@ -183,8 +194,10 @@ def copy_documentation(writer, prefix, upstream):
                for path in documents}
     current_paths.update(f"{AUTO_DOCS}/{alias.as_posix()}" for paths in aliases.values() for alias in paths)
     current_paths.update(f"{AUTO_DOCS}/{asset}" for asset in (*assets, "LICENSE"))
-    current_paths.update(f"{AUTO_DOCS}/{alias.as_posix()}" for asset in assets
-                         for alias in compatibility_paths(Path("docs") / asset))
+    asset_aliases = {asset: [alias for alias in compatibility_paths(Path("docs") / asset)
+                              if alias in referenced] for asset in assets}
+    current_paths.update(f"{AUTO_DOCS}/{alias.as_posix()}" for aliases_for_asset in asset_aliases.values()
+                         for alias in aliases_for_asset)
     prune_auto_docs(writer, current_paths)
     for path in documents:
         content = path.read_text(encoding="utf-8")
@@ -245,7 +258,7 @@ def copy_documentation(writer, prefix, upstream):
         source = upstream / "docs" / asset
         data = source.read_bytes()
         writer.write(f"{AUTO_DOCS}/{asset}", data, source=source)
-        for alias in compatibility_paths(Path("docs") / asset):
+        for alias in asset_aliases[asset]:
             writer.write(f"{AUTO_DOCS}/{alias.as_posix()}", data, source=source)
 
     legacy = writer.root / "docs/generated/upstream"

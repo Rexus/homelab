@@ -1,7 +1,7 @@
 - apiVersion: batch/v1
   kind: Job
   metadata:
-    name: search-security-{{ (lookup('ansible.builtin.template', 'search-policy.yml.j2') ~ observability_search_users_checksum ~ (observability_search_replicas | string)) | hash('sha256') | truncate(10, true, '') }}
+    name: search-security-{{ (lookup('ansible.builtin.template', 'search-policy.yml.j2') ~ observability_search_users_checksum ~ (observability_search_replicas | string) ~ observability_search_policy_revision) | hash('sha256') | truncate(10, true, '') }}
     namespace: {{ observability_namespace }}
   spec:
     backoffLimit: 2
@@ -16,19 +16,40 @@
             image: opensearchproject/opensearch:3.9.0
             command: [/bin/bash, -ec]
             args:
-              - >-
-                /usr/share/opensearch/plugins/opensearch-security/tools/securityadmin.sh
-                -h opensearch -p 9200 -cn opensearch
-                -cacert /admin/ca.crt -cert /admin/tls.crt -key /admin/tls.key
+              - |
+                set -euo pipefail
+                # The security index is initialized by this Job after TLS is serving.
+                for attempt in {1..60}; do
+                  if curl --silent --show-error --max-time 5 --output /dev/null \
+                    --cacert /admin/ca.crt --cert /admin/tls.crt --key /admin/tls.key https://opensearch:9200; then
+                    break
+                  fi
+                  sleep 5
+                done
+                /usr/share/opensearch/plugins/opensearch-security/tools/securityadmin.sh \
+                -h opensearch -p 9200 -cn opensearch \
+                -cacert /admin/ca.crt -cert /admin/tls.crt -key /admin/tls.key \
                 -cd /policy;
 {% for scope in observability_log_scopes %}
-                curl --fail --silent --show-error --output /dev/null --cacert /admin/ca.crt --cert /admin/tls.crt --key /admin/tls.key
-                -H 'Content-Type: application/json' -X PUT
-                https://opensearch:9200/_index_template/{{ scope.name }}
+                curl --fail --silent --show-error --output /dev/null --cacert /admin/ca.crt --cert /admin/tls.crt --key /admin/tls.key \
+                -H 'Content-Type: application/json' -X PUT \
+                https://opensearch:9200/_index_template/{{ scope.name }} \
                 -d '{{ {"index_patterns": [scope.kind ~ "-" ~ scope.name ~ "-*"], "template": {"settings": {"number_of_shards": 1, "number_of_replicas": 1}}} | to_json }}';
 {% endfor %}
-                curl --fail --silent --show-error --cacert /admin/ca.crt --cert /admin/tls.crt --key /admin/tls.key
-                'https://opensearch:9200/_cluster/health?wait_for_status=green&wait_for_nodes=%3E%3D{{ observability_search_replicas }}&timeout=120s';
+                health=$(curl --fail --silent --show-error --cacert /admin/ca.crt --cert /admin/tls.crt --key /admin/tls.key \
+                  'https://opensearch:9200/_cluster/health?wait_for_status=green&wait_for_nodes=%3E%3D{{ observability_search_replicas }}&timeout=120s')
+                pattern='"timed_out"[[:space:]]*:[[:space:]]*false'
+                [[ $health =~ $pattern ]]
+                pattern='"status"[[:space:]]*:[[:space:]]*"green"'
+                [[ $health =~ $pattern ]]
+                for field in number_of_nodes number_of_data_nodes unassigned_shards; do
+                  pattern='"'"$field"'"[[:space:]]*:[[:space:]]*([0-9]+)'
+                  [[ $health =~ $pattern ]]
+                  expected={{ observability_search_replicas }}
+                  [[ $field != unassigned_shards ]] || expected=0
+                  [[ ${BASH_REMATCH[1]} == "$expected" ]]
+                done
+                printf '%s\n' "$health"
             volumeMounts:
               - {name: admin, mountPath: /admin, readOnly: true}
               - {name: policy, mountPath: /policy, readOnly: true}

@@ -47,6 +47,8 @@ observability_prepper_replicas: 2
 observability_search_replicas: 3
 # Enable only to create a new cluster; remove its initial-manager list after acceptance.
 observability_search_bootstrap: false
+# Change deliberately when the native policy/health Job implementation changes.
+observability_search_policy_revision: health-v2
 observability_ui_replicas: 2
 observability_metrics_retention: 30d
 observability_metrics_size: 100Gi
@@ -117,3 +119,11 @@ observability_resources:
   ui:
     requests: {cpu: 250m, memory: 512Mi}
     limits: {cpu: "2", memory: 1Gi}
+
+# Existing local inputs retain their owner until an explicit adoption.
+observability_owner: ansible
+observability_flux_root: ""
+observability_flux_age_recipients: []
+observability_flux_migration: ""
+observability_previous_writer_disabled: false
+observability_flux_depends_on: []

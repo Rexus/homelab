@@ -80,3 +80,4 @@
   ansible.builtin.command:
     argv: [helm, version, --short]
   changed_when: false
+  when: development_platform_owner == 'ansible'

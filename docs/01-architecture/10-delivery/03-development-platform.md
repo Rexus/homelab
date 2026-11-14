@@ -53,9 +53,9 @@ Tier 1 database, cache and repository VMs plus scoped object storage. Tier 1 own
 the application and its data; the storage owner retains object-storage administration.
 The VM-hosted source-control variant satisfies the same service and recovery boundaries.
 
-General CI uses a Tier 1 runner manager and ephemeral job pods. Application delivery
-uses the separately selected Argo CD or Spinnaker controller; Tier 0 keeps Flux and
-its independently recoverable source trust and bootstrap keys. Their release behavior
+General CI uses a Tier 1 runner manager and ephemeral job pods. Selected application delivery
+uses independent Tier 1 Flux and Spinnaker promotion; Tier 0 keeps its own Flux,
+independently recoverable source trust and bootstrap keys. Their release behavior
 is explained in [controller patterns](02-controllers.md), rather than repeated here.
 
 Infrastructure CI uses a separate Tier 0 runner VM with original tier-local inventory

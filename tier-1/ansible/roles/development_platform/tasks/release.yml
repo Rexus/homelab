@@ -10,3 +10,36 @@
     helm_release_output: "{{ development_platform_output }}"
     helm_release_spec: >-
       {{ development_platform_release | combine({'repository': development_platform_chart_repository}) }}
+  when: development_platform_owner == 'ansible'
+
+- name: Resolve the namespace-qualified stable secret mapping
+  ansible.builtin.set_fact:
+    development_platform_flux_secrets: {}
+  when: development_platform_owner == 'flux'
+
+- name: Keep operational secrets in their original namespace
+  ansible.builtin.set_fact:
+    development_platform_flux_secrets: >-
+      {{ development_platform_flux_secrets | combine({
+         development_platform_release.namespace ~ '/' ~ item.name:
+         development_platform_secrets.get(item.name, {})}) }}
+  loop: "{{ development_platform_required_secrets }}"
+  when: development_platform_owner == 'flux'
+  no_log: true
+
+- name: Emit the selected encrypted Flux Helm release and native prerequisites
+  ansible.builtin.include_role:
+    name: flux_payload
+  vars:
+    flux_payload_root: "{{ development_platform_flux_root }}"
+    flux_payload_component: "{{ 'platform/source-control' if development_platform_release.name == 'gitlab' else 'platform/ci-runners' }}"
+    flux_payload_age_recipients: "{{ development_platform_flux_age_recipients }}"
+    flux_payload_depends_on: "{{ development_platform_flux_depends_on }}"
+    flux_payload_secrets: "{{ development_platform_flux_secrets }}"
+    flux_payload_releases:
+      - "{{ development_platform_release | combine({
+           'repository': development_platform_chart_repository,
+           'required_secrets': development_platform_required_secrets,
+           'before': development_platform_runner_support if development_platform_release.name == 'gitlab-runner' else [],
+           'depends_on': development_platform_flux_runner_depends_on if development_platform_release.name == 'gitlab-runner' else []}) }}"
+  when: development_platform_owner == 'flux'

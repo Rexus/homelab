@@ -26,7 +26,8 @@ Confirmed selections for this work:
   Existing qualified object storage is required only by consumers that actually need its API.
 - Keep live databases on Proxmox/Ceph-backed block storage. Scheduled NAS full copies are
   accepted with completed-set recovery, not continuous PITR; legacy object/WAL inputs remain valid.
-- Include the complete Spinnaker reference installation, retaining Argo CD as an alternative.
+- Use independent Tier 1 Flux for selected Kubernetes services, including the complete Spinnaker
+  reference; Spinnaker promotes separate application Git. Retain Argo CD/direct deployment alternatives.
 - Keep protected originals in Tier 0; export only approved copies into Tier 1 search.
 - Keep direct infrastructure CI opt-in, with GitLab/control-hosting administrators trusted at Tier 0.
 - Use parallel agents for bounded implementation and independent native checks.

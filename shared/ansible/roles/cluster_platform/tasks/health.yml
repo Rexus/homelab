@@ -26,6 +26,9 @@
         | selectattr('observedGeneration', 'lt', observed.get('metadata', {}).get('generation', 1))
         | list | length == 0
     - >-
+      observed_status.get('conditions', []) | selectattr('type', 'in', ['Reconciling', 'Stalled'])
+        | selectattr('status', 'equalto', 'True') | list | length == 0
+    - >-
       observed_status.get('observedGeneration', observed.get('metadata', {}).get('generation', 1)) >=
       observed.get('metadata', {}).get('generation', 1)
     - >-
@@ -48,5 +51,13 @@
        observed_status.get('numberReady', 0) == observed_status.get('desiredNumberScheduled', 1) and
        observed_status.get('updatedNumberScheduled', 0) == observed_status.get('desiredNumberScheduled', 1) and
        observed_status.get('numberUnavailable', 0) == 0)
+    - >-
+      cluster_platform_health.kind != 'StatefulSet' or
+      (observed_status.get('observedGeneration', 0) >= observed.get('metadata', {}).get('generation', 1) and
+       observed.get('spec', {}).get('replicas', 0) | int > 0 and
+       observed_status.get('readyReplicas', 0) == observed.get('spec', {}).get('replicas', 1) and
+       observed_status.get('updatedReplicas', 0) == observed.get('spec', {}).get('replicas', 1) and
+       observed_status.get('currentRevision', '') != '' and
+       observed_status.get('currentRevision') == observed_status.get('updateRevision'))
   retries: "{{ cluster_platform_health_retries }}"
   delay: "{{ cluster_platform_health_delay }}"

@@ -1,5 +1,11 @@
 ---
 cluster_security_logging_action: render
+cluster_security_logging_owner: ansible
+cluster_security_logging_flux_phase: publish
+cluster_security_logging_flux_migration: ""
+cluster_security_logging_previous_writer_disabled: false
+cluster_security_logging_flux_root: "{{ playbook_dir }}/../../../clusters/tier1"
+cluster_security_logging_flux_age_recipients: []
 cluster_security_logging_kubeconfig: ""
 cluster_security_logging_context: ""
 cluster_security_logging_output: "{{ playbook_dir }}/../../../secrets/cluster-security-logging"

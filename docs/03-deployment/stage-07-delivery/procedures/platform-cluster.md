@@ -27,8 +27,11 @@ Use [Tier 1 cluster IaC](../../../../tier-1/terraform/deployments/kubernetes) an
 
 ## Purpose
 
-The [Stage 7 runtime figure](../README.md#figure-platform-runtime) shows the three starter node VMs.
-This procedure creates or qualifies that runtime; controller installation follows separately in Stage 7 Step 2.
+The [Stage 7 ownership figure](../README.md#figure-platform-runtime) shows the selected control boundary.
+The [runtime placement](../../../08-reference/diagrams/platform-cluster-runtime.svg) shows the three
+starter node VMs and logical delivery services; it does not assign pods to individual VMs.
+This procedure creates or qualifies that runtime; Flux then owns the selected platform services.
+Spinnaker promotion is commissioned separately in Stage 7 Step 2.
 
 Create the Tier 1 application cluster, then install its basic platform. The same
 [cluster implementation](../../stage-04-kubernetes/procedures/talos-terraform.md)
@@ -142,14 +145,20 @@ cp -n ansible/group_vars/cluster_platform.yml.example ansible/group_vars/cluster
 
 In **`<prefix>-tier-1/`**, edit `ansible/group_vars/cluster_platform.yml`: Tier 1's kubeconfig/context,
 exact chart pins, image access, storage, network/DNS and issuer prerequisites.
-Retain Tier 1's explicit component selection:
+For the selected fresh Tier 1 path, set the independent Flux owner explicitly:
 
 ```yaml
-cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg]
+cluster_platform_tier: 1
+cluster_platform_management: flux
+cluster_platform_components: [cilium, storage, cert_manager, ingress, cloudnative_pg, flux]
+cluster_platform_flux_path: ./clusters/tier1/bootstrap
+cluster_platform_flux_applications_suspended: true
 ```
 
-**Omit Flux in Tier 1.** Tier 0 retains its independent Flux installation; choose
-Argo CD or Spinnaker for Tier 1 application delivery after basic-platform acceptance.
+Complete [independent sources, keys and accepted revisions](flux-platform.md#prepare-independent-sources-and-custody)
+before rendering. Tier 0 retains its independent Flux installation and credentials.
+Bootstrap `platform` is exact-commit RBAC/canary only; `tier1-platform` is a separately approved
+commit and the application branch is in an entirely separate Git project.
 Add `barman_cloud` only for the object/WAL database backup option. Live database
 volumes remain on qualified Proxmox/Ceph-backed block CSI; NAS backup claims are separate.
 
@@ -160,12 +169,15 @@ Run from **`<prefix>-tier-1/`**.
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/cluster-platform.yml \
-  -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=render
+  -e @ansible/group_vars/cluster_platform.yml \
+  -e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass -e cluster_platform_action=render
 ```
 
 Review the private rendered resources using the
 [basic-platform review](../../stage-04-kubernetes/procedures/basic-platform.md).
-Confirm that all resources target Tier 1 and that Flux is absent.
+Confirm all resources target Tier 1, the bootstrap remains immutable, and the separate platform
+payload contains matching Cilium and `flux2` HelmRelease identities with explicit drift correction.
+Publish reviewed configuration through the manual approved process before bootstrap reads it.
 
 ## 9. Apply and qualify the platform
 
@@ -177,11 +189,18 @@ Run from **`<prefix>-tier-1/`**.
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   ansible/playbooks/deployment/cluster-platform.yml \
-  -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=apply
+  -e @ansible/group_vars/cluster_platform.yml \
+  -e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass -e cluster_platform_action=apply
 ```
 
+Initial apply installs only Cilium/Flux and their retrieval/trust prerequisites. Flux adopts both
+through `platform-base` and owns the remaining selected add-ons. After adoption normal Ansible runs
+stop applying these releases; Flux upgrades itself through the approved platform revision.
 The common procedure owns add-on prerequisites and readiness gates, including the
 distinction between installing CloudNativePG and creating an application database.
+Complete [protected node collection](../../stage-04-kubernetes/procedures/security-logging.md) using
+its Tier 1 Flux publication path: enrolled node identities, accepted Talos patches and host access,
+then `platform/security-logging`. The early preparation render remains separate from publication.
 After accepting CNI, logging, storage, ingress, TLS and database-controller gates,
 complete [cluster verification](../../stage-04-kubernetes/procedures/talos-terraform.md#verify-and-hand-over),
 then return to [Stage 7 Step 2](../README.md#step-2-select-and-qualify-delivery).
@@ -196,7 +215,9 @@ The starter has three schedulable control-plane VMs, `pctl-1` through
 `pctl-3`. Reserve control planes for Kubernetes components only after the selected
 worker capacity exists; see the sizing decision in Step 2.
 
-Select one [Argo CD or Spinnaker path](../README.md#step-2-select-and-qualify-delivery).
+The selected path is [Flux with Spinnaker promotion](flux-platform.md).
+Argo CD and direct Spinnaker remain explicit alternatives for separate scopes;
+existing installations require [adoption](flux-adoption.md), never a second competing writer.
 Keep bootstrap Git/OCI and Tier 0 recovery independent of the Tier 1 cluster.
 Separate clusters remain an option where namespace/RBAC isolation is insufficient.
 

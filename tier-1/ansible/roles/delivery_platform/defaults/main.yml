@@ -1,5 +1,17 @@
 ---
 delivery_platform_action: render
+# Existing inputs retain their deployment owner until an explicit adoption.
+delivery_platform_owner: ansible
+delivery_platform_flux_output: "{{ playbook_dir }}/../../../clusters/tier1"
+delivery_platform_flux_component: platform/delivery
+delivery_platform_flux_dependencies: [{name: platform-base}]
+delivery_platform_flux_secret_owner: retained
+delivery_platform_flux_credentials_directory: ""
+delivery_platform_flux_credentials_retained: false
+delivery_platform_flux_initialize_credentials: false
+delivery_platform_flux_sops_age_recipients: []
+# Binary preissued TLS/PKCS12 fields, keyed by namespace/name, already base64 encoded.
+delivery_platform_flux_secret_data: {}
 delivery_platform_kubeconfig: ""
 delivery_platform_context: ""
 delivery_platform_output: "{{ playbook_dir }}/../../../secrets/delivery-platform"
@@ -38,6 +50,13 @@ delivery_platform_argocd_destinations: []
 delivery_platform_spinnaker_namespace: spinnaker
 delivery_platform_spinnaker_host: ""
 delivery_platform_spinnaker_mode: native
+delivery_platform_spinnaker_delivery_mode: direct
+delivery_platform_spinnaker_promotion_namespace: delivery-promotion
+# Flux requires a deliberate fresh/adopt/upgrade/recover selection.
+delivery_platform_spinnaker_lifecycle: ""
+delivery_platform_spinnaker_job_revision: '1'
+delivery_platform_spinnaker_recovery_id: ""
+delivery_platform_spinnaker_recovery_fenced: false
 delivery_platform_spinnaker_overlay: ""
 delivery_platform_repository_root: "{{ playbook_dir }}/../../.."
 delivery_platform_spinnaker_review_sha256: ""
@@ -59,6 +78,9 @@ delivery_platform_spinnaker_destinations: []
 delivery_platform_spinnaker_admin_group: tier1-delivery-admins
 delivery_platform_spinnaker_reader_group: tier1-delivery-readers
 delivery_platform_spinnaker_writer_group: tier1-delivery-writers
+delivery_platform_spinnaker_promotion_requester_group: tier1-promotion-requesters
+delivery_platform_spinnaker_promotion_approver_group: tier1-promotion-approvers
+delivery_platform_spinnaker_promotion_executor_group: tier1-promotion-executors
 delivery_platform_spinnaker_oidc_client_id: spinnaker
 delivery_platform_spinnaker_oidc_scopes: [openid, profile, email]
 delivery_platform_spinnaker_oidc_roles_claim: groups

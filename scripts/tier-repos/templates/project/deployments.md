@@ -117,12 +117,13 @@ Run from [Tier 0](../${repo_prefix}-tier-0/README.md).
 
 ## 7. Delivery
 
-Run from [Tier 1](../${repo_prefix}-tier-1/README.md); Flux remains in Tier 0.
+Run from [Tier 1](../${repo_prefix}-tier-1/README.md); its Flux installation and credentials are independent of Tier 0.
 
 - [ ] Platform cluster and add-ons deployed — [Step 1](docs/auto-docs/03-deployment/stage-07-delivery/README.md#step-1-create-or-accept-the-tier-1-runtime).
-- [ ] Delivery controller installed; select one:
+- [ ] Independent Tier 1 Flux, scoped sources and retained recovery configuration accepted — [Flux platform](docs/auto-docs/03-deployment/stage-07-delivery/procedures/flux-platform.md).
+- [ ] Release orchestration path installed; select one:
   - [ ] Argo CD — [Argo CD path](docs/auto-docs/03-deployment/stage-07-delivery/step-2a-argocd.md).
-  - [ ] Spinnaker — [Spinnaker path](docs/auto-docs/03-deployment/stage-07-delivery/step-2b-spinnaker.md).
+  - [ ] Spinnaker with Flux application promotion — [Spinnaker path](docs/auto-docs/03-deployment/stage-07-delivery/step-2b-spinnaker.md).
 - [ ] Approved artifact source accepted; select one:
   - [ ] **Path 8a:** Harbor deployed — [Registry](docs/auto-docs/03-deployment/stage-07-delivery/procedures/registry.md#install-harbor).
   - [ ] **Alternative 8b:** existing registry accepted — [Registry choices](docs/auto-docs/03-deployment/stage-07-delivery/procedures/registry.md#select-the-procedure).

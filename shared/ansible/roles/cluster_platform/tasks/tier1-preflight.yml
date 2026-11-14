@@ -1,0 +1,78 @@
+---
+- name: Require isolated bootstrap, platform and application configuration sources
+  ansible.builtin.assert:
+    that:
+      - "'flux' in cluster_platform_components"
+      - not cluster_platform_database_enabled | bool or 'storage' in cluster_platform_components
+      - "'barman_cloud' not in cluster_platform_components or ['cloudnative_pg', 'cert_manager'] | difference(cluster_platform_components) | length == 0"
+      - cluster_platform_flux_path == './clusters/tier1/bootstrap'
+      - cluster_platform_flux_platform_commit is match('^([a-f0-9]{40}|[a-f0-9]{64})$')
+      - cluster_platform_flux_platform_url is match('^(https://[^/@\s]+/|ssh://[^\s]+@[^/\s]+/)[^\s]+$')
+      - cluster_platform_flux_application_url is match('^(https://[^/@\s]+/|ssh://[^\s]+@[^/\s]+/)[^\s]+$')
+      - cluster_platform_flux_application_url != cluster_platform_flux_platform_url
+      - cluster_platform_flux_application_url != cluster_platform_flux_url
+      - cluster_platform_flux_application_branch is match('^[a-zA-Z0-9][a-zA-Z0-9._/-]*$')
+      - "'..' not in cluster_platform_flux_application_branch"
+      - cluster_platform_gitops_age_recipients | length > 0
+      - cluster_platform_gitops_root | length > 0
+      - cluster_platform_flux_application_namespaces | length > 0
+      - cluster_platform_flux_application_namespaces | unique | length == cluster_platform_flux_application_namespaces | length
+      - >-
+        [cluster_platform_flux_git_secret, cluster_platform_flux_platform_git_secret,
+         cluster_platform_flux_application_git_secret, cluster_platform_flux_age_secret,
+         cluster_platform_flux_platform_age_secret, cluster_platform_flux_application_age_secret]
+        | unique | length == 6
+      - not cluster_platform_values.get('flux', {}).get('multitenancy', {}).get('enabled', true) is sameas false
+      - cluster_platform_values.get('flux', {}).get('multitenancy', {}).get('defaultServiceAccount', 'default') == 'default'
+    fail_msg: Tier 1 needs independent credentials, approved immutable bootstrap/platform commits and a separate application repository; keep deny-by-default Flux impersonation.
+
+- name: Reject application aliases of a privileged Git project
+  ansible.builtin.assert:
+    that:
+      - application_identity != privileged_identity
+    fail_msg: SSH/HTTPS aliases, .git suffixes and trailing slashes do not create a separate application project.
+  vars:
+    application_identity: >-
+      {{ (cluster_platform_flux_application_url | urlsplit('hostname') | lower) ~
+         (cluster_platform_flux_application_url | urlsplit('path') | regex_replace('/+$', '') | regex_replace('\.git$', '')) }}
+    privileged_identity: >-
+      {{ (item | urlsplit('hostname') | lower) ~
+         (item | urlsplit('path') | regex_replace('/+$', '') | regex_replace('\.git$', '')) }}
+  loop: ["{{ cluster_platform_flux_url }}", "{{ cluster_platform_flux_platform_url }}"]
+
+- name: Validate application namespace limits
+  ansible.builtin.assert:
+    that:
+      - item is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
+      - >-
+        item not in ['default', 'kube-system', 'kube-public', 'kube-node-lease', 'flux-system',
+          'delivery-promotion', 'cert-manager', 'ingress-system', 'csi-nfs', 'ceph-csi-rbd',
+          'cnpg-system', 'databases', 'delivery', 'spinnaker', 'harbor', 'argocd', 'observability',
+          'netdata', 'operations', 'gitlab', 'gitlab-runner', 'ci-jobs', 'cattle-system', 'security-logging']
+      - item not in cluster_platform_flux_additional_platform_namespaces
+      - not item.startswith('kube-')
+  loop: "{{ cluster_platform_flux_application_namespaces }}"
+
+- name: Validate independent Git authentication formats and Secret names
+  ansible.builtin.assert:
+    that:
+      - item.name is match('^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$')
+      - >-
+        (item.url.startswith('https://') and ['username', 'password'] | difference(item['keys']) | length == 0) or
+        (item.url.startswith('ssh://') and ['identity', 'identity.pub', 'known_hosts'] | difference(item['keys']) | length == 0)
+  loop:
+    - name: "{{ cluster_platform_flux_platform_git_secret }}"
+      url: "{{ cluster_platform_flux_platform_url }}"
+      keys: "{{ cluster_platform_flux_platform_git_secret_keys }}"
+    - name: "{{ cluster_platform_flux_application_git_secret }}"
+      url: "{{ cluster_platform_flux_application_url }}"
+      keys: "{{ cluster_platform_flux_application_git_secret_keys }}"
+
+- name: Validate separate Flux paths and credential object names
+  ansible.builtin.assert:
+    that:
+      - item is match('^\./[a-zA-Z0-9_./-]+$')
+      - "'..' not in item"
+  loop:
+    - "{{ cluster_platform_flux_platform_path }}"
+    - "{{ cluster_platform_flux_application_path }}"

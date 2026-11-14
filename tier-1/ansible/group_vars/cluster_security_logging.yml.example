@@ -2,6 +2,12 @@
 # Tier 1 owns these inputs; Shared owns stateless collector execution only.
 # Guide: docs/03-deployment/stage-04-kubernetes/procedures/security-logging.md
 cluster_security_logging_action: render
+cluster_security_logging_owner: flux
+cluster_security_logging_flux_phase: publish
+cluster_security_logging_flux_migration: fresh
+cluster_security_logging_previous_writer_disabled: false
+cluster_security_logging_flux_root: "{{ playbook_dir }}/../../../clusters/tier1"
+cluster_security_logging_flux_age_recipients: []
 cluster_security_logging_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"
 cluster_security_logging_context: ""
 cluster_security_logging_cluster: platform

@@ -50,11 +50,57 @@ should record the choice, rationale, consequences, status, and review trigger.
 | D-033 | Organize documentation by IT domain and reader task | Accepted | Make the directory tree reflect familiar technical topics and operating tasks | The architecture README connects direct networking, compute, identity, cryptography, delivery and operations folders. Generated project records use the same navigation; refresh preserves local designs. See [project documentation](../04-development/project-documentation.md) | When a reader task lacks an authoritative home or parallel guides begin to diverge |
 | D-034 | Separate static architecture from staged deployment | Accepted | Architecture defines structure and contracts; readiness is deployment evidence | Domain designs contain purpose, components, interfaces, alternatives and constraints. Deployment owns stages and readiness; administration owns recurring procedures. See [design contents](../04-development/project-documentation.md#design-document-contents) | When a variant changes interfaces, recovery dependencies or required guarantees |
 | D-035 | Independent Kubernetes clusters in all three tiers | Accepted | Separate APIs, state and administrative authority | Tier-local roots and inventories; compact three-control-plane examples, optional workers; pools are scheduling groups, not security boundaries | If cross-tier authority or physical isolation requirements change |
-| D-036 | Tier 0 Flux; select Tier 1 delivery independently | Accepted boundary; Tier 1 product unselected | Control recovery and broader application delivery have different requirements | [Argo CD or Spinnaker](../01-architecture/10-delivery/02-controllers.md) must be selected and integrated locally; no Tier 0 credentials in Tier 1 delivery | If release, tenancy or recovery needs change |
+| D-036 | Tier 0 Flux; select Tier 1 delivery independently | Tier 0 boundary retained; historical Tier 1 product-unselected status superseded by D-041 | Control recovery and broader application delivery have different requirements | Originally left Argo CD or Spinnaker unselected. D-041 selects independent Tier 1 Flux plus Spinnaker; no Tier 0 credentials or Flux installation are shared | If release, tenancy or recovery needs change |
 | D-037 | Independent syslog-ng OSE network receiver | Accepted | Explicit sources/routing and portable raw records fit early Tier 0 collection without replacing the OS logger | [Receiver contract](../08-reference/syslog-receiver.md): prepared mount/TLS required; queues are not protected retention; rsyslog remains a valid alternative | If OS/package support, evidence format or tested durability requirements change |
 | D-038 | Permanent infrastructure CA and separate identity issuer | Accepted; runtime and phased identity recipes supplied, live acceptance pending | [OpenXPKI Community](../01-architecture/08-cryptography/01-certificate-authority.md) supplies the infrastructure portal; offline clca root signs sibling infrastructure/FreeIPA CAs without requiring later-tier services | Qualify the Debian package exception, independent CA state/recovery and Community enrollment adapter; no automatic migration to Vault, root operations or replacement signing keys | If package lifecycle, enrollment requirements, custody or demonstrated recovery changes |
 | D-039 | Prefer native Kubernetes Observability with separate workloads | Accepted design; product manifests remain integration work | Collector, VictoriaMetrics and OpenSearch have documented native deployments; their resource/scaling needs differ | Include OpenSearch initially; separate gateway, metrics, ingestion, search and UI budgets. Dedicated VMs remain an alternative. Tier 0 Security Logging and Audit and outage visibility stay independent; Tier 1 receives scoped copies without original-evidence mutation rights. See [Observability](../01-architecture/11-operations/03-observability.md) | If product support, capacity isolation, storage, failure domains or recovery guarantees change |
 | D-040 | Organize architecture by foundational capabilities | Accepted | Hosting, networking, data, identity, cryptography, software lifecycle and operations apply across local and managed platforms | [Capability contracts](../01-architecture/README.md#foundational-capabilities) separate functions from products, ownership and deployment stages; zero trust and scaling constrain every capability | If a new function cannot fit an existing contract or an ownership/interface boundary changes |
+| [D-041](#d-041) | Independent Tier 1 Flux owns Kubernetes services; Spinnaker approves/promotes application Git | Accepted design; implementation and live qualification tracked separately | Reuse Flux mechanisms across tiers, retain release orchestration and establish one ongoing resource writer | Separate immutable bootstrap, approved platform commit and protected application project; external maintenance/recovery; preserve legacy alternatives and explicit adoption | If approval, licensing, recovery, service lifecycle or reconciliation authority changes |
+
+<a id="d-041"></a>
+
+## D-041: Tier 1 Flux and Spinnaker promotion
+
+Accepted 2026-11-14. [Tier 1 ownership](../01-architecture/10-delivery/flux-ownership.md) is the
+authoritative design; [installation/adoption](../03-deployment/stage-07-delivery/procedures/flux-platform.md)
+and [operations](../05-operations/05-delivery.md) define the operator path.
+
+Terraform/Ansible retain Proxmox, VM and cluster lifecycle. Ansible installs minimum Cilium, trust,
+credentials, decryption material and initial Flux. Independent Tier 1 Flux then owns all selected
+Kubernetes platform services, including Flux itself and Spinnaker. Spinnaker owns application release
+judgment/promotion; Flux owns application deployment and drift correction. Product owners retain
+persistent-data backup/restore. Services outside Kubernetes keep their existing owners.
+
+Reuse code and patterns across tiers, never Tier 0 credentials, sources, permissions or Flux runtime.
+D-036's Tier 0 recovery boundary remains unchanged. Tier 2 integration is a separate explicit scope.
+Argo CD and direct Spinnaker deployment remain alternatives with one writer per object; existing
+installations and generated project-owned configuration are never silently migrated.
+
+The immutable `platform` source reconciles only bootstrap RBAC and a SOPS canary. A separately pinned
+`tier1-platform` source owns platform services and the `flux2` self-management HelmRelease in
+`platform-base`. External authorized maintenance advances accepted revisions and custody bundles,
+even when Spinnaker is unavailable. The application source `tier1-applications` uses a protected branch
+in an entirely different project; its promotion bot has no platform/bootstrap write authority.
+Application reconciliation is restricted to approved namespaces. Spinnaker's account runs Jobs only
+in `delivery-promotion` and observes applications read-only; old deployment grants must be revoked.
+
+Stage 8/9 selections remain later and optional. Stage 7 retains independent Git/OCI, pinned artifacts,
+keys and configuration before GitLab/Harbor exist. Full recovery restores Tier 0 first, rebuilds Tier 1,
+reconciles dependencies, restores product data and fences old triggers/executions before delivery resumes.
+Resource reconstruction, schema rollback and data recovery are different operations.
+
+Costs include two recoverable Flux installations, native renderer/chart compatibility, lifecycle Jobs,
+SOPS custody, pipeline import maintenance, external revision approval and retained artifacts/backups.
+[Approval controls](../01-architecture/10-delivery/approval-controls.md) use free self-hostable features:
+GitLab CE approval counts are not an enforcement gate; Spinnaker judgment does not guarantee multiple
+distinct approvers, prevent self-approval or create immutable evidence. Administrators retain bypasses.
+Kargo is excluded; progressive delivery is a separate decision.
+
+Accepted design does not establish complete implementation or live operation. The
+[support map](../08-reference/implementation-support.md#tier-1-flux-evidence) separates code coverage,
+transition exceptions and required fresh/adoption, denial, drift, upgrade, outage and recovery evidence.
+Review this decision when the pinned products change these contracts or when stronger approval,
+tenancy, recovery or availability requirements exceed the demonstrated controls.
 
 ## Review triggers
 

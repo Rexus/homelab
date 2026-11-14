@@ -1,5 +1,10 @@
 # Native delivery installation
 
+**Selected Flux path:** use [Flux platform installation](flux-platform.md). This page's direct
+`apply` commands are only for an explicitly retained `delivery_platform_owner: ansible` alternative.
+For Flux ownership the native renderer preserves product contracts and exports encrypted resources;
+Flux performs installation/reconciliation. Never run both writers against the same resources.
+
 **First installation:** follow [Stage 7's numbered actions](../README.md#deployment-actions).
 This procedure supports reconciliation, adoption and later changes to an accepted installation.
 Use the existing selected inputs and Secret owner; do not repeat input creation or commission
@@ -76,6 +81,8 @@ For the controller-only installation, set `delivery_platform_install_harbor: fal
 | --- | --- |
 | `delivery_platform_controller` | Explicit `argocd`, `spinnaker` or `none`; an empty choice fails |
 | `delivery_platform_action` | `render` by default; `apply` changes the selected cluster |
+| `delivery_platform_owner` | `flux` for the selected fresh Tier 1 path; legacy default `ansible` changes only after explicit adoption |
+| `delivery_platform_spinnaker_delivery_mode` | `flux` runs promotion Jobs and observes applications; `direct` is a separate explicit alternative |
 | `delivery_platform_kubeconfig`, `delivery_platform_context` | Both explicit for apply |
 | `delivery_platform_oidc_issuer`, `delivery_platform_oidc_ca_pem` | Exact HTTPS issuer without trailing slash and public IdP CA chain |
 | `delivery_platform_ca_path` | Local trusted CA bundle for HTTPS discovery and endpoint health checks |
@@ -171,6 +178,10 @@ in `ansible/group_vars/delivery_platform.yml`. Complete its certificate and back
 before continuing. Do not apply the combined Spinnaker YAML directly.
 
 ## 6. Apply the reviewed inputs
+
+This section applies only to the retained **Ansible owner**. Flux owners use
+[approved platform revision maintenance](flux-platform.md#approve-a-platform-revision) instead;
+the renderer rejects direct apply in Flux mode.
 
 Apply changes the selected cluster without an interactive confirmation. Use the same inputs and
 Secret owner as the render. For unattended execution, supply an approved Ansible Vault identity

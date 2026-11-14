@@ -1,6 +1,12 @@
 ---
 values:
   installCRDs: true
+{% if cluster_platform_management == 'flux' %}
+  multitenancy:
+    enabled: true
+    defaultServiceAccount: default
+    privileged: true
+{% endif %}
   imageAutomationController:
     create: false
   imageReflectionController:
@@ -18,6 +24,29 @@ required_secrets:
     keys: {{ cluster_platform_flux_git_secret_keys | to_json }}
   - name: {{ cluster_platform_flux_age_secret | to_json }}
     keys: [{{ cluster_platform_flux_age_key | to_json }}]
+{% if cluster_platform_management == 'flux' %}
+  - name: {{ cluster_platform_flux_platform_git_secret | to_json }}
+    keys: {{ cluster_platform_flux_platform_git_secret_keys | to_json }}
+  - name: {{ cluster_platform_flux_platform_age_secret | to_json }}
+    keys: [{{ cluster_platform_flux_age_key | to_json }}]
+  - name: {{ cluster_platform_flux_application_git_secret | to_json }}
+    keys: {{ cluster_platform_flux_application_git_secret_keys | to_json }}
+  - name: {{ cluster_platform_flux_application_age_secret | to_json }}
+    keys: [{{ cluster_platform_flux_age_key | to_json }}]
+{% endif %}
+{% if cluster_platform_management == 'flux' %}
+before:
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata: {name: platform-reconciler, namespace: flux-system}
+    automountServiceAccountToken: false
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata: {name: tier1-platform-reconciler}
+    roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: cluster-admin}
+    subjects:
+      - {kind: ServiceAccount, name: platform-reconciler, namespace: flux-system}
+{% endif %}
 after:
   - apiVersion: source.toolkit.fluxcd.io/v1
     kind: GitRepository
@@ -40,6 +69,9 @@ after:
       interval: 5m
       retryInterval: 1m
       timeout: 5m
+{% if cluster_platform_management == 'flux' %}
+      serviceAccountName: platform-reconciler
+{% endif %}
       path: {{ cluster_platform_flux_path | to_json }}
       prune: false
       wait: true
@@ -50,3 +82,6 @@ after:
         provider: sops
         secretRef:
           name: {{ cluster_platform_flux_age_secret | to_json }}
+{% if cluster_platform_management == 'flux' %}
+{{ lookup('ansible.builtin.template', 'tier1-sources.yml.j2') }}
+{% endif %}

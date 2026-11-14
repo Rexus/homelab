@@ -4,10 +4,15 @@
 **Branch from:** [Step 2](README.md#step-2-select-and-qualify-delivery).
 **Return:** after configuring this choice, [Action 3](README.md#step-3-choose-the-secret-owner);
 qualify the installed controller at [Action 7](README.md#step-7-accept-controller-authorization-and-recovery).
-**Change:** install native Spinnaker release pipelines instead of Argo CD application GitOps.
+**Change:** Flux installs native Spinnaker; Spinnaker approves/promotes application Git.
+Explicit direct Spinnaker deployment remains an alternative with separate resource ownership.
 
 Install the release services and their SQL/Redis state in the accepted Tier 1 cluster.
 The reference below selects a commissioned NAS file repository for independent backup exports.
+Use [Flux platform installation](procedures/flux-platform.md) for the selected render/export,
+approved revision and reconciliation sequence. Direct apply instructions referenced below apply
+only to the retained Ansible/direct alternative. Existing sites first complete
+[adoption and old-token revocation](procedures/flux-adoption.md).
 
 <a id="figure-spinnaker-installation"></a>
 
@@ -137,7 +142,7 @@ login, disabled Fiat and cluster-admin binding.
 | Persistent Redis | Gate sessions and Orca queues remain on Redis; SQL-only queues are not selected [3] |
 | Verified Redis TLS sidecar | Envoy verifies the root and exact DNS SAN; Java clients use authenticated loopback Redis, never plaintext pod-to-pod Redis [6] |
 | Private JVM HTTPS | Preissued per-service PKCS12 certificates, or an explicitly commissioned issuer; public JVM roots plus site/IdP roots, verified SQL and Traefik-to-Gate TLS [4] |
-| Uniform application roles | Fiat grants readers READ and writers WRITE/EXECUTE across applications; per-application metadata cannot broaden this policy |
+| Application roles | Flux orchestration uses reviewed application permissions and admin-only pipeline edits; legacy direct mode retains uniform reader/writer roles |
 | No deprecated packager | Halyard, EOL operators and the archived Helm stable chart are not used [1][3] |
 
 This is a single-replica reference, not HA. Storage, ingress, certificate issuance,
@@ -177,6 +182,8 @@ not software versions with arbitrary placeholders.
 | Input / prerequisite | Required value |
 | --- | --- |
 | Controller | `delivery_platform_controller: spinnaker`, `delivery_platform_spinnaker_mode: native`; leave overlay empty |
+| Ownership | `delivery_platform_owner: flux`, `delivery_platform_spinnaker_delivery_mode: flux`; legacy role defaults remain `ansible` / `direct` |
+| Lifecycle | Explicit `fresh`, `adopt`, `upgrade` or `recover` through `delivery_platform_spinnaker_lifecycle`; retained versioned Job identities and stable private inputs |
 | Cluster | Tier 1 Kubernetes >=1.33, stable native sidecars, enforced NetworkPolicy and Pod Security Admission |
 | Capacity | Eight product Deployments, seven small Envoy sidecars, MySQL and Redis; qualify scheduling and memory against actual worker capacity |
 | Storage | Explicit persistent StorageClass; default claims: MySQL 20Gi, Redis 5Gi, backup staging 32Gi; qualify capacity and encrypted storage |
@@ -285,7 +292,7 @@ and builds JVM truststores from public roots without Tier 0 private keys.
 Runtime/migration SQL users have grants only on their own schema. MySQL root is
 mounted only by MySQL and the provisioning/backup Jobs, never product services.
 
-For each declared target the role creates a namespace-scoped ServiceAccount, Role,
+In the **direct deployment alternative**, for each declared target the role creates a namespace-scoped ServiceAccount, Role,
 RoleBinding and explicit service-account-token Secret. Only that restricted token
 and API CA are copied into Clouddriver's account mount. The installer kubeconfig is
 never copied. These are long-lived integration credentials: revoke by deleting the
@@ -297,6 +304,13 @@ permission to create workloads is authority over that namespace. Roles cannot ma
 Secrets, RBAC, ServiceAccounts, namespaces, nodes, exec or cluster-scoped resources.
 Provision application Secrets and RBAC through their independent owner first.
 This native reference does not register remote Tier 2 clusters or Tier 0 targets.
+
+In the **selected Flux orchestration mode**, the account can run Jobs only in `delivery-promotion`
+and observe approved application namespaces read-only. Flux's restricted application reconciler
+owns their workload writes. The promotion bot can write only the separate application Git project;
+it receives no platform/bootstrap source rights. Revoke existing direct-deploy RoleBindings and
+token Secrets explicitly; replacing account templates does not revoke old credentials.
+Use the [approval limits and bypass tests](../../01-architecture/10-delivery/approval-controls.md).
 
 ## Choose Backup Storage
 
@@ -389,6 +403,32 @@ does not establish independent failure domains, immutable retention or recovery 
 
 ## Step 3: Render, Review and Install
 
+### Selected Flux lifecycle
+
+Use [Flux rendering and approved revision reconciliation](procedures/flux-platform.md#render-services-into-the-platform-source).
+The native base and checksum remain review artifacts; direct Ansible apply below belongs only to the
+legacy alternative. Flux exports a dependency graph instead of applying combined native YAML.
+
+| Lifecycle | Required behavior |
+| --- | --- |
+| `fresh` | Retained credentials; explicit empty SQL/Redis claims; one-time data guard, repository commissioning, SQL initialization, native service migrations, verified backup, then ingress |
+| `adopt` | Previous writer disabled, existing SQL/Redis and original identities preserved; verify schemas/data rather than initialize |
+| `upgrade` | Approved pins and bounded Job revision; existing-data/schema verification and pre-upgrade backup before service-native Liquibase migrations; separate tested rollback/data plan |
+| `recover` | Explicit recovery ID and fencing acknowledgement; product data restored offline; matching `.delivery-restored` markers on SQL/Redis claims; no fresh initialization |
+
+Jobs retain completion instead of TTL deletion; ordinary reconciliation must not recreate completed
+initialization or migration work. A changed Job revision is a separately reviewed operation. The
+empty-data guard fails if a deleted fresh Job is rerun against initialized claims. Repository
+initialization is enabled only for a new absent child directory and disabled after commissioning.
+
+Recovery payloads scale Echo, Orca and Gate to zero, omit ingress and suspend scheduled backups while
+data/queues are fenced. The guard requires original native SQL/Redis content plus the approved
+recovery marker, not an empty PVC. After product restore, stale execution cancellation/review and
+pipeline import, approve the next non-fresh lifecycle revision before enabling services/triggers.
+No automated restore, reverse migration or stale-execution cancellation is implied.
+
+### Retained direct Ansible lifecycle
+
 Check the selected workload, persistence and export scope against the
 [Spinnaker installation figure](#figure-spinnaker-installation) before running the staged installer.
 
@@ -413,7 +453,7 @@ Run from **`<prefix>-tier-1/`**.
 cat secrets/delivery-platform/spinnaker.sha256
 ```
 
-Copy that value into `delivery_platform_spinnaker_review_sha256` in
+For the retained Ansible owner, copy that value into `delivery_platform_spinnaker_review_sha256` in
 `ansible/group_vars/delivery_platform.yml`, then run the
 [common apply command](procedures/delivery-installer.md#render-and-apply) with the same inputs.
 

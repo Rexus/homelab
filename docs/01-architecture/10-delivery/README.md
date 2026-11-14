@@ -133,9 +133,10 @@ Infrastructure changes belong to [Hosting](../04-hosting/02-provisioning.md).
 
 ## Design choices
 
-First decide how approved releases reach their targets: continuous reconciliation or
-pipeline orchestration. [Controller patterns](02-controllers.md) explains the consequence
-of that choice; Tier 0 uses Flux and Tier 1 selects Argo CD or Spinnaker.
+The selected [Tier 1 ownership](flux-ownership.md) combines Spinnaker release approval/promotion
+with independent Flux platform/application reconciliation. Tier 0 retains its own Flux installation.
+[Controller patterns](02-controllers.md) preserves Argo CD and direct Spinnaker alternatives with
+one writer per object. [Approval controls](approval-controls.md) records the free-edition limits.
 
 Then select [artifact supply](01-artifact-supply.md): an existing compatible registry or
 an independently operated registry, with distribution acceleration only where justified.

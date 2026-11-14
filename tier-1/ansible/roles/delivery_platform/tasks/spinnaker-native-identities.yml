@@ -16,6 +16,7 @@
   retries: 30
   delay: 2
   loop: "{{ delivery_platform_spinnaker_destinations }}"
+  when: delivery_platform_spinnaker_delivery_mode == 'direct'
   no_log: true
 
 - name: Mount only namespace-restricted tokens and API trust, never the installer kubeconfig
@@ -34,4 +35,5 @@
         token: "{{ item.resources[0].data.token }}"
         ca.crt: "{{ item.resources[0].data['ca.crt'] }}"
   loop: "{{ spinnaker_native_target_tokens.results }}"
+  when: delivery_platform_spinnaker_delivery_mode == 'direct'
   no_log: true

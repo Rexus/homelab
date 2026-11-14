@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720" role="img" aria-labelledby="title description">
-  <title id="title">Platform cluster and selected delivery controller</title>
-  <desc id="description">Three named Talos node VMs stack inside their Kubernetes runtime. The selected Argo CD or Spinnaker controller is a separate installer inside that same runtime. This placement view makes no traffic or host-failure claim.</desc>
+  <title id="title">Tier 1 platform cluster, Flux and Spinnaker</title>
+  <desc id="description">Three named Talos node VMs stack inside their Kubernetes runtime. Independent Tier 1 Flux owns selected platform services including Spinnaker. Spinnaker promotes application Git. This placement view makes no traffic, scheduling or host-failure claim.</desc>
   <defs>
     <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
       <path d="M0 0 L8 4 L0 8 Z" fill="#627581" />
@@ -46,11 +46,11 @@
         </g>
         <g id="Added" class="group">
           <rect x="495" y="290" width="360" height="180" />
-          <text x="675.0" y="315">Delivery Controller</text>
+          <text x="675.0" y="315">Selected Delivery Services</text>
           <g id="Controller" class="services">
             <rect x="530" y="345" width="290" height="85" />
-            <text x="675.0" y="382.5">A: Argo CD</text>
-            <text x="675.0" y="402.5">or B: Spinnaker</text>
+            <text x="675.0" y="382.5">Tier 1 Flux / platform owner</text>
+            <text x="675.0" y="402.5">Spinnaker / app promotion</text>
           </g>
         </g>
       </g>

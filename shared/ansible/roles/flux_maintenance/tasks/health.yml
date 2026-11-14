@@ -1,0 +1,65 @@
+---
+- name: Inspect the selected reconciliation fence before accepting active reconciliation
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    name: "{{ flux_maintenance_source }}"
+    namespace: flux-system
+  register: flux_maintenance_root
+
+- name: Reject historical readiness from a suspended reconciliation
+  ansible.builtin.assert:
+    that:
+      - flux_maintenance_root.resources | length == 1
+      - not flux_maintenance_root.resources[0].spec.get('suspend', false) | bool
+
+- name: Wait for the exact accepted source and root reconciliation
+  ansible.builtin.include_role:
+    name: cluster_platform
+    tasks_from: health.yml
+  vars:
+    cluster_platform_kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    cluster_platform_context: "{{ flux_maintenance_context }}"
+    cluster_platform_health_retries: "{{ flux_maintenance_retries }}"
+    cluster_platform_health_delay: "{{ flux_maintenance_delay }}"
+    cluster_platform_health:
+      api_version: "{{ item.api_version }}"
+      kind: "{{ item.kind }}"
+      name: "{{ flux_maintenance_source }}"
+      namespace: flux-system
+      condition: Ready
+      revision: "{{ flux_maintenance_effective_revision }}"
+  loop:
+    - {api_version: source.toolkit.fluxcd.io/v1, kind: GitRepository}
+    - {api_version: kustomize.toolkit.fluxcd.io/v1, kind: Kustomization}
+
+- name: Verify each affected controller or service rather than accepting an unrelated Ready resource
+  ansible.builtin.include_role:
+    name: cluster_platform
+    tasks_from: health.yml
+  vars:
+    cluster_platform_kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    cluster_platform_context: "{{ flux_maintenance_context }}"
+    cluster_platform_health_retries: "{{ flux_maintenance_retries }}"
+    cluster_platform_health_delay: "{{ flux_maintenance_delay }}"
+    cluster_platform_health: >-
+      {{ item | combine({'condition': 'Ready'} if item.kind in ['Kustomization', 'HelmRelease'] else {})
+         | combine({'condition': 'Complete'} if item.kind == 'Job' else {})
+         | combine({'revision': flux_maintenance_effective_revision} if item.kind == 'Kustomization' else {}) }}
+  loop: "{{ flux_maintenance_health_checks }}"
+
+- name: Revalidate SOPS canary inclusion when changing the immutable bootstrap revision
+  ansible.builtin.include_role:
+    name: cluster_platform
+    tasks_from: flux.yml
+  vars:
+    cluster_platform_kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    cluster_platform_context: "{{ flux_maintenance_context }}"
+    cluster_platform_flux_commit: "{{ flux_maintenance_effective_revision }}"
+    cluster_platform_flux_canary_name: "{{ flux_maintenance_canary_name }}"
+    cluster_platform_flux_canary_key: "{{ flux_maintenance_canary_key }}"
+    cluster_platform_flux_canary_sha256: "{{ flux_maintenance_canary_sha256 }}"
+  when: flux_maintenance_source == 'platform'

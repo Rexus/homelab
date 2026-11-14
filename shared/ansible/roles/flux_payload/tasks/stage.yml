@@ -1,0 +1,55 @@
+---
+- name: Resolve the bounded stage output directory
+  ansible.builtin.set_fact:
+    flux_payload_stage_directory: >-
+      {{ 'accepted' if flux_payload_stage.name == flux_payload_prefix else 'stages/' ~ flux_payload_stage.name }}
+
+- name: Prepare private native stage directory
+  ansible.builtin.file:
+    path: "{{ flux_payload_root }}/{{ flux_payload_component }}/{{ flux_payload_stage_directory }}"
+    state: directory
+    mode: '0700'
+
+- name: Resolve native resources and retain sensitive lifecycle objects
+  ansible.builtin.set_fact:
+    flux_payload_stage_yaml: "{{ lookup('ansible.builtin.template', 'resources.yml.j2') }}"
+    flux_payload_stage_encrypted: >-
+      {{ flux_payload_stage.resources | selectattr('kind', 'in', ['Secret', 'ConfigMap']) | list | length > 0 }}
+  no_log: true
+
+- name: Encrypt secret and configuration data through native SOPS stdin
+  ansible.builtin.command:
+    argv:
+      - sops
+      - --encrypt
+      - --input-type
+      - yaml
+      - --output-type
+      - yaml
+      - --encrypted-regex
+      - '^(data|stringData|binaryData)$'
+      - --age
+      - "{{ flux_payload_age_recipients | join(',') }}"
+      - /dev/stdin
+    stdin: "{{ flux_payload_stage_yaml }}"
+    stdin_add_newline: false
+  register: flux_payload_encrypted
+  changed_when: false
+  when: flux_payload_stage_encrypted | bool
+  no_log: true
+
+- name: Store only encrypted data or public native resources
+  ansible.builtin.copy:
+    content: "{{ flux_payload_encrypted.stdout if flux_payload_stage_encrypted else flux_payload_stage_yaml }}"
+    dest: "{{ flux_payload_root }}/{{ flux_payload_component }}/{{ flux_payload_stage_directory }}/resources.yaml"
+    mode: '0600'
+  no_log: true
+
+- name: Store the bounded native stage index
+  ansible.builtin.copy:
+    content: |
+      apiVersion: kustomize.config.k8s.io/v1beta1
+      kind: Kustomization
+      resources: {{ ['resources.yaml'] if flux_payload_stage.resources | length > 0 else [] }}
+    dest: "{{ flux_payload_root }}/{{ flux_payload_component }}/{{ flux_payload_stage_directory }}/kustomization.yaml"
+    mode: '0600'

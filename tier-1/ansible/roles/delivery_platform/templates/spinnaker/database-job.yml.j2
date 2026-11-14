@@ -19,6 +19,10 @@ spec:
           command: [sh, /bootstrap/initialize-databases.sh]
           securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
           env:
+{% if delivery_platform_owner == 'flux' %}
+            - name: SPINNAKER_DATABASE_ACTION
+              value: {{ ('initialize' if delivery_platform_spinnaker_lifecycle == 'fresh' else 'verify') | to_json }}
+{% endif %}
             - name: MYSQL_PWD
               valueFrom: {secretKeyRef: {name: spinnaker-mysql-root, key: password}}
           volumeMounts:

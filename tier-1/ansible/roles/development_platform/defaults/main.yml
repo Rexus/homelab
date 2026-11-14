@@ -39,3 +39,12 @@ development_platform_runner_additional_allowed_images: []
 development_platform_runner_resources:
   requests: {cpu: 100m, memory: 128Mi}
   limits: {cpu: "1", memory: 512Mi}
+
+# Existing local inputs retain their owner until an explicit adoption.
+development_platform_owner: ansible
+development_platform_flux_root: ""
+development_platform_flux_age_recipients: []
+development_platform_flux_migration: ""
+development_platform_previous_writer_disabled: false
+development_platform_flux_depends_on: []
+development_platform_flux_runner_depends_on: []

@@ -1,0 +1,22 @@
+---
+flux_maintenance_action: render
+flux_maintenance_operation: inspect
+flux_maintenance_kubeconfig: ""
+flux_maintenance_context: ""
+flux_maintenance_source: tier1-platform
+flux_maintenance_revision: ""
+flux_maintenance_approved: false
+flux_maintenance_output: "{{ playbook_dir }}/../../../secrets/flux-maintenance"
+flux_maintenance_recovery_directory: ""
+flux_maintenance_custody_accepted: false
+flux_maintenance_artifact_lock_sha256: ""
+flux_maintenance_application_branch: delivery
+flux_maintenance_data_restored: false
+flux_maintenance_executions_fenced: false
+flux_maintenance_health_checks: []
+flux_maintenance_retries: 120
+flux_maintenance_delay: 5
+flux_maintenance_canary_name: platform-sops-canary
+flux_maintenance_canary_key: accepted
+flux_maintenance_canary_sha256: ""
+flux_maintenance_recovery_tool: "{{ playbook_dir }}/../../../scripts/flux-recovery.py"

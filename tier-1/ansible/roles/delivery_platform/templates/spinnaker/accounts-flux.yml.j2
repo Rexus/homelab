@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spinnaker-accounts
+  namespace: {{ delivery_platform_spinnaker_namespace }}
+data:
+{% for namespace in spinnaker_native_account_namespaces %}
+  {{ namespace }}.kubeconfig: |
+    apiVersion: v1
+    kind: Config
+    current-context: {{ namespace }}
+    clusters:
+      - name: tier1
+        cluster:
+          server: https://kubernetes.default.svc
+          certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    users:
+      - name: clouddriver
+        user: {tokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token}
+    contexts:
+      - name: {{ namespace }}
+        context: {cluster: tier1, user: clouddriver, namespace: {{ namespace }}}
+{% endfor %}
+{% for namespace in spinnaker_native_account_namespaces %}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ namespace }}
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: v1.33
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: spinnaker-observer, namespace: {{ namespace }}}
+rules:
+  - apiGroups: ['']
+    resources: [pods, pods/log, services, events]
+    verbs: [get, list, watch]
+  - apiGroups: [apps]
+    resources: [deployments, replicasets, statefulsets, daemonsets]
+    verbs: [get, list, watch]
+  - apiGroups: [batch]
+    resources: [jobs, cronjobs]
+    verbs: [get, list, watch]
+{% if namespace != delivery_platform_spinnaker_promotion_namespace %}
+  - apiGroups: [kustomize.toolkit.fluxcd.io, helm.toolkit.fluxcd.io]
+    resources: [kustomizations, helmreleases]
+    verbs: [get, list, watch]
+{% endif %}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: spinnaker-observer, namespace: {{ namespace }}}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: spinnaker-observer}
+subjects:
+  - {kind: ServiceAccount, name: clouddriver, namespace: {{ delivery_platform_spinnaker_namespace }}}
+{% if namespace != delivery_platform_spinnaker_promotion_namespace %}
+# Revoke the previous writer alongside the explicit token-removal adoption recipe.
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ delivery_platform_spinnaker_namespace }}-deployer
+  namespace: {{ namespace }}
+  annotations: {delivery.homelab/legacy-access: revoked}
+rules: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ delivery_platform_spinnaker_namespace }}-deployer
+  namespace: {{ namespace }}
+  annotations: {delivery.homelab/legacy-access: revoked}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: {{ delivery_platform_spinnaker_namespace }}-deployer}
+subjects: []
+{% endif %}
+{% endfor %}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: {name: spinnaker-promotion-jobs, namespace: {{ delivery_platform_spinnaker_promotion_namespace }}}
+rules:
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, watch, create, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: {name: spinnaker-promotion-jobs, namespace: {{ delivery_platform_spinnaker_promotion_namespace }}}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: spinnaker-promotion-jobs}
+subjects:
+  - {kind: ServiceAccount, name: clouddriver, namespace: {{ delivery_platform_spinnaker_namespace }}}
