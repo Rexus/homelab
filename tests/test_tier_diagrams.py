@@ -92,11 +92,18 @@ class DiagramConventions(TierRepositoryTestCase):
         for name in ("group", "deploymentGroup", "replicas"):
             self.assertEqual(roles[name]["stroke-dasharray"], "2 3")
         self.assertNotIn("stroke-dasharray", roles["network"])
-        self.assertEqual(roles["traffic"]["fill"], "#303841")
-        for light, medium, strong in (("tier2", "tier1", "tier0"),
-                                      ("zoneEdge", "zoneServices", "zoneControl")):
-            self.assertGreater(luminance(roles[light]["fill"]), luminance(roles[medium]["fill"]))
-            self.assertGreater(luminance(roles[medium]["fill"]), luminance(roles[strong]["fill"]))
+        self.assertEqual(roles["traffic"]["fill"], "#d8cbb9")
+        self.assertEqual(roles["traffic"]["stroke"], "#83715a")
+        self.assertEqual(roles["traffic"]["color"], "#352a1e")
+        for key in ("fill", "stroke", "color"):
+            shades = [roles[name][key] for name in ("tier2", "tier1", "tier0")]
+            for shade in shades:
+                channels = [int(shade[index:index + 2], 16) for index in (1, 3, 5)]
+                self.assertEqual(len(set(channels)), 1, f"{key}: {shade} must be grayscale")
+            self.assertGreater(luminance(shades[0]), luminance(shades[1]), key)
+            self.assertGreater(luminance(shades[1]), luminance(shades[2]), key)
+        self.assertGreater(luminance(roles["zoneEdge"]["fill"]), luminance(roles["zoneServices"]["fill"]))
+        self.assertGreater(luminance(roles["zoneServices"]["fill"]), luminance(roles["zoneControl"]["fill"]))
         identity = ET.parse(IDENTITY_SVG).getroot()
         nodes = {element.get('id'): element for element in identity.iter() if element.get('id')}
         for node, role in (("T0", "tier0"), ("Cluster", "kubernetes"), ("Directory", "network"), ("Ingress", "traffic"),

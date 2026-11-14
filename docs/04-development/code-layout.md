@@ -83,7 +83,7 @@ flowchart TB
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef tier2 fill:#f2f2f2,stroke:#a6a6a6,color:#404040
   classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Tier tier2
   class Modules group

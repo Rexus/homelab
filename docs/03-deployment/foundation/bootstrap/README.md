@@ -47,9 +47,9 @@ flowchart LR
   class Host,API control
   class VM,Tools runtime
   class Image,OS,Data data
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
-  classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
+  classDef tier0Heading fill:#c8c8c8,stroke:#c8c8c8,color:#262626
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   class Network network

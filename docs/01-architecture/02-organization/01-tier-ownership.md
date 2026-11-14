@@ -20,9 +20,9 @@ block-beta
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier2 fill:#f2f2f2,stroke:#a6a6a6,color:#404040
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T2 tier2
   class T1 tier1
   class T0 tier0

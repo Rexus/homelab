@@ -41,9 +41,9 @@ flowchart LR
   class A,B,C edge
   class Clients,Backends actor
   class Pool replicas
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class VIP traffic
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef tier2 fill:#f2f2f2,stroke:#a6a6a6,color:#404040
   class T2 tier2
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   class Zone network

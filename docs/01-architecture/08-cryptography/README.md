@@ -44,9 +44,9 @@ flowchart BT
   end
   T0 ~~~ T1 ~~~ T2
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
+  classDef tier2 fill:#f2f2f2,stroke:#a6a6a6,color:#404040
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3

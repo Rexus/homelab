@@ -44,11 +44,11 @@ flowchart LR
   end
   Clients -->|Verified TLS / authorized API| API
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013

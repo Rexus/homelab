@@ -19,6 +19,48 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Full-clone VMID cutover and state rebinding, 2026-11-14
+
+Hosting operations now owns a general numbered VMID-change procedure, with manual and Terraform
+ownership branches, full netN transfer before boot, validation, job/ACL/HA review, retirement and
+rollback. Bootstrap and logging moves are illustrative; the dependency on releasing an occupied
+target ID is explicit. Linked-clone maintenance and the central VMID reference route to the same guide.
+The existing Linux VM adoption procedure now covers both clones and restores, preserving the exact
+resource address and all unrelated state. Original state/context, private backups and normal plan
+review surround the state rm/import operation. Custom environments/backends retain their own context.
+
+All 27 distinct focused checks passed after one targeted correction to the figure's metadata:
+source/generated links, diagram roles, reader routes and VMID ownership/preservation. Every Bash
+block in both guides passed syntax checks. Isolated command fixtures verified complete multi-NIC
+values, running-source/replacement guards, exact single-resource rebinding, input ordering and paths
+with spaces. Simulated import failure prevents the plan step. These are command-contract checks,
+not a live Proxmox clone or provider import exercise.
+
+The native SVG renders in four 1100/760-pixel light/dark contexts with matching computed palette
+roles. Reviewed previews retain compact groups, left-to-right copy/identity transfer and a legible
+connector label on dark pages. The new SVG is registered in generated documentation. No live VM,
+MAC, state, HA membership, commit or remote branch was changed.
+
+### Gray tier boundaries and service-access reference, 2026-11-14
+
+Tier 2/1/0 now use progressively stronger pure-gray boundaries. Routing interfaces use the former
+strong-tier warm beige with dark text; policy, action, network, runtime, storage and custody roles
+retain their existing meanings. Updated all 92 affected repository figures through their semantic
+style declarations, without changing topology, counts, source bindings or physical placement.
+The global AGENTS.md, shared palette and current cache/identity reference previews use the same rules.
+
+The architecture identity Service access sequence is now a self-contained global reference with
+its exact editable Mermaid source, versioned provenance, light/dark previews and a reproducible
+renderer. Guidance distinguishes chronological request/response exchanges and service-local
+authorization from block-placement and authentication concerns.
+
+All 78 focused diagram, source/generated correspondence, reader-role, navigation and documentation
+checks passed without skips. Ninety-five figures (92 changed repository figures, two global placement
+references and the sequence reference) rendered in all four width/background contexts: 380 renders,
+no errors or computed SVG palette mismatches. Cache, identity and sequence previews were inspected
+at normal/narrow reading widths across light/dark backgrounds. Portable reference scripts were also
+exercised. This does not establish hosted-renderer parity or live behavior. No commit or push performed.
+
 ### Uniform VMID categories, 2026-11-14
 
 The central convention now reserves category 0 in every guest allocation group. Categories 1-6

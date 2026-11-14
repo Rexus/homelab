@@ -31,12 +31,12 @@ flowchart LR
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class VM runtime
   class Timer,Job services
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class Web traffic
   classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
   class OS,Data data
   classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
   class T1 tier1
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   class DMZ network

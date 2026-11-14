@@ -32,7 +32,7 @@ flowchart LR
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   class Admin,Source actor
   class Controller,Targets services

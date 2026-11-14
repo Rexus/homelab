@@ -28,8 +28,8 @@ flowchart LR
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef tier2 fill:#f2f2f2,stroke:#a6a6a6,color:#404040
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class Source data
   class Apps services
   class Route traffic

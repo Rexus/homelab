@@ -31,7 +31,7 @@ flowchart LR
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   classDef policy fill:#f4dce9,stroke:#955076,color:#57253f,stroke-dasharray:3 3
   class CP1,CP2,CP3 control
   class Host1,Host2,Host3 runtime

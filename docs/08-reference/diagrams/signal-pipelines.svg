@@ -9,7 +9,7 @@
       svg { font: 15px Arial, sans-serif; }
       text { fill: currentColor; stroke: none; text-anchor: middle; }
       .actor { fill: #edf0f3; stroke: #697682; color: #293642; }
-      .traffic { fill: #303841; stroke: #8a9baa; color: #ffffff; }
+      .traffic { fill: #d8cbb9; stroke: #83715a; color: #352a1e; }
       .services { fill: #e7f0fc; stroke: #4d719b; color: #203a5b; }
       .actor, .traffic, .services { stroke-dasharray: none; }
       .connection { fill: none; stroke: #627581; stroke-width: 1.5; stroke-dasharray: none; marker-end: url(#arrow); }

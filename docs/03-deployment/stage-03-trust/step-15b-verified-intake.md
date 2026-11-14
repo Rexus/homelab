@@ -42,12 +42,12 @@ flowchart TB
   Layout ~~~ T1 ~~~ T0
   style Layout fill:none,stroke:none
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
+  classDef tier2 fill:#f2f2f2,stroke:#a6a6a6,color:#404040
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
@@ -273,7 +273,7 @@ flowchart LR
   class VM services
   class PVE runtime
   class OS,DATA data
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
   class T1 tier1
   classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d

@@ -8,6 +8,7 @@ ownership. Deployment views show the capability added by a step, not a new archi
 ## Table of contents
 
 - [Layout](#layout)
+- [Sequence interactions](#sequence-interactions)
 - [Compact block composition](#compact-block-composition)
 - [Abstraction and implementation](#abstraction-and-implementation)
 - [Boundaries and colour](#boundaries-and-colour)
@@ -27,6 +28,17 @@ ownership. Deployment views show the capability added by a step, not a new archi
 Block and flowchart figures use `Arial, sans-serif` at 14px. Set `fontFamily` at the configuration
 root as well as in `themeVariables`, with `themeVariables.fontSize: "14px"`; the root setting also
 governs HTML labels. [2][5] Theme-aware sequence and chart views retain their background-specific colours.
+
+## Sequence interactions
+
+Arrange participants from consumer to supporting service or authority across the page, with time
+advancing downward. Label solid `->>` request arrows and dashed `-->>` response arrows, retaining
+the actual direction of each exchange.
+
+Group phases with lightly shaded `rect` regions and theme-aware text. Show authentication and the
+consuming service's local authorization as separate decisions. Choose participants and exchanges
+for the actual integration's protocol contract. Reuse the
+[identity Service access sequence](../01-architecture/09-identity/README.md#service-access).
 
 ## Compact block composition
 
@@ -246,13 +258,13 @@ the documentation tests compare those declarations with the palette.
 
 | Role | Treatment |
 | --- | --- |
-| Tier boundaries | Warm neutrals: light `tier2`, medium `tier1`, strongest `tier0`; the same shade everywhere |
+| Tier boundaries | Pure gray with `tier2` lightest, `tier1` medium and `tier0` strongest, consistent across figures |
 | Other ownership boundary | Warm neutral gray `ownership`, independent of network protection zones |
 | Protection zones | Light rose `zoneEdge`, medium blue `zoneServices`, stronger green `zoneControl`; separate from tiers |
 | Site or ownership boundary | Warm neutral enclosing box, solid border |
 | Network or subnet | Pale gray-rose `network`, solid border, useful input key in its short heading |
 | Kubernetes runtime | Pale blue-gray `kubernetes`; contained inside its owner and actual network |
-| Traffic interface | Charcoal `traffic` with white text for ingress, gateways, VIPs, balancers and listeners |
+| Traffic interface | Warm beige `traffic` with dark text for ingress, gateways, VIPs, balancers and listeners |
 | Policy / access rule | Mauve `policy`, dashed border; permitted traffic, authorization constraints or named policy resources |
 | Action / approval | Pale peach `action`; workflow activity, distinct from deployed service instances |
 | Inner function / service group | Light neutral gray `group`, dotted border inside its actual owner, zone or runtime |
@@ -290,8 +302,8 @@ base theme with mid-tone connectors and pale edge-label backgrounds; charts and
 sequences retain theme-aware axes and text. Mermaid's theme variables and classes
 provide these native controls. [2]
 
-Solid directional arrows represent traffic or a named interface; dashed, labelled
-arrows represent trust or another logical relationship. Double-headed arrows
+In block and flowchart views, solid directional arrows represent traffic or a named
+interface. Dashed, labelled arrows represent trust or another logical relationship. Double-headed arrows
 require a genuinely bidirectional relationship. Omit connections in placement-only
 views rather than implying routes or permissions.
 

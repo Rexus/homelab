@@ -79,7 +79,7 @@ flowchart TB
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
   class O1,M1,Search services
   class Disks data
   class Network network
@@ -195,7 +195,7 @@ flowchart LR
   Gateway -->|Write both copies| Metrics
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class Gateway traffic
   class Prepper,Search,Metrics services
 ```
@@ -221,7 +221,7 @@ flowchart LR
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class Grafana,Metrics services
   class Query traffic
   class DB data

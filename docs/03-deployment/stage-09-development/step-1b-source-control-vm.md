@@ -38,7 +38,7 @@ flowchart LR
   class VM,App services
   class Data data
   class Clients actor
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
   class T1 tier1
   classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d

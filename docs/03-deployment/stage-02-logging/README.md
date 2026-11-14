@@ -148,7 +148,7 @@ flowchart LR
   class Template,Data data
   class VM control
   class Devices,Host actor
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   class Infrastructure group
@@ -445,9 +445,9 @@ flowchart LR
   class VM control
   style Layout fill:none,stroke:none
   class Records data
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
-  classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
+  classDef tier0Heading fill:#c8c8c8,stroke:#c8c8c8,color:#262626
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   class Infrastructure group
   class Network network

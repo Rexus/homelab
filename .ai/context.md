@@ -50,6 +50,10 @@ This file keeps durable context for AI-assisted work across sessions.
 - Static Mermaid block/flowchart figures declare Arial at 14px in both the root fontFamily setting and
   themeVariables; the root setting is required for consistent HTML labels in the reviewed renderer.
   Keep sequence/plot colours theme-aware. See docs/04-development/diagrams.md for the exact source contract.
+- Sequence views order participants from consumer to authority and time downward, distinguish
+  requests from responses, and group phases with `rect`. Keep service-local authorization separate
+  from authentication and choose exchanges for the actual protocol. Reuse the
+  [identity Service access reference](../docs/01-architecture/09-identity/README.md#service-access).
 - In tiered placement views, keep Tier 2 as the top ownership row. Internet/upstream sources and external
   clients sit to its left. Tenants and users enter their target owner's listener from the left. Keep actual
   lower-tier consumers below their upper-tier provider. The project diagram guide owns this placement rule.
@@ -58,12 +62,13 @@ This file keeps durable context for AI-assisted work across sessions.
   starts with the selected running deployment. Introduce substantial enhancements at the start of
   their own section, keep alternatives separate, and refer to stable figure anchors from related steps.
   Focused procedures can link the owning overview instead of repeating it.
-- Keep diagram colour roles distinct using docs/08-reference/diagrams/palette.json: warm neutral tier shades
+- Keep diagram colour roles distinct using docs/08-reference/diagrams/palette.json: pure gray tier shades
   (Tier 2 lightest, Tier 1 medium, Tier 0 strongest), independently styled protection zones
   (light rose DMZ/Edge, medium blue Services, stronger green Control),
-  blue-gray Kubernetes, gray-rose networks, charcoal traffic interfaces, mauve policy/access rules, peach actions, violet data
-  and amber offline custody. Incoming policy annotations sit outside the destination tier/zone/runtime,
-  with a dashed association directly to its ingress/listener; they add no traffic hop or policy ownership.
+  blue-gray Kubernetes, gray-rose networks, warm beige traffic interfaces with dark text, mauve policy/access rules,
+  peach actions, violet data and amber offline custody. Incoming policy annotations sit outside the destination
+  tier/zone/runtime, with a dashed association directly to its ingress/listener. The association leaves
+  routing and policy ownership with their actual components.
   Actual controllers and native policy resources remain in their real hosting/configuration boundaries.
   Tier ownership is not a protection-zone colour; retain the existing zone/component palette inside it.
   Inner function/service, deployment and replica/failover groups use dotted light neutral gray.
@@ -348,6 +353,10 @@ This file keeps durable context for AI-assisted work across sessions.
   1xx, 2xx, 3xx, 4xx, 5xx, 6xx (manual boot-1 601, runner 611, optional ceremony 621).
   3xxx labs and 4xxx clients remain Tier 2-owned, 9xxx templates/builders Tier 0-owned.
   Existing local IDs/state are never renumbered by refresh; new example IDs are not a migration.
+- docs/05-operations/01-hosting/change-vmid.md owns planned full-clone renumbering with complete
+  NIC/MAC preservation, independent host access, original-off cutover, ownership branches and rollback.
+  The linked recovery/terraform-import.md owns single-resource Linux VM rebinding for clones/restores;
+  retain logical keys and unrelated state. Concrete boot/log moves are examples, not a fixed migration.
 - `docs/auto-docs/` holds upstream reference docs with visible refresh/do-not-edit
   notices; existing root READMEs/project templates remain project-owned and are not overwritten;
   refresh recreates missing current starters

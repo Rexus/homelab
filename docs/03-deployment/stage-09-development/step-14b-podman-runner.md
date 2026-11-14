@@ -53,7 +53,7 @@ flowchart LR
   class Runner,Podman edge
   class VM group
   class Git,Registry services
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
   class T1 tier1
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   class Network,Existing network

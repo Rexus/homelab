@@ -16,6 +16,7 @@ Use the recorded original context for other deployments; kit `--env` is not a Te
 | A host-side deletion is intentional; how is its binding removed? | [Forget one deleted resource](#forget-a-deleted-resource) |
 | All objects in one deployment are retired? | [Archive that deployment](#archive-a-retired-deployment) |
 | A VM was restored from backup? | [Reconcile restored resources](#restored-resources) |
+| A full clone replaces an existing VM under another ID? | [VMID cutover and state rebinding](change-vmid.md#8-update-ownership) |
 | The state itself was lost? | [Recover the original state](../06-resilience/recovery/original-state-etcd.md#recover-original-state) |
 
 <a id="inspect-the-original-state"></a>

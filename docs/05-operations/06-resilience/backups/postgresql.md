@@ -37,7 +37,7 @@ flowchart TB
   class Database,NAS data
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
 ```
 

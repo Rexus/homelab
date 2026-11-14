@@ -44,9 +44,9 @@ flowchart TB
   class Project replicas
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class Gateways traffic
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
   class T1 tier1
   classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
@@ -440,11 +440,11 @@ flowchart BT
   class Pipeline,Local group
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class Gateways traffic
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
   class T1 tier1
   classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36

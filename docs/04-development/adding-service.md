@@ -118,7 +118,7 @@ flowchart TB
     Hardware -->|Hardware selection| Guest
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef tier2 fill:#f2f2f2,stroke:#a6a6a6,color:#404040
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class Tier tier2

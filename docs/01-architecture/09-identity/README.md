@@ -49,7 +49,7 @@ flowchart LR
   Hosts ---->|Directory protocols| Directory
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   class IdP default
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
   classDef deploymentGroup fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class IdentityServices deploymentGroup
@@ -64,7 +64,7 @@ flowchart LR
   class Pair replicas
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class Data data
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class Ingress traffic
   classDef policy fill:#f4dce9,stroke:#955076,color:#57253f,stroke-dasharray:3 3
   class NetworkRule policy
@@ -76,7 +76,7 @@ flowchart LR
 *Figure: Authorized consumers enter from outside Tier 0. Within the dotted Identity services grouping,
 Kubernetes on `control_cluster` is to the left of directory authority on `identity`.
 The IdP namespace contains the application and its state below it. Enrolled hosts use the directory directly.*
-The incoming-rule annotation sits outside Tier 0 and points directly to the charcoal ingress.
+The incoming-rule annotation sits outside Tier 0 and points directly to the warm-beige ingress.
 Identity services is a functional grouping, not a network or a shared runtime.
 
 The figure separates ownership from access. Publishing an authentication endpoint

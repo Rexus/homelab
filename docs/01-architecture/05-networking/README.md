@@ -50,7 +50,7 @@ flowchart LR
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   class Internet,AdminEntry actor
   class Endpoints,Administration control
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class Gateways,Services traffic
   classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
   class Edge zoneEdge

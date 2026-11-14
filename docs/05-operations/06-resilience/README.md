@@ -62,11 +62,11 @@ flowchart TB
   class Data,Copies data
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
-  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
   class T1 tier1
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef tier2 fill:#f2f2f2,stroke:#a6a6a6,color:#404040
   class T2 tier2
   classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Connected,VMs group

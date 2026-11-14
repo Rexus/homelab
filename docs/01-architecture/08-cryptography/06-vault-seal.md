@@ -32,7 +32,7 @@ flowchart TB
     Custody -. Authorized unseal / recovery .-> Runtime
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d

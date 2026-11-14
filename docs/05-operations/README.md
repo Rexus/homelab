@@ -34,6 +34,7 @@ Start with [recovery order](06-resilience/README.md#recovery-order). Restore the
 
 | Task | Guide |
 | --- | --- |
+| Change a VMID and retain its network identity | [Full-clone cutover and state rebinding](01-hosting/change-vmid.md) |
 | Capture the independent recovery set | [Recovery-set checklist](06-resilience/backups/recovery-set.md) |
 | Schedule and verify backup copies | [Backup tasks](06-resilience/README.md#backups) |
 | Destroy a selected deployment deliberately | [Resource retirement](01-hosting/provisioning.md) |

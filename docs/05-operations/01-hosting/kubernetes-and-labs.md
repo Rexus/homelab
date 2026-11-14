@@ -37,11 +37,11 @@ flowchart LR
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class G1,G2,CP1,CP2,CP3 control
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class VIP traffic
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   class Gateways,Nodes replicas
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   class Management,Control network

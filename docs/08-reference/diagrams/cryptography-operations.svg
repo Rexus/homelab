@@ -9,7 +9,7 @@
     <style>
       svg { font: 15px Arial, sans-serif; }
       text { fill: currentColor; stroke: none; text-anchor: middle; }
-      .tier0 { fill: #d8cbb9; stroke: #83715a; color: #352a1e; }
+      .tier0 { fill: #c8c8c8; stroke: #707070; color: #262626; }
       .group { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
       .network { fill: #f4eded; stroke: #9b7378; color: #50383d; }
       .kubernetes { fill: #e8eef6; stroke: #6b83a3; color: #263d59; }

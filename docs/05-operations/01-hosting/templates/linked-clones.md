@@ -42,16 +42,12 @@ not automatically update inventory or Terraform state.
 
 This needs no second datastore and produces an independent VM. [1]
 
-1. Shut down the **existing linked-clone VM**. Select that VM, not the template.
-2. Open **Clone**, select **Full Clone**, an unused VMID and qualified destination
-   storage. Wait for the task to finish.
-3. Keep the original off. Test the copy on an isolated network first; its copied
-   guest settings can include the same IP, hostname and application identity.
-   Qualify boot, networking, guest control and application data before cutover.
-4. Record the new VMID and [rebind the existing Linux VM resource](../../06-resilience/recovery/terraform-import.md)
-   before the next deployment. That procedure retains the original state and all unrelated resources.
-   Then retire the original VM and its linked disks when recovery
-   copies are accepted. Merely shutting down the original leaves its dependency.
+Follow [full-clone VMID cutover](../change-vmid.md) for the numbered copy, NIC/MAC transfer,
+validation, Terraform rebinding and rollback steps. Select the **existing linked-clone VM**,
+not its template. The guide keeps the original stopped while the replacement uses its network identity.
+
+Retire the original VM and its linked disks only after recovery copies are accepted.
+Merely shutting down the original leaves its dependency.
 
 A full clone copies current guest contents, not the source VM's complete snapshot
 history. Retain any required recovery history independently. [1]

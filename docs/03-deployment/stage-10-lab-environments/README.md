@@ -47,8 +47,8 @@ flowchart TB
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
+  classDef tier2 fill:#f2f2f2,stroke:#a6a6a6,color:#404040
   class CP1,CP2,CP3,VM,CT services
   class State data
   class Runner control

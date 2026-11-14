@@ -34,9 +34,9 @@ flowchart BT
   class Root custody
   class Services,Hosts services
   class Identity,Infrastructure control
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
-  classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
+  classDef tier0Heading fill:#c8c8c8,stroke:#c8c8c8,color:#262626
 ```
 *Figure: The offline root authorizes two sibling issuers. Upward arrows represent certificate
 signing, so neither routine issuance nor shared root trust grants access to the other issuer.*
@@ -102,7 +102,7 @@ flowchart LR
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class Authority tier0
   class Portal,Issuer control
   class Bridge,Publication services

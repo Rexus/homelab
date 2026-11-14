@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="540" viewBox="0 0 720 540"
+     role="img" aria-labelledby="title description">
+  <title id="title">Full-clone cutover</title>
+  <desc id="description">The original VM stays stopped. Proxmox copies current attached VM disks
+    into an independent full clone. The complete original network-interface settings are restored
+    on the replacement before it boots. The original remains available for rollback until retirement.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581"/>
+    </marker>
+    <style>
+      svg { font: 17px Arial, sans-serif; }
+      text { fill: currentColor; stroke: none; text-anchor: middle; }
+      .group { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .data { fill: #eeeafa; stroke: #78639b; color: #42325d; }
+      .traffic { fill: #d8cbb9; stroke: #83715a; color: #352a1e; }
+      .action { fill: #fcebdc; stroke: #a16c43; color: #5b3921; }
+      .data, .traffic, .action { stroke-dasharray: none; }
+      .link { fill: none; stroke: #627581; stroke-width: 1.5; marker-end: url(#arrow); }
+      .label { fill: #1f2937; font-size: 15px; }
+    </style>
+  </defs>
+  <g class="group" id="Original">
+    <rect x="15" y="20" width="255" height="500"/>
+    <text x="142" y="53">Original VM</text>
+    <g class="data" id="OldDisks">
+      <path d="M35 145 C35 117 250 117 250 145 V230 C250 258 35 258 35 230 Z"/>
+      <ellipse cx="142.5" cy="145" rx="107.5" ry="21"/>
+      <text x="142" y="194">Current attached</text>
+      <text x="142" y="218">VM disks</text>
+    </g>
+    <g class="traffic" id="OldNIC">
+      <rect x="35" y="315" width="215" height="110"/>
+      <text x="142" y="352">Original NIC settings</text>
+      <text x="142" y="378">Model / MAC</text>
+      <text x="142" y="404">Bridge / VLAN / options</text>
+    </g>
+    <text x="142" y="475">Stopped</text>
+    <text x="142" y="500">Retain for rollback</text>
+  </g>
+  <g class="group" id="Replacement">
+    <rect x="450" y="20" width="255" height="500"/>
+    <text x="577" y="53">Replacement VM</text>
+    <g class="data" id="NewDisks">
+      <path d="M470 145 C470 117 685 117 685 145 V230 C685 258 470 258 470 230 Z"/>
+      <ellipse cx="577.5" cy="145" rx="107.5" ry="21"/>
+      <text x="577" y="194">Independent</text>
+      <text x="577" y="218">VM disks</text>
+    </g>
+    <g class="traffic" id="NewNIC">
+      <rect x="470" y="315" width="215" height="110"/>
+      <text x="577" y="352">Same NIC settings</text>
+      <text x="577" y="378">Model / MAC</text>
+      <text x="577" y="404">Bridge / VLAN / options</text>
+    </g>
+    <text x="577" y="475">Boot after</text>
+    <text x="577" y="500">NIC verification</text>
+  </g>
+  <g class="action" id="Clone">
+    <rect x="295" y="150" width="130" height="90"/>
+    <text x="360" y="183">Full clone</text>
+    <text x="360" y="210">While stopped</text>
+  </g>
+  <path class="link" d="M250 195 H295"/>
+  <path class="link" d="M425 195 H470"/>
+  <path class="link" d="M250 370 H470"/>
+  <rect x="281" y="327" width="158" height="30" fill="#f8fafc" stroke="none"/>
+  <text class="label" x="360" y="349">Restore all netN</text>
+</svg>

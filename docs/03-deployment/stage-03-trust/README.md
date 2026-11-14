@@ -48,7 +48,7 @@ flowchart BT
   class Offline,Root,Ceremony custody
   class Issuer,Primary,Replica control
   class Data data
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d

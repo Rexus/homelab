@@ -174,7 +174,8 @@ def copy_documentation(writer, prefix, upstream):
               "08-reference/diagrams/platform-cluster-runtime.svg",
               "08-reference/diagrams/pkcs11-provider-placement.svg",
               "08-reference/diagrams/signal-pipelines.svg",
-              "08-reference/diagrams/kubernetes-platform.svg")
+              "08-reference/diagrams/kubernetes-platform.svg",
+              "08-reference/diagrams/vmid-cutover.svg")
     current_paths = {f"{AUTO_DOCS}/{path.relative_to(upstream / 'docs').as_posix()}" for path in documents}
     referenced = referenced_manual_aliases(writer, prefix)
     aliases = {path: [alias for alias in compatibility_paths(Path("docs") / path.relative_to(upstream / "docs"))

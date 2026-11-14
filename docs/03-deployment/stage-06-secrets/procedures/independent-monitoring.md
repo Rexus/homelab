@@ -50,7 +50,7 @@ flowchart TB
   class Placement group
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   class Project group
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   class ControlNetwork,ManagementNetwork network
@@ -223,7 +223,7 @@ flowchart LR
     Sources -->|Selected signal exporters| Parent
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
@@ -313,7 +313,7 @@ flowchart RL
   class External,Watch services
   class Admin actor
   class Project replicas
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d

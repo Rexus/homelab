@@ -1,45 +1,106 @@
-# Adopt a restored Linux VM with a different VMID
+﻿# Rebind a Linux VM after a full clone or restore
 
-Bind an accepted restored VM to its existing logical resource address. Preserve the whole
-original state and replace only the reviewed VM binding; this does not restore guest data.
+Bind a validated replacement VMID to the existing logical Terraform resource address.
+Use this after a full clone or an accepted restore, with the old VM fenced and all writers paused.
+The replacement must belong to this deployment alone.
 
-**Work from:** the owning tier's original checkout on the protected bootstrap.
-**Scope:** native Linux VM modules; the example is Tier 2 `cache-1`, default `prod`, Terraform `default` workspace.
-**Before starting:** complete [isolated VM validation](virtual-machines.md), fence the old identity,
-pause writers and prepare the [original state context and backup](../../01-hosting/terraform-state.md#inspect-the-original-state).
-Templates and Kubernetes have different inputs/state contracts; do not use this recipe for them.
+Run in **Bash on the Linux execution host, from the owning tier's original checkout**.
+Keep the same shell throughout. The copyable path selects the original **local `prod` state,
+Terraform `default` workspace, and inputs with `--env` omitted**. For a custom backend, workspace,
+environment or input overrides, retain the exact original context throughout, including the final
+plan. Explicit `--env prod` can add overlays even though it shares the `prod` state key.
+See [state context](../../01-hosting/terraform-state.md#inspect-the-original-state) and
+[input precedence](../../../08-reference/platform-inputs.md#loading-and-overrides).
+
+This procedure follows the [Linux deployment wrapper](../../../../shared/scripts/deploy.sh)
+and [VM resource](../../../../tier-0/terraform/modules/vm/main.tf).
+Templates, LXC and Kubernetes use their own state/input contracts.
 
 ## Steps
 
-1. [Record the new identity](#1-record-the-new-identity-in-the-owning-inputs).
-2. [Prepare credentials and matching inputs](#2-prepare-the-same-credentials-and-inputs-as-the-wrapper).
-3. [Rebind only the restored VM](#3-rebind-only-the-restored-vm).
+1. [Select and back up the original state](#1-select-and-back-up-the-original-state).
+2. [Record the replacement VMID](#2-record-the-replacement-vmid).
+3. [Match credentials and inputs](#3-match-credentials-and-inputs).
+4. [Replace the exact binding](#4-replace-the-exact-binding).
+5. [Review the plan and return to cutover](#5-review-the-plan-and-return-to-cutover).
 
-## 1. Record the new identity in the owning inputs
+## 1. Select and back up the original state
 
-Edit these files, retaining the original logical `cache-1` key:
+Use the setup and group-vars filename recorded by the original deployment. For example,
+Tier 0 `syslog` uses `syslog.yml` for `log-1`. Tier 2 `cache` uses `cache.yml` for `cache-1`.
+The wrapper converts setup-name dashes to underscores for the group-vars filename.
+Enter the actual Shared checkout used by this tier, such as `../<prefix>-shared`.
 
-Edit in **`<prefix>-tier-2/`**.
+Run from **the owning `<prefix>-tier-N/` root on Linux**.
 
-- `terraform/deployments/cache/terraform.tfvars`: Set cache-1's restored VMID and actual disk/storage
-  choices.
-- `ansible/group_vars/cache.yml`: Retain or deliberately change its accepted IP/host mapping.
-- `terraform/common.tfvars`: Update tier-local network references only if the target changed.
+```bash
+set -euo pipefail
+umask 077
+read -r -p 'Original setup (e.g. syslog or cache): ' IAC_SETUP
+read -r -p 'Setup group-vars filename (e.g. syslog.yml or cache.yml): ' IAC_GROUP_VARS
+read -r -p 'Shared repository path used by this tier: ' IAC_SHARED
+IAC_SHARED="$(realpath -- "$IAC_SHARED")"
+test -f "$IAC_SHARED/scripts/deploy.sh" || exit 1
+grep -Fxq -- "$IAC_SETUP" .deployment-setups || exit 1
+test -f "$PWD/ansible/group_vars/$IAC_GROUP_VARS" || exit 1
+IAC_ROOT="$PWD/terraform/deployments/$IAC_SETUP"
+IAC_STATE="$PWD/.terraform/state/$IAC_SETUP/prod/terraform.tfstate"
+export TF_DATA_DIR="$PWD/.terraform/data/$IAC_SETUP/prod"
+test -s "$IAC_STATE" || { echo 'Recover the original state before continuing.' >&2; exit 1; }
+terraform -chdir="$IAC_ROOT" init -input=false -lockfile=readonly -reconfigure \
+  -backend-config="path=$IAC_STATE"
+test "$(terraform -chdir="$IAC_ROOT" workspace show)" = default || exit 1
+IAC_ARCHIVE="$PWD/.local-archive/$IAC_SETUP-prod-$(date -u +%Y%m%dT%H%M%SZ)"
+test ! -e "$IAC_ARCHIVE" || exit 1
+mkdir -p "$IAC_ARCHIVE"
+terraform -chdir="$IAC_ROOT" state pull > "$IAC_ARCHIVE/before.tfstate"
+test -s "$IAC_ARCHIVE/before.tfstate" || exit 1
+terraform -chdir="$IAC_ROOT" state list
+```
 
-Edit in **`<prefix>-shared/`** only if common placement/storage references changed.
+Stop on a missing state, initialization error or unexpected workspace. Providers must be available
+from the approved source/mirror. State contains secrets, so retain the private archive and independent backup.
+Preserve all unrelated bindings and the complete state. Reserve `state mv` for logical-address changes.
 
-- `config/platform.tfvars`
+Select the exact existing **leaf resource address** from that listing. Examples are
+`module.vms["log-1"].proxmox_virtual_environment_vm.this` and
+`module.vms["cache-1"].proxmox_virtual_environment_vm.this`.
 
-The destination VM must not already be owned by another Terraform state. Preserve the old VM's
-records/disks separately until cutover is accepted. A new VMID is not discovered as the old resource automatically.
+Run from **the same owning tier root**.
 
-## 2. Prepare the same credentials and inputs as the wrapper
+```bash
+read -r -p 'Exact existing VM resource address from state list: ' IAC_ADDRESS
+terraform -chdir="$IAC_ROOT" state show "$IAC_ADDRESS"
+```
 
-Native `terraform import` does not load `.env.local`. If an approved credential environment already
-provides the matching `TF_VAR_proxmox_api_*` and `PROXMOX_API_*` values, retain it. Otherwise enter
-the accepted values without putting the token secret in command history:
+Record the displayed old `id`, `vm_id`, `node_name`, disks and NIC/MAC. Compare them with the
+original guest and the independently validated replacement before proceeding.
 
-Run from **the owning tier root in the prepared state-maintenance shell**.
+<a id="1-record-the-new-identity-in-the-owning-inputs"></a>
+
+## 2. Record the replacement VMID
+
+Edit **the owning tier's `terraform/deployments/<setup>/terraform.tfvars`**, using the selected
+deployment's `variables.tf` as its schema. Change only that guest's `vm_instances` entry's `vm_id`
+to the accepted replacement VMID. Retain its logical host key, disks, storage, network and addresses.
+For renumbering, preserve the original NIC/MAC through the [full-clone procedure](../../01-hosting/change-vmid.md).
+
+If a restore deliberately changed storage or networking, reconcile those accepted differences
+in the owning inputs before import. The original Ansible inventory and setup group vars own host/IP
+mapping. Keep the clone source/template settings tied to their original approved template.
+
+<a id="2-prepare-the-same-credentials-and-inputs-as-the-wrapper"></a>
+
+## 3. Match credentials and inputs
+
+Native Terraform commands require exported credentials. `.env.local` is loaded by the wrapper
+in its own process. Retain an existing approved environment that provides matching `TF_VAR_proxmox_api_*`
+and `PROXMOX_API_*` values, or enter the original values below with the secret hidden.
+Use the Proxmox web/API root, such as `https://pve.example.com:8006/`.
+The selected identity must already have the required access to the replacement VMID;
+an ACL scoped only to the old ID does not follow a clone.
+
+Run from **the same owning tier root**, when credentials need to be exported.
 
 ```bash
 read -r -p 'Verified Proxmox API URL: ' PROXMOX_API_URL
@@ -52,68 +113,97 @@ export TF_VAR_proxmox_api_token_id="$PROXMOX_API_TOKEN_ID"
 export TF_VAR_proxmox_api_token_secret="$PROXMOX_API_TOKEN_SECRET"
 ```
 
-Also retain required `TF_VAR_ssh_public_key_files` and other original environment overrides.
-For SDN, clear conflicting endpoint/token aliases through the
-[provider environment contract](../../../08-reference/environment-variables.md); lookup and provider must target the same cluster.
+Retain `TF_VAR_ssh_public_key_files` and every other original environment override.
+For SDN lookup, align endpoint/token aliases with the
+[provider environment contract](../../../08-reference/environment-variables.md#when-to-use-environment-variables).
 
-Use the prepared `IAC_ROOT`, `TF_DATA_DIR` and private `IAC_ARCHIVE` from the state guide.
-This input array matches the default production cache wrapper:
+Build the wrapper's base input layers in order. Its Shared platform/catalog and tier common files
+are loaded when present, followed by deployment inputs, inventory and `all.yml` plus the actual setup vars.
+For an original deployment with overlays or custom flags, reproduce its exact layers and order
+from [the wrapper](../../../../shared/scripts/deploy.sh) before continuing.
 
-Run from **`<prefix>-tier-2/`** in the prepared state-maintenance shell.
+Run from **the same owning tier root**, for default production with `--env` omitted.
 
 ```bash
-IAC_VARS=(
-  "-var-file=$PWD/../<prefix>-shared/config/platform.tfvars"
-  "-var-file=$PWD/../<prefix>-shared/templates/proxmox-catalog.tfvars"
-  "-var-file=$PWD/terraform/common.tfvars"
+IAC_VARS=()
+for IAC_FILE in \
+  "$IAC_SHARED/config/platform.tfvars" \
+  "$IAC_SHARED/templates/proxmox-catalog.tfvars" \
+  "$PWD/terraform/common.tfvars"
+do
+  if [[ -f "$IAC_FILE" ]]; then
+    IAC_VARS+=("-var-file=$IAC_FILE")
+  fi
+done
+IAC_VARS+=(
   "-var-file=$IAC_ROOT/terraform.tfvars"
-  '-var=ansible_inventory_path=../../../ansible/inventory/hosts.yml'
-  '-var=ansible_group_vars_paths=["../../../ansible/group_vars/all.yml","../../../ansible/group_vars/cache.yml"]'
+  "-var=ansible_inventory_path=$PWD/ansible/inventory/hosts.yml"
+  "-var=ansible_group_vars_paths=[\"$PWD/ansible/group_vars/all.yml\",\"$PWD/ansible/group_vars/$IAC_GROUP_VARS\"]"
 )
 ```
 
-For a different setup or environment, preserve the wrapper's exact layer order and original
-overrides. Explicit `--env prod` can select overlays even though omitted `--env` also uses the
-`prod` state key. See [input precedence](../../../08-reference/platform-inputs.md); do not silently drop overlays.
+<a id="3-rebind-only-the-restored-vm"></a>
 
-## 3. Rebind only the restored VM
+## 4. Replace the exact binding
 
-1. Inspect `state list` and select its exact leaf address. Record both the old and restored node/VMID.
+Enter the accepted replacement's actual **node/VMID**, such as `pve01/501`, after confirming it
+matches the edited input and the guest validated in the calling procedure. Preview the removal. [1][2]
 
-   Run from **`<prefix>-tier-2/`** in the prepared state-maintenance shell.
+Run from **the same owning tier root**.
 
-   ```bash
-   read -r -p 'Exact existing address (e.g. module.vms["cache-1"].proxmox_virtual_environment_vm.this): ' IAC_ADDRESS
-   read -r -p 'Restored VM import ID, node/VMID (e.g. pve02/2413): ' IAC_IMPORT_ID
-   [[ "$IAC_IMPORT_ID" =~ ^[A-Za-z0-9_.-]+/[0-9]+$ ]] || exit 1
-   terraform -chdir="$IAC_ROOT" state rm -dry-run "$IAC_ADDRESS"
-   ```
+```bash
+read -r -p 'Replacement import ID, node/VMID: ' IAC_IMPORT_ID
+[[ "$IAC_IMPORT_ID" =~ ^[A-Za-z0-9_.-]+/[0-9]+$ ]] || exit 1
+terraform -chdir="$IAC_ROOT" state rm -dry-run "$IAC_ADDRESS"
+```
 
-2. Require exactly the intended old binding and the independently verified restored guest.
-   Remove that binding, then import the restored VM at the **same address**. [1][2]
+Require exactly the reviewed old VM binding. The next block removes that binding immediately
+and imports the replacement at the **same address**. The private pre-change state is in `IAC_ARCHIVE`. [1][2]
 
-   Execute only after reviewing the exact old binding and restored guest identity.
+Run from **the same owning tier root**, after reviewing the dry run and replacement identity.
 
-   ```bash
-   terraform -chdir="$IAC_ROOT" state rm -lock-timeout=60s "$IAC_ADDRESS"
-   terraform -chdir="$IAC_ROOT" import -input=false -lock-timeout=60s \
-     "${IAC_VARS[@]}" "$IAC_ADDRESS" "$IAC_IMPORT_ID"
-   ```
+```bash
+terraform -chdir="$IAC_ROOT" state rm -lock-timeout=60s "$IAC_ADDRESS"
+if ! terraform -chdir="$IAC_ROOT" import -input=false -lock-timeout=60s \
+  "${IAC_VARS[@]}" "$IAC_ADDRESS" "$IAC_IMPORT_ID"; then
+  printf '%s\n' 'Import failed. Keep writers paused and stop before plan or apply.' >&2
+  exit 1
+fi
+terraform -chdir="$IAC_ROOT" state show "$IAC_ADDRESS"
+```
 
-   If import fails, keep writers paused and correct the import context; do not run apply into the
-   now-unbound address. Keep the original state backup and all unrelated resource bindings intact.
-3. Review the normal plan with the owning wrapper, including the same original input overrides:
+On import failure, correct the context and complete import at that same address before proceeding.
+Keep the original backup and writers paused. After success, verify the replacement `id`, `vm_id`,
+node, disks and original NIC/MAC against the accepted guest.
 
-   Run from **`<prefix>-tier-2/`** for the default production cache example.
+## 5. Review the plan and return to cutover
 
-   ```bash
-   bash scripts/deploy.sh cache --plan-only --env-file .env.local
-   ```
+Use the original wrapper inputs and matching credentials. The default production command below
+uses `.env.local`; retain the original `--env-file` or injected environment when different.
 
-   Require no unexpected create/destroy, disk replacement or credential/network changes.
-   Do not apply merely to resolve a mismatch between a restored guest and starter settings.
-4. Complete [VM cutover](virtual-machines.md#3-validate-the-service-and-reconcile-its-owner),
-   back up the reconciled state and retire the old identity under the accepted retention policy.
+Run from **the same owning tier root**, for default production with `--env` omitted.
+
+```bash
+bash scripts/deploy.sh "$IAC_SETUP" --plan-only --env-file .env.local
+```
+
+Require no unexpected creation, destruction, disk replacement, NIC/MAC, address or credential changes.
+Resolve mismatches before any apply and replace saved plans created before the rebind.
+Back up the accepted binding and review the deployment's resource list.
+
+Run from **the same owning tier root**, after the plan review passes.
+
+```bash
+terraform -chdir="$IAC_ROOT" state pull > "$IAC_ARCHIVE/after.tfstate"
+test -s "$IAC_ARCHIVE/after.tfstate" || exit 1
+terraform -chdir="$IAC_ROOT" state list
+```
+
+- For a full clone, return to [update jobs and records](../../01-hosting/change-vmid.md#9-update-jobs-and-records).
+- For a restore, return to [review the original owner's plan and cutover](virtual-machines.md#9-review-the-original-owners-plan).
+
+Keep the old guest fenced and retain its disks/state archive until the calling procedure accepts
+cutover and authorizes the single writer to resume.
 
 ## References
 

@@ -34,7 +34,7 @@ flowchart LR
   class Console actor
   classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
   class Execute,Hosts group
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
 ```
 
@@ -58,6 +58,7 @@ Existing hosts are registered here; they are not created or imported into Terraf
 | Task | Procedure |
 | --- | --- |
 | Configure host failover, VM separation or planned migration | [Proxmox HA operations](proxmox-ha.md) |
+| Change a VMID while keeping its MAC and network settings | [Full-clone VMID cutover](change-vmid.md) |
 | Change host SSH, time, audit or firewall settings | [Linux security setup](linux-security.md), [security operations](host-security.md) |
 | Configure approved host update access | [Software intake consumers](../02-software-intake/host-updates.md) |
 | Import, publish or promote a template | [Template lifecycle](templates/template-lifecycle.md) |

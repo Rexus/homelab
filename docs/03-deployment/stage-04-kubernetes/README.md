@@ -30,13 +30,13 @@ flowchart LR
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef traffic fill:#303841,stroke:#8a9baa,color:#ffffff
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class API traffic
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   class CP1,CP2,CP3 boundary
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   class Network,ManagementNetwork network
@@ -357,7 +357,7 @@ flowchart LR
   class Agents replicas
   classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
   class Cluster kubernetes
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   class T0 tier0
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d

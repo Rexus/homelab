@@ -9,12 +9,12 @@
     <style>
       svg { font: 15px Arial, sans-serif; }
       text { fill: currentColor; stroke: none; text-anchor: middle; }
-      .tier0 { fill: #d8cbb9; stroke: #83715a; color: #352a1e; }
+      .tier0 { fill: #c8c8c8; stroke: #707070; color: #262626; }
       .group { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
       .network { fill: #f4eded; stroke: #9b7378; color: #50383d; }
       .replicas { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
       .runtime { fill: #d9eeec; stroke: #4d7b77; color: #173f3e; }
-      .traffic { fill: #303841; stroke: #8a9baa; color: #ffffff; }
+      .traffic { fill: #d8cbb9; stroke: #83715a; color: #352a1e; }
       .control { fill: #e2f3ed; stroke: #397366; color: #173f36; }
       .data { fill: #eeeafa; stroke: #78639b; color: #42325d; }
       .custody { fill: #fff2d1; stroke: #926820; color: #584013; }

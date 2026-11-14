@@ -37,7 +37,7 @@ flowchart LR
   end
   Clients -->|Signing API<br/>or pinned<br/>PKCS#11| T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3

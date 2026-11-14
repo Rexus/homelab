@@ -120,7 +120,7 @@ Earlier starters used category `0` for four-digit control-plane IDs and split Ti
 For example, Tier 1 control planes move from `1001-1003` to `1101-1103`, new `log-1`
 uses `501` rather than `401`, and new `boot-1` uses `601` rather than `501`.
 An existing bootstrap at `501` still occupies that ID: it must not be reused for a new receiver.
-Keep existing local inputs until an intentional [VM recovery/renumbering operation](../05-operations/06-resilience/recovery/virtual-machines.md)
+Keep existing local inputs until an intentional [full-clone VMID cutover](../05-operations/01-hosting/change-vmid.md)
 has established the new VMID and reconciled its state. Renumbering is not part of refresh or an ordinary apply.
 
 Implementation: [Tier 0 guests](../../tier-0/terraform/deployments),
