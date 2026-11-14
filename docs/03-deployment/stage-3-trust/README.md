@@ -40,10 +40,14 @@ flowchart BT
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class PVE,Crypto,Identity boundary
+  class PVE boundary
   class Offline,Root,Ceremony custody
-  class T0,Issuer,Primary,Replica control
+  class Issuer,Primary,Replica control
   class Data data
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Identity,Crypto zoneControl
 ```
 
 **IaC:** **Figure 1: Offline root and online issuer.** Tier 0 [foundation guest definitions](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)

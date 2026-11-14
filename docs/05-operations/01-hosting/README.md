@@ -3,6 +3,48 @@
 Initialize Tier 0's local files and register the installed Proxmox hosts for Ansible.
 Complete this once before running host-management tasks from `boot-1` or another approved execution host.
 
+<a id="figure-host-management"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph T0["Tier 0 / existing management interfaces"]
+    direction LR
+    subgraph Execute["Prepared execution host"]
+      direction TB
+      Tools["boot-1 or accepted Linux host<br/>Ansible / SSH"]
+      Inputs[("Tier 0 inventory<br/>Local configuration / SSH identity")]
+      Tools ~~~ Inputs
+    end
+    subgraph Hosts["Installed Proxmox hosts"]
+      direction TB
+      Nodes["hypervisors<br/>Selected existing nodes"]
+      Console["Independent host console<br/>Existing recovery access"]
+      Nodes ~~~ Console
+    end
+    Execute -->|SSH / remote Python| Hosts
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Tools,Nodes control
+  class Inputs data
+  class Console actor
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Execute,Hosts group
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+```
+
+*Figure: Manual registration of the existing host-management path. Boxes group management interfaces,
+not physical hosting; the SSH arrow reaches the hosts, while console recovery remains independent.*
+
+**Owner:** `<prefix>-tier-0`; [inventory](../../../tier-0/ansible/inventory/hosts.yml.example),
+[host playbook](../../../tier-0/ansible/playbooks/proxmox-hosts.yml) and
+[foundation preparation](../../03-deployment/foundation/README.md). Registration provisions no resources.
+
 **Working repository:** `<prefix>-tier-0/`, with its sibling Shared checkout.
 **Prerequisites:** installed Proxmox hosts, the [prepared bootstrap tools and SSH key](../../03-deployment/foundation/bootstrap/README.md),
 permitted management-network SSH access and independent host-console access.

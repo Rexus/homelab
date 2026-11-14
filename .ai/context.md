@@ -13,6 +13,24 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Repository intent
 
+- Apply the existing global AGENTS.md visual reference to all block diagrams, not only IAM/IdP.
+  Compose inside out: compact server/replica stacks vertically, peer service groups horizontally,
+  and outer zones/ownership boundaries vertically where the model requires it. Preserve left-to-right
+  consumer/provider order and the near-4:3 composition target. Use distinct routing symbols, dashed
+  service groups and the project palette. Verify rendered geometry rather than merely declaring directions.
+  Operations capability guides open with their complete selected deployment; focused task diagrams follow.
+- Put the opening figure after a short introduction, before contents, long prerequisites or inputs.
+  Architecture starts with context/placement; deployment starts with its expected result; operations
+  starts with the selected running deployment. Introduce substantial enhancements at the start of
+  their own section, keep alternatives separate, and refer to stable figure anchors from related steps.
+  Focused procedures can link the owning overview instead of repeating it.
+- Keep diagram colour roles distinct using docs/08-reference/diagrams/palette.json: warm neutral tier shades
+  (Tier 2 lightest, Tier 1 medium, Tier 0 strongest), independently styled protection zones
+  (light rose DMZ/Edge, medium blue Services, stronger green Control),
+  blue-gray Kubernetes, cyan traffic interfaces, peach actions, violet data and amber offline custody.
+  Tier ownership is not a protection-zone colour; retain the existing zone/component palette inside it.
+  Inner function/service and replica/failover groups use the same light neutral gray, with solid versus
+  dashed borders respectively. Preserve violet storage and amber offline custody at every nesting level.
 - Number deployment actions by the edit/run/check the operator performs next, with as many
   sequential steps as the implementation needs. Do not compress a workflow into a few numbered
   phases with another numbered installation hidden behind each link. Keep the normal path on

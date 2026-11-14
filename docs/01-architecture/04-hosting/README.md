@@ -28,7 +28,8 @@ flowchart LR
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Contracts boundary
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Contracts group
   class Services,Runtime services
   class Hosts,Network control
   class Storage data

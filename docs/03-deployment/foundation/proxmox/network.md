@@ -10,7 +10,7 @@ the verified `vmbr0` attachment described in Step 1.
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Switches["Managed switches or upstream fabric"]
-  subgraph Fabric["Fabric path"]
+  subgraph Fabric["Fabric path / selected reference"]
     direction TB
     FabricBond["bond0<br/>fabric bond<br/>MTU 1500"]
     FabricBridge["vmbr0<br/>fabric bridge<br/>VLAN-aware<br/>MTU 1500"]
@@ -22,7 +22,7 @@ flowchart LR
     FabricBridge --> QuorumPrimary
     FabricBridge --> Guests
   end
-  subgraph Storage["Storage path"]
+  subgraph Storage["Optional separate storage fabric"]
     direction TB
     StorageBond["bond1<br/>storage bond<br/>MTU 9000"]
     StorageBridge["vmbr1<br/>storage bridge<br/>VLAN-aware<br/>MTU 9000"]
@@ -47,6 +47,8 @@ flowchart LR
 
 **Manual:** **Figure 1: Separated fabric and storage paths.** Normal platform VLANs use a fabric
 bond/bridge; Ceph and a second Corosync path use a separate storage bond/bridge on existing Tier 0 hosts.
+This is the selected dual-fabric reference, not the minimum initial trunk: `bond0`, `bond1`, `vmbr1`,
+Ceph and the second Corosync path are optional selections, not prerequisites for a single-host pilot.
 The [shared platform profile](../../../../shared/config/platform.tfvars) and
 [Tier 0 network inputs](../../../../tier-0/terraform/common.tfvars.example)
 reference prepared bridges; guest Terraform does not create these bonds or host fabrics.

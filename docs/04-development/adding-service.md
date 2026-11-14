@@ -118,10 +118,10 @@ flowchart TB
     Hardware -->|Hardware selection| Guest
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Tier boundary
+  class Tier tier2
   class Ansible,Hardware data
   class Guest control
 ```

@@ -1,5 +1,10 @@
 # Step 1c: SDN guest networks
 
+**Expected result — Manual:** activated VLAN-backed VNets provide the selected guest attachments on
+eligible hosts. They consume the prepared `vmbr0` trunk from the
+[host-network view](network.md#figure-1-separated-fabric-and-storage-paths); gateway routing, firewall
+policy and host-management/storage fabrics retain their existing owners. No guests are created here.
+
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Execution:** Proxmox GUI and the existing switch/gateway configuration; this is a manual prerequisite.
 Consuming tiers own their guest-network inputs.

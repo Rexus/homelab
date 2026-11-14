@@ -54,9 +54,17 @@ flowchart TB
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   class PVE,Guests boundary
-  class T2,T1,Workloads,Shared,C2,C1 services
-  class T0,Dedicated,Cluster,Hosts control
+  class Workloads,Shared services
+  class Dedicated,Hosts control
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster,C2,C1 kubernetes
   class WorkloadNodes,PlatformNodes,ControlNodes runtime
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
 ```
 
 *Figure: Dedicated VMs and cluster-node VMs occupy the same hosting foundation. Kubernetes workloads

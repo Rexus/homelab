@@ -8,10 +8,15 @@ network key-provider choices retain their own custody/recovery requirements.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Requests["Online issuer or FreeIPA CSR<br/>Approved public-key fingerprint"] -->|Controlled media| Ceremony["Offline root ceremony<br/>Review identity and constraints"]
-  Ceremony -->|Signed subordinate certificate and public chain| Return["Verified return handoff"]
-  Return --> Online["Owning online CA imports certificate<br/>Private key remains in its own custody"]
+block-beta
+  columns 2
+  Requests["1. Issuer / FreeIPA CSR<br/>Approved public-key<br/>fingerprint"]
+  Ceremony["2. Offline root ceremony<br/>Review identity<br/>and constraints"]
+  Online["4. Owning CA imports<br/>Private key stays<br/>in original custody"]
+  Return["3. Verified return<br/>Signed subordinate<br/>and public chain"]
+  Requests --> Ceremony
+  Ceremony --> Return
+  Return --> Online
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
@@ -21,7 +26,7 @@ flowchart LR
   class Online control
 ```
 
-**Workflow:** **Figure 1: Offline signing handoff.** Public requests enter controlled custody;
+**Workflow:** **Figure 1: Offline signing handoff.** Controlled media carry public requests into custody;
 only signed public objects return to the owning online CA. The arrows are manual transfers,
 not a routed connection or VM installer.
 Tier 0 [offline ceremony templates](../../../../tier-0/templates) provide supporting material;

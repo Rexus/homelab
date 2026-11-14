@@ -38,10 +38,13 @@ flowchart LR
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class Operator actor
-  class T0,VM control
-  class PVE boundary
+  class VM control
   class Data data
   class Recovery custody
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class PVE zoneControl
 ```
 
 **IaC:** *Figure: The VM installer leaves Vault sealed on its local Raft disk. Authorized custodians initialize and

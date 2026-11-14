@@ -45,11 +45,24 @@ flowchart TB
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Kit,Collection,Support boundary
-  class T2,T1 services
-  class T0,Shared control
-  class Generator,Architecture data
+  class Collection boundary
+  class Architecture data
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Tiers,Support group
+  classDef ownership fill:#f3f1ed,stroke:#8b857c,color:#3f3a34
+  class Kit,Shared ownership
+  classDef action fill:#fcebdc,stroke:#a16c43,color:#5b3921
+  class Generator action
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T0 tier0
+  class T1 tier1
+  class T2 tier2
 ```
+
+*Figure: Generation creates three resource-owning tier repositories and two supporting repositories.
+Each tier consumes shared code while retaining its own inventory and state.*
 
 **Code:** the upstream kit's `scripts/tier-repos/generate.py` and `payload.py`
 implement the [generation contract](generated-repositories.md).

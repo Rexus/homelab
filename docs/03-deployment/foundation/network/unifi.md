@@ -7,11 +7,11 @@ The controller and recovery path remain available independently of hosted platfo
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart LR
-  Admin["Local privileged workstation"] --> Controller["Gateway / independent Network application"]
-  Controller --> Switch["Adopted switch and optional APs"]
-  Switch --> Hosts["Proxmox management and guest trunks"]
-  Switch --> Clients["Separate ordinary-client networks"]
+flowchart TB
+  Admin["Local privileged<br/>workstation"] --> Controller["Gateway / independent<br/>Network application"]
+  Controller --> Switch["Adopted switch<br/>Optional APs"]
+  Switch --> Hosts["Proxmox management<br/>Guest trunks"]
+  Switch --> Clients["Separate ordinary-client<br/>networks"]
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36

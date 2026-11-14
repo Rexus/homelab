@@ -1,5 +1,9 @@
 # Step 15b: Connect a consumer to verified publication
 
+**Expected result — IaC:** the selected existing consumer reads an accepted immutable version from the
+[publication view](step-15b-verified-intake.md#figure-1-verified-publication-and-consumers).
+Its owning tier configures native repository/artifact access; the worker and its state remain in Tier 1.
+
 **Branch from:** [Step 15](README.md#step-15-select-additional-integrations), within the verified-intake option,
 after [first accepted intake](step-15b-verified-intake.md#5-run-and-inspect-the-first-intake).
 **Change:** configure a selected existing consumer through its owning tier's Ansible.

@@ -20,8 +20,12 @@ block-beta
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T2,T1 services
-  class T0 control
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T2 tier2
+  class T1 tier1
+  class T0 tier0
   class Shared actor
 ```
 

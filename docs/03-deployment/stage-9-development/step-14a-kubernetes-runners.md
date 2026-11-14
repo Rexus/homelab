@@ -1,5 +1,9 @@
 # Step 14a: On-demand Kubernetes runners
 
+**Expected result — IaC:** one manager and bounded ephemeral job pods share the existing cluster with
+GitLab, as shown in the [execution view](README.md#figure-kubernetes-runners). The installer creates
+runner policy; GitLab registration and accepted build/helper images are existing inputs.
+
 **Branch from:** [Step 14](README.md#step-14-select-and-install-general-build-execution).
 **Change:** install the Kubernetes runner manager and bounded job policy in the existing cluster.
 **Working repository:** `<prefix>-tier-1`.
@@ -11,9 +15,6 @@ pod egress policy does not configure kubelet image pulls. Any private pull-secre
 or node-level registry integration remains an explicit cluster prerequisite.
 
 ## Step 1: Create the runner identity
-
-Use the [manager/job-pod figure](README.md#figure-kubernetes-runners) for the expected execution boundary.
-This installs the manager and job policy, using the existing GitLab service.
 
 Create a project/group runner in GitLab with the modern authentication-token flow.
 Keep `tier1-build` as its tag, configure whether untagged jobs are permitted and

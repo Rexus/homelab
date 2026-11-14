@@ -38,10 +38,14 @@ flowchart TB
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class T1 services
-  class Cluster runtime
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
   class Project replicas
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Gateways traffic
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: The existing Tier 1 cluster hosts separately budgeted signal, diagnostic and query workloads. Live
@@ -306,12 +310,16 @@ flowchart TB
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T1 services
-  class Cluster runtime
   class Backends replicas
   class Apps actor
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Gateway traffic
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: Scoped OTLP reaches the gateways. Metrics write to both independent stores; logs and traces pass
@@ -426,11 +434,16 @@ flowchart BT
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class T1 services
-  class Cluster runtime
-  class T0 control
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
   class Pipeline,Local replicas
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Gateways traffic
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: The independent Tier 0 monitor retains infrastructure credentials and sends only approved metrics to
@@ -504,12 +517,15 @@ flowchart LR
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T1,Search,Metrics services
-  class Cluster runtime
+  class Search,Metrics services
   class Project replicas
   class Reader actor
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: Authorized readers enter the Tier 1 query interfaces from the left. Reader policy controls signal

@@ -4,6 +4,78 @@ Maintain the infrastructure issuer, offline root and FreeIPA CA separately.
 The [CA design](../../01-architecture/08-cryptography/01-certificate-authority.md) explains
 trust and custody; these tasks operate an already accepted issuer.
 
+<a id="figure-ca-operating-scope"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  People["Authorized requester / approver<br/>Public-object consumers"]
+  subgraph T0["Tier 0 / accepted CA scope"]
+    direction TB
+    subgraph Online["Existing Proxmox / separate CA runtimes"]
+      direction LR
+      subgraph Identity["identity network / existing directory"]
+        direction TB
+        subgraph IPA["FreeIPA CA pair"]
+          direction TB
+          I1["idm-1"]
+          I2["idm-2"]
+          I1 ~~~ I2
+        end
+      end
+      subgraph Issuer["cryptography network / ca-1 VM"]
+        direction TB
+        Portal{{"Apache HTTPS portal<br/>Public /download/ endpoint"}}
+        Engine["OpenXPKI / approved workflows<br/>Native CRL timer"]
+        State[("scsi1 / original issuer state<br/>MariaDB / key / config / history")]
+        Portal -->|Authorized workflow| Engine
+        Engine -->|Persist / publish| State
+      end
+      Identity ~~~ Issuer
+    end
+    subgraph Offline["Separate offline custody / manual ceremony"]
+      direction LR
+      Root["clca / offline root<br/>Subordinate signing / root CRLs"]
+      Kit["Independent original-state recovery kit<br/>Keys / DataVault secret / backup binding"]
+      Root ~~~ Kit
+    end
+    Online ~~~ Offline
+  end
+  People -->|Issuer HTTPS workflows / public downloads| T0
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class Engine,I1,I2 control
+  class Online boundary
+  class IPA replicas
+  class Offline,Root,Kit custody
+  class State data
+  class People actor
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Portal traffic
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Identity,Issuer zoneControl
+```
+
+**IaC / Manual:** *Figure: Operating view of the software-backed infrastructure issuer and the separately administered
+FreeIPA CA share offline root trust. The issuer portal and public downloads are on `ca-1`;
+root signing and certificate transfer remain offline ceremonies below the connected runtimes.*
+Tier 0's [foundation inputs](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example),
+[issuer inputs](../../../tier-0/ansible/group_vars/issuer.yml.example) and
+[runtime role](../../../tier-0/ansible/roles/openxpki/tasks/main.yml) own the issuer and its attached state;
+[portal configuration](../../../tier-0/ansible/roles/openxpki/tasks/portal.yml) owns its HTTPS interface.
+The [offline ceremony](../../03-deployment/stage-3-trust/procedures/offline-software-root.md) and
+[FreeIPA installation](../../03-deployment/stage-5-identity/procedures/freeipa.md) remain separate operations.
+The figure selects software custody; [hardware options](../../03-deployment/stage-3-trust/README.md#step-1-prepare-issuer-and-key-custody)
+replace that key/provider contract. Retain the [original recovery set](issuer-recovery.md#capture-a-recovery-set)
+and [protected audit path](../06-resilience/protected-logging.md) for the accepted installation.
+
 **Run from:** generated Tier 0 on the independent execution host unless a step
 names the issuer or offline system. Keep credentials and private CA state outside Git.
 **Before starting:** approved issuer inputs, independent access, current recovery

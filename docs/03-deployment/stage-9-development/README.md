@@ -39,10 +39,15 @@ flowchart TB
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T1,Data services
-  class Cluster runtime
-  class T0,IdP control
+  class Data services
+  class IdP control
   class Objects data
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: GitLab uses dedicated Tier 1 data VMs and existing scoped object storage, with human login through
@@ -426,22 +431,29 @@ maintenance/recovery accordingly. Keep original backups outside GitLab and norma
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  subgraph T1["Tier 1 / existing platform cluster"]
+  subgraph T1["Tier 1 / general build execution"]
     direction LR
-    subgraph CI["ci-jobs / namespace"]
-      direction BT
-      Jobs["Job pods / 0..concurrent<br/>Non-root / no API token"]
-      Manager["gitlab-runner<br/>Manager x1"]
-      Manager -->|Job lifecycle| Jobs
+    subgraph Cluster["Existing platform Kubernetes"]
+      direction LR
+      subgraph CI["ci-jobs / namespace"]
+        direction TB
+        Manager["gitlab-runner<br/>Manager x1"]
+        Jobs["Job pods / 0..concurrent<br/>Non-root / no API token"]
+        Manager -->|Job lifecycle| Jobs
+      end
+      Git["Existing gitlab<br/>Helm release"]
+      CI -->|HTTPS polling| Git
     end
-    Git["Existing gitlab<br/>Helm release"]
-    CI -->|HTTPS polling| Git
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  class T1,Git services
-  class CI runtime
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Git,Manager,Jobs services
+  class CI group
+  class Cluster kubernetes
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: One runner manager polls the existing GitLab service and creates bounded ephemeral job pods. General
@@ -501,18 +513,17 @@ administration with `VAULT_ADDR`, `VAULT_CACERT` and `VAULT_TOKEN` outside Git.
 Run from **`<prefix>-tier-0/`**.
 
 ```bash
-cp -n terraform/deployments/ci-auth/terraform.tfvars.example terraform/deployments/ci-auth/terraform.tfvars
-```
-
-Review the saved plan's authentication backend, claims and policy. Apply only that plan:
-
-Run from **`<prefix>-tier-0/`**.
-
-```bash
 umask 077
 mkdir -p .terraform/state/ci-auth .terraform/plans
 terraform -chdir=terraform/deployments/ci-auth init -backend-config="path=$PWD/.terraform/state/ci-auth/terraform.tfstate"
 terraform -chdir=terraform/deployments/ci-auth plan -out="$PWD/.terraform/plans/ci-auth.tfplan"
+```
+
+Review the saved plan's authentication backend, claims and policy. After accepting that scope,
+apply only the reviewed plan from **`<prefix>-tier-0/`**:
+
+```bash
+terraform -chdir=terraform/deployments/ci-auth apply "$PWD/.terraform/plans/ci-auth.tfplan"
 ```
 
 **Expected:** the exact `gitlab-ci` JWT authority and policy in the existing Vault, not Vault initialization
@@ -527,47 +538,61 @@ or secret values. Preserve this root's original state. Real job-token tests wait
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":18,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
+flowchart BT
   subgraph T1["Tier 1 hosting / accepted Tier 0 CI authority"]
     Git["Existing GitLab / dedicated protected project"]
   end
-  subgraph T0["Tier 0 / hosted infrastructure control"]
-    direction LR
-    subgraph Execution["Management network / VM"]
-      direction TB
-      Runner["iac-1 / gitlab-runner<br/>One trusted shell job"]
-      State[("Original inputs / state<br/>Manual restore")]
-      Runner <--> State
+  subgraph T0["Tier 0 / infrastructure control and recovery"]
+    direction TB
+    subgraph Hosted["Existing Proxmox / hosted runtimes"]
+      direction LR
+      subgraph Execution["Management network / runner VM"]
+        direction TB
+        Runner["iac-1 / gitlab-runner<br/>One trusted shell job"]
+        State[("Original inputs / state<br/>Manual restore")]
+        Runner <-->|Read / update| State
+      end
+      subgraph Services["Existing control Kubernetes"]
+        direction TB
+        Flux["Flux / retained GitOps"]
+        Vault["Vault / exact CI policy"]
+        Flux ~~~ Vault
+      end
+      Execution -->|Scoped secrets| Services
     end
-    subgraph Services["Existing control cluster"]
-      direction TB
-      Flux["Flux / retained GitOps"]
-      Vault["Vault / exact CI policy"]
-      Flux ~~~ Vault
-    end
-    Execution -->|Scoped secrets| Services
+    Recovery["Independent Tier 0 workstation<br/>Disconnected when idle<br/>Bootstrap / recovery kit"]
+    Hosted ~~~ Recovery
   end
-  Recovery["Independent Tier 0 workstation<br/>Disconnected when idle<br/>Bootstrap / recovery kit"]
-  Git -->|Accepted project jobs| T0
-  T1 ~~~ T0 ~~~ Recovery
+  T0 -->|Runner HTTPS job polling / results| T1
+  T0 ~~~ T1
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  class T1,Git services
-  class T0,Execution,Runner,Flux,Vault control
-  class Services runtime
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Git services
+  class Runner,Flux,Vault control
   class State data
   class Recovery custody
+  class Hosted boundary
+  class Services kubernetes
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Execution zoneControl
 ```
 
-**IaC:** *Figure: The explicitly trusted GitLab project supplies jobs to the dedicated Tier 0 runner, which retains
-original state and uses scoped Vault access. Independent workstation recovery stays available.*
+**IaC:** *Figure: The dedicated Tier 0 runner polls the explicitly trusted GitLab project, retains original state
+and uses scoped Vault access. Independent workstation recovery stays inside Tier 0 custody.*
 Tier 0 [runner root](../../../tier-0/terraform/deployments/infrastructure-runner),
 [installation](../../../tier-0/ansible/playbooks/deployment/infrastructure-runner.yml)
-and [CI example](../../../tier-0/ci/gitlab-iac.yml.example).
+and [CI example](../../../tier-0/ci/gitlab-iac.yml.example). The
+[runner configuration](../../../tier-0/ansible/roles/infrastructure_runner/templates/config.toml.j2)
+selects the GitLab HTTPS endpoint and one serialized shell executor.
 Follow [runner preparation](procedures/infrastructure-runner.md), then
 [original-state handover](procedures/handover.md). The workstation is outside the
 hosted runtime, not outside Tier 0 trust; it is online while operating.

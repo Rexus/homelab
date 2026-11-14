@@ -7,35 +7,41 @@ partitions through the vendor's supported client and transport.
 ## Components and boundaries
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
-  block:T0
-    columns 2
-    T0Title["Tier 0 / protected cryptography"]:2
-    block:Runtime
-      columns 1
-      Consumers["Authorized runtime<br/>Issuer / signing service"]
-      Client["Vendor client / partition identity"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T0["Tier 0 / protected cryptography"]
+    direction TB
+    subgraph Connected["Authorized online key path"]
+      direction LR
+      subgraph Runtime["Authorized service runtime"]
+        direction TB
+        Consumers["Issuer / signing service"]
+        Client["Vendor client /<br/>partition identity"]
+        Consumers -->|Key operation| Client
+      end
+      subgraph Appliances["Selected partitions / optional vendor HA"]
+        direction TB
+        H1["Private appliance<br/>Selected HSM partition"]
+        H2["Optional vendor HA member"]
+        H1 ~~~ H2
+      end
+      Runtime -->|Vendor client access| Appliances
     end
-    block:Appliances
-      columns 1
-      H1["Private appliance<br/>Selected HSM partition"]
-      H2["Optional vendor HA member"]
-    end
-    Admin["Offline recovery custody / separate administration<br/>Approved backups, wrapping and domain material"]:2
+    Admin["Offline recovery custody / separate administration<br/>Approved backups, wrapping and domain material"]
+    Connected ~~~ Admin
   end
-  Consumers --> Client
-  Client --> H1
-  Client --> H2
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0,Runtime control
-  class T0Title controlHeading
-  class Appliances boundary
+  class T0 tier0
+  class Connected group
+  class Runtime runtime
+  class Appliances replicas
+  class Consumers,Client control
   class H1,H2,Admin custody
 ```
 *Figure: A service uses a vendor client to reach its authorized partition on the right.

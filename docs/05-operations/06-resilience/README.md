@@ -6,6 +6,85 @@ The [service-boundary design](../../01-architecture/02-organization/README.md) e
 
 **Design:** [Operations and resilience](../../01-architecture/11-operations/README.md).
 
+<a id="figure-resilience-operating-scope"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T2["Tier 2 / when selected"]
+    Workloads["Installed workloads / edge services<br/>Owning tier's inputs and application data"]
+  end
+  subgraph T1["Tier 1 / main-path service aggregates"]
+    direction LR
+    Delivery["Argo CD / Harbor / GitLab / build runners<br/>Dedicated GitLab data services"]
+    Observability["Signal / query / diagnostic services<br/>Scoped copies of evidence"]
+    Delivery ~~~ Observability
+  end
+  subgraph T0["Tier 0 / foundation and recovery authority"]
+    direction TB
+    subgraph Connected["Connected runtimes / selected service aggregates"]
+      direction LR
+      subgraph Cluster["Control Kubernetes"]
+        direction TB
+        Apps["Keycloak / Vault / NetBox / Headlamp"]
+        Data[("Original etcd / native service data<br/>Persistent volumes / media")]
+        Apps ~~~ Data
+      end
+      subgraph VMs["Separate control VMs / host-owned inputs"]
+        direction TB
+        ControlSets["Control VM recovery sets<br/>Execution / CA / directory<br/>Protected logging / independent monitor"]
+      end
+      Cluster ~~~ VMs
+    end
+    Foundation["Proxmox / networks / live storage<br/>Independent console / configuration"]
+    subgraph Recovery["Independent recovery custody / outside source runtimes"]
+      direction LR
+      Copies[("Independent backup sets<br/>Guest / product-native copies<br/>Protected-log recovery repository")]
+      Host["Isolated recovery host<br/>Restore original identities"]
+      Keys["Separate keys / shares<br/>Software / offline reader kit"]
+      Copies -->|Selected isolated restore| Host
+      Host ~~~ Keys
+    end
+    Connected ~~~ Foundation ~~~ Recovery
+  end
+  T2 ~~~ T1 ~~~ T0
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Workloads,Delivery,Observability services
+  class Apps,ControlSets control
+  class Connected,VMs,Foundation boundary
+  class Recovery,Host,Keys custody
+  class Data,Copies data
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
+```
+
+**IaC / Manual:** *Figure: Recovery coverage of the completed main paths, grouped by owning tier and runtime.
+The only traffic arrow is an isolated restore; placement and shared custody imply no administrative access.*
+The selected reference uses NAS file backups and the separate protected-log recovery path.
+The owning [Tier 0 foundation inputs](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example),
+[control-service inputs](../../../tier-0/ansible/group_vars/control_applications.yml.example),
+[Tier 1 delivery/development view](../05-delivery.md#figure-delivery-operating-scope) and
+[observability view](observability.md#figure-observability-operating-scope) define the named aggregates.
+The [guest backup contract](backups/virtual-machines.md#nas-file-target),
+[control-copy job](../../../tier-0/ansible/playbooks/maintenance/control-backup.yml),
+[control-copy inputs](../../../tier-0/ansible/group_vars/control_backup.yml.example) and
+[logging pipeline](protected-logging.md#figure-protected-logging-operations) own the selected capture paths.
+Guest backup/storage commissioning and native product captures retain their documented owners;
+the [recovery-set record](backups/recovery-set.md) identifies actual coverage, independent locations and acceptance.
+[PBS](backups/virtual-machines.md#pbs-reference) is an alternative guest-backup target.
+
 ## Keep the system healthy
 
 | Task | Procedure |

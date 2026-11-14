@@ -23,6 +23,75 @@ def guest_names(groups):
 
 
 class DeploymentViews(unittest.TestCase):
+    def test_secrets_view_counts_independent_product_components(self):
+        role = UPSTREAM / "tier-0/ansible/roles/control_applications"
+        defaults = yaml.safe_load((role / "defaults/main.yml").read_text())
+        values = (role / "templates/netbox-values.yml.j2").read_text()
+        web = re.search(r"(?m)^replicaCount: (\d+)$", values)[1]
+        worker = re.search(r"(?ms)^worker:\n.*?^  replicaCount: (\d+)$", values)[1]
+        code = FENCES.findall((DOCS / "03-deployment/stage-6-secrets/README.md").read_text())[0]
+        self.assertIn(f"netbox web x{web} / worker x{worker}", code)
+        self.assertIn(f'vault x{defaults["control_applications_vault_replicas"]}', code)
+        self.assertIn(f'netbox-db x{defaults["control_applications_database_instances"]}', code)
+        self.assertIn("class Added group", code)
+
+    def test_operating_reference_aggregates_keep_the_owned_guest_names(self):
+        cases = (
+            ("01-hosting/kubernetes-and-labs.md", 0, "tier-0", ("talos_control_plane", "cluster_endpoint")),
+            ("02-software-intake/README.md", 0, "tier-2", ("cache",)),
+            ("02-software-intake/verified-publication.md", 0, "tier-1", ("software_intake",)),
+            ("03-cryptography/README.md", 0, "tier-0", ("issuing_ca", "identity_primary", "identity_replicas")),
+            ("05-delivery.md", 0, "tier-1", ("development_data",)),
+            ("06-resilience/protected-logging.md", 0, "tier-0", ("foundation_logging",)),
+            ("06-resilience/observability.md", 1, "tier-1", ("observability",)),
+        )
+        for relative, index, tier, selected in cases:
+            with self.subTest(page=relative):
+                code = FENCES.findall((DOCS / "05-operations" / relative).read_text())[index]
+                guest_labels = "\n".join(re.findall(r'\["([^"\n]+)"\]', code))
+                groups = inventory_groups(tier)
+                for name in guest_names({key: groups[key] for key in selected}):
+                    matches = re.findall(rf"(?<![\w-]){re.escape(name)}(?![\w-])", guest_labels)
+                    self.assertEqual(len(matches), 1, f"{relative}: one depicted guest or named aggregate: {name}")
+
+    def test_identity_replica_views_match_the_product_defaults(self):
+        defaults = yaml.safe_load((UPSTREAM /
+            "tier-0/ansible/roles/control_applications/defaults/main.yml").read_text())
+        stage = FENCES.findall((DOCS / "03-deployment/stage-5-identity/README.md").read_text())[1]
+        pods = re.findall(r'Keycloak\d+\["keycloak / pod replica \d+"\]', stage)
+        self.assertEqual(len(pods), defaults["control_applications_keycloak_replicas"])
+        operation = FENCES.findall((DOCS / "05-operations/04-identity.md").read_text())[0]
+        for code in (stage, operation):
+            self.assertIn(f'PostgreSQL x{defaults["control_applications_database_instances"]}', code)
+            self.assertIn("control_cluster", code)
+            self.assertIn("identity network", code)
+        self.assertIn(f'IdP pods x{defaults["control_applications_keycloak_replicas"]}', operation)
+        ingress = (UPSTREAM /
+            "tier-0/ansible/roles/control_applications/templates/ingress.yml.j2").read_text()
+        self.assertIn("keycloak-http", ingress)
+        self.assertIn('Service{"keycloak-http', stage)
+
+    def test_operations_capability_entries_open_with_the_deployed_view(self):
+        entries = (
+            "01-hosting/README.md", "01-hosting/kubernetes-and-labs.md",
+            "02-software-intake/README.md", "02-software-intake/verified-publication.md",
+            "03-cryptography/README.md", "03-cryptography/certificate-authority.md",
+            "04-identity.md", "05-delivery.md", "06-resilience/README.md",
+            "06-resilience/protected-logging.md", "06-resilience/observability.md",
+            "06-resilience/backups/postgresql.md", "06-resilience/backups/gitlab-data.md",
+            "06-resilience/recovery/platform.md",
+        )
+        for relative in entries:
+            with self.subTest(page=relative):
+                page = (DOCS / "05-operations" / relative).read_text()
+                figure = FENCES.search(page)
+                self.assertIsNotNone(figure, "Show the selected deployment before task/configuration tables")
+                first_table = re.search(r"(?m)^\|", page)
+                if first_table:
+                    self.assertLess(figure.start(), first_table.start())
+                caption = page[figure.end():].lstrip().splitlines()[0]
+                self.assertRegex(caption, r"^(?:\*\*[^*]+:\*\* )?\*Figure(?: \d+ -|:) ")
+
     def test_architecture_diagrams_use_roles_not_site_guest_keys(self):
         names = set().union(*(guest_names(inventory_groups(f"tier-{tier}")) for tier in range(3)))
         documents = list((DOCS / "01-architecture").rglob("*.md"))

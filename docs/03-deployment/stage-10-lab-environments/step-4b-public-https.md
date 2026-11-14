@@ -35,9 +35,11 @@ flowchart TB
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T2,A,B,C edge
+  class A,B,C edge
   class PVE boundary
   class Controller,Authority actor
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
 ```
 
 **IaC:** *Figure: The controller orders certificates and deploys verified PEM files to the existing edge pool. The

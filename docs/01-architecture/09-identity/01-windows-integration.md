@@ -7,7 +7,7 @@ It is an optional compatibility function, not an alternative owner for the
 platform's DNS, PKI or secret-service foundations.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Windows["Windows clients"] -->|"Selected services"| Kerberos
   Windows -->|"Domain join / GPO"| Domain

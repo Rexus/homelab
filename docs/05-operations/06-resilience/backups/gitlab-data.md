@@ -3,6 +3,53 @@
 Back up PostgreSQL, Redis and Gitaly from live Proxmox/Ceph VM disks to encrypted restic repositories.
 These cold component copies are separate from GitLab Toolbox backups and application object storage.
 
+<a id="figure-gitlab-component-backups"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":32,"padding":10,"wrappingWidth":350,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T1["Tier 1 / GitLab data"]
+    subgraph VMs["Three existing data VMs / per-host recipe"]
+      direction RL
+      Jobs["On each VM<br/>development-data-backup.timer<br/>development-data-backup.service"]
+      Disks[("Live Proxmox/Ceph-backed disks<br/>db-1 / PostgreSQL<br/>kv-1 / Redis<br/>repo-1 / Gitaly")]
+      Disks -->|Cold component copy| Jobs
+    end
+  end
+  subgraph T0["Tier 0 / existing storage administration"]
+    direction LR
+    NAS[("Existing NAS / dedicated exports<br/>Encrypted restic repositories")]
+    PVE["Existing Proxmox/Ceph<br/>Live VM disk hosting"]
+  end
+  VMs -->|Encrypted backup files| NAS
+  VMs -. Live disk hosting .-> PVE
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Jobs services
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class VMs group
+  class PVE control
+  class Disks,NAS data
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+```
+
+*Figure: Each existing GitLab data VM creates an encrypted component backup on the separate NAS.
+The live disks remain hosted by Proxmox/Ceph; backup custody is independently commissioned.*
+
+**IaC + commissioned storage:** Tier 1 [backup tasks](../../../../tier-1/ansible/roles/development_data/tasks/backup.yml),
+[job](../../../../tier-1/ansible/roles/development_data/templates/backup.sh.j2) and
+[inputs](../../../../tier-1/ansible/group_vars/development_data.yml.example) install one
+timer/service per existing data VM. Scope: selected `filesystem` recovery copies,
+not GitLab application objects or the SFTP alternative. Proxmox disks, NAS exports,
+share identities and independent retention remain existing prerequisites. Client mounts are installed by
+[native mount tasks](../../../../tier-1/ansible/roles/development_data/tasks/backup-mount.yml).
+
 **Working repository:** generated Tier 1.
 **Run configuration on:** the deployment host. **Run checks on:** each existing data VM.
 **Prerequisites:** commissioned NAS shares/identities or SFTP service, independent encryption passwords,
@@ -46,47 +93,6 @@ approved restic 0.17+ and [accepted data services](../../../03-deployment/stage-
 3. Apply via the [data-service installer](../../../03-deployment/stage-9-development/procedures/data-services.md#render-and-apply).
    It mounts the client, verifies the independent marker/repository, persists the mount and probes access before scheduling.
    It installs no NAS server or export and never creates/replaces the marker.
-
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":18,"padding":10,"wrappingWidth":350,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T1[" "]
-    T1Title["Tier 1 / GitLab data"]
-    subgraph VMs["Three existing data VMs / per-host recipe"]
-      direction RL
-      Disks[("Live Proxmox/Ceph-backed disks<br/>db-1 / PostgreSQL<br/>kv-1 / Redis<br/>repo-1 / Gitaly")]
-      Jobs["On each VM<br/>development-data-backup.timer<br/>development-data-backup.service"]
-      Disks -->|Cold component copy| Jobs
-    end
-    T1Title ~~~ VMs
-  end
-  subgraph T0["Tier 0 / existing storage administration"]
-    direction LR
-    NAS[("Existing NAS / dedicated exports<br/>Encrypted restic repositories")]
-    PVE["Existing Proxmox/Ceph<br/>Live VM disk hosting"]
-  end
-  VMs -->|Encrypted backup files| NAS
-  VMs -. Live disk hosting .-> PVE
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef servicesHeading fill:#e7f0fc,stroke:#e7f0fc,color:#203a5b
-  class T1,Jobs services
-  class T1Title servicesHeading
-  class VMs runtime
-  class T0,PVE control
-  class Disks,NAS data
-```
-
-**IaC + commissioned storage:** Tier 1 [backup tasks](../../../../tier-1/ansible/roles/development_data/tasks/backup.yml),
-[job](../../../../tier-1/ansible/roles/development_data/templates/backup.sh.j2) and
-[inputs](../../../../tier-1/ansible/group_vars/development_data.yml.example) install one
-timer/service per existing data VM. Scope: selected `filesystem` recovery copies,
-not GitLab application objects or the SFTP alternative. Proxmox disks, NAS exports,
-share identities and independent retention remain existing prerequisites. Client mounts are installed by
-[native mount tasks](../../../../tier-1/ansible/roles/development_data/tasks/backup-mount.yml).
 
 <a id="commission-a-nas-mount"></a>
 

@@ -11,48 +11,51 @@ contracts, even when they use the same hardware.
 ## Shared interfaces
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":22,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
   Clients["Explicitly authorized consumers<br/>Issuer, application or development signer"]
-  subgraph T0["Tier 0 / Control / optional shared custody"]
+  subgraph T0["Tier 0 / optional shared custody"]
     direction TB
     subgraph Connected["Connected services"]
       direction LR
-      subgraph API["Optional signing API"]
+      subgraph API["Optional signing API runtime"]
         direction TB
         Policy["Authentication, key policy<br/>and audit"]
         State[("Signing API state")]
-        Policy --> State
+        Policy -->|Persist| State
       end
-      subgraph Pool["Device hosts / pinned endpoints"]
+      subgraph Pool["Device hosts / pinned members"]
         direction TB
         ProviderA["Host A<br/>Provider and local USB token"]
-        ProviderB["Additional host<br/>Provider and local USB token"]
+        ProviderB["Additional hosts<br/>One provider and local USB token per host"]
         ProviderA ~~~ ProviderB
       end
+      API -->|PKCS#11 / selected member| Pool
     end
     Custody["Offline custody / device-specific backups<br/>Independent of online service state"]
-    ProviderB ~~~ Custody
+    Connected ~~~ Custody
   end
-  Clients -->|Scoped signing| Policy
-  Clients -->|Authorized PKCS#11| ProviderA
-  Policy -->|PKCS#11| ProviderA
-  Policy -->|Qualified alternate| ProviderB
+  Clients -->|Signing API or pinned PKCS#11| T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T0 control
+  class T0 tier0
   class Connected boundary
-  class API,Pool runtime
+  class API,ProviderA,ProviderB runtime
+  class Pool replicas
+  class Policy control
   class Custody custody
   class State data
 ```
 
-*Figure: Consumers select a policy-enforcing signing API or authorized PKCS#11 access;
-device hosts and application state have separate recovery responsibilities. Both interfaces are optional.*
+*Figure: The consumer link selects the signing API or direct PKCS#11 access to a pinned device host.
+The API uses a selected pool member; the dashed group is qualified application failover, not a shared
+host or automatic key replication. Device backups remain separate from signing-API state.*
 
 Read the figure as two consumer contracts. A trusted application can own the
 PKCS#11 sessions and policy itself, or use a signing API that checks identity,

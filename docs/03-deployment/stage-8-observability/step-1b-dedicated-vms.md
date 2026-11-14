@@ -44,8 +44,10 @@ flowchart TB
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  class T1,O1,O2,M1,M2,S1,S2,S3 services
+  class O1,O2,M1,M2,S1,S2,S3 services
   class PVE,A,B,C boundary
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: Seven guests spread gateways, metric stores and search members across the configured Proxmox hosts.

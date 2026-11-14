@@ -1,5 +1,10 @@
 # Step 10b: ProxLB balancing alternative
 
+**Expected result — Integration:** one commissioned ProxLB scheduler on an existing Tier 0 execution
+host moves only the selected non-HA guests. Native HA retains the
+[fault-recovery role](failover.md#figure-2-placement-after-safe-ha-recovery); ProxLB installation and
+qualification follow its product procedures below, with no additional VM supplied by this kit.
+
 **Branch from:** [Foundation Step 10b](../README.md#step-10-qualify-selected-ha-and-balancing),
 after cluster readiness, API credentials and a movable test guest exist.
 **Return:** [Foundation readiness](../README.md#foundation-ready) after scheduler ownership and failover pass.

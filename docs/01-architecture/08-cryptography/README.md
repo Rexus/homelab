@@ -12,47 +12,56 @@ remains separately controlled, and signing and secret-service startup protection
 retain independent provider choices.
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
-  block:T2
-    columns 2
-    T2Title["Tier 2 / workloads and isolated labs"]:2
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart BT
+  subgraph T2["Tier 2 / workloads and isolated labs"]
+    direction LR
     Workloads["Certificate / secret consumers"]
     LabCA["Optional lab CA<br/>Lab-only trust"]
+    Workloads ~~~ LabCA
   end
-  block:T1
-    columns 2
-    T1Title["Tier 1 / shared services"]:2
+  subgraph T1["Tier 1 / shared services"]
+    direction LR
     Enrollment["Enrollment clients<br/>Scoped infrastructure requests"]
     AppCA["Optional application CA<br/>Shared application trust"]
+    Enrollment ~~~ AppCA
   end
-  block:T0
-    columns 3
-    T0Title["Tier 0 / Control / infrastructure trust and secrets"]:3
-    Secrets["Secret service<br/>Separate seal"]
-    Identity["Identity issuer<br/>Directory CA"]
-    Issuer["Infrastructure issuer<br/>Selected signing provider"]
-    Root["Offline custody / root CA and recovery material<br/>Authorized ceremony; no routed connection"]:3
+  subgraph T0["Tier 0 / infrastructure trust and secrets"]
+    direction BT
+    subgraph Online["Connected trust services"]
+      direction LR
+      Secrets["Secret service<br/>Separate seal"]
+      subgraph Issuers["Issuing authorities"]
+        direction LR
+        Identity["Identity issuer<br/>Directory CA"]
+        Issuer["Infrastructure issuer<br/>Selected signing provider"]
+        Identity ~~~ Issuer
+      end
+      Secrets ~~~ Issuers
+    end
+    Root["Offline root / recovery custody<br/>Authorized ceremony; no network route"]
+    Root -. Signed intermediate certificates .-> Online
   end
-  Root -.-> Issuer
-  Root -.-> Identity
+  T0 ~~~ T1 ~~~ T2
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  classDef servicesHeading fill:#e7f0fc,stroke:#e7f0fc,color:#203a5b
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  class T2,T1 services
-  class T0 control
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  class T0 tier0
+  class T1 tier1
+  class T2 tier2
+  class Workloads,Enrollment services
+  class AppCA,LabCA,Secrets,Identity,Issuer control
+  class Online,Issuers group
   class Root custody
-  class AppCA,LabCA replicas
-  class T2Title,T1Title servicesHeading
-  class T0Title controlHeading
 ```
-*Figure: Online consumers sit above Tier 0 trust services; the upward dashed arrows transfer
-offline-signed intermediate certificates, not network traffic. Optional CAs have their own trust scope.*
+*Figure: Online consumers sit above Tier 0 trust services. The upward dashed link supplies offline-signed
+intermediate certificates to the two issuing authorities; it is not network traffic or a secret-service
+seal dependency. Optional application and lab CAs have their own trust scopes.*
 
 Read the figure from the consumers down to their trust foundation. An infrastructure
 client enrolls with the online issuer, which applies certificate policy and uses its

@@ -55,7 +55,13 @@ block-beta
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef fault fill:#fce8e6,stroke:#a3453d,color:#652c28
-  class Direction,Ddmz,Dservices,Dcontrol,Dfabric,Sdmz,Sservices,Scontrol,Sfabric boundary
+  class Direction,Dfabric,Sfabric boundary
+  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
+  classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Ddmz,Sdmz zoneEdge
+  class Dservices,Sservices zoneServices
+  class Dcontrol,Scontrol zoneControl
   class DS,SD,FD control
   class DD,SS,CD,CS,CC,FS custody
   class DC,DF,SC,SF,CF,FC,FF fault

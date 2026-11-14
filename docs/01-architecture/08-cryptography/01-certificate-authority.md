@@ -33,10 +33,12 @@ block-beta
   classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class T0 control
-  class T0Title controlHeading
   class Root custody
   class Services,Hosts services
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
+  class T0Title tier0Heading
 ```
 *Figure: The offline root authorizes two sibling issuers. Upward arrows represent certificate
 signing, so neither routine issuance nor shared root trust grants access to the other issuer.*
@@ -104,8 +106,10 @@ flowchart LR
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class Access boundary
-  class Authority,Portal,Issuer control
+  class Authority tier0
+  class Portal,Issuer control
   class Bridge,Publication services
   class Keys custody
   class Records data

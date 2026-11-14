@@ -8,6 +8,7 @@ ownership. Deployment views show the capability added by a step, not a new archi
 ## Table of contents
 
 - [Layout](#layout)
+- [Compact block composition](#compact-block-composition)
 - [Abstraction and implementation](#abstraction-and-implementation)
 - [Boundaries and colour](#boundaries-and-colour)
 - [Verification](#verification)
@@ -23,10 +24,36 @@ ownership. Deployment views show the capability added by a step, not a new archi
 | How does a request proceed? | Flowchart or sequence | Arrows describe real interactions; sequence diagrams retain chronological order |
 | What does a deployment step add? | Content-sized nested flowchart | Retain tier, host/VM and storage boundaries; distinguish existing components from additions |
 
+## Compact block composition
+
+Use one visual language for architecture, deployment and operating views. Compose from the inside out:
+
+| Level | Placement | Visual treatment |
+| --- | --- | --- |
+| Servers, pods and replicas | Compact vertical stacks | Similar instance rectangles inside a dashed service group |
+| Peer service groups | Side by side | Consumer on the left; supporting service or authority to the right |
+| Zones and ownership boundaries | Stack where the model requires it | Solid outer boundaries; retain Tier 2 above Tier 1 above Tier 0 |
+| Gateways and balancers | Close to the peers they connect | Distinct compact shapes; label their actual routing role |
+
+This nesting should produce a compact figure near 4:3. Do not turn every server group into a horizontal
+row or spread a small deployment across a wide canvas. Use the project's palette, native component
+names and actual containment. The [identity placement](../03-deployment/stage-5-identity/README.md#figure-identity-federation)
+is a concrete application; its products and replica counts are not a template for other capabilities.
+
+An operations capability guide opens with the complete selected deployment, before task navigation or
+long input lists. Smaller diagrams later explain a particular task, failure or recovery path. A focused
+runbook can point back to that overview instead of repeating the entire deployment. Match the operating
+view to the accepted deployment and link its owning inputs; an installation sequence is not a runtime map.
+
+Render before accepting the layout. Nested Mermaid directions can be overridden by external links:
+confirm that replicas actually stack, peer groups actually read left to right, titles remain visible and
+the figure stays readable at normal and narrow widths. A near-4:3 canvas alone does not prove compactness.
+
 ### Start with the result
 
-Deployment guides show the expected result immediately after a short introduction,
-before long prerequisites, contents or configuration tables. Give that picture a
+Capability guides show the opening figure immediately after a short introduction,
+before long prerequisites, contents or configuration tables. Deployment shows the expected
+result; operations shows the complete selected deployment. Give that picture a
 stable figure anchor and a descriptive caption. Refer to it from the actions that
 create, configure or verify its components.
 
@@ -170,21 +197,28 @@ the documentation tests compare those declarations with the palette.
 
 | Role | Treatment |
 | --- | --- |
-| Site, network or ownership boundary | Pale neutral enclosing box, solid border |
+| Tier boundaries | Warm neutrals: light `tier2`, medium `tier1`, strongest `tier0`; the same shade everywhere |
+| Other ownership boundary | Warm neutral gray `ownership`, independent of network protection zones |
+| Protection zones | Light rose `zoneEdge`, medium blue `zoneServices`, stronger green `zoneControl`; separate from tiers |
+| Site or network boundary | Pale neutral enclosing box, solid border |
+| Kubernetes runtime | Pale blue-gray `kubernetes`; contained inside its owner and actual network |
+| Traffic interface | Pale cyan `traffic`; ingress, gateways, balancers and routing entry points |
+| Action / approval | Pale peach `action`; workflow activity, distinct from deployed service instances |
+| Inner function / service group | Light neutral gray `group`, solid border; works inside any owner, zone or runtime |
+| Replica / failover group | The same light gray `replicas`, dashed border; labels state the actual contract |
 | Boundary heading | Native title or content-sized unframed heading above its children, not a grid spacer row |
-| Edge / DMZ | Rose zone or capability |
-| Application / Services | Blue zone or capability |
-| Control | Green zone or capability |
-| Nested control runtime | Related teal shade; for example, Kubernetes inside Tier 0 |
+| Functional components | Preserve the component's rose, blue or green role; do not reuse zone fills for every child |
+| Other runtime | Declared runtime treatment; Kubernetes always uses its dedicated blue-gray role |
 | Offline custody / recovery | Amber, outside connected runtime boundaries |
 | Persistent data | Violet; database or storage shape where useful |
-| Replica group | Pale inner box with dashed border and compact peer instances |
 | Client or external peer | Muted neutral box, explicitly labelled |
 
 Colour distinguishes roles, not products or a universal tier classification.
 For example, Tier 2 includes both DMZ entry points and Services workloads.
 Labels, containment, shapes and line styles carry the same meaning without colour.
 Gateways should sit near the boundary and peer they connect to.
+Policy and health matrices retain their explicit green/amber/red legend. Their cells express
+policy or severity, while coloured row and column headings identify the corresponding zones.
 
 Use paired opaque fills and dark foregrounds for boxes. Flowcharts use a fixed
 base theme with mid-tone connectors and pale edge-label backgrounds; charts and

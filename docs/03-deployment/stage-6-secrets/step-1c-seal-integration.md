@@ -1,5 +1,10 @@
 # Step 1c: Select the Vault seal
 
+**Expected result — IaC:** the selected [cluster Vault](README.md#figure-control-applications) or
+[VM Vault](step-1b-vault-vm.md#figure-vault-vm) uses its declared seal and independent recovery custody.
+Transit and PKCS#11 consume an already qualified provider; this configuration does not install or
+initialize that provider. Choose the seal before the first Vault initialization.
+
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 **Branch from:** [Step 1](README.md#step-1-deploy-the-secret-service), before first initialization.
 **Change:** Select Shamir, an independent Transit provider or a qualified Enterprise PKCS#11 seal.

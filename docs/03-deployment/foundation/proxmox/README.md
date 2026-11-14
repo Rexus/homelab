@@ -3,6 +3,11 @@
 Install the virtualization hosts and prepare the network/storage that guest IaC consumes.
 Proxmox host administration and every template lifecycle belong to Tier 0.
 
+**Expected result — Manual:** independently reachable hosts with an accepted `vmbr0` guest trunk,
+recorded live-storage IDs and a working console recovery path. This prepares the host side of
+[Foundation Figure 1](../README.md#figure-foundation-ready); templates and the execution host follow
+in the caller. Cluster/HA and SDN remain separately selected options below.
+
 **Working repository:** `<prefix>-tier-0` after generation (source: `tier-0/`).
 **Run on:** an independent workstation and each host's console/GUI.
 **Target:** Proxmox VE 9+; the native dynamic-rebalancing branch requires 9.2+.

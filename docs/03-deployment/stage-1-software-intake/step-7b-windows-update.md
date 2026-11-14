@@ -1,5 +1,10 @@
 # Step 7b: Optional Windows Update access
 
+**Expected result — Integration:** an existing managed Windows consumer uses the approved cache route
+in [Stage 1 Figure 1](README.md#figure-1-controlled-proxy-pair), with separately commissioned client
+policy and any approved Delivery Optimization exceptions. The kit extends Squid policy only;
+end-to-end Windows acceptance is still required below.
+
 **Branch from:** [Step 7](README.md#step-7-select-windows-update-scope), option **7b**.
 **Change:** extend cache policy for an existing externally managed Windows consumer.
 **Working repository:** `<prefix>-tier-2/` for the cache; Windows client policy is managed separately.

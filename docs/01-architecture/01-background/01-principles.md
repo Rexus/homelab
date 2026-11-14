@@ -11,6 +11,8 @@ credential protection and retained evidence support that decision; none replaces
 %%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   Subject["User / workload"] -->|Request| Resource["Resource<br/>local authorization"]
+  Resource ~~~ Identity
+  Resource ~~~ Policy
   Identity["Identity authority"] -.->|Authenticated identity| Resource
   Policy["Network policy"] -.->|Restricts path| Resource
   Resource -->|Evidence| Evidence["Protected records"]

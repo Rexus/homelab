@@ -3,19 +3,7 @@
 Rebuild the minimum host foundation, restore the bootstrap from independent backup, then recover
 the original services and data. The backup set defines what can be recovered and how old it will be.
 
-**Run on:** an independent privileged workstation and replacement Proxmox capacity.
-**Prerequisites:** accessible [recovery set](../backups/recovery-set.md), approved installation
-media, independently held keys/credentials and a recorded network/storage plan.
-**Design:** [recovery boundaries](../../../01-architecture/11-operations/04-backup-recovery.md#recovery-boundaries).
-
-## Steps
-
-1. [Establish independent access](#1-establish-independent-access).
-2. [Recreate the minimum host foundation](#2-recreate-the-minimum-host-foundation).
-3. [Restore the bootstrap and original records](#3-restore-the-bootstrap-and-original-records).
-4. [Recover the early prerequisites](#4-recover-the-early-prerequisites).
-5. [Recover services and their data](#5-recover-services-and-their-data).
-6. [Resume operations and prove the next recovery point](#6-resume-operations-and-prove-the-next-recovery-point).
+<a id="figure-platform-recovery-sequence"></a>
 
 ## Recovery sequence
 
@@ -47,17 +35,32 @@ flowchart TB
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class Access custody
-  class Host boundary
-  class Boot,Evidence control
-  class Services,Resume services
+  classDef action fill:#fcebdc,stroke:#a16c43,color:#5b3921
+  class Access,Host,Boot,Evidence,Services,Resume action
   class RowOne,RowTwo,RowThree boundary
 ```
 
-**Manual recovery workflow:** these are ordered operations, not six deployed resources.
+*Figure: Recover independent execution before restoring original services and data. The six boxes
+are ordered recovery actions, rather than deployed resources.*
+
+**Manual recovery workflow:**
 Read the first row left to right, the second right to left, then the last left to right.
 The host and backup target are manual prerequisites; the bootstrap is restored from backup.
 Tier-local original state and the [product procedures](README.md) control subsequent recovery.
+
+**Run on:** an independent privileged workstation and replacement Proxmox capacity.
+**Prerequisites:** accessible [recovery set](../backups/recovery-set.md), approved installation
+media, independently held keys/credentials and a recorded network/storage plan.
+**Design:** [recovery boundaries](../../../01-architecture/11-operations/04-backup-recovery.md#recovery-boundaries).
+
+## Steps
+
+1. [Establish independent access](#1-establish-independent-access).
+2. [Recreate the minimum host foundation](#2-recreate-the-minimum-host-foundation).
+3. [Restore the bootstrap and original records](#3-restore-the-bootstrap-and-original-records).
+4. [Recover the early prerequisites](#4-recover-the-early-prerequisites).
+5. [Recover services and their data](#5-recover-services-and-their-data).
+6. [Resume operations and prove the next recovery point](#6-resume-operations-and-prove-the-next-recovery-point).
 
 ## 1. Establish independent access
 

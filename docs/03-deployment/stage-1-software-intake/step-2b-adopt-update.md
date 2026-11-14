@@ -1,5 +1,9 @@
 # Step 2b: Adopt an intake update with existing cache servers
 
+**Expected result — IaC:** the retained pair in
+[Stage 1 Figure 1](README.md#figure-1-controlled-proxy-pair) runs the refreshed configuration using
+its original inputs and state. Collection refresh precedes reconciliation; neither step replaces the VMs.
+
 **Branch from:** [Step 2](README.md#step-2-initialize-cache-inputs), option **2b**, for an existing pair.
 **Change:** refresh automation and reconcile the retained cache configuration/state.
 **Return:** [Step 9](README.md#step-9-test-the-accepted-supply) after update adoption and cache reconciliation.

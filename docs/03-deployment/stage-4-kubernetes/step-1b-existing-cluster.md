@@ -1,5 +1,9 @@
 # Step 1b: Use an existing Talos cluster
 
+**Expected result — Integration:** the original owner retains the accepted cluster and supplies its
+existing clients to the [basic-platform installation](README.md#figure-2-basic-platform-services).
+Node names/counts come from that accepted inventory; this branch creates no replacement node or state.
+
 **Branch from:** [Step 1](README.md#step-1-create-the-kubernetes-cluster), instead of creating a new cluster.
 **Change:** Consume an accepted cluster whose existing owner manages its nodes through IaC.
 **Return:** [Action 7](README.md#step-7-render-and-append-node-logging-patches) to render the actual

@@ -6,6 +6,42 @@ from that controller. The guides use Ansible or the product API for remote check
 does not require an interactive guest login. Existing accepted services, physical equipment,
 external storage custody and offline signing approvals retain their stated owners.
 
+<a id="figure-deployment-sequence"></a>
+
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+block-beta
+  columns 3
+  Base["Foundation<br/>Hosts, access<br/>and templates"]
+  Intake["1. Software intake<br/>Controlled<br/>update access"]
+  Logs["2. Protected logging<br/>Independent<br/>Tier 0 evidence"]
+  Identity["5. Identity<br/>Directory<br/>and federation"]
+  Runtime["4. Kubernetes<br/>Control cluster<br/>and basic platform"]
+  Trust["3. Cryptographic trust<br/>Offline custody<br/>and issuance"]
+  Control["6. Secrets<br/>Secret service<br/>and recovery"]
+  Delivery["7. Delivery<br/>Controller<br/>and artifact supply"]
+  Visibility["8. Observability<br/>Logs, metrics, traces<br/>and queries"]
+  space
+  Workloads["10. Lab environments<br/>Scoped runtimes<br/>and requests"]
+  Development["9. Development<br/>platform<br/>GitLab, CI<br/>and handover"]
+  Base --> Intake
+  Intake --> Logs
+  Logs --> Trust
+  Trust --> Runtime
+  Runtime --> Identity
+  Identity --> Control
+  Control --> Delivery
+  Delivery --> Visibility
+  Visibility --> Development
+  Development --> Workloads
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef action fill:#fcebdc,stroke:#a16c43,color:#5b3921
+  class Base,Intake,Logs,Trust,Runtime,Identity,Control,Delivery,Visibility,Development,Workloads action
+```
+
+**Workflow:** *Figure: Foundation and numbered capability stages form a chronological installation path.*
+The [IaC capability map](#iac-capability-map) links each entry point to its selected deployment view.
+
 Verify the unnumbered [foundation prerequisites](foundation/README.md), then choose
 the capability to deploy and follow its main README from Step 1 onward.
 Start with [Software intake](stage-1-software-intake/README.md), using verified
@@ -53,47 +89,8 @@ Find each stage's corresponding design and operating guides in the
 | 9: Development platform | GitLab, SSO, on-demand build pods, Vault CI and infrastructure handover | Tier 1 applications; Tier 0 execution/auth policy | [Development platform](stage-9-development/README.md) |
 | 10: Lab environments | Isolated Tier 2 runtimes, applications and future bounded requests | Tier 2 definitions; Tier 0 execution | [Lab environments](stage-10-lab-environments/README.md), [isolated clusters](stage-10-lab-environments/procedures/isolated-clusters.md) |
 
-```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 3
-  Base["Foundation<br/>Hosts, access<br/>and templates"]
-  Intake["1. Software intake<br/>Controlled<br/>update access"]
-  Logs["2. Protected logging<br/>Independent<br/>Tier 0 evidence"]
-  Identity["5. Identity<br/>Directory<br/>and federation"]
-  Runtime["4. Kubernetes<br/>Control cluster<br/>and basic platform"]
-  Trust["3. Cryptographic trust<br/>Offline custody<br/>and issuance"]
-  Control["6. Secrets<br/>Secret service<br/>and recovery"]
-  Delivery["7. Delivery<br/>Controller<br/>and artifact supply"]
-  Visibility["8. Observability<br/>Logs, metrics, traces<br/>and queries"]
-  space
-  Workloads["10. Lab environments<br/>Scoped runtimes<br/>and requests"]
-  Development["9. Development<br/>platform<br/>GitLab, CI<br/>and handover"]
-  Base --> Intake
-  Intake --> Logs
-  Logs --> Trust
-  Trust --> Runtime
-  Runtime --> Identity
-  Identity --> Control
-  Control --> Delivery
-  Delivery --> Visibility
-  Visibility --> Development
-  Development --> Workloads
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  class Base boundary
-  class Intake edge
-  class Logs,Trust,Runtime,Identity,Control control
-  class Delivery,Visibility,Development,Workloads services
-```
-
-**Workflow:** this is the capability sequence, not a resource or network diagram.
-The [IaC capability map](#iac-capability-map) links each entry point to its selected deployment view.
-
-For a new installation, follow this order. Existing infrastructure can satisfy a
+For a new installation, follow [the capability sequence](#figure-deployment-sequence).
+Existing infrastructure can satisfy a
 stage's verified prerequisites; a stage number is not a tier, network or state boundary.
 Stage 1 supplies controlled update access. Verified RPM/APT/artifact publication is
 [Stage 3 option 15b](stage-3-trust/README.md#15b-verified-repository-and-artifact-publication-optional),

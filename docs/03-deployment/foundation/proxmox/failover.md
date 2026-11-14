@@ -17,10 +17,10 @@ flowchart TB
   subgraph T0["Tier 0 / Control - before failure"]
     direction TB
     subgraph P1["Proxmox pve01"]
-      A["idm-1 / vm:201<br/>Running directory<br/>primary"]
+      A["idm-1<br/>Running directory<br/>primary"]
     end
     subgraph P2["Proxmox pve02"]
-      B["idm-2 / vm:202<br/>Running directory<br/>replica"]
+      B["idm-2<br/>Running directory<br/>replica"]
     end
     subgraph P3["Proxmox pve03"]
       Spare["Recovery capacity<br/>No directory VM yet"]
@@ -33,9 +33,11 @@ flowchart TB
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T0,A,B control
+  class A,B control
   class P1,P2,P3,Spare runtime
   class Storage data
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **Manual:** **Figure 1: Selected placement before failure.** Tier 0's [guest definitions](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
@@ -80,10 +82,10 @@ flowchart TB
       Failed["Failed / fenced host<br/>Original idm-1<br/>is not running"]
     end
     subgraph P2["Proxmox pve02"]
-      B["idm-2 / vm:202<br/>Continues serving<br/>clients"]
+      B["idm-2<br/>Continues serving<br/>clients"]
     end
     subgraph P3["Proxmox pve03"]
-      A["idm-1 / vm:201<br/>Cold restart<br/>Then replication"]
+      A["idm-1<br/>Cold restart<br/>Then replication"]
     end
     Storage[("Same resilient Ceph<br/>Original live disks<br/>No backup restore here")]
     P1 ~~~ P3
@@ -94,10 +96,12 @@ flowchart TB
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef fault fill:#fce8e6,stroke:#a3453d,color:#652c28
-  class T0,A,B control
+  class A,B control
   class P1,P2,P3 runtime
   class Storage data
   class Failed fault
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **Manual:** **Figure 2: Placement after safe HA recovery.** Fault scenario using the same

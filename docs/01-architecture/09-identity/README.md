@@ -12,7 +12,7 @@ Hosts use directory authority directly; applications use an identity provider
 which remains outside the cluster it helps administrators access.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":2,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
   subgraph T2["Tier 2 / applications"]
     Apps["Workload relying parties"]
@@ -21,24 +21,24 @@ flowchart TB
     Shared["Shared relying parties"]
   end
   Hosts["Other enrolled hosts<br/>DNS / LDAP / Kerberos"]
-  subgraph T0[" "]
-    direction TB
-    T0Title["Tier 0 / Control layer"]
-    subgraph Placement[" "]
-      direction LR
-      subgraph Cluster["Kubernetes / control_cluster network"]
-        direction TB
-        IdP["Identity provider<br/>IdP / SSO"]
-        Data[("IdP state")]
-        IdP --> Data
-      end
-      subgraph Directory["Directory authority / identity network"]
+  subgraph T0["Tier 0 / Control layer"]
+    direction LR
+    subgraph Cluster["Kubernetes / control_cluster network"]
+      direction TB
+      Ingress{{"HTTPS sign-in<br/>Ingress"}}
+      IdP["Identity provider<br/>IdP / SSO replica group"]
+      Data[("IdP state")]
+      Ingress -->|Approved sign-in routes| IdP
+      IdP -->|Database access| Data
+    end
+    subgraph Directory["Directory authority / identity network"]
+      direction TB
+      subgraph DirectoryGroup["Replicated directory service"]
         direction TB
         Primary["Directory primary"] <--> Replica["Directory replica"]
       end
-      Cluster -->|Protected LDAP federation| Directory
     end
-    T0Title ~~~ Placement
+    Cluster -->|Protected LDAP federation| Directory
   end
   T2 ~~~ T1
   T1 -->|OIDC to the IdP| T0
@@ -47,19 +47,31 @@ flowchart TB
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T2,T1 services
-  class T0,Directory control
-  class T0Title,Placement controlHeading
-  class Cluster runtime
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
   class Data data
   class Hosts actor
+  class IdP,DirectoryGroup replicas
+  class Primary,Replica control
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Ingress traffic
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Directory zoneControl
 ```
-*Figure: Tier 1 and Tier 2 applications rely on the Tier 0 IdP; its directory dependency is
-to the right. The directory pair replicates authority while enrolled hosts use directory protocols directly.*
+*Figure: Consumers sit above the Tier 0 authority. Its sign-in runtime is to the left of the dedicated
+directory; compact stacks show service instances inside their actual boundaries. The hexagon is HTTPS
+ingress, dashed boxes group services, and the database has its own state boundary. Directory protocols
+also serve enrolled hosts directly; administrative access is separate from these sign-in routes.*
 
 The figure separates ownership from access. Publishing an authentication endpoint
 to a consuming tier does not give that tier control of the directory or IdP runtime.

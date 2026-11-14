@@ -12,10 +12,12 @@ flowchart BT
     Tenant["Tenant"]
     subgraph PVE["Proxmox hosting capacity"]
       subgraph Nodes["Dedicated node VMs"]
-        direction LR
-        API["Project<br/>Kubernetes API"]
-        Workloads["Project<br/>workloads"]
-        API -- "Manages" --> Workloads
+        subgraph Cluster["Project Kubernetes"]
+          direction TB
+          API{{"Project<br/>Kubernetes API"}}
+          Workloads["Project<br/>workloads"]
+          API -- "Manages" --> Workloads
+        end
       end
     end
     Tenant -- "Project API<br/>access" --> PVE
@@ -34,11 +36,18 @@ flowchart BT
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   class Tenant,Operator actor
-  class T2 services
   class PVE boundary
-  class API,Workloads services
-  class T0,Execution control
+  class Workloads services
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class API traffic
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  class Execution control
   class Nodes runtime
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
 ```
 
 *Figure: Tenant access ends at the allocated Kubernetes API. Tier 0 execution provisions and maintains

@@ -30,7 +30,7 @@ flowchart TB
       Consumers["Identity provider<br/>SSO / secrets"]
       Evidence["Protected logging<br/>Independent health"]
       Authority["Directory authority<br/>Certificate issuance"]
-      Infrastructure ~~~ Consumers ~~~ Evidence ~~~ Authority
+      Consumers ~~~ Evidence ~~~ Authority ~~~ Infrastructure
     end
     Offline["Offline root and recovery custody<br/>Outside connected runtimes"]
     Control ~~~ Offline
@@ -42,11 +42,19 @@ flowchart TB
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T2,T1,T0 boundary
-  class Edge,Publication edge
-  class Workloads,Delivery,Analytics services
-  class Control control
   class Offline custody
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
+  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
+  class Edge,Publication zoneEdge
+  classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
+  class Workloads,Delivery,Analytics zoneServices
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Control zoneControl
 ```
 
 *Figure 1 - The platform at a glance. Each enclosing tier owns its services;

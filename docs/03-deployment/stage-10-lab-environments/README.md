@@ -12,33 +12,33 @@ remains separate from hypervisor and cluster lifecycle authority.
 ## Expected outcome: selected workload runtimes
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":32,"padding":12,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":12,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart BT
   subgraph T2["Tier 2 / alternative runtime selections"]
-    direction TB
+    direction LR
     subgraph PVE["Guests on existing Proxmox hosts"]
-      direction TB
+      direction LR
       subgraph Cluster["2b: kubernetes root / lab network"]
-        direction LR
+        direction TB
         CP1["wctl-1"]
         CP2["wctl-2"]
         CP3["wctl-3"]
         CP1 ~~~ CP2 ~~~ CP3
       end
       subgraph Guests["2a: lab root / selected isolated network"]
-        direction LR
+        direction TB
         VM["lab-1<br/>Linux VM"]
         CT["util-1<br/>LXC container"]
         VM ~~~ CT
       end
       Cluster ~~~ Guests
     end
+    State[("Protected Tier 2 inputs / state<br/>Retained with the owning root")]
+    PVE ~~~ State
   end
   subgraph T0["Tier 0 / authorized execution"]
     direction LR
     Runner["Existing privileged workstation<br/>or iac-1 protected runner"]
-    State[("Protected tier-local state")]
-    Runner <--> State
   end
   T0 -->|Approved provisioning API operations| T2
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
@@ -46,10 +46,16 @@ flowchart BT
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  class T0,Runner control
+  class Runner control
   class PVE,Guests boundary
   class State data
-  class T2,Cluster,CP1,CP2,CP3,VM,CT services
+  class CP1,CP2,CP3,VM,CT services
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
 ```
 
 **IaC:** *Figure: Tier 2 owns the selected VM/LXC or Kubernetes resources and their state. An authorized Tier 0
@@ -60,6 +66,8 @@ and [cluster entry point](../../../tier-2/scripts/kubernetes-cluster.sh), or
 and [lab recipe](../../../tier-2/ansible/playbooks/deployment/lab-vms.yml).
 Paths 2a and 2b are independent roots, not one command that creates both; choose the required runtime.
 The [Shared executor](../../../shared/scripts/deploy.sh) consumes Tier 2 inventory/state, never owns them.
+The state shape records Tier 2 ownership, not a new storage service; the authorized execution host
+uses those original inputs under the selected access policy.
 
 **Prerequisites:** accepted [Development platform and trusted execution](../stage-9-development/README.md),
 accepted [Observability interfaces](../stage-8-observability/README.md), scoped
@@ -120,16 +128,13 @@ block-beta
   CI --> Gate
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef action fill:#fcebdc,stroke:#a16c43,color:#5b3921
   class User actor
-  class Request,CI services
-  class Gate control
+  class Request,CI,Gate action
 ```
 
 **Workflow:** *Figure: The request proceeds from owner and limits through validation to Tier 0 approval. This is the
 reviewed authorization workflow; an automated request controller remains project integration.*
-reviewed request handling, not a deployed controller.
 Tier 2 [workload inputs](../../../tier-2/terraform/deployments/lab/terraform.tfvars.example)
 feed a [Shared plan executor](../../../shared/scripts/deploy.sh); automated Tier 0 authorization remains project integration.
 

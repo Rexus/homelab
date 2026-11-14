@@ -39,10 +39,13 @@ flowchart LR
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T0 control
   class A,B runtime
   class Gateways boundary
   class Operator,Backend actor
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class VIP traffic
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **IaC:** **Figure 1: Independent API gateways.** [Gateway VM inputs](../../../../tier-0/terraform/deployments/cluster-endpoint/terraform.tfvars.example)

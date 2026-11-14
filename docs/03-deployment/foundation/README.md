@@ -33,11 +33,13 @@ flowchart LR
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0,Hosts control
+  class Hosts control
   class Connected,Execute runtime
   class Admin actor
   class Workspace data
   class Recovery custody
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **Workflow:** **Figure 1: Foundation ready for IaC.** The [bootstrap steps](bootstrap/README.md)

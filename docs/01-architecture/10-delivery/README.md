@@ -52,13 +52,20 @@ flowchart TB
   classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class T2,T1,Workloads,Deploy services
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  class Workloads,Deploy services
   class Cache edge
   class Build services
   class Source,Artifacts data
-  class Supply replicas
-  class T0,ControlDelivery,Hosting control
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Supply group
+  class ControlDelivery,Hosting control
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
 ```
 
 *Figure: Builds and release delivery consume source and artifact authorities in Tier 1.
@@ -85,11 +92,11 @@ depend on GitOps reconciliation or pipeline orchestration.
 
 ```mermaid
 sequenceDiagram
-  participant Source as Reviewed source
   participant Build as Build job
-  participant Registry as Artifact registry
   participant Delivery as Scoped delivery controller
   participant Runtime as Application runtime
+  participant Source as Reviewed source
+  participant Registry as Artifact registry
   Build->>Source: Read selected revision
   Build->>Build: Build and test
   Build->>Registry: Publish candidate with version identity

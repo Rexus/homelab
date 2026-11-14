@@ -42,11 +42,17 @@ flowchart BT
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
-  class T0,C control
-  class T1,VM,WEB,JOBS services
+  class C control
+  class VM,WEB,JOBS services
   class PVE runtime
   class DATA data
-  class T2,PROXY edge
+  class PROXY edge
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
 ```
 
 **IaC:** **Figure 1: Verified publication and consumers.** Tier 1 [installer](../../../tier-1/ansible/playbooks/deployment/intake.yml),
@@ -225,9 +231,11 @@ flowchart LR
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T1,VM services
+  class VM services
   class PVE runtime
   class OS,DATA data
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** **Figure 2: Intake worker and disks.** Tier 1 [VM inputs](../../../tier-1/terraform/deployments/intake/terraform.tfvars.example),

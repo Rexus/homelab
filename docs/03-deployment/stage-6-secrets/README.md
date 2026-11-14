@@ -13,9 +13,8 @@ FreeIPA, the issuer and the identity provider already exist.
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  subgraph T0[" "]
+  subgraph T0["Tier 0 / Control layer"]
     direction TB
-    T0Title["Tier 0 / Control layer"]
     subgraph Placement[" "]
       direction LR
       subgraph Cluster["Existing Tier 0 Kubernetes"]
@@ -25,7 +24,7 @@ flowchart TB
         subgraph Added["Native installation / after apply"]
           direction TB
           Vault["vault x3<br/>Raft / audit PVCs"]
-          Ops["netbox / headlamp x1 each<br/>netbox-db x3 / cache x1"]
+          Ops["netbox web x1 / worker x1<br/>headlamp x1<br/>netbox-db x3 / netbox-cache x1"]
           Vault ~~~ Ops
         end
         Base -. Native installation prerequisites .-> Added
@@ -39,19 +38,23 @@ flowchart TB
       end
       Cluster -->|IdP LDAPS| Existing
     end
-    T0Title ~~~ Placement
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
   class Existing boundary
-  class T0,Identity,Issuer,Log control
-  class T0Title,Placement controlHeading
-  class Cluster runtime
-  class Added replicas
+  class Identity,Issuer,Log control
+  class Placement controlHeading
+  class Added group
+  class Vault,Ops control
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
 ```
 
 **IaC:** *Figure: Vault, NetBox and Headlamp join the existing control cluster. Directory, issuer and protected logging
@@ -62,6 +65,9 @@ Tier 0 [control-application recipe](../../../tier-0/ansible/playbooks/deployment
 install the added group after explicit prerequisite gates. The picture shows configured
 placement, not a verified live service. Empty Flux application starters are not a
 second reconciliation owner for these Helm releases.
+Counts follow the [product defaults](../../../tier-0/ansible/roles/control_applications/defaults/main.yml)
+and [NetBox web/worker values](../../../tier-0/ansible/roles/control_applications/templates/netbox-values.yml.j2);
+the added group contains separate services, not one replicated application.
 The [Vault VM alternative](step-1b-vault-vm.md) replaces, rather than duplicates, the cluster Vault instance.
 Independent monitoring is a separate [selected integration](procedures/independent-monitoring.md), not an installed workload here.
 

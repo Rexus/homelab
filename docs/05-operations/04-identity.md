@@ -1,5 +1,67 @@
 # Identity and access operations
 
+The operating scope is the accepted directory pair, sign-in service and its database. Application
+authorization and independently held recovery material remain separate responsibilities.
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":2,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T0["Tier 0 / selected identity deployment"]
+    direction TB
+    subgraph Placement["Connected runtimes on Proxmox"]
+      direction LR
+      subgraph Cluster["Control Kubernetes / control_cluster"]
+        direction TB
+        Ingress{{"Approved HTTPS<br/>sign-in ingress"}}
+        IdP["keycloak / IdP pods x2"]
+        Data[("keycloak-db / PostgreSQL x3")]
+        Ingress --> IdP
+        IdP -->|Database TLS| Data
+      end
+      subgraph Directory["identity network / dedicated VMs"]
+        direction TB
+        subgraph Pair["Replicated FreeIPA authority"]
+          direction TB
+          Primary["idm-1 / primary"]
+          Replica["idm-2 / replica"]
+          Primary <-->|Replication| Replica
+        end
+      end
+      Cluster -->|Read-only LDAPS federation| Directory
+    end
+    Recovery["Recovery custody<br/>Directory + IdP backups<br/>Independent credentials"]
+    Placement -. Recovery contract .-> Recovery
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  class IdP,Primary,Replica control
+  class Placement boundary
+  class Pair replicas
+  class Data data
+  class Recovery custody
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Ingress traffic
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Directory zoneControl
+```
+
+*Figure: The completed reference keeps the sign-in runtime to the left of its directory dependency.
+The IdP and database counts are the supplied defaults, not physical-host or failover guarantees.
+Independent recovery copies are a custody requirement outside the connected runtimes.*
+[Stage 5 deployment](../03-deployment/stage-5-identity/README.md#figure-identity-federation),
+[runtime inputs](../../tier-0/ansible/group_vars/control_applications.yml.example) and
+[replica defaults](../../tier-0/ansible/roles/control_applications/defaults/main.yml)
+own the selected realization; the [recovery set](06-resilience/backups/recovery-set.md) owns independent copies.
+
 Use existing client networks, identity groups and application permissions. Tier ownership is
 not a user role, a Wi-Fi network or an automatic authorization grant. The
 [network design](../01-architecture/05-networking/README.md),

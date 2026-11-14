@@ -37,11 +37,17 @@ flowchart TB
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T2,T1 services
-  class T0,C0,Directory control
+  class Directory control
   class Connected boundary
-  class C2,C1 services
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class C0,C1,C2 kubernetes
   class Custody custody
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
 ```
 
 *Figure: Each tier retains its own cluster authority. Tier 0 also owns dedicated directory and execution

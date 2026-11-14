@@ -1,5 +1,10 @@
 # Step 21b: Hardware-backed authentication
 
+**Expected result — Integration:** selected operators use enrolled hardware credentials with the
+[existing identity authority](../stage-5-identity/README.md#figure-identity-federation), while independent
+recovery access remains usable. Enrollment and policy are product-specific work; no identity service
+or hardware-authentication installer is added by this option.
+
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`) for identity integration.
 Enrollment and authentication policy use product procedures; no complete installer is supplied.
 

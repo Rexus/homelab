@@ -1,5 +1,10 @@
 # Step 1b: Proxmox cluster HA
 
+**Expected result — Manual:** the existing hosts share cluster administration. Later, after a disposable
+guest exists, explicitly enrolled guests can cold-restart on an eligible survivor after safe fencing.
+The [worked placement and recovery figures](failover.md#figure-1-selected-placement-before-failure)
+show a selected three-host example; the initial host join creates no guest or application replica.
+
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
 
 <a id="proxmox-cluster-and-ha"></a>

@@ -20,7 +20,7 @@ dependencies, controlled egress and privileged administration. Each connection
 below represents a named endpoint contract, not access to an entire zone.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":6,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":32,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart LR
   subgraph Access["Callers"]
     direction TB
@@ -52,9 +52,15 @@ flowchart LR
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   class Access boundary
   class Internet,AdminEntry actor
-  class Edge,Gateways edge
-  class Application,Services services
-  class Control,Endpoints,Administration control
+  class Endpoints,Administration control
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Gateways,Services traffic
+  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
+  class Edge zoneEdge
+  classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
+  class Application zoneServices
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Control zoneControl
 ```
 
 *Figure: Boundary links represent named interfaces: the external client uses the public Edge

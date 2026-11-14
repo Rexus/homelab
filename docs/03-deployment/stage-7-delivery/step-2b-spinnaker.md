@@ -14,25 +14,38 @@ The reference below selects a commissioned NAS file repository for independent b
 ## Expected outcome: Spinnaker with file backups
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":40,"padding":12,"wrappingWidth":380,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":14,"rankSpacing":20,"padding":10,"wrappingWidth":220,"subGraphTitleMargin":{"top":4,"bottom":10}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  subgraph T1["Tier 1 delivery / Kubernetes / spinnaker namespace"]
+  subgraph T1["Tier 1 / delivery ownership"]
     direction TB
-      Apps["8 Deployments / 7 Envoy TLS sidecars<br/>clouddriver, deck, echo, fiat<br/>front50, gate, orca, rosco"]
-      SQL["spinnaker-mysql / 1 StatefulSet<br/>5 schemas: clouddriver, echo, fiat, front50, orca<br/>1 retained data PVC"]
-      Redis["spinnaker-redis / 1 StatefulSet<br/>AOF persistence / 1 retained data PVC"]
-      Init["spinnaker-databases<br/>1 SQL provisioning Job"]
-      subgraph Recovery["Backup export resources"]
-        direction LR
-        Backup["spinnaker-backup / 1 CronJob<br/>spinnaker-backup-verify / 1 Job<br/>SQL then RDB then restic; Envoy per pod<br/>Existing spinnaker-nas-repository PVC"]
-        Stage[("1 backup staging PVC<br/>Not an independent copy")]
-        Backup -.->|"Staging attachment"| Stage
+    subgraph Cluster["Existing platform Kubernetes"]
+      subgraph Namespace["spinnaker / namespace"]
+        direction TB
+        subgraph Online["Release runtime / native state interfaces"]
+          direction LR
+          subgraph Workloads["Application resources"]
+            direction TB
+            Apps["Spinnaker applications<br/>8 Deployments<br/>7 Envoy TLS sidecars"]
+            Init["spinnaker-databases<br/>SQL provisioning Job"]
+            Apps ~~~ Init
+          end
+          subgraph Data["Persistent backends"]
+            direction TB
+            SQL["spinnaker-mysql x1<br/>5 application schemas<br/>Retained data PVC"]
+            Redis["spinnaker-redis x1<br/>AOF / retained data PVC"]
+            SQL ~~~ Redis
+          end
+          Workloads -->|Native SQL / Redis TLS| Data
+        end
+        subgraph Recovery["Backup export resources"]
+          direction LR
+          Backup["spinnaker-backup CronJob<br/>spinnaker-backup-verify Job<br/>SQL / RDB / restic<br/>Envoy per pod"]
+          Stage[("Backup staging PVC<br/>Not an independent copy")]
+          Backup -.->|"Staging attachment"| Stage
+        end
+        Online -->|SQL / RDB exports over TLS| Recovery
       end
-      Apps -->|"5 services / SQL TLS"| SQL
-      Apps -->|"Authenticated Redis / verified TLS"| Redis
-      Init -->|"Schema-local users / TLS"| SQL
-      SQL -->|"SQL export / TLS"| Recovery
-      Redis -->|"RDB export / TLS"| Recovery
+    end
   end
   subgraph T0["Tier 0 / Existing service interfaces only"]
     direction LR
@@ -44,13 +57,19 @@ flowchart TB
   T1 -->|"Encrypted restic files / node NFS"| T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T1,Apps,Backup,Init services
-  class Recovery runtime
-  class T0,IdP control
+  class Apps,Backup,Init services
+  class Cluster kubernetes
+  class Namespace,Online,Workloads,Data,Recovery group
+  class IdP control
   class SQL,Redis,Stage,NAS data
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: Eight application services use one MySQL and one Redis instance. Backup exports reach the existing
@@ -62,6 +81,8 @@ NAS through a commissioned file repository; staging is not an independent copy.*
 and [staged apply](../../../tier-1/ansible/roles/delivery_platform/tasks/spinnaker-native-apply.yml).
 The view shows application and export resources after repository commissioning;
 the transient filesystem commissioning Job runs before data services start.
+The grouped SQL/Redis interfaces apply to their configured consumers: the provisioning Job creates
+SQL schema users, while the backup jobs read SQL/RDB exports and mount the existing NAS repository claim.
 **Prerequisites:** [existing NAS storage](../foundation/storage/README.md#use-nas-file-storage)
 and Keycloak retain their existing owners. Only the commissioned file PVC and OIDC
 interface are consumed, never Tier 0 control credentials. No NAS gateway is added.

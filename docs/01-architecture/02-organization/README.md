@@ -18,18 +18,20 @@ flowchart LR
     Trust["Certificates / secrets"]
     Evidence["Evidence / observability"]
   end
-  Services --- Identity
-  Services --- Trust
-  Services --- Evidence
+  Services -. Identity interface .-> Identity
+  Services -. Trust interface .-> Trust
+  Services -. Evidence interface .-> Evidence
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   class Consumer,Services services
-  class Control,Identity,Trust,Evidence control
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Control group
+  class Identity,Trust,Evidence control
 ```
 
-*Figure 1 - Applications consume shared interfaces for identity, trust and operational evidence under scoped
-access.*
+*Figure 1 - Applications consume scoped shared interfaces. Dashed links identify supporting identity,
+trust and evidence contracts; the group is functional, not a common runtime or ownership boundary.*
 
 ## Contents
 

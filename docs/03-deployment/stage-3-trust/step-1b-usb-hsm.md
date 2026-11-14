@@ -40,9 +40,13 @@ flowchart TB
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0,VM1,VM2 control
-  class PVE,A,B boundary
+  class VM1,VM2 control
+  class A,B boundary
   class Token1,Token2,Custody custody
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class PVE zoneControl
 ```
 
 **IaC:** **Figure 1: USB provider hosts and custody.** [HSM VM inputs](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example) and

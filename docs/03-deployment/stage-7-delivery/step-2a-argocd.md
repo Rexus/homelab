@@ -36,11 +36,14 @@ flowchart LR
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
   class Admin,Source actor
-  class T1,Controller,Targets services
-  class Cluster runtime
+  class Controller,Targets services
   class Added,Policy replicas
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: Argo CD reads approved sources and delivers only into selected local namespaces. The installer

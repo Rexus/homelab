@@ -22,22 +22,26 @@ flowchart LR
   subgraph T1["Tier 1 / Application / Services"]
     subgraph PVE["Existing Proxmox / application network"]
       subgraph VM["git-1 / dedicated VM"]
+        direction TB
         App["GitLab / Podman"]
-        Data[("Repository / database / config data")]
+        Data[("Repository / database<br/>Configuration data")]
         App --> Data
       end
     end
   end
-  Clients -->|Configured HTTPS / SSH| App
+  Clients -->|Configured HTTPS / SSH| VM
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T1,VM,App services
-  class PVE boundary
+  class VM,App services
   class Data data
   class Clients actor
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
+  class PVE zoneServices
 ```
 
 **IaC:** *Figure: One GitLab container and its persistent data live on the dedicated service VM. General runners and

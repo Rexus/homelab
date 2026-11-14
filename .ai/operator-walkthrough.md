@@ -19,6 +19,38 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Diagram composition and operating views, 2026-11-14
+
+The global AGENTS.md and project diagram guide now state opening-figure placement for architecture,
+deployment and operations, including substantial enhancements and links from their related actions.
+Existing global reference drawings remain unchanged; the reference prose and semantic palette agree.
+Tier shades strengthen from Tier 2 to Tier 0, independently of DMZ/Services/Control zone colours.
+Kubernetes, traffic interfaces, actions and inner groups remain distinct; violet storage and amber
+offline/recovery custody retain their original values. Policy matrices retain their severity legend.
+Colour and grouped instances confer no access or HA.
+
+The complete inventory contains 129 Mermaid figures and one editable VMID reference SVG. The sweep
+corrected remaining tier/runtime colours, empty heading bands, long labels, source/input captions,
+actual polling directions, replica groups and state/recovery ownership. VMID annotations were removed
+from deployment views; the allocation-convention SVG remains the intentional reference exception.
+NetBox's single web instance and worker are distinguished from its database instances. Native HSM
+variants retain qualified provider/failover contracts without implying automatic key replication.
+Twelve added figures introduce eleven Operations capability entries; backup and recovery task views
+also precede their input/task lists. Reusable procedures point to their owning result where appropriate.
+Stage 9's CI-authority path now applies the reviewed saved plan rather than repeating an input copy.
+
+Fifty-eight distinct Linux regression checks passed, covering source/generated figures, contrast,
+architecture order, guest/product correspondence, refresh ownership, reader routes and local links.
+All 129 Mermaid figures rendered on light/dark page backgrounds at 1100px and 760px; the static SVG
+also rendered in those four contexts (520 final review images). Contact-sheet review covered the full
+inventory; detailed inspection concentrated on changed layouts, headings, dense views and source
+boundaries. Final targeted renders/checks followed visual refinements. A successful parse alone was
+not treated as visual acceptance, and not every screenshot was individually inspected at full size.
+
+Review used Mermaid 11.17.2 and Edge 157.0.4341.46. Editable fences remain authoritative;
+[export instructions](../docs/04-development/diagrams.md#export-a-review-copy) describe portable review.
+No live infrastructure, HA/recovery behavior or hosted GitLab/GitHub renderer was qualified.
+
 ### Logging producer inventory reuse, 2026-11-13
 
 All tier inventory templates now expose the producer selection group. Tier 0 includes

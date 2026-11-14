@@ -27,29 +27,31 @@ dependencies. Application-state backups accompany the selected key-recovery meth
 ### A: Software
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
-  block:T0
-    columns 1
-    T0Title["Tier 0 / platform key protection"]
-    block:Host
-      columns 2
-      HostTitle["Authorized service host"]:2
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T0["Tier 0 / platform key protection"]
+    direction TB
+    subgraph Host["Authorized service host"]
+      direction LR
       Service["Issuer / signing service"]
       Provider["Software key store<br/>or software provider"]
+      Service -->|Key operation| Provider
     end
-    Recovery["Offline recovery custody / independently held backups<br/>Not an online root CA"]
+    Recovery["Offline recovery custody<br/>Independently held backups<br/>Not an online root CA"]
+    Host ~~~ Recovery
+    Recovery -. Authorized restore .-> Host
   end
-  Service --> Provider
-  Recovery -.-> Provider
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0,Host control
-  class T0Title,HostTitle controlHeading
-  class Provider,Recovery custody
+  class T0 tier0
+  class Host runtime
+  class Service control
+  class Provider data
+  class Recovery custody
 ```
 *Figure: The signing service uses a software key provider, with independent offline custody for recovery.*
 
@@ -61,28 +63,32 @@ hardware isolation. [1]
 ### B: Single USB
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
-  block:T0
-    columns 2
-    T0Title["Tier 0 / platform key protection"]:2
-    block:Host
-      columns 1
-      HostTitle["Authorized host / local USB"]
-      Service["Issuer / signing service"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T0["Tier 0 / platform key protection"]
+    direction TB
+    subgraph Connected["Single local USB path"]
+      direction LR
+      subgraph Host["Authorized service host"]
+        Service["Issuer / signing service"]
+      end
+      Provider["Single local USB HSM"]
+      Host -->|Local key operation| Provider
     end
-    Provider["Single local USB HSM"]
-    Recovery["Offline recovery custody / independently held backups<br/>Not an online root CA"]:2
+    Recovery["Offline recovery custody<br/>Independently held backups<br/>Not an online root CA"]
+    Connected ~~~ Recovery
+    Recovery -. Authorized restore .-> Connected
   end
-  Service --> Provider
-  Recovery -.-> Provider
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0,Host control
-  class T0Title,HostTitle controlHeading
+  class T0 tier0
+  class Connected group
+  class Host runtime
+  class Service control
   class Provider,Recovery custody
 ```
 *Figure: The signing service uses one local USB HSM, with independent offline custody for recovery.*
@@ -95,36 +101,40 @@ application state, not on the presence of a replacement device alone. [2][3]
 ### C: Replicated USB gateways
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
-  block:T0
-    columns 2
-    T0Title["Tier 0 / replicated USB service"]:2
-    block:HostA
-      columns 1
-      GatewayA["Provider / host A<br/>Private authenticated endpoint"]
-      TokenA["Local USB HSM"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T0["Tier 0 / replicated USB service"]
+    direction TB
+    subgraph Providers["Provider members / qualified application failover"]
+      direction TB
+      subgraph HostA["Provider host A"]
+        direction LR
+        GatewayA{{"Private authenticated<br/>endpoint"}}
+        TokenA["Local USB HSM"]
+        GatewayA -->|Local operations| TokenA
+      end
+      subgraph HostB["Additional provider hosts"]
+        direction LR
+        GatewayB{{"Private authenticated<br/>endpoint per host"}}
+        TokenB["One local USB HSM<br/>per host"]
+        GatewayB -->|Local operations| TokenB
+      end
+      HostA ~~~ HostB
     end
-    block:HostB
-      columns 1
-      GatewayB["Providers / additional hosts<br/>Private authenticated endpoints"]
-      TokenB["One local USB HSM per host"]
-    end
-    Recovery["Offline backup custody / key and wrapping material"]:2
+    Recovery["Offline backup custody<br/>Key and wrapping material"]
+    Providers ~~~ Recovery
+    Recovery -. Authorized key restore .-> Providers
   end
-  GatewayA --> TokenA
-  GatewayB --> TokenB
-  Recovery -.-> HostA
-  Recovery -.-> HostB
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0 control
-  class T0Title controlHeading
-  class HostA,HostB replicas
+  class T0 tier0
+  class Providers replicas
+  class HostA,HostB runtime
+  class GatewayA,GatewayB traffic
   class TokenA,TokenB,Recovery custody
 ```
 *Figure: Each provider host uses its own USB HSM. Dashed transfers come from independent offline
@@ -143,35 +153,42 @@ family unless cross-vendor transfer and recovery have been separately verified.
 ### D: Network HSM
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
-  block:T0
-    columns 2
-    T0Title["Tier 0 / network key service"]:2
-    block:Host
-      columns 1
-      Service["Authorized service host<br/>Issuer / signing service"]
-      Client["Vendor client"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T0["Tier 0 / network key service"]
+    direction TB
+    subgraph Connected["Authorized online key path"]
+      direction LR
+      subgraph Host["Authorized service host"]
+        direction TB
+        Service["Issuer / signing service"]
+        Client["Vendor client"]
+        Service -->|Key operation| Client
+      end
+      subgraph Appliances["Selected partitions / optional vendor HA"]
+        direction TB
+        PartitionA["Selected HSM partition"]
+        PartitionB["Optional vendor HA member"]
+        PartitionA ~~~ PartitionB
+      end
+      Host -->|Vendor client access| Appliances
     end
-    block:Appliances
-      columns 1
-      PartitionA["Selected HSM partition"]
-      PartitionB["Optional vendor HA member"]
-    end
-    Recovery["Offline recovery custody / backups and domain material"]:2
+    Recovery["Offline recovery custody<br/>Backups and domain material"]
+    Connected ~~~ Recovery
+    Recovery -. Authorized restore .-> Connected
   end
-  Service --> Client
-  Client --> PartitionA
-  Client --> PartitionB
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0,Host control
-  class T0Title controlHeading
-  class Appliances boundary
+  class T0 tier0
+  class Connected group
+  class Host runtime
+  class Appliances replicas
+  class Service,Client control
   class PartitionA,PartitionB,Recovery custody
 ```
 *Figure: The signing service accesses selected network HSM partitions through a vendor client; an additional

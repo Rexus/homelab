@@ -17,11 +17,13 @@ flowchart LR
     Control["Infrastructure<br/>update clients"]
     Workloads ~~~ Platform ~~~ Control
   end
-  subgraph T2["Tier 2 / DMZ"]
-    direction TB
-    Proxy["Policy proxy /<br/>HTTP cache"]
-    Cache[("Rebuildable<br/>cached objects")]
-    Proxy -. Disposable<br/>storage .-> Cache
+  subgraph T2["Tier 2 / software intake"]
+    subgraph DMZ["Edge / DMZ"]
+      direction TB
+      Proxy{{"Policy proxy /<br/>HTTP cache"}}
+      Cache[("Rebuildable<br/>cached objects")]
+      Proxy -. Disposable<br/>storage .-> Cache
+    end
   end
   Sources["Approved<br/>sources"]
   Consumers -->|Proxy<br/>requests| T2
@@ -35,10 +37,15 @@ flowchart LR
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   class Consumers boundary
   class Workloads,Platform services
-  class T2,Proxy edge
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
+  class Proxy traffic
+  class DMZ zoneEdge
   class Control control
   class Cache data
   class Sources actor
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
 ```
 
 *Figure: Separately owned update clients request the policy proxy inside Tier 2; the upstream

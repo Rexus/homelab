@@ -5,6 +5,52 @@ areas. Live database data/WAL stay on commissioned Proxmox CSI or Ceph RBD disks
 Jobs use PostgreSQL's replication protocol; no object gateway or permanent backup server is installed.
 This option provides scheduled recovery points, **not continuous WAL archiving or PITR**. [1][2]
 
+<a id="selected-realization"></a>
+
+## What runs in the selected backup path?
+
+Scope: Keycloak's files-mode backup after database-only preparation. NetBox and
+Grafana reuse the same code with their owning tier's inputs; they are not extra
+databases created by this figure. Storage is commissioned independently.
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"wrappingWidth":390,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T0["Tier 0 / Control and storage administration"]
+    direction TB
+    subgraph Cluster["Existing control Kubernetes / keycloak namespace"]
+      direction LR
+      Backup["File-backup resources<br/>keycloak-db-files<br/>ConfigMap + CronJob<br/>keycloak-db-files-first-&lt;revision&gt;<br/>Initial verification Job<br/>Existing PVC: keycloak-db-backups"]
+      Database[("keycloak-db / PostgreSQL x3<br/>Prepared live block PVCs<br/>Not NAS storage")]
+      Backup <-->|mTLS / backup stream| Database
+    end
+    NAS[("Existing NAS / private backup export<br/>pending / completed file sets")]
+    PVE["Existing Proxmox/Ceph<br/>Live database block volumes"]
+    Cluster -->|Verified files / NFS CSI mount| NAS
+    Cluster -. Live volume attachment .-> PVE
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class Backup,PVE control
+  class Database,NAS data
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+```
+
+*Figure: A scheduled backup Job reads the existing database over mTLS and writes verified files
+to a separate NAS claim. Live database volumes stay on Proxmox/Ceph block storage.*
+
+**IaC + commissioned storage:** Tier 0 [product inputs](../../../../tier-0/ansible/group_vars/control_applications.yml.example)
+and [backup invocation](../../../../tier-0/ansible/roles/control_applications/tasks/database-files.yml)
+call Shared's [resource template](../../../../shared/ansible/roles/postgresql_file_backup/templates/resources.yml.j2).
+The configured database has three instances; this is not an HA acceptance claim.
+The existing NAS claim is mounted only by backup jobs, never by database pods.
+The initial Job suffix is a code-derived revision, not an operator-assigned host name.
+
 **Prerequisites:** accepted CNPG operator, PostgreSQL 17 image/tools, independently retained credentials,
 commissioned database block CSI class, NFS CSI for separate backup-only claims, and NAS custodian access.
 The source fixtures use CNPG chart `0.26.0` / operator `1.27.0` and PostgreSQL image `17.6`. Production
@@ -22,50 +68,6 @@ supported pins separately. The file job deliberately supports PostgreSQL 17 and 
 - [How to enable, run and check scheduled backups?](#enable-and-operate)
 - [When to stop, restore or change backup mode?](#recovery-limits-and-mode-changes)
 - [References](#references)
-
-<a id="selected-realization"></a>
-
-## What runs in the selected backup path?
-
-Scope: Keycloak's files-mode backup after database-only preparation. NetBox and
-Grafana reuse the same code with their owning tier's inputs; they are not extra
-databases created by this figure. Storage is commissioned independently.
-
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"wrappingWidth":390,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
-  subgraph T0[" "]
-    direction TB
-    Title["Tier 0 / Control and storage administration"]
-    subgraph Cluster["Existing control Kubernetes / keycloak namespace"]
-      direction LR
-      Backup["New file-backup resources<br/>keycloak-db-files<br/>ConfigMap + CronJob<br/>keycloak-db-files-first-&lt;revision&gt;<br/>Initial verification Job<br/>Existing PVC: keycloak-db-backups"]
-      Database[("keycloak-db / PostgreSQL x3<br/>Prepared live block PVCs<br/>Not NAS storage")]
-      Backup <-->|mTLS / backup stream| Database
-    end
-    NAS[("Existing NAS / private backup export<br/>pending / completed file sets")]
-    PVE["Existing Proxmox/Ceph<br/>Live database block volumes"]
-    Title ~~~ Cluster
-    Cluster -->|Verified files / NFS CSI mount| NAS
-    Cluster -. Live volume attachment .-> PVE
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T0,Backup,PVE control
-  class Title controlHeading
-  class Cluster runtime
-  class Database,NAS data
-```
-
-**IaC + commissioned storage:** Tier 0 [product inputs](../../../../tier-0/ansible/group_vars/control_applications.yml.example)
-and [backup invocation](../../../../tier-0/ansible/roles/control_applications/tasks/database-files.yml)
-call Shared's [resource template](../../../../shared/ansible/roles/postgresql_file_backup/templates/resources.yml.j2).
-The configured database has three instances; this is not an HA acceptance claim.
-The existing NAS claim is mounted only by backup jobs, never by database pods.
-The initial Job suffix is a code-derived revision, not an operator-assigned host name.
 
 <a id="prepare-the-database"></a>
 

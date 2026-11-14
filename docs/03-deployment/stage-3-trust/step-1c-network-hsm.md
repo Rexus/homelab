@@ -1,5 +1,10 @@
 # Step 1c: Network HSM
 
+**Expected result — Integration:** `ca-1` in the
+[issuer view](README.md#figure-1-offline-root-and-online-issuer) uses the accepted appliance's original
+key through its qualified native client. The appliance, partition and recovery custody are commissioned
+separately; this option adds no `hsm-1/2` VMs or appliance installer.
+
 **Working repository:** `<prefix>-tier-0/` on the protected controller (source: `tier-0/`).
 
 <a id="network-hsm-integration"></a>

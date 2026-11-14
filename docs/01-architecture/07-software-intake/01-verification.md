@@ -15,8 +15,10 @@ HTTPS tunnels or create snapshots.
 flowchart BT
   subgraph Transport["Outbound request path / separate owners"]
     direction LR
-    subgraph T2["Tier 2 / DMZ"]
-      Proxy["Policy proxy / cache<br/>Existing intake support"]
+    subgraph T2["Tier 2 / software intake"]
+      subgraph DMZ["Edge / DMZ"]
+        Proxy{{"Policy proxy / cache<br/>Existing intake support"}}
+      end
     end
     Sources["Accepted external sources"]
     Proxy -- "Allowed requests" --> Sources
@@ -47,14 +49,26 @@ flowchart BT
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T1,Intake,Worker services
-  class T2,Proxy edge
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Intake group
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
+  class Proxy traffic
+  class DMZ zoneEdge
   class Supply data
-  class T0,Consumer control
+  class Consumer control
   class Connected boundary
   class Transport boundary
   class Retained custody
   class Sources actor
+  classDef action fill:#fcebdc,stroke:#a16c43,color:#5b3921
+  class Worker services
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
 ```
 
 *Figure: Tier 1 acquires through the Tier 2 proxy and publishes only accepted content. Tier 0 pulls
@@ -109,9 +123,9 @@ flowchart LR
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class Candidate,Extension actor
-  class Verify,Scan,Publish services
-  class Policy control
-  class Hold custody
+  class Scan,Publish,Policy,Hold action
+  classDef action fill:#fcebdc,stroke:#a16c43,color:#5b3921
+  class Verify action
 ```
 
 *Figure: Verified intake publishes only candidates that pass the selected checks; failed or incomplete checks

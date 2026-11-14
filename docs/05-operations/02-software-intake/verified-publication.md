@@ -4,6 +4,57 @@ Operate the optional Tier 1 `intake-1` service. The proxy/cache remains a separa
 First installation belongs to the [deployment guide](../../03-deployment/stage-3-trust/step-15b-verified-intake.md);
 the [design](../../01-architecture/07-software-intake/01-verification.md) explains authority and trust.
 
+<a id="figure-reference-verified-publication"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph T1["Tier 1 / delivery_edge"]
+    subgraph PVE["Existing Proxmox host"]
+      subgraph VM["intake-1 / worker and publication VM"]
+        direction LR
+        subgraph Services["Local services"]
+          direction TB
+          Timer["intake.timer<br/>When enabled"]
+          Job["intake.service<br/>Fetch / verify / ClamAV<br/>Gated publication"]
+          Web["Nginx<br/>Read-only HTTPS<br/>GET / HEAD"]
+          Timer -->|Serialized run| Job
+          Job ~~~ Web
+        end
+        subgraph Disks["Attached local storage"]
+          direction TB
+          OS[("OS disk<br/>Policy / TLS<br/>Scanner definitions")]
+          Data[("scsi1 / /srv/intake<br/>Private work / quarantine<br/>Approved versions / receipts")]
+          OS ~~~ Data
+        end
+        Services -->|Scoped file access| Disks
+      end
+    end
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class VM,Timer,Job,Web services
+  class PVE runtime
+  class OS,Data data
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Services,Disks group
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+```
+
+*Figure: IaC reference for the optional publication service. One VM owns acquisition, gating and HTTPS;
+storage is local, and Nginx can serve only approved public content. There is no redundant worker.*
+
+**Owner:** `<prefix>-tier-1`; [VM inputs](../../../tier-1/terraform/deployments/intake/terraform.tfvars.example),
+[policy inputs](../../../tier-1/ansible/group_vars/intake.yml.example),
+[installer](../../../tier-1/ansible/playbooks/deployment/intake.yml) and
+[worker runtime](../../../tier-1/ansible/roles/software_intake/files/runtime/intake.yml).
+The [deployment interface view](../../03-deployment/stage-3-trust/step-15b-verified-intake.md#figure-1-verified-publication-and-consumers)
+locates existing supply and readers; trust, protected forwarding and independent backups retain their own owners.
+
 ## Contents
 
 - [How is intake run or scheduled?](#how-is-intake-run-or-scheduled)

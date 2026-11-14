@@ -1,5 +1,10 @@
 # Step 1d: Single USB key device
 
+**Expected result — IaC and Manual:** `ca-1` in the
+[issuer view](README.md#figure-1-offline-root-and-online-issuer) keeps its original issuing key in one
+host-local USB device. IaC attaches the accepted device and configures its provider; physical/key
+commissioning and independent recovery remain custodial work. No provider-pool VMs are added.
+
 **Working repository:** `<prefix>-tier-0/` on the protected controller (source: `tier-0/`).
 
 **Branch from:** [Step 1](README.md#step-1-prepare-issuer-and-key-custody), before production keys.

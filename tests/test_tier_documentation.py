@@ -435,7 +435,10 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("control_applications.yml.example", control)
         self.assertIn("Stage 9", delivery)
         self.assertIn("direct-CI trust decision", development)
-        self.assertIn("not a deployed controller", " ".join(workloads.split()))
+        ci_plan = 'terraform -chdir=terraform/deployments/ci-auth plan -out="$PWD/.terraform/plans/ci-auth.tfplan"'
+        ci_apply = 'terraform -chdir=terraform/deployments/ci-auth apply "$PWD/.terraform/plans/ci-auth.tfplan"'
+        self.assertLess(development.index(ci_plan), development.index(ci_apply))
+        self.assertIn("no complete request controller is supplied", " ".join(workloads.split()))
         self.assertIn("# Stage 8: Observability", observability)
         self.assertIn("step-1b-dedicated-vms.md", observability)
         self.assertNotIn("step-2d-telemetry-vm.md", control)

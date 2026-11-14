@@ -5,6 +5,10 @@ data; use an existing object-storage endpoint only when the consumer requires an
 object API. The reference does not deploy a storage gateway or an additional
 storage VM to translate one interface into another.
 
+**Expected result — Manual:** accepted live-disk datastore IDs and an independent VM-backup destination
+for [Foundation Figure 1](../README.md#figure-foundation-ready). Application-specific NAS mounts and
+object interfaces are commissioned in their consuming stages; this prerequisite installs no storage service.
+
 **Working repositories:** `<prefix>-tier-0` for control databases and protected
 archives; `<prefix>-tier-1` for shared applications. Shared provides reusable
 execution, not storage resources, inventory or credentials.

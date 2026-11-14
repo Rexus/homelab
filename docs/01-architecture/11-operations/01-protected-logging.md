@@ -35,7 +35,7 @@ flowchart TB
     direction LR
     Search["Scoped searchable<br/>copies"]
     Query["Authorized queries<br/>No raw-evidence authority"]
-    Search ~~~ Query
+    Query ~~~ Search
   end
   subgraph T0["Tier 0 / Security Logging and Audit"]
     direction LR
@@ -43,7 +43,7 @@ flowchart TB
     Readers["Audited readers<br/>Producers submit only"]
     Retention["Independent<br/>retained copies"]
     Custodians["Separate retention<br/>custody"]
-    Logging ~~~ Readers ~~~ Retention ~~~ Custodians
+    Readers ~~~ Logging ~~~ Retention ~~~ Custodians
   end
   T2 ~~~ T1 ~~~ T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
@@ -52,13 +52,17 @@ flowchart TB
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T2,T1 services
-  class T0 control
-  class Sources,Developer,Query actor
-  class Logging,Readers control
+  class Sources,Developer,Query,Readers actor
+  class Logging control
   class Retention data
   class Custodians custody
   class Search services
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
 ```
 
 *Figure: Producers submit, application owners read approved copies, and security readers
@@ -149,8 +153,8 @@ are separate operations; transport submission does not wait for either of them.
 sequenceDiagram
   participant Producer as Producer / local queue
   participant Receiver as Protected receiver
-  participant NAS as Independent NAS archive
   participant Recovery as Independent backup host
+  participant NAS as Independent NAS archive
   Producer->>Receiver: Submit authenticated records
   Note over Producer,Receiver: Native queue releases on transport submission
   Receiver->>Receiver: Write portable local records / fsync

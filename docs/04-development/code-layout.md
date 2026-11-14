@@ -83,10 +83,16 @@ flowchart TB
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Tier,Modules boundary
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Tier tier2
+  class Modules group
   class Root,Resolve,Resources control
   class Inputs,State data
 ```
+
+*Figure: The Tier 2 root calls input resolution and resource modules separately; their outputs feed
+guest resources while the backend retains bindings.*
 
 **Code — Linux provisioning branch:** [Tier 2 wrapper](../../tier-2/scripts/deploy.sh) →
 [Shared helper](../../shared/scripts/deploy.sh) →
@@ -118,10 +124,14 @@ flowchart TB
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Tier,Shared boundary
+  classDef ownership fill:#f3f1ed,stroke:#8b857c,color:#3f3a34
+  class Tier,Shared ownership
   class Entry,Recipe,Baseline services
   class Inputs data
 ```
+
+*Figure: The owning tier selects hosts and a deployment recipe; Shared supplies baseline behavior
+without owning the tier's inventory or state.*
 
 **Code — same lab inputs:** Shared's helper passes the owning tier's inventory/vars to
 [`playbooks/lab.yml`](../../tier-2/ansible/playbooks/lab.yml), which imports

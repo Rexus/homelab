@@ -22,7 +22,8 @@ flowchart LR
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   class Client actor
-  class Edge edge
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Edge traffic
   class Origin services
   class Cert control
 ```

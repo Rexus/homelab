@@ -15,10 +15,12 @@ for Tier 1. GitLab and CI handover belong to [Stage 9](../stage-9-development/RE
 flowchart TB
   subgraph T1["Tier 1 / Application / Services"]
     direction LR
-    subgraph PVE["Existing Proxmox / platform cluster"]
+    subgraph PVE["Existing Proxmox hosts"]
       direction LR
-      subgraph Added["Selected controller installer"]
-        Controller["A: Argo CD<br/>or B: Spinnaker"]
+      subgraph Cluster["Platform Kubernetes / application runtime"]
+        subgraph Added["Selected controller / installed in Steps 2-7"]
+          Controller["A: Argo CD<br/>or B: Spinnaker"]
+        end
       end
       subgraph Nodes["Kubernetes node VMs"]
         direction TB
@@ -27,24 +29,31 @@ flowchart TB
         CP3["pctl-3"]
         CP1 ~~~ CP2 ~~~ CP3
       end
-      Added ~~~ Nodes
+      Cluster ~~~ Nodes
     end
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class T1,CP1,CP2,CP3 services
-  class PVE,Nodes boundary
-  class Added replicas
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  class CP1,CP2,CP3,Controller services
+  class PVE boundary
+  class Added group
+  class Nodes replicas
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: Three platform node VMs provide the runtime. The selected controller has a separate installer in Actions
 2-7; node provisioning alone does not install it.*
 Tier 1 [node inputs](../../../tier-1/terraform/deployments/kubernetes/terraform.tfvars.example)
 and [cluster command](../../../tier-1/scripts/kubernetes-cluster.sh) create the three
-starter VMs. The dashed controller is installed separately in Actions 2-7 through the
+starter VMs. The controller runs inside that cluster and is installed separately in Actions 2-7 through the
 [delivery recipe](../../../tier-1/ansible/playbooks/deployment/delivery-platform.yml).
+The VM group beside the runtime records physical hosting, not another Kubernetes cluster or network hop.
 
 **Prerequisites:** accepted Tier 0 Kubernetes, Identity and Secrets; approved images,
 independent bootstrap Git/OCI sources, private DNS/TLS and qualified storage.

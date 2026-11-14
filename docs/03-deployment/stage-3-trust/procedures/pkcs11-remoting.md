@@ -33,10 +33,12 @@ flowchart TB
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0,Client,H1,H2 control
+  class Client,H1,H2 control
   class Connected boundary
   class Pool runtime
   class Recovery custody
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **IaC:** **Figure 1: Restricted provider remoting.** The existing [HSM VM inputs](../../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example)

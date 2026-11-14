@@ -12,19 +12,24 @@ when the website needs a new pool.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":12,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
+flowchart LR
   Clients["Existing external / internal clients"]
-  subgraph T2["Tier 2 / Edge / external_edge"]
+  subgraph T2["Tier 2 / edge ownership"]
     direction LR
-    VIP["Configured VIP set<br/>Preferred owners / failover"]
-    subgraph PVE["Existing Proxmox / edge VMs"]
-      direction TB
-      A["lb-1<br/>HAProxy / keepalived"]
-      B["lb-2<br/>HAProxy / keepalived"]
-      C["lb-3<br/>HAProxy / keepalived"]
-      A ~~~ B ~~~ C
+    subgraph Zone["Edge / external_edge"]
+      direction LR
+      VIP{{"Configured VIP set<br/>Preferred owners / failover"}}
+      subgraph PVE["Existing Proxmox / edge VMs"]
+        subgraph Pool["HAProxy / keepalived pool"]
+          direction TB
+          A["lb-1<br/>HAProxy / keepalived"]
+          B["lb-2<br/>HAProxy / keepalived"]
+          C["lb-3<br/>HAProxy / keepalived"]
+          A ~~~ B ~~~ C
+        end
+      end
+      VIP -. Address ownership .-> Pool
     end
-    VIP -. Address ownership .-> PVE
   end
   Backends["Existing approved application origins<br/>Only after listener configuration"]
   Clients -->|Selected published listeners| T2
@@ -33,9 +38,17 @@ flowchart TB
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class T2,VIP,A,B,C edge
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef zoneEdge fill:#fff0f3,stroke:#9b4d67,color:#502638
+  class A,B,C edge
   class PVE boundary
   class Clients,Backends actor
+  class Pool replicas
+  class Zone zoneEdge
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class VIP traffic
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
 ```
 
 **IaC:** *Figure: Three edge VMs manage the selected VIPs. Client and origin traffic becomes available only after

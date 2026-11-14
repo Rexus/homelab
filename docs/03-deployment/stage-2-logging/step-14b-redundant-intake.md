@@ -47,10 +47,14 @@ flowchart TB
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   class PVE1,PVE2 boundary
   class Sources actor
-  class T0,VM1,VM2 control
-  class T0Title,Placement controlHeading
+  class VM1,VM2 control
+  class Placement controlHeading
   class Disk1,Disk2,Copies data
   class Custody,Commit custody
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
+  class T0Title tier0Heading
 ```
 
 **IaC:** **Figure 1: Independent receivers.** Tier 0 [optional VM definition](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example),

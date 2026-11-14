@@ -26,19 +26,33 @@ the optional Step 15 image-lifecycle choice, then Steps 16-17 protected CI/Vault
 flowchart LR
   subgraph T1["Tier 1 / general build execution"]
     direction LR
-    subgraph PVE["Existing Proxmox / delivery_edge DMZ"]
-      Runner["runner-1<br/>Podman / GitLab Runner"]
+    subgraph PVE["Existing Proxmox<br/>delivery_edge / DMZ"]
+      subgraph VM["runner-1 / VM"]
+        direction TB
+        Podman["Podman<br/>Bounded build containers"]
+        Runner["GitLab Runner<br/>Scoped job identity"]
+        Runner -->|Starts jobs| Podman
+      end
     end
-    Existing["Existing source control / OCI registry"]
-    Runner -->|Scoped jobs / artifact publication| Existing
+    subgraph Existing["Existing delivery services"]
+      direction TB
+      Git["GitLab<br/>Scoped job source"]
+      Registry["OCI registry<br/>Approved artifact destination"]
+      Git ~~~ Registry
+    end
+    VM -->|HTTPS polling /<br/>artifact publication| Existing
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
   classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class T1,PVE boundary
-  class Runner edge
-  class Existing services
+  class PVE boundary
+  class Runner,Podman edge
+  class VM,Existing group
+  class Git,Registry services
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: The delivery-edge runner consumes scoped jobs and publishes artifacts to existing services. It holds

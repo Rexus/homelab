@@ -47,12 +47,15 @@ flowchart TB
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class T0,B1,B2,B3 control
-  class Runtime runtime
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  class B1,B2,B3 control
   class Data data
   class Custody custody
   class Raft replicas
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Runtime zoneControl
 ```
 
 **IaC:** *Figure: The selected three-member OpenBao service has per-member Raft storage and an existing hardware key

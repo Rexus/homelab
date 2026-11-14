@@ -55,13 +55,15 @@ class DiagramDependencies(unittest.TestCase):
         self.assertIn('subgraph Existing["Independent existing prerequisites"]', runtime)
         runner = diagrams(DOCS / "03-deployment/stage-9-development/step-14b-podman-runner.md")[0]
         self.assertIn('subgraph T1["Tier 1 / general build execution"]\n    direction LR', runner)
-        self.assertIn("Runner -->|Scoped jobs / artifact publication| Existing", runner)
+        self.assertIn("Runner -->|Starts jobs| Podman", runner)
+        self.assertIn("VM -->|HTTPS polling /<br/>artifact publication| Existing", runner)
+        self.assertLess(runner.index('subgraph VM['), runner.index('subgraph Existing['))
 
     def test_control_plane_and_edge_peers_stack_without_changing_instance_counts(self):
         cases = [
             ("stage-4-kubernetes/README.md", 0, "PVE", "CP1 ~~~ CP2 ~~~ CP3"),
             ("stage-7-delivery/README.md", 0, "Nodes", "CP1 ~~~ CP2 ~~~ CP3"),
-            ("stage-7-delivery/procedures/edge-proxy.md", 0, "PVE", "A ~~~ B ~~~ C"),
+            ("stage-7-delivery/procedures/edge-proxy.md", 0, "Pool", "A ~~~ B ~~~ C"),
             ("stage-10-lab-environments/step-4b-public-https.md", 0, "PVE", "A ~~~ B ~~~ C"),
         ]
         for path, index, group, peers in cases:
@@ -72,8 +74,10 @@ class DiagramDependencies(unittest.TestCase):
 
     def test_controller_option_and_nodes_are_inside_the_runtime_they_extend(self):
         code = diagrams(DOCS / "03-deployment/stage-7-delivery/README.md")[0]
-        self.assertRegex(code, r'subgraph PVE\["[^\n]+\n\s+direction LR\n\s+subgraph Added\[')
-        self.assertIn("Added ~~~ Nodes", code)
+        self.assertRegex(code, r'subgraph PVE\["[^\n]+\n\s+direction LR\n\s+subgraph Cluster\[')
+        self.assertRegex(code, r'subgraph Cluster\["[^\n]+\n\s+subgraph Added\[')
+        self.assertIn("Cluster ~~~ Nodes", code)
+        self.assertIn("class Cluster kubernetes", code)
         self.assertIn("A: Argo CD", code)
         self.assertIn("or B: Spinnaker", code)
 
@@ -81,9 +85,10 @@ class DiagramDependencies(unittest.TestCase):
         code = diagrams(DOCS / "03-deployment/stage-9-development/README.md")[-1]
         self.assertLess(code.index('subgraph T1['), code.index('subgraph T0['))
         self.assertLess(code.index('subgraph Execution['), code.index('subgraph Services['))
-        self.assertIn("T1 ~~~ T0 ~~~ Recovery", code)
-        self.assertIn("Runner <--> State", code)
-        self.assertIn("Git -->|Accepted project jobs| T0", code)
+        self.assertIn("Hosted ~~~ Recovery", code)
+        self.assertIn("Runner <-->|Read / update| State", code)
+        self.assertIn("T0 -->|Runner HTTPS job polling / results| T1", code)
+        self.assertLess(code.index('subgraph T0['), code.index('Recovery["'))
         self.assertIn("iac-1 / gitlab-runner", code)
 
     def test_vault_operator_is_external_and_recovery_is_below_connected_runtime(self):

@@ -22,7 +22,8 @@ flowchart LR
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  class Local boundary
+  classDef ownership fill:#f3f1ed,stroke:#8b857c,color:#3f3a34
+  class Local ownership
   class Runtime,Interface services
   class Foundation control
   class Team,External actor

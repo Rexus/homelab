@@ -45,9 +45,13 @@ flowchart TB
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   class Artifact data
-  class T1,CI services
-  class T0,Builder,Template control
+  class CI services
+  class Builder,Template control
   class Build,Publish controlHeading
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: The mutable builder produces a verified qcow2 for a separate template publisher. Route 3b instead

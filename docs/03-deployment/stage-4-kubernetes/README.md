@@ -25,9 +25,11 @@ flowchart TB
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  class T0,API control
+  class API control
   class PVE runtime
   class CP1,CP2,CP3 boundary
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **IaC:** **Figure 1: Control-cluster runtime.** Tier 0 [Kubernetes inputs](../../../tier-0/terraform/deployments/kubernetes/terraform.tfvars.example)
@@ -277,10 +279,15 @@ flowchart TB
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T0,Flux,Network control
-  class Cluster runtime
+  class Flux,Network control
   class Apps,Reconcile,NodeServices,Existing boundary
   class Source,Git,PVE data
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Ingress traffic
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **IaC:** **Figure 2: Basic platform services.** Tier 0's [platform playbook](../../../tier-0/ansible/playbooks/deployment/cluster-platform.yml)
@@ -362,10 +369,13 @@ flowchart LR
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class T0,Receiver control
-  class Cluster runtime
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  class Receiver control
   class Agents replicas
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **IaC:** **Figure 3: Protected cluster collection.** The Tier 0 [collection playbook](../../../tier-0/ansible/playbooks/deployment/cluster-security-logging.yml)

@@ -17,7 +17,7 @@ These are distinct functions even when one product exposes several interfaces.
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-flowchart TB
+flowchart BT
   subgraph T1["Tier 1 / shared development"]
     direction LR
     subgraph Consumers["Separate execution scopes"]
@@ -35,21 +35,27 @@ flowchart TB
     State[("Tier-owned inventory / state")]
     Executor -->|Read / update original state| State
   end
-  T1 ~~~ T0
-  Executor -->|Read approved privileged code| Source
+  T0 ~~~ T1
+  T0 -->|Executor reads approved privileged code| T1
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T1,CI,Delivery services
-  class Consumers boundary
-  class T0,Executor control
+  class CI,Delivery services
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Consumers group
+  class Executor control
   class Source,State data
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
-*Figure: General CI and delivery retrieve definitions without acquiring infrastructure state.
-The Tier 0 executor retains original state and separately accepts privileged code.*
+*Figure: General CI and delivery read source control to their right without acquiring infrastructure state.
+The upward boundary link is the Tier 0 executor's approved-code read from that source service; its original
+inventory and state remain within Tier 0.*
 
 The reference source service is GitLab in Tier 1 Kubernetes. It consumes dedicated
 Tier 1 database, cache and repository VMs plus scoped object storage. Tier 1 owns
@@ -81,9 +87,9 @@ source and artifact access; the manager's Kubernetes permissions are not job cre
 ```mermaid
 sequenceDiagram
   participant Manager as Runner manager
-  participant Git as Source / CI service
   participant Cluster as Tier 1 Kubernetes
   participant Job as Ephemeral build job
+  participant Git as Source / CI service
   Manager->>Git: Poll for an authorized job
   Git-->>Manager: Selected job definition
   Manager->>Cluster: Create bounded job pod

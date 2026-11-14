@@ -225,9 +225,15 @@ flowchart LR
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   class Inputs,Hardware data
-  class TF,Ansible,Services services
-  class Shared boundary
+  classDef action fill:#fcebdc,stroke:#a16c43,color:#5b3921
+  classDef ownership fill:#f3f1ed,stroke:#8b857c,color:#3f3a34
+  class TF,Ansible action
+  class Services services
+  class Shared ownership
 ```
+
+*Figure: The owning tier supplies one inventory to provisioning and configuration. Shared contributes
+reusable references and behavior; the tier keeps guest definitions and state.*
 
 | File in the owning tier | Responsibility |
 | --- | --- |

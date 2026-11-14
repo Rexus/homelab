@@ -15,9 +15,8 @@ flowchart BT
   subgraph T1["Tier 1 / later Stage 8"]
     Search["Scoped analytics<br/>Approved copies only"]
   end
-  subgraph T0[" "]
+  subgraph T0["Tier 0 / Control layer"]
     direction TB
-    T0Title["Tier 0 / Control layer"]
     subgraph Placement[" "]
       direction LR
       subgraph PVE["Existing Proxmox host"]
@@ -42,7 +41,6 @@ flowchart BT
       Backup -->|Backup| Copy
       Copy -->|Restore| Offline
     end
-    T0Title ~~~ Placement
     Placement -->|Read-only NAS archive pull| Recovery
   end
   T0 -. "Later approved copies" .-> T1
@@ -53,12 +51,17 @@ flowchart BT
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  class T1,PVE boundary
-  class T0,VM control
-  class T0Title,Placement controlHeading
+  class PVE boundary
+  class VM control
+  class Placement controlHeading
   class Records,Evidence,Snapshots,Copy data
   class NAS,Recovery,Backup,Offline custody
   class Search services
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+  classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
 ```
 
 **IaC:** **Figure 1: NAS retention and independent recovery.** The main retention choice adds NAS
@@ -175,8 +178,10 @@ flowchart LR
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   class Infrastructure,PVE boundary
   class Template,Data data
-  class T0,VM control
+  class VM control
   class Devices,Host actor
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **IaC:** **Figure 2: Log host and local storage.** Tier 0's [VM inputs](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example)
@@ -226,7 +231,7 @@ mkdir -p ansible/inventory/host_vars
 
 In **Tier 0 `ansible/inventory/hosts.yml`**, `logging_producers` selects hosts that send logs.
 The current template includes the existing `foundation_logging` group, so `log-1` reuses its
-address and SSH settings. If your local inventory predates this entry, add the following beneath
+address and SSH settings. If the local inventory predates this entry, add the following beneath
 the existing `all.children`; merge with any existing `logging_producers` entry:
 
 ```yaml
@@ -459,9 +464,13 @@ flowchart TB
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   class Infrastructure,PVE boundary
   class Sources,Devices,Host,Admin actor
-  class T0,VM control
-  class T0Title,Placement controlHeading
+  class VM control
+  class Placement controlHeading
   class Records data
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier0Heading fill:#d8cbb9,stroke:#d8cbb9,color:#352a1e
+  class T0Title tier0Heading
 ```
 
 **IaC:** **Figure 3: Authenticated source collection.** The

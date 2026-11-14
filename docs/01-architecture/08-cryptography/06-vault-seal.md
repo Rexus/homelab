@@ -17,35 +17,34 @@ The initial S1 reference keeps startup under custodian control without an online
 seal-provider dependency.
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
-block-beta
-  columns 1
-  block:T0
-    columns 1
-    T0Title["Tier 0 / S1: Shamir seal"]
-    block:Runtime
-      columns 2
-      B["Secret service<br/>Selected control runtime"]
-      Data["Persistent service state"]
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T0["Tier 0 / S1: Shamir seal"]
+    direction TB
+    subgraph Runtime["Selected secret-service runtime"]
+      direction LR
+      B["Secret service"]
+      Data[("Persistent<br/>service state")]
+      B -->|Persist| Data
     end
-    Custody["Offline recovery custody<br/>Independently held Shamir shares and recovery records"]
+    Custody["Offline recovery custody<br/>Independently held Shamir shares<br/>and recovery records"]
+    Runtime ~~~ Custody
+    Custody -. Authorized unseal / recovery .-> Runtime
   end
-  B --> Data
-  Custody -.-> B
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0 control
-  class T0Title controlHeading
+  class T0 tier0
   class Runtime runtime
+  class B control
   class Data data
   class Custody custody
 ```
 *Figure: S1 retains persistent service state and separately held unseal shares. The upward dashed
-link is an authorized custody transfer during unseal or recovery, not an online provider connection.*
+link supplies the secret service's unseal or recovery material, not an online provider connection.*
 
 The service's persistent state and its unseal material have separate custody and
 recovery responsibilities. A data restore still needs the selected startup material;

@@ -1,5 +1,62 @@
 # Kubernetes and lab operations
 
+Operate the accepted cluster and its node capacity using the original owning tier's inputs.
+VM/LXC labs and a dedicated workload Kubernetes cluster remain separate selections.
+
+<a id="figure-reference-cluster-capacity"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph T0["Tier 0 / reference node and API deployment"]
+    subgraph PVE["Existing Proxmox hosts"]
+      direction LR
+      subgraph Management["management / private API"]
+        subgraph Gateways["API VIP / one active owner"]
+          direction TB
+          G1["api-gw-1<br/>HAProxy / keepalived"]
+          G2["api-gw-2<br/>HAProxy / keepalived"]
+          G1 ~~~ G2
+        end
+      end
+      subgraph Control["control_cluster"]
+        subgraph Nodes["control / Talos"]
+          direction TB
+          CP1["k8ctl-1<br/>Control plane"]
+          CP2["k8ctl-2<br/>Control plane"]
+          CP3["k8ctl-3<br/>Control plane"]
+          CP1 ~~~ CP2 ~~~ CP3
+        end
+      end
+      Gateways -->|VIP / TCP 6443| Nodes
+    end
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  class G1,G2 control
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Management,Control zoneControl
+  class PVE boundary
+  class Gateways,Nodes replicas
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+```
+
+*Figure: IaC reference for node-capacity operations: the supplied independent API pair fronts three
+schedulable control-plane VMs. This starter has no workers; the group arrow is the API interface.*
+
+**Owner:** `<prefix>-tier-0`; [endpoint inputs](../../../tier-0/terraform/deployments/cluster-endpoint/terraform.tfvars.example)
+and [installer](../../../tier-0/ansible/playbooks/deployment/cluster-endpoint.yml),
+[node inputs](../../../tier-0/terraform/deployments/kubernetes/terraform.tfvars.example) and
+[cluster lifecycle](../../../tier-0/scripts/kubernetes-cluster.sh).
+The [complete platform view](../../03-deployment/stage-4-kubernetes/README.md#figure-2-basic-platform-services)
+owns the add-on inventory. An accepted external API endpoint is a separate selection;
+[Tier 2 VM/LXC and Kubernetes lab views](../../03-deployment/stage-10-lab-environments/README.md#figure-workload-runtimes)
+retain their own inputs and state.
+
 **Design:** [Kubernetes](../../01-architecture/04-hosting/03-kubernetes.md) and
 [Lab environments](../../01-architecture/04-hosting/04-lab-environments.md).
 **Install:** [Stage 4: Kubernetes](../../03-deployment/stage-4-kubernetes/README.md) and

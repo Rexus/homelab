@@ -47,10 +47,14 @@ flowchart LR
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class T0 control
-  class Intake,Storage,Protection boundary
+  class Storage,Protection boundary
   class Local,NAS data
   class Recovery,Copies custody
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  class Intake runtime
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 *Figure: Choice A publishes verified checkpoints left-to-right into independent NAS custody.

@@ -36,16 +36,19 @@ flowchart TB
     end
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class Existing,Disk data
-  class T0,Host control
-  class Cluster services
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Disk data
+  class Existing,Host control
   class PVE,Context boundary
-  class Project replicas
+  class Project group
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **IaC:** *Figure: The managed monitor is a separate VM from Kubernetes and protected intake. Step 1 prepares its host;
@@ -213,12 +216,14 @@ flowchart RL
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
   class Sources actor
   class Metrics data
-  class T0,Parent,Rules control
+  class Parent,Rules control
   class Existing boundary
   class Project replicas
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **IaC:** *Figure: Selected infrastructure signals feed one native Netdata service, which keeps local history and
@@ -290,11 +295,13 @@ flowchart RL
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class T0,Rules,Routing,Heartbeat,Log control
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  class Rules,Routing,Heartbeat,Log control
   class External,Watch services
   class Admin actor
   class Project replicas
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 
 **IaC:** *Figure: Health alerts and watchdog heartbeats leave Tier 0 for their authorized recipients. The external

@@ -5,6 +5,58 @@ The [software intake architecture](../../01-architecture/07-software-intake/READ
 the [proxy/cache reference](../../08-reference/proxy-cache.md) owns the complete settings and behavior.
 For verified publication, use [verified software intake operations](verified-publication.md).
 
+<a id="figure-reference-cache-deployment"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph T2["Tier 2 / external_edge"]
+    subgraph PVE["Existing Proxmox hosts"]
+      direction LR
+      VIP{{"cache VIP<br/>One active owner"}}
+      subgraph Pair["cache / two existing VMs"]
+        direction TB
+        subgraph A["cache-1"]
+          direction LR
+          S1["Squid / keepalived"]
+          D1[("scsi1<br/>/var/spool/squid")]
+          S1 -->|Cache I/O| D1
+        end
+        subgraph B["cache-2"]
+          direction LR
+          S2["Squid / keepalived"]
+          D2[("scsi1<br/>/var/spool/squid")]
+          S2 -->|Cache I/O| D2
+        end
+        A ~~~ B
+      end
+      VIP -->|Proxy requests| Pair
+    end
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef edge fill:#fce8ec,stroke:#9b4d67,color:#502638
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  class S1,S2 edge
+  class PVE,A,B boundary
+  class Pair replicas
+  class D1,D2 data
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class VIP traffic
+  classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
+  class T2 tier2
+```
+
+*Figure: IaC reference cache deployment. Approved requests use one VIP owner; each VM has an independent
+cache disk. The pair provides transport, without cache-data replication or software publication.*
+
+**Owner:** `<prefix>-tier-2`; [VM inputs](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example),
+[policy inputs](../../../tier-2/ansible/group_vars/cache.yml.example) and
+[deployment recipe](../../../tier-2/ansible/playbooks/deployment/outbound-cache.yml).
+An [existing approved supply service](../../03-deployment/stage-1-software-intake/README.md#1b-use-existing-approved-supply)
+is a separate alternative; it does not create this pair.
+
 ## Find the configuration or task
 
 | Owner | Inputs or procedure |

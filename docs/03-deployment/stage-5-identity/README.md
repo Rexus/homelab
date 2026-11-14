@@ -10,31 +10,36 @@ FreeIPA on dedicated VMs; the accepted Tier 0 Kubernetes platform hosts the iden
 ## Expected outcome: directory authority
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":2,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  subgraph T0[" "]
-    direction TB
-    T0Title["Tier 0 / Control layer"]
+  subgraph T0["Tier 0 / Control layer"]
+    direction LR
     subgraph PVE["Existing Proxmox hosts"]
       direction LR
       subgraph Identity["identity network / dedicated VMs"]
         direction TB
-        Primary["idm-1<br/>FreeIPA primary"]
-        Replica["idm-2<br/>FreeIPA replica"]
-        Primary <-->|Replication| Replica
+        subgraph DirectoryPair["FreeIPA directory / identity CA"]
+          direction TB
+          Primary["idm-1<br/>FreeIPA primary"]
+          Replica["idm-2<br/>FreeIPA replica"]
+          Primary <-->|Replication| Replica
+        end
       end
       ExistingCA["ca-1<br/>Existing issuer / unchanged"]
       Identity ~~~ ExistingCA
     end
-    T0Title ~~~ PVE
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  class T0,Primary,Replica,ExistingCA control
-  class T0Title controlHeading
-  class PVE,Identity boundary
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  class Primary,Replica,ExistingCA control
+  class PVE boundary
+  class DirectoryPair replicas
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Identity zoneControl
 ```
 
 **IaC:** *Figure: The dedicated FreeIPA primary and CA replica share directory authority outside Kubernetes; the
@@ -226,48 +231,72 @@ bootstrap dependencies. A passing daemon/API check alone is not CA replication a
 <a id="figure-identity-federation"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":2,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px","lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
 flowchart TB
-  subgraph T0[" "]
-    direction TB
-    T0Title["Tier 0 / Control layer"]
-    subgraph Placement[" "]
+  subgraph T0["Tier 0 / Control layer"]
+    direction LR
+    subgraph PVE["Existing Proxmox hosts"]
       direction LR
-      subgraph Cluster["Existing Tier 0 Kubernetes"]
+      subgraph Cluster["Existing Tier 0 Kubernetes / control_cluster"]
         direction TB
-        subgraph Added["Native Helm / after apply"]
-          Keycloak["keycloak / IdP x2"]
+        subgraph Auth["HTTPS sign-in runtime"]
+          direction LR
+          subgraph Access["HTTPS routing"]
+            direction TB
+            Ingress{{"Traefik<br/>Existing HTTPS ingress"}}
+            Service{"keycloak-http<br/>New Service"}
+            Ingress --> Service
+          end
+          subgraph Added["New Keycloak pods / after apply"]
+            direction TB
+            Keycloak1["keycloak / pod replica 1"]
+            Keycloak2["keycloak / pod replica 2"]
+            Keycloak1 ~~~ Keycloak2
+          end
+          Access -->|Keycloak HTTPS| Added
         end
-        Data[("keycloak-db / PostgreSQL x3<br/>Live Proxmox/Ceph-backed PVCs")]
-        Keycloak -->|Database access| Data
+        Data[("keycloak-db / PostgreSQL x3<br/>Live block PVCs")]
+        Auth -->|Database TLS| Data
       end
-      subgraph Identity["Existing dedicated VMs / identity network"]
+      subgraph Identity["identity network / dedicated VMs"]
         direction TB
-        Primary["idm-1<br/>FreeIPA primary"]
-        Replica["idm-2<br/>FreeIPA replica"]
-        Primary <-->|Replication| Replica
+        subgraph DirectoryPair["Existing FreeIPA authority"]
+          direction TB
+          Primary["▣ idm-1<br/>FreeIPA primary"]
+          Replica["▣ idm-2<br/>FreeIPA replica"]
+          Primary <-->|Replication| Replica
+        end
       end
-      Cluster -->|Protected LDAP federation| Identity
+      Cluster -->|Verified LDAPS| Identity
     end
-    T0Title ~~~ Placement
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef replicas fill:#f8fafc,stroke:#64748b,color:#1f2937,stroke-dasharray:5 4
-  class T0,Keycloak,Primary,Replica control
-  class T0Title,Placement controlHeading
-  class Cluster runtime
-  class Identity boundary
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  class Keycloak1,Keycloak2,Primary,Replica control
+  class PVE boundary
   class Data data
-  class Added replicas
+  class Added,DirectoryPair replicas
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Access,Auth group
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Ingress,Service traffic
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
+  class Identity zoneControl
 ```
 
-**IaC:** *Figure: Keycloak and its three-instance PostgreSQL database run in the accepted control cluster. Protected
-LDAP connects federation to the dedicated FreeIPA pair.*
+**IaC:** *Figure: Existing Traefik ingress and the new `keycloak-http` Service route HTTPS to two stacked
+Keycloak pods. Their three-instance PostgreSQL database remains inside the control cluster, on live block
+PVCs. The directory pair sits in its separate VM network to the right. Arrows between groups denote the
+named service interface, not another network hop or direct HTTP access to the database.*
 Tier 0 [control-application recipe](../../../tier-0/ansible/playbooks/deployment/control-applications.yml),
 [product role](../../../tier-0/ansible/roles/control_applications) and
 [example inputs](../../../tier-0/ansible/group_vars/control_applications.yml.example).

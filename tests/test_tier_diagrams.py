@@ -30,6 +30,33 @@ def contrast(first, second):
 
 
 class DiagramConventions(TierRepositoryTestCase):
+    def test_colour_roles_separate_ownership_runtime_traffic_and_custody(self):
+        roles = json.loads((UPSTREAM / "docs" / PALETTE).read_text())["roles"]
+        distinct = ("tier0", "tier1", "tier2", "zoneEdge", "zoneServices", "zoneControl",
+                    "kubernetes", "traffic", "action", "group", "data", "custody")
+        self.assertEqual(len({roles[name]["fill"] for name in distinct}), len(distinct))
+        self.assertEqual(roles["data"]["fill"], "#eeeafa")
+        self.assertEqual(roles["custody"]["fill"], "#fff2d1")
+        self.assertEqual(roles["group"]["fill"], roles["replicas"]["fill"])
+        self.assertNotIn("stroke-dasharray", roles["group"])
+        self.assertIn("stroke-dasharray", roles["replicas"])
+        for light, medium, strong in (("tier2", "tier1", "tier0"),
+                                      ("zoneEdge", "zoneServices", "zoneControl")):
+            self.assertGreater(luminance(roles[light]["fill"]), luminance(roles[medium]["fill"]))
+            self.assertGreater(luminance(roles[medium]["fill"]), luminance(roles[strong]["fill"]))
+        identity = diagrams(UPSTREAM / "docs/05-operations/04-identity.md")[0]
+        for node, role in (("T0", "tier0"), ("Cluster", "kubernetes"), ("Ingress", "traffic"),
+                           ("Pair", "replicas"), ("Data", "data"), ("Recovery", "custody")):
+            self.assertRegex(identity, rf"(?m)^  class [\w,]*\b{node}\b[\w,]* {role}$")
+        for document in (UPSTREAM / "docs").rglob("*.md"):
+            for code in diagrams(document):
+                for node, tier in re.findall(r'subgraph (\w+)\["Tier ([012]) /', code):
+                    self.assertRegex(code, rf"(?m)^  class [\w,]*\b{node}\b[\w,]* tier{tier}$",
+                                     f"{document}: {node}")
+                for node, tier in re.findall(r'\b(T([012]))\["Tier [012]\b', code):
+                    self.assertRegex(code, rf"(?m)^  class [\w,]*\b{node}\b[\w,]* tier{tier}$",
+                                     f"{document}: tier colour also applies to compact block labels")
+
     def test_source_and_generated_figures_omit_deployment_allocations(self):
         self.generate("--repo", "architecture")
         roots = (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs",
@@ -38,6 +65,7 @@ class DiagramConventions(TierRepositoryTestCase):
             for document in root.rglob("*.md"):
                 for code in diagrams(document):
                     self.assertNotRegex(code, r"(?i)\b(?:vm[ _-]?id|guest[ _-]?id)\b", str(document))
+                    self.assertNotRegex(code, r"(?i)\bvm:\d+\b", str(document))
                     self.assertNotRegex(code, r"\b\d+(?:\.\d+){3}(?:/\d+)?\b", str(document))
                     self.assertNotRegex(code, r"\b(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\b", str(document))
                     if re.search(r"(?m)^(?:flowchart|block-beta)\b", code):
@@ -127,10 +155,10 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertLess(layers.index('Edge["'), layers.index('Application["'))
         self.assertLess(layers.index('Application["'), layers.index('Control["'))
         identity = diagrams(root / "09-identity/README.md")[0]
-        self.assertIn('T0Title["Tier 0 / Control layer"]', identity)
+        self.assertIn('subgraph T0["Tier 0 / Control layer"]', identity)
         self.assertIn("T2 ~~~ T1", identity)
         self.assertIn("T1 -->|OIDC to the IdP| T0", identity)
-        self.assertIn("class Cluster runtime", identity)
+        self.assertIn("class Cluster kubernetes", identity)
         self.assertLess(identity.index('subgraph Cluster['), identity.index('subgraph Directory['))
         self.assertIn("Cluster -->|Protected LDAP federation| Directory", identity)
 
@@ -143,10 +171,11 @@ class DiagramConventions(TierRepositoryTestCase):
             self.assertEqual(order, sorted(order), name)
             self.assertEqual(code.count(f"{boundary}0"), 1, name)
         crypto = diagrams(root / "08-cryptography/README.md")[0]
-        self.assertLess(crypto.index("block:T0"), crypto.index('Root["'))
+        self.assertLess(crypto.index('subgraph T0['), crypto.index('Root["'))
         self.assertGreater(crypto.index('Root["'), crypto.index('Identity["'))
-        self.assertIn("Root -.-> Issuer", crypto)
-        self.assertIn("Root -.-> Identity", crypto)
+        self.assertIn("Root -. Signed intermediate certificates .-> Online", crypto)
+        self.assertIn('subgraph Issuers["Issuing authorities"]', crypto)
+        self.assertIn('class Root custody', crypto)
         controllers = diagrams(root / "10-delivery/02-controllers.md")[0]
         self.assertIn("flowchart BT", controllers)
         self.assertIn("T0 ~~~ T1", controllers)
@@ -157,7 +186,7 @@ class DiagramConventions(TierRepositoryTestCase):
             for code in diagrams(root / name):
                 if "sequenceDiagram" in code:
                     continue  # Request timelines do not repeat the complete custody placement map.
-                self.assertIn("block:T0", code, name)
+                self.assertIn('subgraph T0[', code, name)
                 self.assertRegex(code, r'(?i)offline (?:recovery|backup) custody', name)
         telemetry = diagrams(root / "11-operations/03-observability.md")[0]
         for tier in (2, 1):
@@ -235,8 +264,10 @@ class DiagramConventions(TierRepositoryTestCase):
     def test_directory_peers_stack_and_issuers_remain_foundational(self):
         root = UPSTREAM / "docs"
         identity = diagrams(root / "01-architecture/09-identity/README.md")[0]
-        self.assertIn('subgraph Directory["Directory authority / identity network"]\n        direction TB', identity)
+        self.assertIn('subgraph Directory["Directory authority / identity network"]\n      direction TB', identity)
         self.assertIn('Primary["Directory primary"] <--> Replica["Directory replica"]', identity)
+        self.assertIn('class IdP,DirectoryGroup replicas', identity)
+        self.assertIn('Ingress{{"HTTPS sign-in', identity)
         trust = diagrams(root / "03-deployment/stage-3-trust/README.md")[0]
         self.assertLess(trust.index('subgraph Identity['), trust.index('subgraph Crypto['))
         self.assertIn('Identity ~~~ Crypto', trust)

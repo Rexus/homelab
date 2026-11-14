@@ -33,11 +33,13 @@ flowchart LR
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   class Consumers actor
-  class T0,Service,Logs control
+  class Service,Logs control
   class Connected boundary
   class Runtime runtime
   class State data
   class Recovery custody
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
 ```
 *Figure: Consumers enter a policy-controlled secret runtime. Audit events flow to independent
 protected logging on the right; offline custody below the connected services supports authorized recovery.*

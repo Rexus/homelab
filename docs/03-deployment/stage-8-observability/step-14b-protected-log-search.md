@@ -39,10 +39,16 @@ flowchart BT
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T1 services
-  class T0 control
-  class Host,K1 runtime
+  class Host runtime
   class Copy,Original data
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class K1 kubernetes
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Gateway traffic
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class T0 tier0
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
 ```
 
 **IaC:** *Figure: Tier 0 filters a selected checkpoint into a read-only copy, then pushes it to the authenticated Tier

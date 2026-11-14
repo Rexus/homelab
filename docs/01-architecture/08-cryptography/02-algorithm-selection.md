@@ -16,7 +16,9 @@ block-beta
   Password["Verify a password<br/>Salted, costed KDF"]
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class TLS,Sign,Hash,Password control
+  class TLS,Sign,Hash control
+  classDef action fill:#fcebdc,stroke:#a16c43,color:#5b3921
+  class Password control
 ```
 *Figure: Four security purposes require different primitives. These are complementary operations,
 not interchangeable choices or stages in a request.*

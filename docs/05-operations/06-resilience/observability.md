@@ -3,6 +3,87 @@
 Operate diagnostics, infrastructure health and scoped telemetry. Protected originals
 remain under [protected logging](protected-logging.md); search projections have separate retention.
 
+<a id="figure-observability-operating-scope"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T1["Tier 1 / Kubernetes selection"]
+    subgraph Cluster["Existing platform Kubernetes"]
+      direction TB
+      subgraph Serving["Signal and query services"]
+        direction LR
+        subgraph Readers["Reader-facing services"]
+          direction TB
+          UIs["grafana / dashboards<br/>Two replicas each"]
+          Query{{"metrics-query x2<br/>vmauth / selected read members"}}
+          UIs ~~~ Query
+        end
+        subgraph Processing["Ingestion services"]
+          direction TB
+          Gateway{{"otel-gateway x2<br/>Separate persistent queues"}}
+          Prepper["data-prepper x2<br/>Scoped log / trace pipelines"]
+          Gateway -->|Logs / traces| Prepper
+        end
+        subgraph Backends["Persistent backend services"]
+          direction TB
+          Metrics["metrics-1 / metrics-2<br/>Separate PVCs"]
+          Search["opensearch x3 / own PVCs"]
+          DB["grafana-db / PostgreSQL x3<br/>Live block PVCs"]
+          Metrics ~~~ Search ~~~ DB
+        end
+        Readers -->|Queries / Grafana SQL| Backends
+        Processing -->|Metrics / scoped logs and traces| Backends
+        Readers ~~~ Processing
+      end
+      subgraph Diagnostics["Netdata diagnostics / persistent parent history"]
+        direction LR
+        subgraph Parents["Diagnostic parents"]
+          direction TB
+          N1["netdata-1"]
+          N2["netdata-2"]
+          N1 ~~~ N2
+        end
+        Agents["netdata-1 chart agents<br/>Node children / k8sState collector"]
+        Bridge["netdata-metrics / selected bridge<br/>One parent / exact metric allowlist"]
+        Agents -->|Authenticated streams| Parents
+        Bridge -->|Read selected metrics| Parents
+      end
+      Serving ~~~ Diagnostics
+    end
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class UIs,Prepper,Metrics,Search,DB,N1,N2,Agents,Bridge services
+  class Parents replicas
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Backends,Diagnostics,Processing,Readers,Serving group
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  class Cluster kubernetes
+  classDef traffic fill:#e1f3f5,stroke:#4c7f88,color:#214a52
+  class Query,Gateway traffic
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+```
+
+**IaC / Integration:** *Figure: The Kubernetes main-path signal, query, database and diagnostic workload set.
+Backend boxes aggregate native members and their attached persistence; replica counts alone are not availability evidence.
+The diagnostic bridge supplies allowlisted metrics to the ingestion group; the overview separates their placement.*
+In **`<prefix>-tier-1/`**, [platform inputs](../../../tier-1/ansible/group_vars/observability_platform.yml.example),
+[release composition](../../../tier-1/ansible/roles/observability_platform/templates/releases.yml.j2),
+[database resources](../../../tier-1/ansible/roles/observability_platform/templates/grafana-database.yml.j2) and the
+[installer](../../../tier-1/ansible/playbooks/deployment/observability-platform.yml) own this scope.
+[Netdata values](../../../tier-1/ansible/roles/observability_platform/templates/netdata-values.yml.j2)
+enable node/state collection only in the `netdata-1` release; the metric bridge is selected by its allowlist.
+The [VM selection](#figure-observability-vm-operations) replaces these Kubernetes workloads.
+[Tier 0 infrastructure collection](../../03-deployment/stage-8-observability/step-13-infrastructure-monitoring.md),
+[optional protected-log projections](../../03-deployment/stage-8-observability/step-14b-protected-log-search.md) and
+[database backups](backups/postgresql.md) retain separate inputs and acceptance.
+
 **Design:** [Observability](../../01-architecture/11-operations/03-observability.md).
 **Install and acceptance:** [Stage 8](../../03-deployment/stage-8-observability/README.md).
 
@@ -34,6 +115,67 @@ owns the alternative Podman/systemd products and their guarded persistent disks.
 It also installs two Netdata parents on `otel-1/2` and children on the five metrics/search guests.
 
 ## How are dedicated VMs reconciled?
+
+<a id="figure-observability-vm-operations"></a>
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart TB
+  subgraph T1["Tier 1 / dedicated-VM replacement selection"]
+    subgraph PVE["Existing Proxmox / observability network"]
+      direction TB
+      subgraph Services["Native Podman / systemd runtimes"]
+        direction LR
+        subgraph Gateways["Gateway / frontend guests"]
+          direction TB
+          O1["otel-1<br/>Collector / Prepper / vmauth<br/>Dashboards / Grafana / Netdata parent"]
+          O2["otel-2<br/>Collector / Prepper / vmauth<br/>Dashboards / Netdata parent"]
+          O1 ~~~ O2
+        end
+        subgraph Metrics["Independent metric stores"]
+          direction TB
+          M1["metric-1 / Netdata child"]
+          M2["metric-2 / Netdata child"]
+          M1 ~~~ M2
+        end
+        subgraph Search["OpenSearch members"]
+          direction TB
+          S1["search-1 / Netdata child"]
+          S2["search-2 / Netdata child"]
+          S3["search-3 / Netdata child"]
+          S1 ~~~ S2 ~~~ S3
+        end
+        Gateways -->|Write both / query selected stores| Metrics
+        Gateways -->|Scoped ingest / queries| Search
+        Metrics ~~~ Search
+      end
+      Disks[("One scsi1 data disk per guest<br/>Queues / backends / Netdata identity and history<br/>Grafana SQLite on otel-1 only")]
+      Services -->|Guest-local persistence| Disks
+    end
+  end
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
+  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:5 4
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  class O1,O2,M1,M2,S1,S2,S3 services
+  class PVE boundary
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340
+  class Services,Gateways,Metrics group
+  class Search replicas
+  class Disks data
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class T1 tier1
+```
+
+**IaC:** *Figure: All seven guests in the VM selection, with co-located processing, query and diagnostic services.
+The data-disk shape aggregates seven separate local disks; it is not shared backend storage.*
+Tier 1's [VM inputs](../../../tier-1/terraform/deployments/observability/terraform.tfvars.example),
+[service inputs](../../../tier-1/ansible/group_vars/observability.yml.example),
+[service composition](../../../tier-1/ansible/roles/observability_vm/tasks/main.yml) and
+[Netdata installer](../../../tier-1/ansible/roles/observability_vm/tasks/netdata.yml) own this alternative.
+Children stream to the two parents, parents peer-stream, and only the selected parent supplies bridge metrics.
+The single Grafana/SQLite instance and per-store metrics copies retain their documented recovery limits.
 
 Review the existing VM inputs and private file; keep `observability_vm_search_bootstrap: false`
 after commissioning. Supply the accepted Vault password through the controller secret owner.
