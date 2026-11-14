@@ -356,7 +356,41 @@ This file keeps durable context for AI-assisted work across sessions.
 - docs/05-operations/01-hosting/change-vmid.md owns planned full-clone renumbering with complete
   NIC/MAC preservation, independent host access, original-off cutover, ownership branches and rollback.
   The linked recovery/terraform-import.md owns single-resource Linux VM rebinding for clones/restores;
-  retain logical keys and unrelated state. Concrete boot/log moves are examples, not a fixed migration.
+  retain logical keys and unrelated state. Select the actual owning setup/resource, not a service-specific recipe.
+  Runnable state/VMID maintenance starts a dedicated child Bash shell so terminating checks cannot close
+  the operator's SSH session. Prompt labels are navigation only. Shared selection offers the actual
+  sibling checkout default and retries mistyped paths before Terraform runs.
+- docs/05-operations/01-hosting/vmid-data-disks.md owns extra-disk choices during VMID cutover:
+  preserve full-clone copies, reassign an original managed volume with native Proxmox ownership transfer,
+  or deliberately rebuild disposable data through IaC. Preserved filesystems keep UUID pins and matching
+  controller/device bindings. Clearing a pin is not a reset or permission to bypass persistent-mount guards.
+  A transferred disk must return to the old VM before rollback; a fresh guest prints a new UUID to retain.
+  Keep these runbooks service-neutral: old/new VM and actual owning inputs, with no named workload examples.
+- docs/02-conventions/iac-inputs.md owns the public storage-input naming pattern:
+  <service>_<volume>_uuid for new UUID pins and <service>_<volume>_device for selectors. Use the role's
+  actual namespace/schema and printed key; existing expected-qualified inputs remain supported.
+  A future public-key rename needs compatibility and evidence that preserved UUID guards still apply.
+- terraform-state.md selects the actual owning repository/root, original state file and TF_DATA_DIR.
+  Reusable state tasks must not require a specific service, tier or resource address. Keep local/default
+  workspace commands separate from recorded remote/non-default contexts. Retired local state archival
+  moves only the selected state file; retain provider/module caches and every unrelated deployment.
+  Its FAQ sections are alternative tasks, not a linear procedure. VMID cutover routes directly through
+  the complete VM-adoption procedure, including exact old-binding removal and replacement import before plan/apply.
+  State inspection or an input edit alone does not adopt a clone; stop any unintended replacement plan.
+  Adoption uses one numbered action per command/edit, with separate removal/import steps and expected results.
+- Linux VM modules in all tiers treat clone source/node/type as creation-only, since provider import
+  does not recover that provenance. Their lifecycle retains template-owned description, OS hint and
+  serial ports alongside Proxmox-owned placement. BIOS/machine/SCSI/EFI disk/boot order are also
+  creation-only: existing/imported guests preserve actual boot hardware, even with absent/different
+  Shared profiles. Capacity, disk configuration and networking remain deployment-managed.
+  Tier 0 publishes actual BIOS/machine/SCSI/EFI-key settings into Shared's template catalog; Linux
+  consumers inherit the actual source ID's profile. A tag-only catalog alias or legacy tags override
+  cannot select different hardware. Per-VM firmware replaces the complete creation profile only for
+  an exception; it does not retrofit an existing VM. Older catalogs can synchronize metadata once,
+  without duplicating it per service. Missing whole profiles retain legacy defaults for creation;
+  partial selected profiles fail. Import does not require a boot-profile backfill. Deliberate boot
+  migrations need separate review; do not hide entire disk blocks or resource changes to suppress drift.
+  Changing template/full_clone inputs does not upgrade existing guests or remove linked-clone dependencies.
 - `docs/auto-docs/` holds upstream reference docs with visible refresh/do-not-edit
   notices; existing root READMEs/project templates remain project-owned and are not overwritten;
   refresh recreates missing current starters

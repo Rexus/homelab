@@ -69,9 +69,13 @@ resource "proxmox_virtual_environment_vm" "this" {
     }
   }
 
-  # Placement after creation belongs to Proxmox, including HA failover and maintenance.
+  # Template provenance and boot hardware initialize new VMs; existing/imported VMs retain theirs.
+  # Proxmox owns later placement. Capacity, disks and networking remain deployment-managed.
   lifecycle {
-    ignore_changes = [node_name]
+    ignore_changes = [
+      node_name, clone, description, operating_system, serial_device,
+      bios, machine, scsi_hardware, efi_disk, boot_order,
+    ]
 
     precondition {
       condition = alltrue([

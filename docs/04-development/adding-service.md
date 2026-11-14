@@ -210,6 +210,8 @@ A genuinely Terraform-only workflow requires its dedicated command/validation co
 Put the root's `variables.tf` path at the top of each Terraform configuration example.
 For shared inputs, name the consuming repository and schema;
 see [supported settings](../08-reference/platform-inputs.md#find-supported-settings).
+For storage-backed roles, follow the [UUID input convention](../02-conventions/iac-inputs.md#storage-identity-inputs)
+and print the actual public key with its verified UUID after preparation.
 
 ## Maintain the upstream example
 

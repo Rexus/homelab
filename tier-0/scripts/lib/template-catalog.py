@@ -39,6 +39,18 @@ def published_references(candidates):
             raise ValueError(f"Invalid template family for {key}; Shared was not changed.")
         if not isinstance(entry["tags"], list) or any(not isinstance(tag, str) for tag in entry["tags"]):
             raise ValueError(f"Invalid image tags for {key}; Shared was not changed.")
+        hardware = {field: candidate[field] for field in
+                    ("bios", "machine", "scsi_hardware", "efi_pre_enrolled_keys") if field in candidate}
+        if hardware:
+            if (hardware.get("bios") not in ("seabios", "ovmf")
+                    or hardware.get("scsi_hardware") not in (
+                        "virtio-scsi-single", "virtio-scsi-pci", "lsi", "lsi53c810", "megasas", "pvscsi")
+                    or (hardware.get("machine") is not None and not isinstance(hardware["machine"], str))
+                    or ("efi_pre_enrolled_keys" in hardware and type(hardware["efi_pre_enrolled_keys"]) is not bool)
+                    or (hardware["bios"] == "ovmf" and "efi_pre_enrolled_keys" not in hardware)
+                    or (hardware["bios"] == "seabios" and hardware.get("efi_pre_enrolled_keys", False))):
+                raise ValueError(f"Incomplete or invalid applied template hardware for {key}; Shared was not changed.")
+            entry.update(hardware)
         references[str(vm_id)] = entry
     return references
 

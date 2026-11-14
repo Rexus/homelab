@@ -17,7 +17,8 @@ default_linux_vm_template_id = null
 # Keys are Proxmox VMIDs; title is the human-readable Proxmox template name.
 # Keep old approved IDs while consumers use them. Do not repoint an ID at a new image.
 # family describes the OS family; distribution-specific consumer metadata stays in title/tags.
-# ID, title, node, family and image tags are refreshed from applied template_candidates.
+# ID, title, node, family, image tags and boot hardware follow applied template_candidates.
+# Linux consumers use this boot profile at creation; existing/imported boot hardware is preserved.
 # Earlier entries remain until deliberately retired; template creation stays Tier 0-owned.
 proxmox_template_catalog = {
   # "9103" = {
@@ -37,6 +38,10 @@ proxmox_template_catalog = {
   #   node_name = "pve01"
   #   family    = "redhat"
   #   tags      = ["el10", "rocky", "x86-64-v3", "cloud-init"]
+  #   bios                  = "ovmf"
+  #   machine               = "q35"
+  #   scsi_hardware         = "virtio-scsi-single"
+  #   efi_pre_enrolled_keys = false
   # }
   # "9102" = {
   #   title     = "talos-template-build-1"

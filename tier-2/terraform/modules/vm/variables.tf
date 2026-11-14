@@ -16,7 +16,7 @@ variable "vm_id" {
 }
 
 variable "template_vm_id" {
-  description = "Source template VM ID."
+  description = "Source template VM ID for creation; changing it does not rebuild an existing VM."
   type        = number
 }
 
@@ -27,13 +27,13 @@ variable "template_node_name" {
 }
 
 variable "full_clone" {
-  description = "Use a full clone by default; linked clones require compatible template storage."
+  description = "Clone type at creation. Defaults to full; changing it does not convert an existing linked clone."
   type        = bool
   default     = true
 }
 
 variable "firmware" {
-  description = "Match the approved template; null retains the existing module's implicit firmware settings."
+  description = "Creation-only BIOS/machine/controller/EFI profile from the template or a complete VM override; existing VM boot hardware is preserved."
   type = object({
     bios                  = optional(string, "seabios")
     machine               = optional(string)
@@ -45,9 +45,9 @@ variable "firmware" {
   validation {
     condition = var.firmware == null ? true : (
       contains(["seabios", "ovmf"], var.firmware.bios) &&
-      contains(["virtio-scsi-single", "virtio-scsi-pci"], var.firmware.scsi_hardware)
+      contains(["virtio-scsi-single", "virtio-scsi-pci", "lsi", "lsi53c810", "megasas", "pvscsi"], var.firmware.scsi_hardware)
     )
-    error_message = "Select seabios/ovmf and virtio-scsi-single/virtio-scsi-pci to match the template."
+    error_message = "Select seabios/ovmf and a supported Proxmox SCSI controller to match the template."
   }
 }
 

@@ -11,14 +11,20 @@ cut over with the original stopped. Keep the old VM until validation and ownersh
 are restored before first boot. Only the replacement runs with that network identity.*
 
 **Run on:** the source Proxmox host's root Bash shell, opened from an independent workstation or console.
-Do not run the host session through the VM being moved: shutting down bootstrap would disconnect it.
-Keep the same host shell for Steps 1–7 and 10.
+Do not run the host session through the old VM: stopping it would disconnect that session.
+Keep the same host maintenance shell for Steps 1–7 and 10.
 **Scope:** an existing QEMU VM, cloned on the same host; not a template or LXC.
 For Terraform-managed Linux VMs, Step 8b rebinds the existing resource. Kubernetes and templates
 need their own state/adoption procedures; do not apply the Linux resource recipe to those roots.
 
 Proxmox normally assigns a new MAC during cloning. Step 6 restores the complete `netN` values,
 including model, MAC, bridge/VNet, VLAN, MTU and firewall options. Firmware UUIDs still change. [1][2]
+
+> [!CAUTION]
+> **Account for every data disk before starting or deleting either VM.** A full clone copies attached
+> Proxmox-managed VM disks; external mounts, passthrough storage and detached `unusedN` volumes need
+> separate handling. Keep filesystem UUID guards for preserved data. Clearing a guard does not restore,
+> reattach or erase a disk. Choose the [data-disk path](vmid-data-disks.md) before Step 5.
 
 ## Steps
 
@@ -35,13 +41,22 @@ including model, MAC, bridge/VNet, VLAN, MTU and firewall options. Firmware UUID
 
 ## 1. Select the VM and free destination
 
-On **the source Proxmox host**, enter the actual values:
+On **the source Proxmox host**, run this command alone and wait for `vmid-maintenance>`:
 
 ```bash
-set -euo pipefail
-read -r -p 'Current VMID (example: 501): ' OLD_VMID
-read -r -p 'New VMID (example: 601): ' NEW_VMID
-read -r -p 'Target VM-disk storage (example: local-zfs): ' VM_STORAGE
+PS1='vmid-maintenance> ' bash --noprofile --norc -euo pipefail
+```
+
+`PS1` only labels the command prompt; it does not configure the host or VM.
+Errors stop this child shell and return to the normal host prompt without closing SSH.
+Restart here after a failure; do not continue later blocks from the parent prompt.
+
+At **the `vmid-maintenance>` prompt**, enter the actual values:
+
+```bash
+read -r -p 'Old VMID: ' OLD_VMID
+read -r -p 'New VMID: ' NEW_VMID
+read -r -p 'Target VM-disk datastore ID: ' VM_STORAGE
 test "$OLD_VMID" != "$NEW_VMID"
 pvesh get /cluster/resources --type vm
 pvesm status --content images
@@ -52,12 +67,8 @@ Confirm the original VM, a cluster-wide unused destination ID and enough VM-imag
 every attached VM disk. Use the [VMID convention](../../02-conventions/vmid-convention.md).
 Resolve pending configuration changes first. Review external mounts and passthrough devices separately.
 
-| Illustrative move | Ownership | Order when both exist |
-| --- | --- | --- |
-| `boot-1`: `501 → 601` | Manual bootstrap | First; finish and retire the old `501` before reusing that ID |
-| `log-1`: `401 → 501` | Tier 0 `syslog` Terraform state | Second; retain the `log-1` resource key and reconcile its state |
-
-Other VMs follow the same steps with their own free IDs and owning repository.
+If another VM occupies the destination ID, complete its move and retire its original first.
+A stopped rollback VM still occupies its ID. Select the actual owning repository for each VM.
 
 ## 2. Pause writers and take backups
 
@@ -100,6 +111,14 @@ qm status "$OLD_VMID"
 do not continue with a running source. The original remains stopped throughout cutover.
 
 ## 5. Create the full clone
+
+Choose how to handle data before continuing:
+
+| Choice | Action |
+| --- | --- |
+| 5a. Preserve the copied disks | Run the full clone below; [verify each copied volume](vmid-data-disks.md#1-preserve-the-copied-disks) |
+| 5b. Keep an original volume | Clone below, then [reassign that data disk](vmid-data-disks.md#2-reassign-an-original-data-disk) before Step 6 |
+| 5c. Discard data and rebuild | Follow [deliberate IaC recreation](vmid-data-disks.md#3-recreate-disposable-data-through-iac) instead of cloning; this is a fresh deployment |
 
 On **the same Proxmox host**:
 
@@ -150,27 +169,46 @@ If first-boot initialization regenerated a key, verify it through the independen
 DHCP clients using other identifiers can need a reservation adjustment despite an unchanged MAC.
 Check any first-boot Cloud-Init behavior or hardware-bound settings before accepting the copy.
 
-For bootstrap, verify the repositories, original state and workspace mount. For a log receiver,
-verify its data-disk UUID/mount, service listener and receipt of a new test event.
+Verify the guest's persistent mounts, volume UUIDs and application data. Run its owning operations
+guide's service checks; a booted guest or a successful SSH login alone does not validate the workload.
+Keep the original filesystem UUID pin and the matching stable device path for preserved volumes;
+the [disk identity guide](vmid-data-disks.md#1-preserve-the-copied-disks) distinguishes them from Proxmox volume IDs.
 
 ## 8. Update ownership
 
 ### 8a. Manually managed VM
 
-Update the local platform/recovery records with the new VMID. A manually created bootstrap has
-no VM resource to import. Its copied Terraform states still describe the other resources it manages;
-retain those files unchanged. Continue to Step 9.
+Update the local platform/recovery records with the new VMID. A VM outside Terraform has no VM
+resource to import. If it holds Terraform states for other infrastructure, retain those files
+unchanged; moving the execution host does not rebind the resources it manages. Continue to Step 9.
 
 ### 8b. Terraform-managed Linux VM
 
-On **the owning tier's original checkout**, follow [VM state rebinding](../06-resilience/recovery/terraform-import.md)
-before any apply. That procedure backs up the original state, keeps the logical resource address and
-imports the accepted clone's `node/VMID` at that same address.
+> [!IMPORTANT]
+> Editing `vm_id` alone does not adopt the clone. If state still shows the old VMID, Terraform can
+> propose destroying the old VM and creating another one. Decline that apply and complete adoption first.
 
-For example, a logging move selects **Tier 0**, setup **`syslog`**, vars **`syslog.yml`** and address
-`module.vms["log-1"].proxmox_virtual_environment_vm.this`. Change only its configured VMID from
-`401` to the accepted new ID. Keep the `log-1` key, IP and disk declarations. Return here at Step 9
-after a plan confirms the new binding without unexpected creation, destruction or disk replacement.
+On **the owning tier's original checkout**, follow the numbered
+[VM state rebinding instructions](../06-resilience/recovery/terraform-import.md) from Step 1 through Step 13.
+They include a copyable command and expected result for each action:
+
+| Action | Exact step |
+| --- | --- |
+| Prepare the original state, inputs and credentials | [Steps 1–7](../06-resilience/recovery/terraform-import.md#1-open-the-maintenance-shell) |
+| Preview the selected old binding | [Step 8](../06-resilience/recovery/terraform-import.md#8-enter-the-new-identity-and-preview-removal) |
+| Remove only that Terraform binding | [Step 9](../06-resilience/recovery/terraform-import.md#9-remove-the-old-state-binding) |
+| Import the already created new VM at the same address | [Step 10](../06-resilience/recovery/terraform-import.md#10-import-the-existing-replacement) |
+| Verify the new VMID and return here | [Steps 11–13](../06-resilience/recovery/terraform-import.md#11-review-a-fresh-plan) |
+
+The removal command changes Terraform's binding only. It does not delete either VM or its disks. [3]
+
+Select the VM's actual setup, group-vars file and resource address from the original state.
+Set the new VMID and retain its original template selection; the current module preserves imported boot hardware.
+Retain its logical resource key, IP and disk declarations.
+Keep preserved volumes' existing UUID pins; use the actual service input names from the
+[storage-input convention](../../02-conventions/iac-inputs.md#storage-identity-inputs).
+Return here at Step 9 after a plan confirms the new binding without unexpected creation,
+destruction or disk replacement.
 Ensure the deployment's API identity can inspect the new VMID before import; extend any old-ID-only
 permission scope deliberately while leaving scheduled writers paused.
 
@@ -196,10 +234,22 @@ Its VMID remains occupied. Never run both copies with the same MAC/IP.
 
 After validation, state rebinding and a verified independent backup, remove the original through
 **Proxmox > original VM > More > Remove**. Confirm its old VMID and disks before removal.
+For a reassigned disk, verify that its current owner is the replacement before removing the original.
 Keep the backup; deleting the original disks ends the instant rollback path.
-Only then may another VM use the released ID, as in the two illustrative moves above.
+Only then may another VM use the released ID.
+
+After the selected host task finishes, run **at the `vmid-maintenance>` prompt**:
+
+```bash
+exit
+```
+
+This returns to the parent host shell; it does not end the SSH connection.
 
 ## Roll back before retiring the original
+
+If an original data disk was reassigned, [move it back while both VMs are stopped](vmid-data-disks.md#roll-back-a-reassigned-disk)
+before starting the original. It no longer has that disk after reassignment.
 
 1. Pause writers again. Shut down the replacement and keep its autostart/HA membership disabled.
 2. Require it to be stopped before starting the original. Restore the original's recorded startup/HA
@@ -216,3 +266,4 @@ Sources checked 2026-11-14.
 
 1. [Proxmox copies and clones: independent disks, snapshots and regenerated MAC/BIOS UUID](https://github.com/proxmox/pve-docs/blob/master/qm.adoc#copies-and-clones).
 2. [Proxmox clone/configuration API: full copy, NIC values, unused volumes and firewall configuration](https://github.com/proxmox/qemu-server/blob/master/src/PVE/API2/Qemu.pm).
+3. [Terraform state removal changes the binding without deleting the remote object](https://developer.hashicorp.com/terraform/cli/commands/state/rm).

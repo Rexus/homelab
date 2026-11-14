@@ -3,6 +3,11 @@ output "vm_instances" {
   value       = local.resolved_vm_instances
 
   precondition {
+    condition     = length(local.incomplete_vm_template_firmware) == 0
+    error_message = "Selected template firmware metadata is incomplete. Republish its Shared catalog reference or set an intentional VM override: ${join(", ", local.incomplete_vm_template_firmware)}."
+  }
+
+  precondition {
     condition     = alltrue([for vm in values(local.resolved_vm_instances) : vm.node_name != null])
     error_message = "Set default_platform_node_name in Shared config/platform.tfvars or proxmox_node_name per VM. Missing initial placement: ${join(", ", [for key, vm in local.resolved_vm_instances : key if vm.node_name == null])}."
   }

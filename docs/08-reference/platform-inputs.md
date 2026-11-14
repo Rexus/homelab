@@ -69,15 +69,19 @@ Set these per guest in **the owning tier's `terraform/deployments/<setup>/terraf
 | Field | Behavior |
 | --- | --- |
 | `size`, `cores`, `memory` | Shared VM profile, with optional per-field CPU/RAM overrides; memory is MiB. See [scaling and host capacity](../01-architecture/04-hosting/01-runtime.md#scaling-and-host-capacity) |
-| `full_clone` | `true` by default; explicit linked clones require compatible accepted template/storage |
-| `firmware` | Optional explicit match to the source template: BIOS, machine, SCSI controller and EFI enrollment; omission retains existing behavior |
+| `full_clone` | Creation-only; `true` by default. Changing it does not convert an existing linked clone; use [full-clone cutover](../05-operations/01-hosting/change-vmid.md) |
+| `firmware` | Creation-only BIOS/machine/SCSI/EFI profile from the selected Shared template; optional complete creation override. Existing/imported boot hardware is preserved; see the [catalog contract](template-catalog.md#how-consumers-use-it) |
 | `initialization_datastore_id` | Optional Cloud-Init media datastore override; omission uses the selected storage-class mapping |
 | `nic_firewall` | `true` by default; the NIC flag is separate from installed host/cluster firewall policy |
 | `extra_disks` | Additional configured interfaces, capacities and optional datastore/class overrides; service Ansible owns safe initialization and mounts |
 | `started`, `template`, `stop_on_destroy` | Explicit lifecycle controls; converting a VM to a template keeps it stopped |
 
-Changing a supplied field now reaches the resource plan. Review existing deployments for intended
-changes; firmware/storage moves and template conversion are not implicit migration procedures.
+Capacity, disk configuration and network fields reach the resource plan. Review storage moves and
+template conversion as separate changes. Clone source/node/type and the boot profile apply at creation.
+The VM module preserves existing BIOS, machine, SCSI controller, EFI disk, boot order, description,
+OS hint and serial ports after adoption; Proxmox owns later placement. CPU/RAM, disk attachments,
+capacity and NICs remain managed. Changing the source template does not reimage an existing guest
+or change its boot firmware; a boot-hardware migration requires a separate reviewed operation.
 
 ## VM disk storage
 
@@ -107,9 +111,13 @@ do not infer it from `/dev/sda` or `/dev/sdb` ordering. The guarded storage role
 preserves existing identity checks and persists the filesystem mount by UUID.
 If a local override still uses a disk letter, update that input after verifying the original volume;
 refresh preserves existing private configuration and UUID pins.
+For a VMID change, follow the [data-disk cutover choices](../05-operations/01-hosting/vmid-data-disks.md):
+copied or reassigned filesystems retain their UUID pins; deliberately fresh disks receive new ones.
 
 After preparation, the service prints its actual UUID and the optional configuration key to pin.
 The mount is already persistent; saving the guard makes later runs reject a different filesystem.
+The [IaC input convention](../02-conventions/iac-inputs.md#storage-identity-inputs) defines the
+`<service>_<volume>_uuid` pattern; retain the actual public key exposed by the selected role.
 Each host needs its own UUID. When using `ansible/inventory/host_vars/<host>.yml`, remove the same
 key from `-e`/`--ansible-vars` files: extra variables override host variables even when the value is empty.
 

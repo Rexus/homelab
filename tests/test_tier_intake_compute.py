@@ -116,7 +116,10 @@ class IntakeCompute(TierRepositoryTestCase):
             "default_platform_node_name": "guest-node",
             "default_linux_vm_template_id": 9101,
             "proxmox_template_catalog": {"9101": {"title": "approved-linux", "family": "el",
-                                                   "node_name": "template-node", "tags": ["el10"]}},
+                                                   "node_name": "template-node", "tags": ["el10"],
+                                                   "bios": "ovmf", "machine": "q35",
+                                                   "scsi_hardware": "virtio-scsi-single",
+                                                   "efi_pre_enrolled_keys": False}},
             "proxmox_storage_classes": {"local": {"vm_disk": "fixture-zfs", "cloud_init_drive": "fixture-init"}},
             "ansible_inventory_path": str(inventory),
             "ansible_group_vars_paths": [str(ips)],
@@ -140,6 +143,10 @@ run "intake_compute" {
 }
 run "explicit_overrides" {
   command = apply
+  assert {
+    condition = module.environment.vm_instances["intake-1"].full_clone == false
+    error_message = "The resolver must retain an explicit clone mode for future creation."
+  }
   variables {
     vm_instances = {
       "intake-1" = {
@@ -201,15 +208,16 @@ run "explicit_overrides" {
         self.assertEqual(vm["memory"][0]["dedicated"], 8192)
         self.assertEqual(vm["clone"][0]["vm_id"], 9101)
         self.assertEqual(vm["clone"][0]["node_name"], "template-node")
-        self.assertEqual(vm["clone"][0]["full"], not override)
+        # The second run edits an existing full clone; clone mode is creation-only.
+        self.assertTrue(vm["clone"][0]["full"])
         self.assertEqual(vm["bios"], "ovmf")
         self.assertEqual(vm["machine"], "q35")
-        self.assertEqual(vm["scsi_hardware"], "virtio-scsi-pci" if override else "virtio-scsi-single")
+        self.assertEqual(vm["scsi_hardware"], "virtio-scsi-single")
         self.assertEqual(vm["boot_order"], ["scsi0"])
         self.assertEqual(len(vm["efi_disk"]), 1)
         self.assertEqual(vm["efi_disk"][0]["type"], "4m")
         self.assertEqual(vm["efi_disk"][0]["datastore_id"], "fixture-zfs")
-        self.assertEqual(vm["efi_disk"][0]["pre_enrolled_keys"], override)
+        self.assertFalse(vm["efi_disk"][0]["pre_enrolled_keys"])
         self.assertEqual(vm["started"], not override)
         if override:
             self.assertTrue(vm["stop_on_destroy"])

@@ -22,7 +22,8 @@ class SharedTemplateCatalog(TierRepositoryTestCase):
             self.assertFalse((repo / "templates/proxmox-catalog.tfvars").exists())
         for tier in ("tier-0", "tier-1", "tier-2"):
             variables = (self.root / f"verify-{tier}/terraform/modules/environment_guests/variables.tf").read_text()
-            for field in ("title", "family", "node_name", "tags"):
+            for field in ("title", "family", "node_name", "tags", "bios", "machine",
+                          "scsi_hardware", "efi_pre_enrolled_keys"):
                 self.assertRegex(variables, rf"{field}\s*=")
         self.assertNotRegex(catalog.read_text(), r"(?m)^\s*(image_path|sha256|datastore_id|api_token)\s*=")
         builder = (self.root / "verify-tier-0/terraform/deployments/immutable-template/terraform.tfvars.example").read_text()

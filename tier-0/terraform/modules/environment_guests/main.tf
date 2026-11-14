@@ -91,7 +91,7 @@ locals {
         null,
       )
       full_clone                  = vm.full_clone
-      firmware                    = vm.firmware
+      firmware                    = local.resolved_vm_firmware[key]
       initialization_datastore_id = vm.initialization_datastore_id
       nic_firewall                = vm.nic_firewall
       size                        = coalesce(try(vm.size, null), "small")

@@ -17,6 +17,35 @@ locals {
       local.resolved_vm_template_ids[key],
     )
   }
+  # Firmware follows the actual clone source, never the separate tag/catalog alias.
+  resolved_vm_firmware = {
+    for key, vm in var.vm_instances : key => (
+      vm.firmware != null ? vm.firmware : (
+        try(var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].bios, null) == null
+        ? null
+        : {
+          bios          = var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].bios
+          machine       = var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].machine
+          scsi_hardware = var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].scsi_hardware
+          efi_pre_enrolled_keys = coalesce(
+            var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].efi_pre_enrolled_keys, false,
+          )
+        }
+      )
+    )
+  }
+  incomplete_vm_template_firmware = [
+    for key, vm in var.vm_instances : key
+    if vm.firmware == null &&
+    anytrue([for field in ["bios", "machine", "scsi_hardware", "efi_pre_enrolled_keys"] :
+      try(var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])][field], null) != null
+      ]) && (
+      try(var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].bios, null) == null ||
+      try(var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].scsi_hardware, null) == null ||
+      (try(var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].bios, null) == "ovmf" &&
+      try(var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].efi_pre_enrolled_keys, null) == null)
+    )
+  ]
   resolved_vm_template_tags = {
     for key, vm in var.vm_instances : key => (
       try(vm.template_tags, null) == null

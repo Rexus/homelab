@@ -11,10 +11,13 @@ output "catalog" {
       release       = image.release
       sha256        = image.sha256
       schematic_id  = image.schematic_id
-      bios          = image.bios
-      machine       = image.machine
+      bios          = proxmox_virtual_environment_vm.template[key].bios
+      machine       = proxmox_virtual_environment_vm.template[key].machine
       scsi_hardware = proxmox_virtual_environment_vm.template[key].scsi_hardware
-      tags          = local.template_tags[key]
+      efi_pre_enrolled_keys = try(
+        proxmox_virtual_environment_vm.template[key].efi_disk[0].pre_enrolled_keys, false,
+      )
+      tags = local.template_tags[key]
     }
   }
 }

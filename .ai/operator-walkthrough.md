@@ -19,12 +19,111 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Imported VM clone provenance and firmware, 2026-11-14
+
+All three Linux VM modules retain Proxmox-owned placement and creation-only clone provenance on updates.
+BIOS, machine, SCSI controller, EFI disk, boot order, description, OS hint and serial devices are preserved
+for existing/imported guests. VM source/full-clone selectors and boot profiles initialize new VMs;
+capacity, disk configuration and NICs remain managed. Disk I/O-thread defaults still follow the configured
+controller profile; these managed disk options are separate from the ignored boot fields.
+The template publisher now carries applied BIOS/machine/controller/EFI-key settings into Shared.
+All three Linux guest resolvers inherit the actual source ID's profile without a service-local firmware
+block. A complete per-VM override is reserved for a creation exception; tag aliases and legacy
+tag overrides cannot select a different profile. Older catalogs can synchronize metadata once;
+wholly absent profiles retain legacy defaults for creation, while partial selected profiles fail clearly.
+The adoption guide needs no boot-profile backfill and explains that a correct imported ID with a
+clone/boot-setting replacement is a module-version issue, not another state rebind.
+
+The preceding catalog pass ran nineteen distinct focused checks, including native plans using cached
+bpg/proxmox 0.112.0 across all three tier modules, catalog synchronization, resolver precedence,
+the publisher's mocked template plans and source/generated intake plans. The intake starter now
+inherits its profile instead of duplicating it. Its update test retains creation-only clone mode.
+Synthetic imported state reproduced replacement under the previous lifecycle and retained existing
+data-disk identities, EFI, description, OS hint and console using only Shared template hardware.
+The preservation follow-up passed eight focused checks: imported plans across all three tier modules,
+source/generated intake plans, catalog resolution, all Linux root contracts and documentation links/language.
+Changed and absent Shared profiles retain imported boot hardware;
+new-resource/replacement plans use the selected profile. RAM/data-disk growth stays visible, and changed
+VMIDs still force replacement. Catalog writes remain
+idempotent and preserve consumer selections/old entries; invalid hardware leaves Shared unchanged.
+Root forwarding, source/generated documentation links, formal language, native HCL formatting and
+`git diff --check` passed. Unselected incomplete profiles do not block unrelated consumers.
+These were offline `-refresh=false` plans, not a live provider import/apply or Proxmox acceptance test.
+
+### Service-neutral VMID guides and UUID input names, 2026-11-14
+
+VMID and data-disk instructions use the old/new VM and actual owning inputs. Named workload examples
+and the workload-specific volume-adoption detour were removed. The conventions index now routes to
+IaC input names, defining <service>_<volume>_uuid and stable device selection while retaining established
+public keys and per-host pins. Developer extension guidance and the storage reference link that home.
+The generic runbooks require the actual schema/printed UUID key, not a literal placeholder or inferred prefix.
+
+Source/generated links and every starter extra-disk/device correspondence passed. NIC transfer,
+disk detach/reassignment/rollback argument fixtures and stopped-VM guards passed. Documentation language
+checking found personal-pronoun wording in the earlier maintenance edits; it was corrected and rechecked.
+No input keys, role behavior, live VM or storage contents were changed by this generalization.
+
+### Generic Terraform state tasks, 2026-11-14
+
+The state runbook now selects the original Terraform root, state file and TF_DATA_DIR from the owning
+repository instead of hard-coding cache/Tier 2. It maps VM/container, Kubernetes and template layouts,
+retains custom backend/workspace boundaries and routes planning through the original entry point.
+Resource removal uses the exact listed leaf address; retirement archives only the selected local
+state file, preserving working-data caches and all unrelated deployments.
+
+The VMID caller and state FAQ explicitly route cloned replacements through the complete numbered
+adoption sequence. Inspection/backup returns to its caller; deleted-resource removal is an alternative
+task and cannot substitute for removal plus replacement import. The adoption page explains declining
+an unintended VMID-forced replacement plan. Four targeted documentation/native state checks passed
+after this handoff correction; no real provider import or live recovery was performed.
+
+Adoption was expanded into thirteen concrete numbered actions, retaining earlier anchors. Each edit
+or command has its own step; removal explicitly changes only state, and import immediately records the
+existing replacement. The caller links directly to the preview, removal and import commands. Isolated
+success/failure fixtures verified exact address rebinding, original input ordering, paths with spaces
+and refusal to reach plan/apply after an import error. No live VM/state was changed.
+
+Six focused checks passed, including native Terraform selection/backup across six repository layouts,
+exact removal with another binding retained, isolated state archival, Bash-login survival and
+source/generated documentation links. The two native state-task tests passed again after adding
+missing-working-data reconstruction coverage. These use disposable built-in terraform_data resources;
+no Proxmox provider, live guest, remote backend or non-default workspace was exercised.
+
+### VMID data-disk choices, 2026-11-14
+
+The full-clone guide opens with a data-loss caution and routes three storage paths before Step 5:
+keep copied managed disks, reassign an original volume while both VMs are stopped, or intentionally
+rebuild disposable guest/data storage through IaC. The focused procedure distinguishes Proxmox volume
+ownership, stable guest device paths and filesystem UUID pins. Original-volume transfer includes rollback
+and retains the detached clone; existing mount declarations remain enforced. Fresh replacement must be
+limited to the accepted resource, with its new UUID saved after Ansible prints the verified binding.
+
+Four focused tests passed: source/generated links, every starter extra-disk/device binding, accepted
+new/existing filesystems and rejection of unsafe storage, including missing pinned/fstab-declared disks.
+Separate command fixtures passed Bash syntax, stopped-VM guards, detach-without-delete, transfer and
+reverse-transfer argument checks. Native Proxmox CLI/API and pinned provider replacement behavior were
+checked against upstream source. No live disk reassignment, guest rebuild or provider apply was exercised.
+
+### Maintenance-shell failure handling, 2026-11-14
+
+VMID change, state inspection and VM adoption now isolate terminating checks in an explicitly opened
+child Bash shell. The prompt label is explained as navigation only. A failed prerequisite returns
+to the parent SSH shell; the operator restarts the selected task instead of continuing without context.
+Adoption uses the actual original setup/resource, offers a sibling Shared checkout default and retries
+invalid Shared paths before invoking Terraform. Import failure retains the original address/ID record
+and separates a retry from the already completed state removal.
+
+All four focused checks passed: three native Bash PTY tests cover invalid Shared paths, missing state
+and failed initialization while preserving the parent login and original state; source/generated links
+also resolve. Bash syntax and complete multi-NIC transfer/stop guards passed isolated fixture checks.
+No live VM, Proxmox API, provider import or operator SSH session was changed.
+
 ### Full-clone VMID cutover and state rebinding, 2026-11-14
 
 Hosting operations now owns a general numbered VMID-change procedure, with manual and Terraform
 ownership branches, full netN transfer before boot, validation, job/ACL/HA review, retirement and
-rollback. Bootstrap and logging moves are illustrative; the dependency on releasing an occupied
-target ID is explicit. Linked-clone maintenance and the central VMID reference route to the same guide.
+rollback. The dependency on releasing an occupied target ID is explicit.
+Linked-clone maintenance and the central VMID reference route to the same guide.
 The existing Linux VM adoption procedure now covers both clones and restores, preserving the exact
 resource address and all unrelated state. Original state/context, private backups and normal plan
 review surround the state rm/import operation. Custom environments/backends retain their own context.

@@ -18,8 +18,8 @@ its source image or service, not ownership of the template lifecycle.
 | --- | --- |
 | Tier 0 `templates/proxmox.yml` | Build/publication details: source images, checksums, releases, schematic, node, storage, network, VMID |
 | Tier 0 template module, Packer, scripts, CI, and state | Create, test, update, and recover template artifacts |
-| Shared `templates/proxmox-catalog.tfvars` | Published VMIDs, titles, source nodes, family and tags; project-selected default |
-| Each tier's Terraform inputs | Select an approved template ID; define guest hardware and workload tags |
+| Shared `templates/proxmox-catalog.tfvars` | Published IDs, source nodes, family, tags and boot hardware; project-selected default |
+| Each tier's Terraform inputs | Select a template ID; define capacity, network, disks and workload tags; optional boot-hardware override |
 | Each tier's `terraform/modules/environment_guests/` | Resolve that tier's template selections, inventory, placement, and combined guest tags |
 | Each tier's `terraform/modules/vm/` | Create Linux clones; tolerate subsequent Proxmox-managed node moves |
 | Tier 0 `terraform/deployments/kubernetes/` | Create Talos clones and configure the control cluster through its API |
@@ -37,7 +37,8 @@ settings, host inventory, or Terraform state.
 1. Use the Tier 0 [publication workflow](../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow).
    After Terraform apply, template-policy checks and state refresh succeed, the script
    updates the sibling Shared catalog from the applied `template_candidates` output.
-   VMID becomes the map key; name becomes `title`; node, family and image tags follow the template.
+   VMID becomes the map key; name becomes `title`; node, family, image tags and
+   BIOS/machine/SCSI/EFI settings follow the applied template.
 2. Test disposable clones on the destination cluster and network. Publication
    and catalog synchronization do not prove guest acceptance.
 3. Review the updated Shared file. Existing VMIDs are refreshed, older entries and
@@ -50,8 +51,9 @@ settings, host inventory, or Terraform state.
    the Linux VM module; use the [Talos Kubernetes implementation](../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md) or the
    [manual procedure](../03-deployment/stage-04-kubernetes/step-1b-existing-cluster.md).
 5. Review and version the shared change, then review plans in consuming tiers.
-   Changing the selected source template may replace VMs; pin existing guests
-   with `template_vm_id` when they must stay on their current revision.
+   The clone source applies when creating a VM; changing it does not upgrade an existing guest.
+   Its boot-hardware profile initializes new VMs; existing/imported guests retain their boot settings.
+   Pin existing guests with `template_vm_id` to retain the correct source record for future recreation.
 
 The script edits the local Shared checkout; it never commits or pushes it. When Shared
 is absent, standalone Tier 0 publication still works and reports skipped synchronization.
@@ -99,9 +101,21 @@ For manual Terraform commands, include both shared files before tier overrides; 
 Keep `default_linux_vm_template_id` on a clone-tested Linux cloud-init image.
 
 The Linux tier roots pass catalog data to their tier-local typed resolver. The resolver
-uses the actual clone ID for title and source-node selection, and adds image
+uses the actual clone ID for title, source node and boot hardware, and adds image
 tags to that guest's workload tags. Tier 0 builders may use `template_catalog_id`
-for output-image tags; that never changes the clone's source node.
+for output-image tags; that never changes the clone's source node or hardware profile.
+
+BIOS, machine, SCSI controller and EFI enrollment belong to the template reference.
+Do not repeat them in every service deployment. The selected entry's `bios`, `machine`,
+`scsi_hardware` and `efi_pre_enrolled_keys` supply the VM's creation `firmware` profile.
+An explicit per-VM `firmware` block replaces that complete creation profile for an intentional exception;
+its omitted members use the VM schema's defaults, rather than merging individual template fields.
+Existing and imported Linux VMs preserve BIOS, machine, SCSI controller, EFI disk and boot order.
+Changing a catalog entry or a `firmware` override does not retrofit those settings. Plan a separate
+boot-hardware migration or replacement when required. CPU, RAM, disk configuration and networking
+remain deployment-managed; this preservation does not ignore the VM or its disk blocks as a whole. [2]
+Disk I/O-thread defaults still follow the configured controller profile and remain managed disk
+options; review those separately from the preserved boot fields.
 
 Tier 0's separate Talos command reads the same catalog but uses its own root
 and inputs, without Linux common variables or Ansible configuration.
@@ -123,14 +137,26 @@ Move common entries from tier-local `linux_vm_template_catalog` maps into shared
 `family`. Keep existing IDs and image tags during migration. Then remove the
 duplicated maps deliberately, leaving only intentional per-tier ID selections.
 
-The legacy variable still works and overrides shared metadata for matching IDs.
-An old entry can therefore hide a shared source-node setting until migrated.
+The legacy variable still overrides tags/source-node metadata for matching IDs;
+boot hardware comes from the Shared catalog. An old entry can therefore hide a shared
+source-node setting until migrated.
 If no shared catalog exists, the helper warns and uses the legacy inputs.
 An empty starter does not select an image automatically. Review a no-change
 plan before deployment; adding clone-source metadata can affect existing
 resources, so do not apply unexpected replacements. State paths do not move.
 
+After updating older automation, rerun the template publication `apply` with the original
+catalog/state to synchronize its boot-hardware output into Shared. Review the plan first;
+a metadata-only update does not require recreating templates. For independently maintained
+templates, record the observed settings once in their Shared entry instead. Entries without
+any boot-hardware fields retain the legacy provider-default behavior for creation; partial profiles
+fail with an actionable error. Updated VM modules preserve imported boot settings even when the
+selected profile differs or is absent. Record the actual source for future recreation; backfilling
+Shared metadata is not a prerequisite for adopting an existing guest with a wholly absent profile.
+
 ## References
 
 1. [Terraform variable precedence](https://developer.hashicorp.com/terraform/language/values/variables),
    checked 2026-09-22.
+2. [Terraform creation/update semantics of ignored attributes](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle#ignore_changes),
+   checked 2026-11-14.

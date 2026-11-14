@@ -30,10 +30,14 @@ variable "default_vm_template_id" {
 variable "proxmox_template_catalog" {
   description = "Shared approved template references. Tier 0 owns promotion; this module resolves consumer metadata."
   type = map(object({
-    title     = string
-    node_name = optional(string)
-    family    = string
-    tags      = optional(list(string), [])
+    title                 = string
+    node_name             = optional(string)
+    family                = string
+    tags                  = optional(list(string), [])
+    bios                  = optional(string)
+    machine               = optional(string)
+    scsi_hardware         = optional(string)
+    efi_pre_enrolled_keys = optional(bool)
   }))
   default = {}
 }

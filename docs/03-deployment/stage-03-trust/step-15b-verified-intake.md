@@ -167,7 +167,7 @@ Edit in **`<prefix>-shared/`**:
 | File | Set |
 | --- | --- |
 | `config/platform.tfvars` | Existing destination node and VM-image storage classes |
-| `templates/proxmox-catalog.tfvars` | Approved Linux template; firmware must match that template |
+| `templates/proxmox-catalog.tfvars` | Approved Linux template and its inherited BIOS/machine/SCSI/EFI settings |
 
 Edit in **`<prefix>-tier-1/`**:
 

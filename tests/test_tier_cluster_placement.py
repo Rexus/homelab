@@ -32,7 +32,8 @@ class ClusterPlacement(TierRepositoryTestCase):
         self.assertEqual(count, 16)
         for tier in ("tier-0", "tier-1", "tier-2"):
             vm = (self.root / f"verify-{tier}/terraform/modules/vm/main.tf").read_text()
-            self.assertIn("ignore_changes = [node_name]", vm)
+            self.assertIn("node_name, clone, description, operating_system, serial_device,", vm)
+            self.assertIn("bios, machine, scsi_hardware, efi_disk, boot_order,", vm)
             self.assertIn("node_name = var.template_node_name", vm)
             lxc = (self.root / f"verify-{tier}/terraform/modules/lxc/main.tf").read_text()
             self.assertNotIn("ignore_changes", lxc)
@@ -62,8 +63,16 @@ class ClusterPlacement(TierRepositoryTestCase):
                 "9102": {"title": "Talos candidate", "family": "talos"},
                 "9130": {"title": "Windows candidate", "family": "windows"},
                 "9140": {"title": "Other OS candidate", "family": "other"},
+                "9141": {"title": "Unselected incomplete profile", "family": "linux", "bios": "ovmf"},
             },
         }
+        source_firmware = {"bios": "ovmf", "machine": "q35", "scsi_hardware": "virtio-scsi-single",
+                           "efi_pre_enrolled_keys": False}
+        alternate_firmware = {"bios": "seabios", "machine": "pc", "scsi_hardware": "lsi",
+                              "efi_pre_enrolled_keys": False}
+        module["proxmox_template_catalog"]["110"].update(source_firmware)
+        module["proxmox_template_catalog"]["120"].update(alternate_firmware)
+        module["proxmox_template_catalog"]["9100"].update(alternate_firmware)
         # Builder tags describe the future image, never the source clone's node.
         cases = (
             ({}, "pve01", "pve02", ["source"]),
@@ -71,6 +80,7 @@ class ClusterPlacement(TierRepositoryTestCase):
             ({"template_vm_id": 120, "proxmox_node_name": "pve04"}, "pve03", "pve04", ["alternate"]),
             ({"template_vm_id": 130}, None, "pve02", ["local"]),
             ({"template_vm_id": 140}, None, "pve02", []),
+            ({"firmware": alternate_firmware}, "pve01", "pve02", ["source"]),
             ({"template_vm_id": 9103, "extra_disks": [
                 {"interface": "scsi1", "size_gb": 40, "storage_class": "local"},
             ]}, "pve01", "pve02", []),
@@ -97,6 +107,10 @@ class ClusterPlacement(TierRepositoryTestCase):
                 template_id = str(overrides.get("template_vm_id", 110))
                 title = module["proxmox_template_catalog"].get(template_id, {}).get("title")
                 self.assertEqual(resolved["template_title"], title)
+                expected_firmware = overrides.get("firmware", {
+                    "110": source_firmware, "120": alternate_firmware,
+                }.get(template_id))
+                self.assertEqual(resolved["firmware"], expected_firmware)
 
         module["vm_instances"] = {"vm-1": {"disk_size_gb": 32}}
         module["linux_vm_template_catalog"] = {"110": {"node_name": "legacy-node", "tags": ["legacy"]}}
@@ -105,6 +119,27 @@ class ClusterPlacement(TierRepositoryTestCase):
         resolved = json.loads(self.run_terraform(fixture, "output", "-json", "resolved"))["vm-1"]
         self.assertEqual(resolved["template_node_name"], "legacy-node")
         self.assertEqual(resolved["tags"], ["legacy"])
+        self.assertEqual(resolved["firmware"], source_firmware)
+
+        for incomplete in ({"bios": "ovmf"}, {"scsi_hardware": "virtio-scsi-single"},
+                           {"bios": "ovmf", "scsi_hardware": "virtio-scsi-single"}):
+            with self.subTest(incomplete=incomplete):
+                entry = module["proxmox_template_catalog"]["110"]
+                complete = dict(entry)
+                for field in source_firmware:
+                    entry.pop(field, None)
+                entry.update(incomplete)
+                (fixture / "main.tf.json").write_text(json.dumps(config))
+                result = subprocess.run(["terraform", f"-chdir={fixture}", "plan", "-input=false", "-no-color"],
+                                        capture_output=True, text=True)
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("Selected template firmware metadata is incomplete", result.stdout + result.stderr)
+                module["vm_instances"]["vm-1"]["firmware"] = source_firmware
+                (fixture / "main.tf.json").write_text(json.dumps(config))
+                self.run_terraform(fixture, "plan", "-input=false")
+                module["vm_instances"]["vm-1"].pop("firmware")
+                entry.clear()
+                entry.update(complete)
 
         for template_id, message in ((None, "Select an approved Linux template ID"),
                                      (9102, "Select a Linux cloud-init image"),

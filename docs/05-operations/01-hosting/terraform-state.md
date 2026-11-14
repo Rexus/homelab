@@ -1,72 +1,124 @@
 # Inspect and reconcile Terraform state
 
-State belongs to the deployment's tier repository and records resource identity. Keep the
+State belongs to the deployment's owning repository and records resource identity. Keep the
 original state during recovery; deliberately forgetting an object does not delete or restore it.
 
-**Work from:** the original owning tier on the bootstrap or accepted recovery host.
+**Work from:** the original owning repository root on the bootstrap or accepted recovery host.
 **Before starting:** pause other writers and retain the [independent recovery set](../06-resilience/backups/recovery-set.md).
-The examples below select **Tier 2 cache, default `prod` environment and Terraform `default` workspace**.
-Use the recorded original context for other deployments; kit `--env` is not a Terraform workspace.
+Select the actual deployment and its original backend, state and workspace. These tasks apply to any
+deployment; repository ownership does not change the native state commands.
+Kit `--env` and Terraform workspaces are different selections.
+
+**Choose one task below; these sections are alternatives, not successive steps.**
+For a VMID change with an existing clone, follow [VM state rebinding](../06-resilience/recovery/terraform-import.md)
+through its final plan review. Inspection/backup alone does not adopt the clone.
 
 ## Choose the task
 
 | Question | Procedure |
 | --- | --- |
+| A full clone replaces an existing VM under another ID? | [VM adoption: back up, rebind and verify](../06-resilience/recovery/terraform-import.md) |
 | Which state/root belongs to this deployment? | [Inspect the original state](#inspect-the-original-state) |
 | A host-side deletion is intentional; how is its binding removed? | [Forget one deleted resource](#forget-a-deleted-resource) |
 | All objects in one deployment are retired? | [Archive that deployment](#archive-a-retired-deployment) |
 | A VM was restored from backup? | [Reconcile restored resources](#restored-resources) |
-| A full clone replaces an existing VM under another ID? | [VMID cutover and state rebinding](change-vmid.md#8-update-ownership) |
 | The state itself was lost? | [Recover the original state](../06-resilience/recovery/original-state-etcd.md#recover-original-state) |
 
 <a id="inspect-the-original-state"></a>
 
 ## How is the original state inspected?
 
-Default local paths, relative to the owning tier:
+### 1. Open the maintenance shell
+
+Run this command **alone from the owning repository root** and wait for `state-maintenance>`:
+
+```bash
+PS1='state-maintenance> ' bash --noprofile --norc -euo pipefail
+```
+
+`PS1` only labels the command prompt; it does not configure the host or Terraform.
+Keep the selected state task inside this child shell. A failed check returns to the normal
+SSH prompt with the connection open; stop and restart the task after correcting it.
+When finished, type `exit` only at `state-maintenance>` to return to the parent shell.
+
+### 2. Identify the original context
+
+Use the original deployment record or wrapper to identify all three paths. Kit defaults are relative
+to **whichever repository owns the deployment**, not to the upstream checkout or Shared:
 
 | Deployment | Terraform root | State file | `TF_DATA_DIR` |
 | --- | --- | --- | --- |
-| Linux setup | `terraform/deployments/<setup>` | `.terraform/state/<setup>/<env>/terraform.tfstate` | `.terraform/data/<setup>/<env>` |
+| VM/container setup | `terraform/deployments/<setup>` | `.terraform/state/<setup>/<environment>/terraform.tfstate` | `.terraform/data/<setup>/<environment>` |
 | Kubernetes | `terraform/deployments/kubernetes` | `.terraform/state/talos/terraform.tfstate` | `.terraform/data/talos` |
-| Tier 0 templates | `terraform/deployments/templates` | `.terraform/state/proxmox-templates/terraform.tfstate` | `.terraform/data/proxmox-templates` |
+| Template publication | `terraform/deployments/templates` | `.terraform/state/proxmox-templates/terraform.tfstate` | `.terraform/data/proxmox-templates` |
 
-1. Compare the original state/backend, environment and workspace with the project record. Templates
-   can use `TEMPLATE_STATE_PATH`; remote/custom backends require their own recorded recovery process.
-   Do not substitute these local defaults for a different authoritative backend.
-2. Initialize **against the existing file**, then inspect it. This block does not query or change VMs:
+`<setup>` is the original setup name; `<environment>` is its original environment (`prod` when
+`deploy.sh` ran without `--env`). Other roots and custom paths use their own recorded locations.
+Templates can override the state path through `TEMPLATE_STATE_PATH`.
+Check the owning wrapper before accepting any default. Do not invent a new state because the old one is missing.
 
-   Run from **`<prefix>-tier-2/`** for the existing default production cache state.
+### 3. Select and initialize the existing local state
 
-   ```bash
-   set -euo pipefail
-   IAC_ROOT="$PWD/terraform/deployments/cache"
-   IAC_STATE="$PWD/.terraform/state/cache/prod/terraform.tfstate"
-   export TF_DATA_DIR="$PWD/.terraform/data/cache/prod"
-   test -s "$IAC_STATE" || { echo 'Recover the original state before continuing.' >&2; exit 1; }
-   terraform -chdir="$IAC_ROOT" init -input=false -lockfile=readonly -reconfigure \
-     -backend-config="path=$IAC_STATE"
-   test "$(terraform -chdir="$IAC_ROOT" workspace show)" = default || exit 1
-   terraform -chdir="$IAC_ROOT" state list
-   ```
+For the recorded **local backend and Terraform `default` workspace**, enter the three paths from
+Step 2. Relative paths start at the current repository root; absolute paths are also accepted.
+This block inspects state without querying or changing the deployed resources.
 
-   Stop on initialization/workspace errors. Do not switch workspaces or initialize an empty state
-   to make a missing original disappear. Providers must be available from the approved source/mirror.
-3. Save a private pre-change copy; state can contain secrets. Keep the independent backup too:
+Run from **the owning repository root, at `state-maintenance>`**:
 
-   Run from **the same owning tier root, with IAC_ROOT and TF_DATA_DIR from above**.
+```bash
+read -r -p 'Original Terraform root directory: ' IAC_ROOT
+IAC_ROOT="$(realpath -e -- "$IAC_ROOT")"
+test -d "$IAC_ROOT" || { printf '%s\n' 'The Terraform root must be an existing directory.' >&2; exit 1; }
+read -r -p 'Original local state file: ' IAC_STATE
+test -f "$IAC_STATE" && test -s "$IAC_STATE" || {
+  printf 'State missing or empty: %s\nRecover the original state before continuing.\n' "$IAC_STATE" >&2
+  exit 1
+}
+IAC_STATE="$(realpath -e -- "$IAC_STATE")"
+read -r -p 'Original TF_DATA_DIR directory: ' IAC_DATA
+test ! -e "$IAC_DATA" || test -d "$IAC_DATA" || {
+  printf 'Working-data path is not a directory: %s\n' "$IAC_DATA" >&2
+  exit 1
+}
+TF_DATA_DIR="$(realpath -m -- "$IAC_DATA")"
+export TF_DATA_DIR
+terraform -chdir="$IAC_ROOT" init -input=false -lockfile=readonly -reconfigure \
+  -backend-config="path=$IAC_STATE"
+test "$(terraform -chdir="$IAC_ROOT" workspace show)" = default || {
+  printf '%s\n' 'Unexpected workspace; stop and use the recorded original context.' >&2
+  exit 1
+}
+terraform -chdir="$IAC_ROOT" state list
+```
 
-   ```bash
-   umask 077
-   IAC_ARCHIVE="$PWD/.local-archive/cache-prod-$(date -u +%Y%m%dT%H%M%SZ)"
-   test ! -e "$IAC_ARCHIVE" || exit 1
-   mkdir -p "$IAC_ARCHIVE"
-   terraform -chdir="$IAC_ROOT" state pull > "$IAC_ARCHIVE/before.tfstate"
-   test -s "$IAC_ARCHIVE/before.tfstate" || exit 1
-   ```
+Stop on initialization/workspace errors. Providers must be available from the approved source/mirror.
+Initialization can rebuild missing working-data files; the original infrastructure state must already exist.
+For a **remote backend or non-default workspace**, retain its recorded initialization, working-data
+directory and workspace instead of the local block above. Do not pass a local `path` override or
+switch to `default`. Set `IAC_ROOT` and `TF_DATA_DIR` to that original context, then continue with
+the same state listing, private backup and exact-address tasks. [4][5]
 
-Use a unique archive label for a different setup/environment. State listing/pulling needs the
-backend, not a Proxmox API plan. Native commands do not load `.env.local`; wrappers load it in their own process.
+### 4. Back up the selected state
+
+State can contain secrets. Save a private pre-change copy and retain the independent backup too.
+
+Run from **the same owning repository root, in the prepared maintenance shell**:
+
+```bash
+umask 077
+mkdir -p "$PWD/.local-archive"
+IAC_ARCHIVE="$(mktemp -d "$PWD/.local-archive/$(basename -- "$IAC_ROOT")-state-$(date -u +%Y%m%dT%H%M%SZ).XXXXXX")"
+terraform -chdir="$IAC_ROOT" state pull > "$IAC_ARCHIVE/before.tfstate"
+test -s "$IAC_ARCHIVE/before.tfstate" || { printf '%s\n' 'State backup is empty; stop here.' >&2; exit 1; }
+printf 'Private state archive: %s\n' "$IAC_ARCHIVE"
+```
+
+State listing/pulling needs the backend, not a Proxmox API plan. Native commands do not load
+`.env.local`; wrappers load it in their own process. Keep this context for the selected task below.
+
+**After inspection/backup, return to the task that requested it.** For a cloned replacement, continue
+with [VM state rebinding](../06-resilience/recovery/terraform-import.md) from Step 1 to prepare its complete
+import context. Do not continue into the deleted-resource task or apply a VMID change before adoption.
 
 <a id="forget-a-deleted-resource"></a>
 
@@ -74,15 +126,18 @@ backend, not a Proxmox API plan. Native commands do not load `.env.local`; wrapp
 
 Use this only after independent host-side confirmation that the object is gone and its removal
 is intended. For a VM awaiting restoration, retain its binding and use [recovery](../06-resilience/recovery/virtual-machines.md).
+For an existing clone under a new VMID, use [VM adoption](../06-resilience/recovery/terraform-import.md)
+instead: its old-binding removal must be followed by import of the validated replacement before any plan/apply.
 
 1. Prepare the original state context and backup above. Select an **exact leaf resource address**
    from `state list`, not an entire module or a whole-state pattern.
 2. Preview the selected binding:
 
-   Run from **the owning tier root, in the prepared state-maintenance shell**.
+   Run from **the owning repository root, in the prepared state-maintenance shell**.
 
    ```bash
-   read -r -p 'Exact resource address (e.g. module.vms["cache-1"].proxmox_virtual_environment_vm.this): ' IAC_ADDRESS
+   read -r -p 'Exact leaf resource address from state list: ' IAC_ADDRESS
+   terraform -chdir="$IAC_ROOT" state show "$IAC_ADDRESS"
    terraform -chdir="$IAC_ROOT" state rm -dry-run "$IAC_ADDRESS"
    ```
 
@@ -96,16 +151,14 @@ is intended. For a VM awaiting restoration, retain its binding and use [recovery
    terraform -chdir="$IAC_ROOT" state list
    ```
 
-4. If retiring permanently, remove that guest from the tier-owned resource definitions, inventory,
+4. If retiring permanently, remove that resource from the owning definitions, inventory,
    IP map and service configuration. If intentionally recreating it, retain those inputs and
    explicitly accept the resulting creation plan. Never treat creation as recovery of its old data.
-5. Review a new plan through the normal owning wrapper with the original input overrides:
-
-   Run from **`<prefix>-tier-2/`** for the default production cache example.
-
-   ```bash
-   bash scripts/deploy.sh cache --plan-only --env-file .env.local
-   ```
+5. Review a new plan using the **original deployment's entry point and inputs**, retaining its backend,
+   state, environment, workspace, credentials and overrides. VM/container setups use
+   `scripts/deploy.sh <setup> --plan-only` with their original flags; Kubernetes uses
+   `scripts/kubernetes-cluster.sh plan`; template publication uses
+   `scripts/proxmox-templates.sh plan`. For other roots, use their owning guide's plan command.
 
 A normal plan observes remote changes; it does not by itself commit a refresh-only state update.
 `apply -refresh-only` can reconcile observations but evaluates the **whole selected deployment**.
@@ -117,18 +170,18 @@ It needs matching credentials/inputs and must not commit apparent deletions whil
 
 1. Confirm every managed object in that **one state** is removed, not merely powered off or absent
    because of a wrong API endpoint/permission. Preserve the recorded state and independent backup.
-2. Review `state list` in the prepared context. For the cache/prod example, archive only its directories:
+2. Review `state list` in the prepared context. For a **local backend in the default workspace**, archive
+   only the selected state file. Enter its verified absolute path, matching the context initialized above.
 
-   Run from **`<prefix>-tier-2/`**, using the prepared cache/prod state context and IAC_ARCHIVE.
+   Run from **the same owning repository root**, using `IAC_STATE` and `IAC_ARCHIVE` from above.
 
    ```bash
-   test -f .deployment-setups && test -s "$IAC_ARCHIVE/before.tfstate" || exit 1
-   test "$IAC_ROOT" = "$PWD/terraform/deployments/cache" || exit 1
-   test "$TF_DATA_DIR" = "$PWD/.terraform/data/cache/prod" || exit 1
-   test ! -e "$IAC_ARCHIVE/state" && test ! -e "$IAC_ARCHIVE/data" || exit 1
-   mv -- "$PWD/.terraform/state/cache/prod" "$IAC_ARCHIVE/state"
-   mv -- "$TF_DATA_DIR" "$IAC_ARCHIVE/data"
-   unset TF_DATA_DIR
+   test -s "$IAC_ARCHIVE/before.tfstate" || exit 1
+   read -r -p 'Verified absolute state-file path to archive: ' IAC_CONFIRM_STATE
+   test "$IAC_CONFIRM_STATE" = "$IAC_STATE" || exit 1
+   test "$(terraform -chdir="$IAC_ROOT" workspace show)" = default || exit 1
+   test -f "$IAC_STATE" && test ! -e "$IAC_ARCHIVE/terraform.tfstate" || exit 1
+   mv -- "$IAC_STATE" "$IAC_ARCHIVE/terraform.tfstate"
    ```
 
 3. Quarantine associated saved plans, exported plan JSON and retry receipts for this deployment,
@@ -138,7 +191,10 @@ It needs matching credentials/inputs and must not commit apparent deletions whil
    and the offline provider mirror. A fresh installation uses a new collection; it is not this recovery path.
 
 Do not move the whole tier's `.terraform/` unless **every** deployment it contains is retired.
-Archiving a directory does not reset a remote backend or external state path.
+Keep any adjacent state backup/lock files in the recovery record; no other state directory is moved.
+The working-data directory can remain: retain its downloaded providers/modules for later initialization.
+Remote backends and non-default workspaces retain their own retirement process; do not use the local
+archive block for them. Archiving local files does not reset remote state.
 
 <a id="restored-resources"></a>
 
@@ -164,3 +220,5 @@ would forget them. Resume one writer only after the recovery checks pass, then b
 1. [Terraform state removal](https://developer.hashicorp.com/terraform/cli/commands/state/rm).
 2. [Terraform normal and refresh-only planning](https://developer.hashicorp.com/terraform/cli/commands/plan#refresh-only-mode).
 3. [Pinned Proxmox provider VM discovery](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/proxmoxtf/resource/vm/vm.go).
+4. [Terraform backend initialization and reconfiguration](https://developer.hashicorp.com/terraform/cli/commands/init#backend-initialization).
+5. [Local backend state paths and non-default workspaces](https://developer.hashicorp.com/terraform/language/backend/local).

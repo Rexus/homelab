@@ -33,6 +33,8 @@ proxmox_template_catalog = {
         self.candidates = {
             "rocky-build-1": {"vm_id": 110, "title": "rocky-10-tmpl", "node_name": "pve01",
                               "family": "redhat", "tags": ["el10", "rocky", "cloud-init"],
+                              "bios": "ovmf", "machine": "q35", "scsi_hardware": "virtio-scsi-single",
+                              "efi_pre_enrolled_keys": False,
                               "sha256": "not-consumer-data", "image_path": "/private/artifact"},
             "talos-build-1": {"vm_id": 130, "title": "talos-tmpl", "node_name": "pve01",
                               "family": "talos", "tags": ["talos1", "cloud-init"]},
@@ -55,6 +57,8 @@ proxmox_template_catalog = {
         self.assertEqual(catalog["110"]["node_name"], "pve01")
         self.assertEqual(catalog["110"]["title"], "rocky-10-tmpl")
         self.assertEqual(catalog["110"]["note"], "Keep this")
+        for field in ("bios", "machine", "scsi_hardware", "efi_pre_enrolled_keys"):
+            self.assertEqual(catalog["110"][field], self.candidates["rocky-build-1"][field])
         self.assertEqual(catalog["130"]["family"], "talos")
         self.assertNotIn("sha256", catalog["110"])
         self.assertNotIn("image_path", catalog["110"])
@@ -115,6 +119,20 @@ proxmox_template_catalog = {
             with self.assertRaisesRegex(ValueError, "changed during synchronization"):
                 sync.update_catalog(self.catalog, self.candidates)
         self.assertTrue(self.catalog.read_text().endswith("# Concurrent project edit.\n"))
+
+    def test_incomplete_or_invalid_hardware_does_not_replace_shared_references(self):
+        for overrides in ({"efi_pre_enrolled_keys": None}, {"efi_pre_enrolled_keys": "false"},
+                          {"bios": "unknown"}, {"scsi_hardware": "unknown"}, {"machine": 5}):
+            with self.subTest(overrides=overrides):
+                candidate = {**self.candidates["rocky-build-1"], **overrides}
+                with self.assertRaisesRegex(ValueError, "Incomplete or invalid applied template hardware"):
+                    sync.update_catalog(self.catalog, {"source": candidate})
+                self.assertEqual(self.catalog.read_text(), self.original)
+        candidate = dict(self.candidates["rocky-build-1"])
+        del candidate["efi_pre_enrolled_keys"]
+        with self.assertRaisesRegex(ValueError, "Incomplete or invalid applied template hardware"):
+            sync.update_catalog(self.catalog, {"source": candidate})
+        self.assertEqual(self.catalog.read_text(), self.original)
 
 
 if __name__ == "__main__":
