@@ -15,7 +15,7 @@ Keycloak tries `idm-1`, then `idm-2` using the ordered `control_applications_lda
 The dashed LDAPS path shows connection failover to the replica.
 Offline recovery custody sits at the bottom, outside connected runtimes.
 [Editable figure](../08-reference/diagrams/identity-operations.svg).
-[Stage 5 deployment](../03-deployment/stage-5-identity/README.md#figure-identity-federation),
+[Stage 5 deployment](../03-deployment/stage-05-identity/README.md#figure-identity-federation),
 [runtime inputs](../../tier-0/ansible/group_vars/control_applications.yml.example) and
 [replica defaults](../../tier-0/ansible/roles/control_applications/defaults/main.yml)
 own the selected realization; the [recovery set](06-resilience/backups/recovery-set.md) owns independent copies.
@@ -24,9 +24,9 @@ Use existing client networks, identity groups and application permissions. Tier 
 not a user role, a Wi-Fi network or an automatic authorization grant. The
 [network design](../01-architecture/05-networking/README.md),
 [identity design](../01-architecture/09-identity/README.md) and
-[service SSO gate](../03-deployment/stage-5-identity/procedures/service-sso.md) own those contracts.
+[service SSO gate](../03-deployment/stage-05-identity/procedures/service-sso.md) own those contracts.
 
-**Install:** [Stage 5: Identity](../03-deployment/stage-5-identity/README.md).
+**Install:** [Stage 5: Identity](../03-deployment/stage-05-identity/README.md).
 **Configuration:** retain the owning tier's accepted directory/federation inputs from that
 procedure; application roles and gateway policy remain with their respective owners.
 For service loss, use [directory recovery](06-resilience/recovery/freeipa-ca.md) or
@@ -36,9 +36,9 @@ In **`<prefix>-tier-0/`**, the principal configuration locations are:
 
 | Scope | Configuration and workflow |
 | --- | --- |
-| FreeIPA hosts and directory | `ansible/group_vars/foundation.yml`, inventory and original foundation state; [directory procedure](../03-deployment/stage-5-identity/procedures/freeipa.md) |
-| Keycloak federation and service clients | `ansible/group_vars/control_applications.yml` and its protected credential inputs; [identity-provider procedure](../03-deployment/stage-5-identity/procedures/keycloak.md) |
-| Human Kubernetes CLI and namespace access | `ansible/group_vars/kubernetes_human_access.yml`; [client/RBAC reconciliation](../03-deployment/stage-5-identity/procedures/kubernetes-cli-access.md) |
+| FreeIPA hosts and directory | `ansible/group_vars/foundation.yml`, inventory and original foundation state; [directory procedure](../03-deployment/stage-05-identity/procedures/freeipa.md) |
+| Keycloak federation and service clients | `ansible/group_vars/control_applications.yml` and its protected credential inputs; [identity-provider procedure](../03-deployment/stage-05-identity/procedures/keycloak.md) |
+| Human Kubernetes CLI and namespace access | `ansible/group_vars/kubernetes_human_access.yml`; [client/RBAC reconciliation](../03-deployment/stage-05-identity/procedures/kubernetes-cli-access.md) |
 
 <a id="contents"></a>
 
@@ -120,7 +120,7 @@ starting responsibility matrix, not a supplied cross-product role synchronizer:
 
 The direct infrastructure-CI exception changes this matrix: administrators of the trusted
 GitLab project and its control/hosting plane are Tier 0 authorities. Record that accepted
-[trust decision](../03-deployment/stage-9-development/procedures/infrastructure-runner.md#step-1-accept-direct-ci-trust)
+[trust decision](../03-deployment/stage-09-development/procedures/infrastructure-runner.md#step-1-accept-direct-ci-trust)
 instead of describing that project as ordinary Tier 1 application automation.
 
 <a id="join-and-leave"></a>
@@ -134,7 +134,7 @@ instead of describing that project as ordinary Tier 1 application automation.
    reviewed groups. Configure each application's group/role mapping; a successful OIDC login
    alone grants no permission. Verify one permitted action and an unrelated denied action.
 2. For developers, bind only the intended source project, namespace, runner and
-   [approved log scope](../03-deployment/stage-8-observability/step-14b-protected-log-search.md).
+   [approved log scope](../03-deployment/stage-08-observability/step-14b-protected-log-search.md).
    Keep shared administrative accounts and credentials out of routine work.
 3. Test a new login, the intended operation and another team's denied operation; record exact
    group/role mappings and the service-specific revocation procedure in project administration.
@@ -173,7 +173,7 @@ does not grant cluster, CI or infrastructure administration.
    Rotate shared secrets if exposure is possible.
    For Kubernetes, review existing namespace RoleBindings explicitly: removing a namespace from
    the human-access inputs does not prune its old binding. Follow the
-   [CLI/RBAC ownership contract](../03-deployment/stage-5-identity/procedures/kubernetes-cli-access.md#3-register-the-client-and-namespace-access).
+   [CLI/RBAC ownership contract](../03-deployment/stage-05-identity/procedures/kubernetes-cli-access.md#3-register-the-client-and-namespace-access).
 4. Test an existing session, an existing API token and a fresh login. Record any accepted
    revocation delay; preserve identity and audit records under the retention policy.
 

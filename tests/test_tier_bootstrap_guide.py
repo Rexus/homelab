@@ -31,7 +31,7 @@ class BootstrapGuide(TierRepositoryTestCase):
             self.assertIn('step-2-protect-provisioning-access-and-state', foundation)
             path = (docs / '06-paths/tier-0/README.md').read_text()
             self.assertIn('bootstrap execution host', path)
-            handover = (docs / '03-deployment/stage-9-development/procedures/handover.md').read_text()
+            handover = (docs / '03-deployment/stage-09-development/procedures/handover.md').read_text()
             self.assertIn('foundation/bootstrap/README.md', handover)
             self.assertIn('`boot-1`', handover)
             self.assertIn('`iac-1`', handover)
@@ -46,9 +46,11 @@ class BootstrapGuide(TierRepositoryTestCase):
             self.assertIn(term, guide)
         diagram = re.search(r'```mermaid\n(.*?)```', guide, re.DOTALL)[1]
         self.assertEqual(diagram.count('subgraph T0['), 1)
-        self.assertLess(diagram.index('subgraph PVE['), diagram.index('subgraph VM['))
+        self.assertLess(diagram.index('subgraph T0['), diagram.index('subgraph Network['))
+        self.assertLess(diagram.index('subgraph Network['), diagram.index('subgraph VM['))
         self.assertIn('boot-1 / Linux VM', diagram)
-        self.assertIn('Admin -->|SSH to boot-1| T0', diagram)
+        self.assertIn('Admin -->|SSH to boot-1| Tools', diagram)
+        self.assertIn('Tools -->|API / TLS| API', diagram)
         self.assertIn('scsi1 / data disk', diagram)
         for tier in range(3):
             root = UPSTREAM / f'tier-{tier}'

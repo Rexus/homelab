@@ -24,6 +24,7 @@ This procedure does not deploy guests.
 - [10. Validate effective permissions](#step-10-validate-effective-permissions)
 - [11. Continue with local inputs](#step-11-continue-with-local-inputs)
 - [Existing or privilege-separated tokens](#existing-or-privilege-separated-tokens)
+- [Optional HA automation identity](#ha-automation-identity)
 - [Role patterns for teams](#role-patterns-for-teams)
 - [References](#references)
 
@@ -329,7 +330,7 @@ before Linux clones are created.
 | --- | --- |
 | Linux `scripts/deploy.sh SETUP` | Loads `.env.local` by default; maps the three fields above into Terraform |
 | Template publisher | Requires `--env-file .env.local`; no manual exports or concatenation |
-| Kubernetes command, currently Talos | Uses exported native `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN`; follow its [configuration step](../../stage-4-kubernetes/procedures/talos-terraform.md#configure) |
+| Kubernetes command, currently Talos | Uses exported native `PROXMOX_VE_ENDPOINT` and `PROXMOX_VE_API_TOKEN`; follow its [configuration step](../../stage-04-kubernetes/procedures/talos-terraform.md#configure) |
 | Packer | Uses `PROXMOX_URL=https://pve01.example.internal:8006/api2/json` and its separate build inputs |
 
 Terraform endpoints use the HTTPS root, **without `/api2/json`**. [3][4]
@@ -358,6 +359,40 @@ Keep base storage read/allocation roles when adding upload rights. Repeat
 [effective-permission validation](#validate-access) using the exact consuming token.
 If `SDN.Use` appears without `SDN.Audit`, check the case-sensitive role ID and both ACL sides.
 
+<a id="ha-automation-identity"></a>
+
+## Optional HA automation identity
+
+The [HA recipe](../../../05-operations/01-hosting/proxmox-ha.md#configure-through-iac) manages
+cluster-wide guest enrollment and affinity. The current Proxmox API requires **`Sys.Audit` and
+`Sys.Console` on `/`**, plus **`VM.Audit`** to resolve the selected guests, including the effective
+rights of a separated token. The example grants the VM read privilege cluster-wide for name lookup.
+`Sys.Console` also
+authorizes host-console access; this is a privileged infrastructure identity. Keep it separate
+from normal template/provisioning tokens. [8][9][10]
+
+Run once in **an authorized Proxmox host shell**. Reuse accepted existing objects on later runs;
+do not create a replacement token merely to repeat enrollment.
+
+```bash
+pveum role add PlatformAutomationHA --privs 'Sys.Audit Sys.Console VM.Audit'
+pveum group add ha-automation
+pveum acl modify / --groups ha-automation --roles PlatformAutomationHA
+pveum user add ha-automation@pve --groups ha-automation
+pveum user token add ha-automation@pve manage --privsep 1
+pveum acl modify / --tokens 'ha-automation@pve!manage' --roles PlatformAutomationHA
+```
+
+Retain the newly displayed secret privately for the HA invocation. Confirm its effective rights
+in **the Proxmox host shell**; this check uses only the token ID.
+
+```bash
+pveum user permissions 'ha-automation@pve!manage' --path /
+```
+
+Supply this identity only to the [HA run](../../../05-operations/01-hosting/proxmox-ha.md#configure-through-iac).
+The ordinary VM automation identity and its ACLs retain their existing role.
+
 ## Role patterns for teams
 
 Use groups and pools for human access; do not reuse the provisioning token.
@@ -385,3 +420,6 @@ Break-glass access remains interactive and outside routine automation.
 5. [BPG provider TLS behavior](https://raw.githubusercontent.com/bpg/terraform-provider-proxmox/v0.112.0/docs/index.md).
 6. [Proxmox storage-content API permissions](https://raw.githubusercontent.com/proxmox/pve-storage/master/src/PVE/API2/Storage/Content.pm).
 7. [Proxmox image-upload API permissions](https://raw.githubusercontent.com/proxmox/pve-storage/master/src/PVE/API2/Storage/Status.pm).
+8. [Proxmox HA resource API permissions](https://raw.githubusercontent.com/proxmox/pve-ha-manager/master/src/PVE/API2/HA/Resources.pm).
+9. [Proxmox HA rule API permissions](https://raw.githubusercontent.com/proxmox/pve-ha-manager/master/src/PVE/API2/HA/Rules.pm).
+10. [Proxmox VM visibility checks](https://raw.githubusercontent.com/proxmox/pve-manager/master/PVE/API2/Cluster.pm).

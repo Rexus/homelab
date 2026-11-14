@@ -1,0 +1,35 @@
+---
+- name: Require explicit removal before changing an existing rule's type
+  ansible.builtin.assert:
+    that: proxmox_ha_rules[proxmox_ha_existing_rule.rule].type == proxmox_ha_existing_rule.type
+    fail_msg: >-
+      Existing rule {{ proxmox_ha_existing_rule.rule }} has another type.
+      Apply state absent first, then recreate the rule with the selected type.
+  when:
+    - proxmox_ha_existing_rule.rule in proxmox_ha_rules
+    - proxmox_ha_rules[proxmox_ha_existing_rule.rule].state | default('present') == 'present'
+
+- name: Reject unsupported existing node exclusion rules before changing placement
+  ansible.builtin.assert:
+    that: proxmox_ha_existing_rule.affinity | default('positive') == 'positive'
+    fail_msg: >-
+      Existing node rule {{ proxmox_ha_existing_rule.rule }} excludes its listed hosts.
+      This collection supports preferred-node rules only. Retire the rule explicitly or
+      maintain its exclusion policy in Proxmox rather than treating it as a preference.
+  when:
+    - proxmox_ha_existing_rule.rule in proxmox_ha_rules
+    - proxmox_ha_rules[proxmox_ha_existing_rule.rule].state | default('present') == 'present'
+    - proxmox_ha_existing_rule.type == 'node-affinity'
+
+- name: Protect existing unselected rules from implicit membership removal
+  ansible.builtin.assert:
+    that: >-
+      proxmox_ha_resolved_resources[item.key] not in proxmox_ha_existing_rule.resources
+      or proxmox_ha_existing_rule.rule in proxmox_ha_rules
+    fail_msg: >-
+      Resource {{ item.key }} is still referenced by existing rule {{ proxmox_ha_existing_rule.rule }}.
+      Select that rule explicitly for removal or update its member list before removing HA membership.
+  loop: "{{ proxmox_ha_resources | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.value.state | default('present') == 'absent'

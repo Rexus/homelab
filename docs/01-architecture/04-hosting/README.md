@@ -76,6 +76,10 @@ services within selected node VMs. Start with the [runtime view](01-runtime.md) 
 resources. [Kubernetes](03-kubernetes.md) explains cluster boundaries; [lab isolation](04-lab-environments.md)
 explains when a project needs a separate cluster.
 
+[Availability, failover and scaling](05-availability.md) compares migration, VM restart and
+application failover with before/during/after figures. Use it to choose the protection and
+surviving capacity required by a service.
+
 ## Supplied and consumed interfaces
 
 | Direction | Interface | Connected capability | Contract |
@@ -151,7 +155,7 @@ independent of network policy.
 
 Selected implementation details live in the [reference platform](../03-reference-platform.md),
 [host/image prerequisites](../../03-deployment/foundation/README.md) and
-[cluster deployment guide](../../03-deployment/stage-4-kubernetes/README.md).
+[cluster deployment guide](../../03-deployment/stage-04-kubernetes/README.md).
 The [HA realization](../../03-deployment/foundation/proxmox/step-1b-cluster-ha.md) distinguishes
 failure recovery, placement rules and rebalancing; guest restart is not uninterrupted
 application service or recovery from lost data.

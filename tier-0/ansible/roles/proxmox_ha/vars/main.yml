@@ -1,0 +1,11 @@
+---
+# Match the repository's plain env-file fields and normalized template API fields.
+proxmox_ha_endpoint: >-
+  {{ lookup('ansible.builtin.env', 'PROXMOX_API_URL') | default(
+     lookup('ansible.builtin.env', 'PROXMOX_VE_ENDPOINT'), true) | regex_replace('/$', '') }}
+proxmox_ha_token_id: >-
+  {{ lookup('ansible.builtin.env', 'PROXMOX_API_TOKEN_ID') | default(
+     lookup('ansible.builtin.env', 'PROXMOX_VE_API_TOKEN') | regex_replace('=.*$', ''), true) }}
+proxmox_ha_token_secret: >-
+  {{ lookup('ansible.builtin.env', 'PROXMOX_API_TOKEN_SECRET') | default(
+     lookup('ansible.builtin.env', 'PROXMOX_VE_API_TOKEN') | regex_replace('^[^=]*=', ''), true) }}

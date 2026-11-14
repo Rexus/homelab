@@ -1,6 +1,6 @@
 ---
 # Schema: roles/control_applications/defaults/sso-human.yml
-# Guide: docs/03-deployment/stage-5-identity/procedures/kubernetes-cli-access.md
+# Guide: docs/03-deployment/stage-05-identity/procedures/kubernetes-cli-access.md
 sso_human_keycloak_url: https://sso.lab.example.com
 sso_human_realm: platform
 sso_human_group: oidc:platform-viewers

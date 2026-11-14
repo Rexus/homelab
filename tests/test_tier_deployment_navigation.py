@@ -250,13 +250,13 @@ class DeploymentNavigation(TierRepositoryTestCase):
                     if guide.name == "README.md":
                         continue
                     self.assertRegex(guide.name, r"^step-\d+[a-z]?-.+\.md$", str(guide))
-            intake = deployment / "stage-1-software-intake"
+            intake = deployment / "stage-01-software-intake"
             self.assertTrue((intake / "procedures/bootstrap-consumer.md").is_file())
             self.assertFalse((intake / "proxy-cache.md").exists())
             reference = deployment.parent / "08-reference/proxy-cache.md"
             self.assertTrue(reference.is_file())
             self.assertNotIn("```bash", reference.read_text(encoding="utf-8"))
-            self.assertTrue((deployment / "stage-8-observability/step-13-infrastructure-monitoring.md").is_file())
+            self.assertTrue((deployment / "stage-08-observability/step-13-infrastructure-monitoring.md").is_file())
 
     def test_numbered_paths_and_foundation_legacy_anchors_keep_the_reader_order(self):
         for deployment in self.deployment_roots():
@@ -301,7 +301,7 @@ class DeploymentNavigation(TierRepositoryTestCase):
     def test_hardening_is_selected_at_first_service_deployment_not_hidden_in_foundation(self):
         for deployment in self.deployment_roots():
             security = deployment.parent / "05-operations/01-hosting/linux-security.md"
-            root = deployment / "stage-1-software-intake/README.md"
+            root = deployment / "stage-01-software-intake/README.md"
             content = root.read_text(encoding="utf-8")
             self.assertTrue(security.is_file())
             self.assertFalse((deployment / "foundation/proxmox/host-security.md").exists())
@@ -314,8 +314,8 @@ class DeploymentNavigation(TierRepositoryTestCase):
 
     def test_verified_worker_is_routed_after_the_issuer_with_real_installation_inputs(self):
         for deployment in self.deployment_roots():
-            intake_root = deployment / "stage-1-software-intake"
-            trust = deployment / "stage-3-trust/README.md"
+            intake_root = deployment / "stage-01-software-intake"
+            trust = deployment / "stage-03-trust/README.md"
             worker = trust.parent / "step-15b-verified-intake.md"
             consumers = trust.parent / "step-15b-verified-consumers.md"
             self.assertTrue(worker.is_file())
@@ -332,7 +332,7 @@ class DeploymentNavigation(TierRepositoryTestCase):
             install = re.search(r"(?m)^bash scripts/deploy\.sh intake\s*$", text)
             self.assertIsNotNone(install, "Worker path needs the real combined VM/service installer")
             prerequisite_links = list(links(worker, text[:install.start()]))
-            self.assertIn((deployment / "stage-2-logging/README.md").resolve(),
+            self.assertIn((deployment / "stage-02-logging/README.md").resolve(),
                           [link.target for link in prerequisite_links])
             self.assertTrue(any(link.target == trust.resolve() and
                                 step_at(trust.read_text(), anchors(trust.read_text()).get(link.fragment, -1)) == 14

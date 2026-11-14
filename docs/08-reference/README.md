@@ -22,6 +22,6 @@ Naming and allocation guides are grouped under [Conventions](../02-conventions/R
 | Approved image references | [Template catalog](template-catalog.md) |
 | Template publisher fields, defaults and provider compatibility | [Publication inputs](template-publication.md) |
 | VM names, tags and IDs | [Proxmox conventions](../02-conventions/proxmox-conventions.md) |
-| VMID groups, categories and Tier 0 Kubernetes exception | [VMID convention](../02-conventions/vmid-convention.md) |
+| VMID allocation groups and uniform guest categories | [VMID convention](../02-conventions/vmid-convention.md) |
 | HA menu, affinity and native balancing | [Proxmox HA controls](proxmox-ha.md) |
 | Runtime variables | [Environment conventions](environment-variables.md), [example](environment-file-example.md) |

@@ -4,7 +4,7 @@
   vars:
     guest_ready_group: foundation_logging
 
-# Stage 2: docs/03-deployment/stage-2-logging/README.md
+# Stage 2: docs/03-deployment/stage-02-logging/README.md
 # Prepares guarded local storage and the receiver; independent TLS/custody remain explicit.
 - name: Deploy independent Tier 0 log receivers
   hosts: foundation_logging

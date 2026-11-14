@@ -1,0 +1,52 @@
+---
+- name: Remove explicitly retired affinity rules first
+  community.proxmox.proxmox_cluster_ha_rules:
+    name: "{{ item.key }}"
+    state: absent
+  loop: "{{ proxmox_ha_rules | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.value.state | default('present') == 'absent'
+  no_log: true
+
+- name: Enroll or update explicitly selected existing VMs
+  community.proxmox.proxmox_cluster_ha_resources:
+    name: "{{ proxmox_ha_resolved_resources[item.key] }}"
+    state: present
+    hastate: "{{ item.value.hastate | default('started') }}"
+    max_restart: "{{ item.value.max_restart | default(1) }}"
+    max_relocate: "{{ item.value.max_relocate | default(1) }}"
+    comment: "{{ item.value.comment | default('') }}"
+  loop: "{{ proxmox_ha_resources | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.value.state | default('present') == 'present'
+  no_log: true
+
+- name: Reconcile selected affinity rules after their resources exist
+  community.proxmox.proxmox_cluster_ha_rules:
+    name: "{{ item.key }}"
+    state: present
+    type: "{{ item.value.type }}"
+    resources: "{{ item.value.resources | map('extract', proxmox_ha_resolved_resources) | list }}"
+    nodes: "{{ item.value.nodes | default(omit) }}"
+    affinity: "{{ item.value.affinity | default(omit) }}"
+    strict: "{{ item.value.strict | default(false) if item.value.type == 'node-affinity' else omit }}"
+    disable: "{{ item.value.disable | default(false) }}"
+    comment: "{{ item.value.comment | default('') }}"
+    force: false
+  loop: "{{ proxmox_ha_rules | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.value.state | default('present') == 'present'
+  no_log: true
+
+- name: Remove retired HA memberships after rule removal and updates
+  community.proxmox.proxmox_cluster_ha_resources:
+    name: "{{ proxmox_ha_resolved_resources[item.key] }}"
+    state: absent
+  loop: "{{ proxmox_ha_resources | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.value.state | default('present') == 'absent'
+  no_log: true

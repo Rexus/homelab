@@ -1,5 +1,5 @@
 ---
-# Run from Tier 0; procedure: docs/03-deployment/stage-6-secrets/procedures/control-applications.md
+# Run from Tier 0; procedure: docs/03-deployment/stage-06-secrets/procedures/control-applications.md
 # Service DNS: docs/02-conventions/service-dns.md
 control_applications_action: render
 control_applications_components: [keycloak]

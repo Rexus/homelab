@@ -25,11 +25,11 @@ Directory Manager credential and backup-decryption material. Preserve the extern
 | Qualified stopped-VM copy | Restore to a new VM ID/disks with disconnected production NICs; follow [VM restore validation](../backups/virtual-machines.md) |
 | Only LDAP/data-only backup | Treat as incomplete for rebuilding the host/CA; recover the missing full set or use a surviving CA authority |
 | OpenXPKI infrastructure issuer | Use the existing [guarded issuer recovery recipe](../../03-cryptography/issuer-recovery.md) |
-| Offline root or USB/HSM keys | Follow [root custody](../../../03-deployment/stage-3-trust/procedures/offline-root.md), [issuer custody](../../03-cryptography/certificate-authority.md) and the selected device's independent recovery procedure |
+| Offline root or USB/HSM keys | Follow [root custody](../../../03-deployment/stage-03-trust/procedures/offline-root.md), [issuer custody](../../03-cryptography/certificate-authority.md) and the selected device's independent recovery procedure |
 
 The FreeIPA CA is a sibling of the infrastructure issuer in the reference design. Reinstalling a
 fresh realm or signing a new sibling certificate does not restore the original identity CA/history.
-Do not run the ordinary [identity deployment](../../../03-deployment/stage-5-identity/procedures/freeipa.md)
+Do not run the ordinary [identity deployment](../../../03-deployment/stage-05-identity/procedures/freeipa.md)
 CSR/key-generation path as a restoration step.
 
 ### How to capture the native backup needed for this path?

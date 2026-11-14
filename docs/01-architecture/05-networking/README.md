@@ -134,7 +134,7 @@ sequenceDiagram
 backend response does not grant permission to initiate arbitrary reverse connections.*
 
 This is the selected proxy path once a listener is commissioned. The edge starter
-has no application listeners enabled: the [edge guide](../../03-deployment/stage-7-delivery/procedures/edge-proxy.md)
+has no application listeners enabled: the [edge guide](../../03-deployment/stage-07-delivery/procedures/edge-proxy.md)
 and [HAProxy template](../../../tier-2/ansible/roles/edge_load_balancer/templates/haproxy.cfg.j2)
 define the frontend/backend realization. Internal clients can instead use an approved
 private listener; they need not traverse public ingress.
@@ -307,10 +307,10 @@ The reference maps purpose networks to Proxmox bridges/SDN VNets and UniFi firew
 zones. Those products realize the same reachability and policy contracts; matching
 labels do not synchronize configuration or grant access.
 
-The [Tier 2 edge guide](../../03-deployment/stage-7-delivery/procedures/edge-proxy.md)
+The [Tier 2 edge guide](../../03-deployment/stage-07-delivery/procedures/edge-proxy.md)
 owns load-balancer installation and listener/VIP inputs. The
 [public HTTPS path](../../03-deployment/stage-10-lab-environments/step-4b-public-https.md) owns selected
-external publication and origin trust. [Cluster platform installation](../../03-deployment/stage-4-kubernetes/procedures/basic-platform.md#certificates-and-ingress)
+external publication and origin trust. [Cluster platform installation](../../03-deployment/stage-04-kubernetes/procedures/basic-platform.md#certificates-and-ingress)
 owns the runtime ingress realization. These procedures provide implementation
 details and acceptance limits; no public listener is implied by this architecture.
 

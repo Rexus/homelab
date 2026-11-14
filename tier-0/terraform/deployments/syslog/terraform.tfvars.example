@@ -1,7 +1,7 @@
 # Variable definitions (this repository): terraform/deployments/syslog/variables.tf
 
 # Copy to: terraform/deployments/syslog/terraform.tfvars
-# Guide: docs/03-deployment/stage-2-logging/README.md
+# Guide: docs/03-deployment/stage-02-logging/README.md
 # VMID allocation: docs/02-conventions/vmid-convention.md
 # Tier 0 owns protected log intake; shared supplies only sizes and platform/image references.
 # Terraform owns VMs/disks; Tier 0 Ansible prepares guarded storage and installs the receiver with supplied TLS.
@@ -9,7 +9,7 @@
 
 vm_instances = {
   "log-1" = {
-    vm_id            = 401
+    vm_id            = 501
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 40
@@ -24,7 +24,7 @@ vm_instances = {
   # Bootstrap starts with one host. Enable this on a different physical host,
   # with matching inventory/IP entries, before accepting security-logging HA.
   # "log-2" = {
-  #   vm_id             = 402
+  #   vm_id             = 502
   #   proxmox_node_name = "pve02"
   #   size              = "small"
   #   storage_class     = "local"
@@ -37,7 +37,7 @@ vm_instances = {
   # running deployment/logging-backup.yml. Add rec-1 to logging_recovery and syslog.yml's IP map.
   # Select a different physical host and recovery storage failure domain from the collector/NAS.
   # "rec-1" = {
-  #   vm_id             = 403
+  #   vm_id             = 503
   #   proxmox_node_name = "pve02"
   #   size              = "small"
   #   storage_class     = "local"

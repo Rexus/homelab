@@ -118,7 +118,7 @@ a full clone running on this platform is not itself an independent recovery copy
 | Setting | Reference choice |
 | --- | --- |
 | VM name | `boot-1`; prefer a 3–8 character host label including the instance number |
-| VMID | `501` in the [VMID convention](../../../02-conventions/vmid-convention.md); reserve an unused automation ID if already occupied |
+| VMID | `601` in the [VMID convention](../../../02-conventions/vmid-convention.md); reserve an unused automation ID if already occupied |
 | Compute | Start with 2 vCPUs / 4 GiB RAM; size for the selected tools and artifact processing |
 | OS disk | Live Proxmox storage, sized for the selected Linux OS and installed tools |
 | Workspace capacity | Reference layout: separate attached live-storage disk at `/srv/tier0`, starting at 60 GiB; alternatively expand the existing LVM root disk using storage B below |
@@ -618,7 +618,7 @@ Do not boot the reusable template or capture this credential-bearing VM back int
 
 Keep using this collection for Stages 1-8 and the initial Stage 9 installation.
 Connect to the approved proxy/internal mirrors through
-[Stage 1's bootstrap consumer setup](../../stage-1-software-intake/README.md#step-10-configure-bootstrap-intake)
+[Stage 1's bootstrap consumer setup](../../stage-01-software-intake/README.md#step-10-configure-bootstrap-intake)
 when that stage's selected supply passes its checks. Remove temporary
 acquisition access only after package and tool downloads work through that policy;
 retain the offline bundle independently for recovery before the cache/mirrors exist.
@@ -628,11 +628,11 @@ GitLab and SSO are accepted, push each repository's reviewed code/history to its
 own private remote; never push ignored secrets, state or downloaded images.
 
 A local checkout is not itself a reachable Flux source. Before Stage 4, provide
-the [independent bootstrap Git source](../../stage-4-kubernetes/procedures/flux-sops.md)
+the [independent bootstrap Git source](../../stage-04-kubernetes/procedures/flux-sops.md)
 and read credentials; later hosted GitLab must not be a bootstrap dependency.
 
 The later Tier 0 runner is **`iac-1`**, not another name for `boot-1`.
-Follow [bootstrap-to-CI handover](../../stage-9-development/procedures/handover.md)
+Follow [bootstrap-to-CI handover](../../stage-09-development/procedures/handover.md)
 to restore the original collection/inputs/state, install CA trust on the runner,
 move routine credentials to scoped Vault job access and establish **one writer per root**.
 Keep independent recovery after handover; a VM on the same Proxmox platform cannot

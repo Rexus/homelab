@@ -69,7 +69,7 @@ it upward. Sequence diagrams retain their chronological axes.
 
 This nesting should produce a compact figure near 4:3. Do not turn every server group into a horizontal
 row or spread a small deployment across a wide canvas. Use the project's palette, native component
-names and actual containment. The [identity placement](../03-deployment/stage-5-identity/README.md#figure-identity-federation)
+names and actual containment. The [identity placement](../03-deployment/stage-05-identity/README.md#figure-identity-federation)
 is a concrete application; its products and replica counts are not a template for other capabilities.
 
 An operations capability guide opens with the complete selected deployment, before task navigation or
@@ -318,6 +318,10 @@ renderers or complete diagrams meet accessibility requirements.
 SVG figures such as the [identity operating view](../08-reference/diagrams/identity-operations.svg)
 are their own editable source. Their explicit coordinates preserve required placement across renderers;
 open the SVG in a browser or vector editor and inspect it at normal/narrow widths on both backgrounds.
+
+The [availability storyboard](../08-reference/diagrams/availability-cases.svg) shows independent
+before/during/after cases in rows. Read each row left to right; do not infer a single deployment
+or additional running replica from an incoming migration target.
 Keep its semantic colours aligned with the palette. Register new diagram assets with the documentation
 generator so the generated manual carries the same image; geometry checks protect critical placement.
 

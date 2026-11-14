@@ -1,5 +1,5 @@
 ---
-# Input contract: docs/03-deployment/stage-3-trust/procedures/pkcs11-remoting.md
+# Input contract: docs/03-deployment/stage-03-trust/procedures/pkcs11-remoting.md
 hsm_remote_enabled: false
 hsm_remote_action: server
 hsm_remote_pool_id: signing

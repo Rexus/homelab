@@ -80,7 +80,7 @@ path with a qualified provider dependency; they do not add signing authority.
 
 S1 is the default reference. Both VM and Kubernetes installers expose S2 configuration;
 S3 consumes a qualified licensed provider package/image and credential interface through
-[the seal deployment option](../../03-deployment/stage-6-secrets/step-1c-seal-integration.md).
+[the seal deployment option](../../03-deployment/stage-06-secrets/step-1c-seal-integration.md).
 These selections are not automatic upgrades applied by the existing role. Device
 choice is independent: [key-protection options A-D](03-hsm-selection.md).
 
@@ -135,8 +135,8 @@ key does not become a root CA, and HSM presence alone proves neither recovery no
 
 ## Realization
 
-[The Secrets stage](../../03-deployment/stage-6-secrets/README.md#step-1-deploy-the-secret-service) integrates the
-secret service using [the selected seal procedure](../../03-deployment/stage-6-secrets/step-1c-seal-integration.md).
+[The Secrets stage](../../03-deployment/stage-06-secrets/README.md#step-1-deploy-the-secret-service) integrates the
+secret service using [the selected seal procedure](../../03-deployment/stage-06-secrets/step-1c-seal-integration.md).
 Administration owns subsequent recovery and rotation; architecture records the
 dependency and custody contract.
 

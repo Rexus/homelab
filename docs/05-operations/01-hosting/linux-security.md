@@ -9,7 +9,7 @@ rules. Successful configuration is not evidence of complete hardening or central
 [`host_security` role](../../../shared/ansible/roles/host_security/tasks/main.yml).
 Inventory, selected hosts, access policy and acceptance records remain tier-owned.
 
-**First deployment choice:** [Stage 1, option 8b](../../03-deployment/stage-1-software-intake/README.md#8b-apply-the-linux-security-profile--optional),
+**First deployment choice:** [Stage 1, option 8b](../../03-deployment/stage-01-software-intake/README.md#8b-apply-the-linux-security-profile--optional),
 after the cache VMs and their package access exist. Later Linux service deployments can reuse this recipe
 at their own post-install step. Return to that stage's verification after applying the profile.
 
@@ -199,7 +199,7 @@ CIS/STIG claim, egress firewall, patch scheduler, MAC-policy installer or immuta
 6. Reboot the pilot, repeat access/firewall/time/audit tests, then rerun the
    maintenance recipe. Record actual image versions and evidence before expanding scope.
 
-Return to [Stage 1 verification](../../03-deployment/stage-1-software-intake/README.md#step-5-test-the-selected-intake-path)
+Return to [Stage 1 verification](../../03-deployment/stage-01-software-intake/README.md#step-5-test-the-selected-intake-path)
 when qualifying the disposable clone. Service deployments use their own tier-owned
 host-security inputs; do not reuse an SSH-only pilot policy on a listening service.
 

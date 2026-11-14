@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/observability.yml
 # Optional VM alternative; Kubernetes is the normal observability deployment.
-# Guide: docs/03-deployment/stage-8-observability/step-1b-dedicated-vms.md
+# Guide: docs/03-deployment/stage-08-observability/step-1b-dedicated-vms.md
 # Service DNS: docs/02-conventions/service-dns.md
 
 platform_host_ips:

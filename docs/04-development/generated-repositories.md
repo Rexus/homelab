@@ -267,7 +267,7 @@ Shared never owns inventory, guest network assignments, Terraform resources, or 
 Common non-secret infrastructure references follow the [platform input contract](../08-reference/platform-inputs.md).
 The Kubernetes implementation currently uses Talos and each owning tier's inventory, but
 not Ansible guest configuration. Its
-[separate root and command](../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md) consume Talos groups
+[separate root and command](../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md) consume Talos groups
 and IP reservations, with state at `.terraform/state/talos/terraform.tfstate`.
 
 NetBox or another inventory application is a Stage 6 documentation service.
@@ -344,7 +344,7 @@ Edit in **`<prefix>-tier-0/`**.
 - `ansible/group_vars/syslog.yml`: reserved log-1 IP; receiver settings follow later
 
 Confirm network placement and permissions before provisioning.
-This uses the same base context as [Stage 2 logging](../03-deployment/stage-2-logging/README.md).
+This uses the same base context as [Stage 2 logging](../03-deployment/stage-02-logging/README.md).
 For a disposable environment, retain the same `--env` on every command and complete
 [environment isolation](../08-reference/repository-scripts.md#environment-isolation) first.
 
@@ -495,6 +495,10 @@ authorizes overwriting a file. Files produced by the older marker-only
 generator are preserved when their origin cannot be verified by the manifest, except current `*.example` targets.
 Only `docs/auto-docs/` is automatically cleaned. Its expected paths come from the current manual,
 including assets, its license, and compatibility pages at the former unnumbered and numbered paths.
+
+Deployment folders use `stage-01` through `stage-10`. Refresh publishes the padded paths and retains
+redirect pages where project documents still reference an older stage path. Project-authored links
+remain untouched; follow the current deployment index or update those links during local documentation review.
 These pages retain section anchors and link to current guides; former asset paths also remain available.
 The current `01-architecture/`, `03-deployment/` and `05-operations/` trees contain active guides.
 Retired numbered paths are kept only while project Markdown records link to them;
@@ -636,7 +640,7 @@ If template-builder inputs and state still belong to Tier 1, also complete the
 separate [template ownership migration](../05-operations/01-hosting/templates/template-lifecycle.md#existing-collections).
 
 Existing inventories and owned READMEs are never merged. For the new Talos root,
-follow [initialization](../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure) and add its groups
+follow [initialization](../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md#configure) and add its groups
 to Tier 0's existing inventory. Empty legacy `bootstrap/proxmox/` and
 `bootstrap/talos/` starters remain preserved; retire them after review. Customized
 roots with live resources require explicit state/resource adoption, not a second

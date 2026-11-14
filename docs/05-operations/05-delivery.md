@@ -10,7 +10,7 @@ version-specific migration and rollback procedure.
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":2,"bottom":8}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
   subgraph T1["Tier 1"]
-    direction TB
+    direction LR
     subgraph Runtime["Tier 1 Kubernetes"]
       direction LR
       subgraph Consumers["Delivery and build execution"]
@@ -30,7 +30,7 @@ flowchart TB
     subgraph Data["GitLab Data Services"]
       direction TB
       subgraph Services["Data VMs"]
-        direction LR
+        direction TB
         DB["db-1 / PostgreSQL"]
         Cache["kv-1 / Redis"]
         Repo["repo-1 / Gitaly repositories"]
@@ -71,11 +71,11 @@ and the [delivery installer](../../tier-1/ansible/playbooks/deployment/delivery-
 The [data VM inputs](../../tier-1/terraform/deployments/development-data/terraform.tfvars.example) and
 [data installer](../../tier-1/ansible/playbooks/deployment/development-data.yml) own the three data guests.
 Existing identity, object storage and backup services retain their own custody.
-[Spinnaker](../03-deployment/stage-7-delivery/step-2b-spinnaker.md),
-[standalone GitLab](../03-deployment/stage-9-development/step-1b-source-control-vm.md) and
-[Podman builds](../03-deployment/stage-9-development/step-14b-podman-runner.md) are replacement selections.
+[Spinnaker](../03-deployment/stage-07-delivery/step-2b-spinnaker.md),
+[standalone GitLab](../03-deployment/stage-09-development/step-1b-source-control-vm.md) and
+[Podman builds](../03-deployment/stage-09-development/step-14b-podman-runner.md) are replacement selections.
 Protected Tier 0 infrastructure execution has its own
-[runtime and explicit CI-trust boundary](../03-deployment/stage-9-development/README.md#figure-infrastructure-handover).
+[runtime and explicit CI-trust boundary](../03-deployment/stage-09-development/README.md#figure-infrastructure-handover).
 
 
 <a id="figure-delivery-data-interfaces"></a>
@@ -106,8 +106,8 @@ does not imply that OCI sources or registry credentials have been configured for
 
 **Design:** [Delivery](../01-architecture/10-delivery/README.md) and the
 [Development platform](../01-architecture/10-delivery/03-development-platform.md).
-**Install:** [Stage 7: Delivery](../03-deployment/stage-7-delivery/README.md) and
-[Stage 9: Development platform](../03-deployment/stage-9-development/README.md).
+**Install:** [Stage 7: Delivery](../03-deployment/stage-07-delivery/README.md) and
+[Stage 9: Development platform](../03-deployment/stage-09-development/README.md).
 
 ## Find the configuration
 
@@ -122,18 +122,18 @@ In **`<prefix>-tier-1/`**, retain the accepted cluster context and protected inp
 | Podman build runner | `ansible/group_vars/podman_runner.yml` and protected runner credentials | [`deployment/podman-runner.yml`](../../tier-1/ansible/playbooks/deployment/podman-runner.yml) |
 
 Tier 0's protected infrastructure runner has separate ownership and credentials:
-use the [infrastructure-runner procedure](../03-deployment/stage-9-development/procedures/infrastructure-runner.md).
+use the [infrastructure-runner procedure](../03-deployment/stage-09-development/procedures/infrastructure-runner.md).
 Cluster integration directories are separate from these native Ansible installers.
 
 ## Choose a task
 
 | Question | Procedure |
 | --- | --- |
-| How is an accepted installation reconciled? | Repeat the selected [Stage 7](../03-deployment/stage-7-delivery/README.md#main-path) or [Stage 9](../03-deployment/stage-9-development/README.md#main-path) procedure with its existing inputs and render/apply review |
+| How is an accepted installation reconciled? | Repeat the selected [Stage 7](../03-deployment/stage-07-delivery/README.md#main-path) or [Stage 9](../03-deployment/stage-09-development/README.md#main-path) procedure with its existing inputs and render/apply review |
 | How are upgrades and rollback prepared? | [Upgrade gate](01-hosting/maintenance.md#upgrade-gate) |
 | Which VM or edge maintenance recipe applies? | [Recipe map](01-hosting/ansible-recipes.md#recipe-map) |
 | How are GitLab data VMs backed up? | [GitLab data backups](06-resilience/backups/gitlab-data.md) |
-| How is the standalone GitLab VM backed up or restored? | [Run its commissioned backup](../03-deployment/stage-9-development/step-1b-source-control-vm.md#5-accept-sso-and-the-first-independent-recovery-set), then [restore an isolated matching-image target](../03-deployment/stage-9-development/step-1b-source-control-vm.md#recover-an-isolated-matching-image-target) |
+| How is the standalone GitLab VM backed up or restored? | [Run its commissioned backup](../03-deployment/stage-09-development/step-1b-source-control-vm.md#5-accept-sso-and-the-first-independent-recovery-set), then [restore an isolated matching-image target](../03-deployment/stage-09-development/step-1b-source-control-vm.md#recover-an-isolated-matching-image-target) |
 | How are registry, controller or GitLab data recovered? | [Tier 1 product recovery](06-resilience/recovery/tier-1-products.md) |
 | How are shared credentials rotated? | [Credential handling](03-cryptography/secret-handling.md) |
 | How are user and administrator rights changed? | [Identity operations](04-identity.md) |

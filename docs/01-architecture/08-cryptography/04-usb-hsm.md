@@ -13,29 +13,29 @@ contracts, even when they use the same hardware.
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  Clients["Explicitly authorized consumers<br/>Issuer, application or development signer"]
+  Clients["Explicitly authorized<br/>consumers<br/>Issuer, application<br/>or development signer"]
   subgraph T0["Tier 0"]
     direction TB
     subgraph Connected["Services"]
       direction LR
       subgraph API["Signing API"]
         direction TB
-        Policy["Authentication, key policy<br/>and audit"]
+        Policy["Authentication,<br/>key policy and audit"]
         State[("Signing API state")]
         Policy -->|Persist| State
       end
       subgraph Pool["Device hosts / pinned members"]
         direction TB
-        ProviderA["Host A<br/>Provider and local USB token"]
-        ProviderB["Additional hosts<br/>One provider and local USB token per host"]
+        ProviderA["Host A<br/>Provider and local<br/>USB token"]
+        ProviderB["Additional hosts<br/>One provider and<br/>local USB token per host"]
         ProviderA ~~~ ProviderB
       end
-      API -->|PKCS#11 / selected member| Pool
+      API -->|PKCS#11 /<br/>selected<br/>member| Pool
     end
-    Custody["Offline custody / device-specific backups<br/>Independent of online service state"]
+    Custody["Offline custody /<br/>device-specific backups<br/>Independent of online<br/>service state"]
     Connected ~~~ Custody
   end
-  Clients -->|Signing API or pinned PKCS#11| T0
+  Clients -->|Signing API<br/>or pinned<br/>PKCS#11| T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
@@ -108,7 +108,7 @@ without the secret service or an optional signing API:
 | Secrets | HashiCorp Vault with default Shamir unseal and independently held shares; an HSM-backed issuer does not require an HSM-backed Vault seal |
 | Shared signing | Optional remote key access or signing API for explicit consumers; PKI, application signing and seal keys retain distinct identities and permissions |
 
-The [Trust stage](../../03-deployment/stage-3-trust/README.md) owns installation order
+The [Trust stage](../../03-deployment/stage-03-trust/README.md) owns installation order
 and qualification; shared interfaces are added only for a selected consumer need.
 Device initialization, key creation and wrapped-key recovery are controlled custody
 operations; ordinary deployment preserves keys.
@@ -181,14 +181,14 @@ The [provider role](../../../tier-0/ansible/roles/hsm_provider) installs selecte
 checks device identity and binds an inactive issuer to its original key. Physical commissioning,
 approved SDK supply and offline custody remain prerequisites.
 
-The [USB deployment](../../03-deployment/stage-3-trust/step-1b-usb-hsm.md) owns remoting;
-the [Secrets stage](../../03-deployment/stage-6-secrets/README.md) owns the optional signing API.
+The [USB deployment](../../03-deployment/stage-03-trust/step-1b-usb-hsm.md) owns remoting;
+the [Secrets stage](../../03-deployment/stage-06-secrets/README.md) owns the optional signing API.
 HashiCorp Vault remains the reference secret store. Its Enterprise PKCS#11 seal/managed-key
 features are separate from the open-source API option; see [seal choices](06-vault-seal.md).
 No implicit product migration, key replication or generic load-balancer HA is supplied.
 
-Follow the [USB provider pool](../../03-deployment/stage-3-trust/step-1b-usb-hsm.md) or
-[single-device issuer](../../03-deployment/stage-3-trust/step-1d-single-usb.md) procedure
+Follow the [USB provider pool](../../03-deployment/stage-03-trust/step-1b-usb-hsm.md) or
+[single-device issuer](../../03-deployment/stage-03-trust/step-1d-single-usb.md) procedure
 for the selected arrangement. [Hardware custody and recovery](../../05-operations/03-cryptography/usb-hsm.md)
 owns subsequent operation.
 

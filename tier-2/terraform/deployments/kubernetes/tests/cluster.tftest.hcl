@@ -23,19 +23,19 @@ variables {
   }
   nodes = {
     k8ctl-1 = {
-      vm_id        = 300, node_name = "pve01", mac_address = "02:00:00:00:03:00"
+      vm_id        = 3101, node_name = "pve01", mac_address = "02:00:00:00:03:00"
       datastore_id = "shared", bridge = "control"
     }
     k8ctl-2 = {
-      vm_id        = 301, node_name = "pve02", mac_address = "02:00:00:00:03:01"
+      vm_id        = 3102, node_name = "pve02", mac_address = "02:00:00:00:03:01"
       datastore_id = "shared", bridge = "control"
     }
     k8ctl-3 = {
-      vm_id        = 302, node_name = "pve03", mac_address = "02:00:00:00:03:02"
+      vm_id        = 3103, node_name = "pve03", mac_address = "02:00:00:00:03:02"
       datastore_id = "shared", bridge = "control"
     }
     k8node-1 = {
-      vm_id        = 310, node_name = "pve01", mac_address = "02:00:00:00:03:10"
+      vm_id        = 3201, node_name = "pve01", mac_address = "02:00:00:00:03:10"
       datastore_id = "shared", bridge = "control", size = "large", pool = "compute"
     }
   }
@@ -152,15 +152,15 @@ run "compact_control_planes" {
     }
     nodes = {
       k8ctl-1 = {
-        vm_id        = 300, node_name = "pve01", mac_address = "02:00:00:00:03:00"
+        vm_id        = 3101, node_name = "pve01", mac_address = "02:00:00:00:03:00"
         datastore_id = "shared", bridge = "control"
       }
       k8ctl-2 = {
-        vm_id        = 301, node_name = "pve02", mac_address = "02:00:00:00:03:01"
+        vm_id        = 3102, node_name = "pve02", mac_address = "02:00:00:00:03:01"
         datastore_id = "shared", bridge = "control"
       }
       k8ctl-3 = {
-        vm_id        = 302, node_name = "pve03", mac_address = "02:00:00:00:03:02"
+        vm_id        = 3103, node_name = "pve03", mac_address = "02:00:00:00:03:02"
         datastore_id = "shared", bridge = "control"
       }
     }
@@ -179,15 +179,15 @@ run "reject_unschedulable_compact_cluster" {
     inventory_path = "tests/fixtures/missing-worker.yml"
     nodes = {
       k8ctl-1 = {
-        vm_id        = 300, node_name = "pve01", mac_address = "02:00:00:00:03:00"
+        vm_id        = 3101, node_name = "pve01", mac_address = "02:00:00:00:03:00"
         datastore_id = "shared", bridge = "control"
       }
       k8ctl-2 = {
-        vm_id        = 301, node_name = "pve02", mac_address = "02:00:00:00:03:01"
+        vm_id        = 3102, node_name = "pve02", mac_address = "02:00:00:00:03:01"
         datastore_id = "shared", bridge = "control"
       }
       k8ctl-3 = {
-        vm_id        = 302, node_name = "pve03", mac_address = "02:00:00:00:03:02"
+        vm_id        = 3103, node_name = "pve03", mac_address = "02:00:00:00:03:02"
         datastore_id = "shared", bridge = "control"
       }
     }

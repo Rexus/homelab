@@ -1,6 +1,6 @@
 ---
 # Local Tier 1 application inputs; not a Terraform setup or shared inventory.
-# Guide: docs/03-deployment/stage-9-development/README.md
+# Guide: docs/03-deployment/stage-09-development/README.md
 # Service DNS: docs/02-conventions/service-dns.md
 development_platform_action: render
 development_platform_components: [gitlab]

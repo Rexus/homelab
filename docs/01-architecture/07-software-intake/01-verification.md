@@ -20,7 +20,7 @@ recovery supply below its connected consumer.*
 [Editable figure](../../08-reference/diagrams/verified-intake-placement.svg).
 
 **Architecture:** the optional worker and publication interface have a separate
-[deployment path](../../03-deployment/stage-3-trust/step-15b-verified-intake.md).
+[deployment path](../../03-deployment/stage-03-trust/step-15b-verified-intake.md).
 Publication is a scoped write; recovery custody is independent of this connected
 supplier path. No online route to offline material is implied. Other tiers can also
 consume approved publication.
@@ -51,16 +51,16 @@ No online route reaches offline custody, and no lower tier initiates a privilege
 ## Acceptance policy
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":16,"padding":8},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart LR
-  Candidate["Candidate bytes"] --> Verify["Verify publisher<br/>and integrity"]
-  Verify --> Scan["Assess supported content<br/>Malware scan"]
-  Verify -->|Invalid / incomplete| Hold["Reject or hold for review"]
+  Candidate["Candidate<br/>bytes"] --> Verify["Verify publisher<br/>and integrity"]
+  Verify --> Scan["Assess supported<br/>content<br/>Malware scan"]
+  Verify -->|Invalid /<br/>incomplete| Hold["Reject or hold<br/>for review"]
   Scan --> Policy{"Accept?"}
   Scan -->|Detection / error| Hold
   Policy -->|Yes| Publish["Publish identified<br/>accepted version"]
   Policy -->|No / incomplete| Hold
-  Extension["Vulnerability assessment<br/>separate extension"] -.-> Policy
+  Extension["Vulnerability<br/>assessment<br/>separate extension"] -.-> Policy
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef actor fill:#edf0f3,stroke:#697682,color:#293642
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
@@ -116,7 +116,7 @@ restricted mount and growth through IaC. Only a verified new blank device is ini
 recognized existing data keeps its filesystem identity and is mounted by UUID. A missing declared
 volume or conflicting identity requires recovery rather than automatic replacement formatting.
 Publisher keys and HTTPS trust remain external inputs. See the
-[deployment inputs](../../03-deployment/stage-3-trust/step-15b-verified-intake.md#1-initialize-inputs).
+[deployment inputs](../../03-deployment/stage-03-trust/step-15b-verified-intake.md#1-initialize-inputs).
 
 Recheck content identity immediately before promotion and prevent modification between verification
 and publication. Consumers must never resolve a partially published snapshot. Quarantine full,
@@ -136,7 +136,7 @@ verdict, reason, timestamp and job identity. Exclude credentials and authenticat
 The proxy's domain/status events contain no artifact digest or scan verdict; do not invent those fields.
 
 Security decisions go to the [Tier 0 protected logging path](../11-operations/01-protected-logging.md).
-After [Observability](../../03-deployment/stage-8-observability/README.md), approved read-only copies can
+After [Observability](../../03-deployment/stage-08-observability/README.md), approved read-only copies can
 feed OpenSearch; Netdata/metrics track proxy/worker health, capacity, definition freshness and last
 successful intake. Enforcement and recovery must continue without those Tier 1 interfaces.
 Expected policy denials need records; malware, invalid provenance, scanner outages and intake delay
@@ -144,7 +144,7 @@ need severity-based alerts. A proxy denial alone is not a confirmed malicious ar
 
 ## Implementation boundary
 
-The optional [verified intake installer](../../03-deployment/stage-3-trust/step-15b-verified-intake.md)
+The optional [verified intake installer](../../03-deployment/stage-03-trust/step-15b-verified-intake.md)
 adds one Tier 1 Linux worker outside Kubernetes. DNF reposync and debmirror retain native repository
 layout/metadata; curl acquires bounded selected files. Vendor GPG tooling authenticates signing
 material, and a narrow format verifier binds copied indexes/packages to their metadata before

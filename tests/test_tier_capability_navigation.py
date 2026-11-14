@@ -103,7 +103,7 @@ class CapabilityNavigation(TierRepositoryTestCase):
     def test_windows_option_extends_existing_policy_and_has_a_numbered_route(self):
         self.generate()
         for root in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            stage = area(root, "deployment") / "stage-1-software-intake"
+            stage = area(root, "deployment") / "stage-01-software-intake"
             overview = (stage / "README.md").read_text(encoding="utf-8")
             option = stage / "step-7b-windows-update.md"
             text = option.read_text(encoding="utf-8")

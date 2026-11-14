@@ -13,7 +13,7 @@ copies do not replace retained originals.
 ## Authority and flow
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
   subgraph T2["Tier 2"]
     direction LR
@@ -29,11 +29,19 @@ flowchart TB
   end
   subgraph T0["Tier 0"]
     direction LR
-    Logging["Protected intake<br/>Original evidence"]
-    Readers["Audited readers<br/>Producers submit only"]
-    Retention["Independent<br/>retained copies"]
-    Custodians["Separate retention<br/>custody"]
-    Readers ~~~ Logging ~~~ Retention ~~~ Custodians
+    subgraph Access["Evidence access"]
+      direction LR
+      Readers["Audited readers<br/>Producers submit only"]
+      Logging["Protected intake<br/>Original evidence"]
+      Readers ~~~ Logging
+    end
+    subgraph Preservation["Retention"]
+      direction TB
+      Retention["Independent<br/>retained copies"]
+      Custodians["Separate retention<br/>custody"]
+      Retention ~~~ Custodians
+    end
+    Access ~~~ Preservation
   end
   T2 ~~~ T1 ~~~ T0
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
@@ -47,6 +55,8 @@ flowchart TB
   class Retention data
   class Custodians custody
   class Search services
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Access,Preservation group
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   class T0 tier0
   classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
@@ -220,15 +230,15 @@ required under either choice. Failure and privilege limits must be recorded expl
 
 ## Realization
 
-[Foundational syslog](../../03-deployment/stage-2-logging/README.md) owns
+[Foundational syslog](../../03-deployment/stage-02-logging/README.md) owns
 bootstrap, receiver integration and acceptance. The initial implementation is a
 dedicated syslog-ng OSE network receiver, alongside the untouched OS logger, with
 independent trust, raw messages and portable local JSON records. rsyslog is a valid
 alternative under the same contract; the choice does not establish reliability superiority.
 The [receiver contract](../../08-reference/syslog-receiver.md) and
 [pipeline contract](../../08-reference/logging-pipeline.md) distinguish local collection,
-asynchronous NAS custody and stronger HA integration. [Monitoring](../../03-deployment/stage-6-secrets/procedures/independent-monitoring.md)
-adds critical health and alerts; [Observability](../../03-deployment/stage-8-observability/README.md)
+asynchronous NAS custody and stronger HA integration. [Monitoring](../../03-deployment/stage-06-secrets/procedures/independent-monitoring.md)
+adds critical health and alerts; [Observability](../../03-deployment/stage-08-observability/README.md)
 adds approved search copies. [Logging administration](../../05-operations/06-resilience/protected-logging.md)
 owns recurring access, gap, capacity and restore checks. The receiver does not
 claim a lossless or immutable archive.

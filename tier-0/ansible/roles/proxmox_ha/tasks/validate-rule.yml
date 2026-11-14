@@ -1,0 +1,76 @@
+---
+- name: Validate common affinity rule fields
+  ansible.builtin.assert:
+    that:
+      - rule.keys() | difference(['state', 'type', 'resources', 'nodes', 'affinity', 'strict', 'disable', 'comment']) | length == 0
+      - rule.state | default('present') in ['present', 'absent']
+      - rule.disable | default(false) is boolean
+      - rule.comment | default('') is string
+    fail_msg: "Rule {{ proxmox_ha_rule.key }} has unsupported fields or invalid values."
+  vars:
+    rule: "{{ proxmox_ha_rule.value }}"
+
+- name: Validate present rule type and member list
+  ansible.builtin.assert:
+    that:
+      - rule.type | default('') in ['node-affinity', 'resource-affinity']
+      - rule.resources | default(none) is sequence and rule.resources is not string and rule.resources is not mapping
+      - rule.resources | length > 0
+      - rule.resources | select('string') | list | length == rule.resources | length
+      - rule.resources | unique | length == rule.resources | length
+      - rule.resources | difference(proxmox_ha_resources.keys() | list) | length == 0
+    fail_msg: >-
+      Rule {{ proxmox_ha_rule.key }} needs a supported type and distinct selected resource keys.
+  vars:
+    rule: "{{ proxmox_ha_rule.value }}"
+  when: rule.state | default('present') == 'present'
+
+- name: Require every present rule member to retain HA membership
+  ansible.builtin.assert:
+    that: proxmox_ha_resources[item].state | default('present') == 'present'
+    fail_msg: "Rule {{ proxmox_ha_rule.key }} still references resource {{ item }} selected for HA removal."
+  loop: "{{ proxmox_ha_rule.value.resources | default([]) }}"
+  when: proxmox_ha_rule.value.state | default('present') == 'present'
+
+- name: Validate resource affinity and distinct members
+  ansible.builtin.assert:
+    that:
+      - rule.affinity | default('') in ['positive', 'negative']
+      - rule.resources | length >= 2
+      - rule.nodes is not defined
+      - rule.strict is not defined
+    fail_msg: >-
+      Resource-affinity rule {{ proxmox_ha_rule.key }} needs positive or negative affinity
+      and at least two distinct members. Proxmox enforces resource affinity strictly.
+  vars:
+    rule: "{{ proxmox_ha_rule.value }}"
+  when:
+    - rule.state | default('present') == 'present'
+    - rule.type == 'resource-affinity'
+
+- name: Validate node affinity options
+  ansible.builtin.assert:
+    that:
+      - rule.nodes | default(none) is sequence and rule.nodes is not string and rule.nodes is not mapping
+      - rule.nodes | length > 0
+      - rule.nodes | select('string') | list | length == rule.nodes | length
+      - rule.nodes | map('regex_replace', ':[0-9]+$', '') | unique | length == rule.nodes | length
+      - rule.strict | default(false) is boolean
+      - rule.affinity is not defined
+    fail_msg: >-
+      Node-affinity rule {{ proxmox_ha_rule.key }} needs distinct node names with optional numeric priorities.
+      strict is boolean. The selected native module supports preferred or restricted node lists.
+  vars:
+    rule: "{{ proxmox_ha_rule.value }}"
+  when:
+    - rule.state | default('present') == 'present'
+    - rule.type == 'node-affinity'
+
+- name: Validate each eligible node and optional priority
+  ansible.builtin.assert:
+    that: item is match('^[A-Za-z0-9][A-Za-z0-9.-]*(?::[0-9]+)?$')
+    fail_msg: "Invalid node or priority in rule {{ proxmox_ha_rule.key }}."
+  loop: "{{ proxmox_ha_rule.value.nodes | default([]) }}"
+  when:
+    - proxmox_ha_rule.value.state | default('present') == 'present'
+    - proxmox_ha_rule.value.type == 'node-affinity'

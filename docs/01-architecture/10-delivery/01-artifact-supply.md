@@ -77,7 +77,7 @@ Harbor's cluster HA pattern depends on external ingress, database/cache and arti
 storage readiness; increasing application replicas alone is insufficient. [2]
 Recovery copies for Tier 0 remain independent of the delivery platform.
 
-[Registry integration](../../03-deployment/stage-7-delivery/procedures/registry.md)
+[Registry integration](../../03-deployment/stage-07-delivery/procedures/registry.md)
 owns implementation and acceptance.
 The supplied Tier 1 [delivery installer](../../../tier-1/ansible/roles/delivery_platform/tasks/harbor.yml)
 realizes B with single-instance Harbor and persistent volumes; it does not establish

@@ -1,0 +1,21 @@
+---
+- name: Prepare native Proxmox HA controller dependencies
+  ansible.builtin.import_playbook: control-node.yml
+  tags: [always]
+  vars:
+    control_node_setup: proxmox-ha
+    control_node_require_terraform: false
+
+- name: Reconcile explicitly selected existing VM HA membership and affinity
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  any_errors_fatal: true
+  vars_files:
+    - ../vars/proxmox-api.yml
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  tasks:
+    - name: Configure the selected HA resources and rules
+      ansible.builtin.include_role:
+        name: proxmox_ha

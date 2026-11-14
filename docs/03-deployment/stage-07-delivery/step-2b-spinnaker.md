@@ -1,0 +1,548 @@
+# Step 2b: Spinnaker Release Pipelines
+
+**Working repository:** `<prefix>-tier-1`.
+**Branch from:** [Step 2](README.md#step-2-select-and-qualify-delivery).
+**Return:** after configuring this choice, [Action 3](README.md#step-3-choose-the-secret-owner);
+qualify the installed controller at [Action 7](README.md#step-7-accept-controller-authorization-and-recovery).
+**Change:** install native Spinnaker release pipelines instead of Argo CD application GitOps.
+
+Install the release services and their SQL/Redis state in the accepted Tier 1 cluster.
+The reference below selects a commissioned NAS file repository for independent backup exports.
+
+<a id="figure-spinnaker-installation"></a>
+
+## Expected outcome: Spinnaker with file backups
+
+```mermaid
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":10,"padding":10,"subGraphTitleMargin":{"top":6,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+flowchart TB
+  subgraph T1["Tier 1"]
+    subgraph ApplicationNetwork["Application Network / application"]
+      subgraph Cluster["Tier 1 Kubernetes / namespace spinnaker"]
+        direction TB
+        Apps["Spinnaker applications<br/>8 Deployments / 7 Envoy sidecars"]
+        Init["spinnaker-databases<br/>SQL provisioning Job"]
+        SQL[("spinnaker-mysql x1<br/>5 schemas / retained PVC")]
+        Redis[("spinnaker-redis x1<br/>AOF / retained PVC")]
+        Backup["spinnaker-backup<br/>CronJob / verify Job"]
+        Stage[("Backup staging PVC<br/>Temporary exports")]
+        Apps ~~~ Init
+        SQL ~~~ Redis
+        Backup ~~~ Stage
+      end
+    end
+  end
+  subgraph T0["Tier 0"]
+    direction LR
+    IdP["Existing Keycloak / OIDC"]
+    NAS[("Existing NAS<br/>Independent restic repository")]
+    IdP ~~~ NAS
+  end
+  T1 ~~~ T0
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef kubernetes fill:#e8eef6,stroke:#6b83a3,color:#263d59
+  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
+  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  classDef tier1 fill:#e9e2d8,stroke:#968976,color:#44382a
+  class Apps,Init,Backup services
+  class SQL,Redis,Stage,NAS data
+  class IdP control
+  class Cluster kubernetes
+  class ApplicationNetwork network
+  class T1 tier1
+  class T0 tier0
+```
+
+**IaC:** *Figure: Eight application services use one MySQL and one Redis instance. Backup exports reach the existing
+NAS through a commissioned file repository; staging is not an independent copy.*
+[Tier 1 inputs](../../../tier-1/ansible/group_vars/delivery_platform.yml.example),
+[native reference](../../../tier-1/ansible/roles/delivery_platform/tasks/spinnaker-native.yml),
+[persistence](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/persistence.yml.j2),
+[backup resources](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/backup.yml.j2)
+and [staged apply](../../../tier-1/ansible/roles/delivery_platform/tasks/spinnaker-native-apply.yml).
+The view shows application and export resources after repository commissioning;
+the transient filesystem commissioning Job runs before data services start.
+The grouped SQL/Redis interfaces apply to their configured consumers: the provisioning Job creates
+SQL schema users, while the backup jobs read SQL/RDB exports and mount the existing NAS repository claim.
+**Prerequisites:** [existing NAS storage](../foundation/storage/README.md#use-nas-file-storage)
+and Keycloak retain their existing owners. Only the commissioned file PVC and OIDC
+interface are consumed, never Tier 0 control credentials. No NAS gateway is added.
+
+**Prerequisites:** accepted Tier 1 cluster, storage, private DNS, Traefik,
+preissued TLS Secrets and Keycloak. An independently commissioned cert-manager issuer
+is an explicit alternative, not a prerequisite silently supplied by OpenXPKI.
+
+The [delivery role](../../../tier-1/ansible/roles/delivery_platform) supplies the
+upstream service base, configuration, SQL/Redis provisioning and staged installation.
+No external product overlay, Halyard or operator is required. Offline render tests
+are not live SSO, migration, deployment or recovery acceptance; complete the checks below
+before marking this site's v1.0 Spinnaker path ready.
+
+<a id="figure-spinnaker-interfaces"></a>
+
+### Application and backup interfaces
+
+```mermaid
+%%{init: {"themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif","sequence":{"actorFontSize":14,"messageFontSize":14,"noteFontSize":14}}}%%
+sequenceDiagram
+  participant Apps as Spinnaker services
+  participant SQL as MySQL / Redis
+  participant Backup as Backup jobs
+  participant NAS as Existing NAS
+  Apps->>SQL: Native SQL / Redis over TLS
+  Backup->>SQL: Read SQL / RDB exports over TLS
+  SQL-->>Backup: Exported data
+  Backup->>NAS: Encrypted restic files / NFS mount
+```
+
+**IaC:** *Figure: Applications and backup jobs use the same live backends for different operations.
+The provisioning Job creates the SQL schemas before normal use. Gate separately uses the existing
+Keycloak OIDC interface shown in the placement view. Temporary staging remains inside the cluster;
+the NAS repository provides the independent copy.*
+The [persistence resources](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/persistence.yml.j2)
+and [backup resources](../../../tier-1/ansible/roles/delivery_platform/templates/spinnaker/backup.yml.j2)
+own these operations.
+
+## Contents
+
+- [Installation decision](#installation-decision)
+- [Prepare local inputs](#step-1-prepare-local-inputs)
+- [Commission certificates](#commission-certificates)
+- [Credentials and boundaries](#step-2-prepare-credentials-and-boundaries)
+- [Choose backup storage](#choose-backup-storage)
+- [Render, review and install](#step-3-render-review-and-install)
+- [Qualify delivery](#step-4-qualify-delivery)
+- [Maintenance and recovery](#maintenance-and-recovery)
+- [Verification](#verification)
+- [References](#references)
+
+## Installation Decision
+
+Use the official native Kustomize installation model. [1] The exact released
+Spinnaker image version, upstream revision and dependency images are centralized in
+`ansible/roles/delivery_platform/files/software.yml`. The role vendors only eight
+services' native manifests and Deck settings. `files/spinnaker/upstream.yml`
+records source paths and canonical SHA256 checksums; adjacent `LICENSE` and
+`NOTICE` preserve Apache-2.0 provenance. The local root Kustomization selects
+those services; generated patches replace the upstream demo's moving tags, basic
+login, disabled Fiat and cluster-admin binding.
+
+| Choice | Rationale and consequence |
+| --- | --- |
+| Native upstream manifests | Current official OSS installation model; Tier 1 owns this integration and upgrades, not a new operator [1] |
+| One MySQL instance, five schemas | Echo's released Quartz schema and driver require MySQL; one supported engine avoids an unsupported PostgreSQL/CNPG substitution [2] |
+| Persistent Redis | Gate sessions and Orca queues remain on Redis; SQL-only queues are not selected [3] |
+| Verified Redis TLS sidecar | Envoy verifies the root and exact DNS SAN; Java clients use authenticated loopback Redis, never plaintext pod-to-pod Redis [6] |
+| Private JVM HTTPS | Preissued per-service PKCS12 certificates, or an explicitly commissioned issuer; public JVM roots plus site/IdP roots, verified SQL and Traefik-to-Gate TLS [4] |
+| Uniform application roles | Fiat grants readers READ and writers WRITE/EXECUTE across applications; per-application metadata cannot broaden this policy |
+| No deprecated packager | Halyard, EOL operators and the archived Helm stable chart are not used [1][3] |
+
+This is a single-replica reference, not HA. Storage, ingress, certificate issuance,
+identity and independent backup custody retain their existing owners. Review this
+decision when upstream changes SQL engines, auth/configuration, Redis client TLS,
+packaging or supported Kubernetes versions. Argo CD remains a separate explicit
+alternative; `none` selects Harbor only.
+
+The fresh example and [installation figure](#figure-spinnaker-installation) select **`filesystem` on an existing
+NAS backup file area**; they show configured resources, not live acceptance. The
+role retains `s3` when older inputs omit the selector; that is a separate storage
+choice under [backup storage](#choose-backup-storage). Cluster ingress/DNS,
+the NAS PVC and leaf certificates are existing prerequisites. The installer commissions
+the selected repository from the inputs below.
+
+
+## Step 1: Prepare Local Inputs
+
+Use the existing local settings created by [Stage 7 Action 2](README.md#step-2-create-and-configure-the-selected-controller).
+This page supplies the Spinnaker-specific contract; it creates no second input file.
+
+Edit in **`<prefix>-tier-1/`**.
+
+- `ansible/group_vars/delivery_platform.yml`: Selected delivery controller, cluster context, SSO, storage
+  and egress inputs.
+
+Edit `ansible/group_vars/delivery_platform.yml` using the table below. Set the
+existing Tier 1 kubeconfig/context explicitly; keep `delivery_platform_install_harbor: false`
+for this controller-only pass. Both delivery branches return to Stage 7 Action 3 before installation.
+
+Follow the [common installer prerequisites](procedures/delivery-installer.md#prerequisites)
+and populate the ignored local copy of
+[delivery_platform.yml.example](../../../tier-1/ansible/group_vars/delivery_platform.yml.example).
+Product versions already have released defaults; replace site-specific inputs,
+not software versions with arbitrary placeholders.
+
+| Input / prerequisite | Required value |
+| --- | --- |
+| Controller | `delivery_platform_controller: spinnaker`, `delivery_platform_spinnaker_mode: native`; leave overlay empty |
+| Cluster | Tier 1 Kubernetes >=1.33, stable native sidecars, enforced NetworkPolicy and Pod Security Admission |
+| Capacity | Eight product Deployments, seven small Envoy sidecars, MySQL and Redis; qualify scheduling and memory against actual worker capacity |
+| Storage | Explicit persistent StorageClass; default claims: MySQL 20Gi, Redis 5Gi, backup staging 32Gi; qualify capacity and encrypted storage |
+| Certificate owner | `delivery_platform_spinnaker_certificate_mode: preissued` by default; ten independently commissioned leaf Secrets, or explicitly select `issuer` with an existing Ready issuer |
+| Independent backup | Fresh example: existing NAS NFS/file PVC and dedicated restic repository (`filesystem`); explicit alternative: existing HTTPS object endpoint and bucket/prefix (`s3`, legacy default); separately retained password in either mode |
+| Trust | `delivery_platform_spinnaker_ca_pem` and `delivery_platform_oidc_ca_pem`: one PEM root each; leaf Secrets carry intermediate chains |
+| Interface | Private hostname, Traefik ingress class, ingress namespace/pod selector, matching client trust |
+| DNS | CoreDNS namespace/pod selector; adapt for NodeLocal DNS or a different resolver |
+| Destinations | Explicit dedicated application namespaces on this Tier 1 cluster; no system, controller, identity or trust namespaces |
+| Egress | Non-global IP CIDRs and TCP ports for the actual Tier 1 API endpoint, IdP and approved HTTP artifact endpoints |
+| Identity | Confidential Keycloak client `spinnaker`, authorization-code flow; flat `groups` claim containing the three configured role names |
+| Callback | Exactly `https://<spinnaker-host>/api/v1/login/oauth2/code/platform`; restrict valid origins to the private UI origin |
+
+Set `delivery_platform_install_harbor: false` to install only Spinnaker.
+The default ingress namespace is `ingress-system`, DNS is `kube-system`,
+and selectors match the shared Traefik/CoreDNS realization. Do not use blanket
+egress: resolve and authorize actual endpoint addresses, including the API server's
+post-service-translation address where required by the CNI. Account for IdP redirects,
+artifact redirects and address changes. Tier 0 IdP/object-storage service endpoints are allowed;
+Tier 0 Kubernetes, provisioning, SSH and other control interfaces are not.
+
+## Commission Certificates
+
+The current Stage 4 realization imports leaf certificates. The OpenXPKI software
+server does **not** install a cert-manager Issuer, ACME service or automatic service
+certificate workflow. This role never creates a CA authority or receives a Tier 0
+root/issuer private key. Select one certificate owner before installation:
+
+| Mode | Required commissioning |
+| --- | --- |
+| `preissued` (default) | Custodian supplies ten `kubernetes.io/tls` Secrets; the role checks them before changes and leaves them under that owner's control |
+| `issuer` | Site has independently installed and qualified the configured Issuer/ClusterIssuer for the external hostname and private service DNS; role requests ten leaf Certificates and waits for the current generation to become Ready |
+
+For preissued mode, `spinnaker-tls` must contain the external hostname's full
+`tls.crt` chain and `tls.key`. The nine internal Secrets are
+`{spinnaker-mysql,spinnaker-redis,clouddriver,echo,fiat,front50,gate,orca,rosco}-tls`.
+Each needs `tls.crt`, `tls.key`, and `ca.crt`; the seven JVM services additionally
+need binary `keystore.p12`. Every internal certificate needs serverAuth and DNS SANs
+`<service>`, `<service>.<namespace>`, `<service>.<namespace>.svc`, and
+`<service>.<namespace>.svc.cluster.local`. The corresponding public root belongs in
+`delivery_platform_spinnaker_ca_pem`; certificates must serve their intermediate chain.
+
+Request approved leaf material from the PKI custodian. With files in private
+`$SPINNAKER_TLS_DIR/<service>/{tls.crt,tls.key,ca.crt}` and a protected
+`$SPINNAKER_TLS_DIR/keystore.password`, import them from an authorized Tier 1 worker:
+
+Run from **`<prefix>-tier-1/`**.
+
+```bash
+: "${KUBECONFIG:?Set the Tier 1-only kubeconfig}"
+: "${TIER1_CONTEXT:?Set the exact Tier 1 context}"
+: "${SPINNAKER_TLS_DIR:?Set the private preissued leaf directory}"
+kubectl --context "$TIER1_CONTEXT" create namespace spinnaker --dry-run=client -o yaml |
+  kubectl --context "$TIER1_CONTEXT" apply -f -
+for service in spinnaker spinnaker-mysql spinnaker-redis clouddriver echo fiat front50 gate orca rosco; do
+  directory="$SPINNAKER_TLS_DIR/$service"
+  files=(--from-file=tls.crt="$directory/tls.crt" --from-file=tls.key="$directory/tls.key")
+  case "$service" in
+    spinnaker) ;;
+    spinnaker-mysql|spinnaker-redis) files+=(--from-file=ca.crt="$directory/ca.crt") ;;
+    *)
+      openssl pkcs12 -export -name spinnaker -in "$directory/tls.crt" -inkey "$directory/tls.key" \
+        -certfile "$directory/ca.crt" -passout "file:$SPINNAKER_TLS_DIR/keystore.password" \
+        -out "$directory/keystore.p12"
+      files+=(--from-file=ca.crt="$directory/ca.crt" --from-file=keystore.p12="$directory/keystore.p12") ;;
+  esac
+  kubectl --context "$TIER1_CONTEXT" -n spinnaker create secret generic "$service-tls" \
+    --type=kubernetes.io/tls "${files[@]}" --dry-run=client -o yaml |
+    kubectl --context "$TIER1_CONTEXT" apply -f -
+done
+```
+
+Use the actual selected namespace if it differs from `spinnaker`. Supply the
+same password-file content as `spinnaker-keystore/password`, including bootstrap
+mode: preissued PKCS12 passwords are never randomly regenerated. Verify each leaf's
+chain, SANs, expiry and matching private key and open each PKCS12 with this password
+before import. Renew through the selected owner and roll out consumers after replacement.
+
+## Step 2: Prepare Credentials and Boundaries
+
+The default `delivery_platform_manage_secrets: false` requires existing Secrets in
+the Spinnaker namespace, supplied by one accepted credential owner:
+
+| Secret | Required keys |
+| --- | --- |
+| `spinnaker-oidc` | `clientSecret`: actual registered Keycloak client credential |
+| `spinnaker-mysql-root` | `password` |
+| `spinnaker-redis-auth` | `password` |
+| `spinnaker-keystore` | `password` |
+| `spinnaker-backup` | Both backends: `RESTIC_PASSWORD` (at least 32 characters); `s3` additionally: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` |
+| `spinnaker-{clouddriver,echo,fiat,front50,orca}-db` | Each has separate `password` and `migration-password` |
+
+Dependency passwords must be independent 32-128 character ASCII alphanumeric values.
+For explicit bootstrap ownership, set `delivery_platform_manage_secrets: true`
+and supply the actual OIDC and independent backup credentials, plus the matching
+preissued keystore password, in the private
+[secret input](../../../tier-1/ansible/group_vars/delivery_platform_secrets.yml.example).
+The role generates stable 48-character dependency passwords under the private
+output's `credentials/` directory; explicit supplied values must pass validation.
+Protect and back up this directory, never delete it and regenerate passwords against
+existing database PVCs. Do not run bootstrap and an external Secret controller together.
+
+The role consumes the ten commissioned leaf Secrets (or requests them only in
+explicit issuer mode), derives Redis's hashed ACL and the public ingress CA Secret,
+and builds JVM truststores from public roots without Tier 0 private keys.
+Runtime/migration SQL users have grants only on their own schema. MySQL root is
+mounted only by MySQL and the provisioning/backup Jobs, never product services.
+
+For each declared target the role creates a namespace-scoped ServiceAccount, Role,
+RoleBinding and explicit service-account-token Secret. Only that restricted token
+and API CA are copied into Clouddriver's account mount. The installer kubeconfig is
+never copied. These are long-lived integration credentials: revoke by deleting the
+RoleBinding and token Secret, then rotate and rerun installation.
+
+Target namespaces enforce the Kubernetes restricted Pod Security profile. They
+must not contain privileged ServiceAccounts or unrelated sensitive Secrets:
+permission to create workloads is authority over that namespace. Roles cannot manage
+Secrets, RBAC, ServiceAccounts, namespaces, nodes, exec or cluster-scoped resources.
+Provision application Secrets and RBAC through their independent owner first.
+This native reference does not register remote Tier 2 clusters or Tier 0 targets.
+
+## Choose Backup Storage
+
+The fresh example sets `delivery_platform_spinnaker_backup_backend: filesystem`.
+Existing inputs keep `s3` when the selector is omitted. Both modes consume commissioned
+storage interfaces, export SQL/RDB through the staging PVC, encrypt with restic,
+then verify all repository data before removing successful staging. [7]
+
+| Backend | Required existing storage and inputs |
+| --- | --- |
+| `filesystem` | Dedicated NAS export/dataset via a managed or accepted existing PVC in the Spinnaker namespace; inputs below |
+| `s3` (default) | Native HTTPS object endpoint, private bucket/prefix, public CA and scoped key; existing `backup_s3_endpoint`, `backup_s3_bucket`, `backup_s3_region`, `backup_s3_prefix`, `backup_ca_pem` and `backup_egress` inputs retain their meaning (all prefixed `delivery_platform_spinnaker_`) |
+
+### Direct NAS File Repository
+
+The storage owner commissions a dedicated NAS NFS export outside the cluster's data lifecycle.
+In **Tier 1 `ansible/group_vars/delivery_platform.yml`**, choose the claim route:
+
+- **New claim:** set `delivery_platform_spinnaker_backup_storage.mode: static_nfs` and its `server`,
+  `share`, `size`, unique `volume_handle`. The accepted NFS CSI driver must be installed.
+  The normal render/apply lifecycle creates only its namespace and retained, prebound backup PV/PVC.
+- **Accepted existing claim:** keep `delivery_platform_spinnaker_backup_storage: {mode: existing}`;
+  preserve the existing storage owner and claim. A NAS-backed file CSI volume is also accepted here.
+
+The role requires a Bound filesystem claim, an exact PV claim binding,
+`Retain` reclaim policy and a writable NFS/CSI source. It rejects local/hostPath PVs;
+the operator must verify a CSI driver's actual remote NAS backing. The role never
+formats or deletes the NAS volume. It can initialize only an absent child
+repository when explicitly enabled; existing repositories are validated. [8]
+
+| Full input prefix: `delivery_platform_spinnaker_backup_` | Filesystem value |
+| --- | --- |
+| `backend` | `filesystem` |
+| `filesystem_claim` | Managed or accepted existing PVC name, distinct from SQL, Redis and `spinnaker-backup` staging |
+| `filesystem_repository` | One directory name under the PVC root; default `spinnaker`; no slashes or traversal |
+| `filesystem_marker` | Exact 32-128 character ASCII alphanumeric/underscore/hyphen identity in `<repository>/.spinnaker-backup-repository` |
+| `filesystem_initialize` | `false` by default; explicitly select `true` only for a new, absent repository directory |
+| `egress` | Not used in filesystem mode; normally leave `[]` |
+
+Choose one route in **`<prefix>-tier-1/ansible/group_vars/delivery_platform.yml`** before rendering:
+
+- **New repository:** select an absent child directory, set a unique retained `filesystem_marker`
+  and `filesystem_initialize: true`. Supply a separately retained password through
+  `spinnaker-backup/RESTIC_PASSWORD`. The storage owner must allow UID/GID `999` to create
+  that child under the PVC root, including under NFS root squash.
+- **Existing repository:** retain its exact directory, marker and password; keep
+  `filesystem_initialize: false`. Existing empty directories, partial repositories,
+  wrong markers and wrong passwords fail without initialization or repair.
+
+Both routes continue to **Step 3**. Apply runs the pinned restic image in
+`spinnaker-repository-commission` through the
+[Ansible lifecycle](../../../tier-1/ansible/roles/delivery_platform/tasks/spinnaker-repository.yml).
+Ansible waits for the Job's `Complete` condition before continuing. [9]
+It checks the actual mount and direct-child containment before creating anything, initializes
+only an absent directory with explicit authorization, then validates the config and password.
+No controller NAS mount, interactive guest login or local restic installation is required.
+After successful commissioning, set `filesystem_initialize: false`, render again and use the
+new review checksum for subsequent applies. Retain the marker and password under recovery custody.
+
+AWS keys, object TLS trust and object egress are unnecessary. Only restic containers mount
+the NAS PVC at `/repository`; dump containers mount staging. Scheduled and verification backups
+always require an existing config and matching nonsymlink marker; they never initialize a file
+repository. An absent mount fails closed, including during commissioning. No emptyDir repository
+or local-directory fallback is used; `/cache` holds only scratch/cache. A failed initialization
+leaves its partial directory for storage-owner investigation; rerunning never erases or repairs it.
+
+Allow the storage path from Kubernetes **nodes/CSI components** to the NAS through
+the storage owner's firewall policy; pod egress rules do not authorize node NFS
+mounts. Qualify locking, UID/GID permissions, mount failure/recovery and capacity.
+The marker identifies the commissioned repository; it is not an authentication secret.
+
+### Existing Object Endpoint
+
+Supply `spinnaker-backup/AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`, plus the
+independent `RESTIC_PASSWORD`. Grant only the endpoint IP CIDRs and TCP port in
+`delivery_platform_spinnaker_backup_egress`; only backup pods receive these grants
+and credentials. S3 mode preserves initialization of a genuinely absent restic
+repository; wrong passwords, TLS errors and failed uploads/checks fail the Job. [7]
+
+For IAM-compatible endpoints, review `spinnaker-backup-iam.json`: it confines access
+to the selected bucket/prefix and permits deletion only of restic lock objects.
+For other native object endpoints, commission equivalent scoped permissions using
+that product's supported credential model. This step adds no gateway service.
+
+For either backend, the storage custodian owns retention, independent media copies
+and repository maintenance. Jobs never forget or prune snapshots or delete repository
+data; restic creates and releases its normal locks. Retain the password separately
+from both Kubernetes and the NAS/object service. An accessible PVC or completed Job
+does not establish independent failure domains, immutable retention or recovery acceptance.
+
+## Step 3: Render, Review and Install
+
+Check the selected workload, persistence and export scope against the
+[Spinnaker installation figure](#figure-spinnaker-installation) before running the staged installer.
+
+For first installation, use [Stage 7 Actions 3-6](README.md#step-3-choose-the-secret-owner) in order.
+The main page supplies Secret-owner, render, checksum and apply commands; this section explains their output.
+Native rendering is offline: the supplied base, product configuration, dependencies
+and scoped target contracts are all included. The output directory contains:
+
+| Output | Review |
+| --- | --- |
+| `spinnaker-native/` | Complete reproducible Kustomize source and public trust inputs |
+| `spinnaker-manifests.yml` | Eight services, configuration, optional leaf Certificate requests, SQL/Redis, SQL and backup-verification Jobs, filesystem commissioning Job when selected, target identities, policies, ingress and backup CronJob |
+| `spinnaker-backup-iam.json` | S3 only: least-privilege policy for IAM-compatible existing object storage; removed from render output in filesystem mode |
+| `spinnaker.sha256` | Exact checksum binding the complete render, including target grants |
+| `credentials/` | Private stable bootstrap passwords only when bootstrap ownership is selected |
+
+Read the rendered checksum:
+
+Run from **`<prefix>-tier-1/`**.
+
+```bash
+cat secrets/delivery-platform/spinnaker.sha256
+```
+
+Copy that value into `delivery_platform_spinnaker_review_sha256` in
+`ansible/group_vars/delivery_platform.yml`, then run the
+[common apply command](procedures/delivery-installer.md#render-and-apply) with the same inputs.
+
+Apply rebuilds and checks
+the checksum before cluster access, validates credential fields and OIDC discovery,
+and then executes this dependency order:
+
+1. In filesystem mode prepare explicitly managed backup PV/PVC resources, or retain the accepted existing claim;
+   validate the actual binding and retention before repository jobs.
+   Check StorageClass, preissued TLS Secrets (or explicit ready issuer and cert-manager
+   CRDs), Traefik CRD/ingress class and server version before resource changes.
+2. Create selected namespaces; provision explicitly owned credentials, public trust
+   and hashed Redis ACL; apply configuration, certificates, policies and target RBAC.
+3. In filesystem mode run the commissioning/validation Job to completion. In issuer
+   mode wait for all current-generation certificates; start MySQL/Redis
+   and wait for current-generation persistent replicas.
+4. Recreate the transient, idempotent SQL provisioning Job; wait for five schemas,
+   schema-local service users and migration users.
+5. Wait for target tokens, copy only restricted identities, start the eight services
+   and let their native Liquibase migrations complete.
+6. Wait for the current application rollout, run and verify a first independent repository
+   backup, then publish private ingress and enable the backup CronJob. Verify Gate HTTPS.
+
+Do not apply the combined YAML directly: that bypasses lifecycle ordering and checks.
+There is no destructive prune, uninstall, database migration rollback or automatic
+storage-size change. The root provisioning Job is deliberately recreated on apply;
+all durable configuration is declarative.
+
+Custom `overlay` mode remains an advanced, separately maintained integration:
+it requires the prior complete `spinnaker-runtime` Secret, private TLS and additional
+dependency/account Secrets. It is not the supplied installer and does not inherit
+native dependency provisioning or recovery behavior.
+
+## Step 4: Qualify Delivery
+
+Use real accepted and denied IdP users. Check the flat role claim, browser login,
+logout, direct API requests, reader write rejection, writer execution and admin access.
+Verify accounts and applications through Fiat, including a nonmember login denial.
+Do not accept health probes as proof of authorization. [5]
+
+Create a bounded application/pipeline, consume an approved HTTP artifact, deploy to
+the declared namespace, wait for health and roll back. Attempt deployment to another
+namespace, Secrets/RBAC creation, privileged pods and a Tier 0 target; all must fail.
+Only then transfer ownership of selected objects to the pipeline.
+
+For [Stage 9 GitLab](../stage-09-development/procedures/gitlab.md), consume the same
+pinned chart/values and prepared Secret/RBAC inputs as its native installer, bake
+manifests and deploy to an approved account. Cluster-scoped dependencies stay with
+the cluster owner. A pipeline can instead invoke its native Ansible apply recipe on
+an authorized Tier 1 deployment worker, never the Tier 0 infrastructure runner.
+Keep bootstrap sources independent until GitLab source migration is accepted.
+When following this paragraph from Stage 9, return to
+[GitLab acceptance](../stage-09-development/procedures/gitlab.md#acceptance-and-recovery) after the
+selected pipeline/worker installation. The following Stage 7 return is for initial controller commissioning.
+**Return after initial acceptance:** [Stage 7 Action 8](README.md#step-8-select-and-configure-artifact-supply).
+
+## Maintenance and Recovery
+
+- Upgrade the central software pins and reviewed vendored base together; verify
+  provenance/checksums and render/schema tests, then rehearse native service migrations
+  against restored data. Upstream release notes require substantial release qualification. [3]
+- Certificate renewal updates mounted Secrets; JVMs need a rollout to reload PKCS12
+  keys/trust. After a reviewed certificate, OIDC, SQL, Redis or target-token change,
+  increment `delivery_platform_spinnaker_secret_revision`, render/review again and
+  reapply. ConfigMap hash changes already trigger configuration rollouts.
+- Rotate service/migration passwords with coordinated SQL provisioning and service
+  rollouts. MySQL root rotation must change the database account and protected
+  Secret/cache together; changing `MYSQL_ROOT_PASSWORD_FILE` does not rotate an
+  existing database. Keystore password rotation requires certificate reissuance.
+- The native UTC backup CronJob stages five-schema MySQL dumps and Redis RDB exports,
+  then writes an encrypted restic snapshot to the selected NAS file or object repository.
+  A completed Job includes full data read-back verification; local staging is not
+  independent custody. Successful staging is removed immediately; seven-day cleanup
+  applies only to old failed exports. Monitor Job failures, PVC and repository capacity.
+- Before a recovery rehearsal, stop triggers/writers and scale the eight product
+  Deployments to zero. Run a final backup Job from the CronJob while data services
+  remain available; wait for both exports. Ordinary scheduled exports are not an
+  atomic cross-MySQL/Redis recovery point.
+- Restore on an isolated clean target with the same pinned images, retained private
+  credentials and reviewed inputs. With a separately held recovery credential and
+  the same repository/password (and CA in S3 mode), run `restic snapshots --host spinnaker --tag spinnaker`,
+  then `restic restore <reviewed-snapshot-id> --target /absolute/private/recovery`.
+  Provision TLS/MySQL/Redis first, restore the SQL
+  dump through a temporary MySQL-image Job using VERIFY_IDENTITY, then stop Redis
+  and restore its RDB into a fresh data PVC before first startup/AOF creation.
+  Restore the five schema users via the provisioning Job, not from global MySQL grants.
+- Start services only after restored SQL and Redis are ready. Keep triggers and
+  artifact egress denied until checking executions/queues for duplicate or stale work.
+  For filesystem recovery, mount the retained NAS export on the clean target and set
+  `RESTIC_REPOSITORY` to its original repository directory; retain the marker when
+  recommissioning the replacement PVC. Restore SSO, allowed/denied account tests and
+  a bounded deployment before returning traffic. Record evidence against the accepted site RPO/RTO.
+- To remove a destination, first revoke its RoleBinding/token and copied account
+  Secret explicitly. Removing an input does not prune previous credentials or objects.
+
+## Verification
+
+The upstream modules `tests/test_tier_delivery_platform.py`,
+`tests/test_tier_spinnaker_reference.py` and `tests/test_tier_spinnaker_backup.py`
+exercise source and generated native renders,
+payload/license preservation, exact hashes, SQL/TLS/auth wiring, credential stability,
+strict Kubernetes schemas and unsafe-input rejection. Test paths are code references,
+not generated-document links. See the
+[common test procedure](procedures/delivery-installer.md#native-tests).
+
+No live deployment is implied by those checks. Live schema migration, image startup,
+IdP login/denial, CNI/ingress behavior, backup and clean-target restore require the
+site's acceptance environment.
+
+## References
+
+Repository commissioning sources checked 2026-11-11; storage sources checked 2026-10-27;
+other sources checked 2026-10-26.
+Version/revision values live in the machine-readable role inputs.
+
+1. [Official native installation](https://spinnaker.io/docs/setup/install/).
+2. [Native SQL storage](https://spinnaker.io/docs/setup/install/storage/) and
+   [Echo scheduler implementation](https://github.com/spinnaker/spinnaker/tree/spinnaker-release-2026.3.2/echo/echo-scheduler).
+3. [Release migration warnings and removals](https://spinnaker.io/changelogs/2026.3.0-changelog/).
+4. [Spinnaker SSL](https://spinnaker.io/docs/setup/other_config/security/ssl/),
+   [cert-manager certificates](https://cert-manager.io/docs/usage/certificate/) and
+   [Traefik verified upstream TLS](https://doc.traefik.io/traefik/reference/routing-configuration/kubernetes/crd/http/serverstransport/).
+5. [Current OAuth2](https://spinnaker.io/docs/setup/other_config/security/authentication/oauth/) and
+   [Fiat authorization](https://spinnaker.io/docs/setup/other_config/security/authorization/).
+6. [Redis externalization](https://spinnaker.io/docs/setup/productionize/caching/externalize-redis/) and
+   [Envoy TLS verification](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto).
+7. [Restic local and S3 repositories](https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html),
+   [backup and verification](https://restic.readthedocs.io/en/stable/040_backup.html)
+   and [fail-closed scripting](https://restic.readthedocs.io/en/stable/075_scripting.html).
+8. [Kubernetes persistent volumes: binding, NFS, CSI and retention](https://kubernetes.io/docs/concepts/storage/persistent-volumes/).
+9. [Ansible Kubernetes resource waits](https://docs.ansible.com/projects/ansible/latest/collections/kubernetes/core/k8s_module.html)
+   and [Kubernetes Job completion](https://kubernetes.io/docs/concepts/workloads/controllers/job/).

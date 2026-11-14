@@ -467,7 +467,7 @@ encrypted off-host recovery separately.
 - [Offline bootstrap preparation and later approved-source handover](../03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md)
 - [Repository scripts](repository-scripts.md)
 - [Secret strategy](../05-operations/03-cryptography/secret-handling.md)
-- [Identity foundation path](../03-deployment/stage-5-identity/procedures/freeipa.md)
+- [Identity foundation path](../03-deployment/stage-05-identity/procedures/freeipa.md)
 - [Windows and AD support](../01-architecture/09-identity/01-windows-integration.md)
 - [Deployment readiness](../03-deployment/readiness.md)
 - [Proxmox reference platform](../03-deployment/foundation/proxmox/README.md)

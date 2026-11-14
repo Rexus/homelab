@@ -44,7 +44,7 @@ The [IaC capability map](#iac-capability-map) links each entry point to its sele
 
 Verify the unnumbered [foundation prerequisites](foundation/README.md), then choose
 the capability to deploy and follow its main README from Step 1 onward.
-Start with [Software intake](stage-1-software-intake/README.md), using verified
+Start with [Software intake](stage-01-software-intake/README.md), using verified
 existing supply where appropriate. Foundation only requires an available bootstrap source.
 Each stage explains the main path with diagrams, names the capability available at
 the end, and links back to the architecture it implements.
@@ -73,27 +73,30 @@ see [project records](../04-development/project-documentation.md#start-with-proj
 
 ## Deployment stages
 
+Stage folders use two-digit numbers, `stage-01` through `stage-10`, so their file-browser order
+matches the installation sequence.
+
 Find each stage's corresponding design and operating guides in the
 [capability index](../06-paths/capabilities.md).
 
 | Stage | Capability available | Working repository | Walkthrough |
 | --- | --- | --- | --- |
-| 1: Software intake | Controlled repository access and accepted bootstrap/host consumers | Tier 2 proxy/cache; tier-local consumers | [Software intake](stage-1-software-intake/README.md) |
-| 2: Protected logging | Independent collection, protected evidence and offline investigation | Tier 0 | [Protected logging](stage-2-logging/README.md) |
-| 3: Cryptographic trust | Offline root and online issuer; optional verified publication after issuance | Tier 0 trust; optional Tier 1 worker | [Trust](stage-3-trust/README.md) |
-| 4: Kubernetes | Independently bootstrapped Tier 0 cluster and basic platform | Tier 0 | [Kubernetes](stage-4-kubernetes/README.md) |
-| 5: Identity | Directory authority and federated OIDC access | Tier 0 | [Identity](stage-5-identity/README.md) |
-| 6: Secrets | Secret storage, scoped access, audit and independent unseal/recovery; supporting control tools | Tier 0 | [Secrets](stage-6-secrets/README.md), [monitoring](stage-6-secrets/procedures/independent-monitoring.md) |
-| 7: Delivery | Tier 1 runtime, Argo CD or Spinnaker, approved artifact supply | Tier 1 platform; optional Tier 2 edge | [Delivery](stage-7-delivery/README.md) |
-| 8: Observability | Netdata diagnostics, infrastructure health, logs, metrics, traces and scoped queries | Tier 1; Tier 0-owned infrastructure collection and approved exports | [Observability](stage-8-observability/README.md) |
-| 9: Development platform | GitLab, SSO, on-demand build pods, Vault CI and infrastructure handover | Tier 1 applications; Tier 0 execution/auth policy | [Development platform](stage-9-development/README.md) |
+| 1: Software intake | Controlled repository access and accepted bootstrap/host consumers | Tier 2 proxy/cache; tier-local consumers | [Software intake](stage-01-software-intake/README.md) |
+| 2: Protected logging | Independent collection, protected evidence and offline investigation | Tier 0 | [Protected logging](stage-02-logging/README.md) |
+| 3: Cryptographic trust | Offline root and online issuer; optional verified publication after issuance | Tier 0 trust; optional Tier 1 worker | [Trust](stage-03-trust/README.md) |
+| 4: Kubernetes | Independently bootstrapped Tier 0 cluster and basic platform | Tier 0 | [Kubernetes](stage-04-kubernetes/README.md) |
+| 5: Identity | Directory authority and federated OIDC access | Tier 0 | [Identity](stage-05-identity/README.md) |
+| 6: Secrets | Secret storage, scoped access, audit and independent unseal/recovery; supporting control tools | Tier 0 | [Secrets](stage-06-secrets/README.md), [monitoring](stage-06-secrets/procedures/independent-monitoring.md) |
+| 7: Delivery | Tier 1 runtime, Argo CD or Spinnaker, approved artifact supply | Tier 1 platform; optional Tier 2 edge | [Delivery](stage-07-delivery/README.md) |
+| 8: Observability | Netdata diagnostics, infrastructure health, logs, metrics, traces and scoped queries | Tier 1; Tier 0-owned infrastructure collection and approved exports | [Observability](stage-08-observability/README.md) |
+| 9: Development platform | GitLab, SSO, on-demand build pods, Vault CI and infrastructure handover | Tier 1 applications; Tier 0 execution/auth policy | [Development platform](stage-09-development/README.md) |
 | 10: Lab environments | Isolated Tier 2 runtimes, applications and future bounded requests | Tier 2 definitions; Tier 0 execution | [Lab environments](stage-10-lab-environments/README.md), [isolated clusters](stage-10-lab-environments/procedures/isolated-clusters.md) |
 
 For a new installation, follow [the capability sequence](#figure-deployment-sequence).
 Existing infrastructure can satisfy a
 stage's verified prerequisites; a stage number is not a tier, network or state boundary.
 Stage 1 supplies controlled update access. Verified RPM/APT/artifact publication is
-[Stage 3 option 15b](stage-3-trust/README.md#15b-verified-repository-and-artifact-publication-optional),
+[Stage 3 option 15b](stage-03-trust/README.md#15b-verified-repository-and-artifact-publication-optional),
 after logging and issuance. OCI supply belongs to Stage 7; bootstrap supply stays independent.
 
 ## IaC capability map
@@ -106,24 +109,24 @@ use their dedicated scripts. Every command runs from the named repository root.
 | --- | --- | --- | --- |
 | Tier 0 | `templates` | Foundation: approved source images | [Publication](../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow) |
 | Tier 0 | `template-refresh` | Maintenance: staged Linux image refresh after source-template acceptance | [Staged Linux refresh](../05-operations/01-hosting/templates/template-refresh.md) |
-| Tier 0 | `syslog` | Stage 2: independent log hosts | [Protected logging, Steps 1–16](stage-2-logging/README.md) |
-| Tier 0 | `foundation` | Stages 3/5/6: issuer/directory resources and optional independent monitor | [Trust](stage-3-trust/README.md), [directory deployment](stage-5-identity/procedures/freeipa.md), [monitor provisioning](stage-6-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
-| Tier 0 | `hsm` | Stage 3 option: native USB/provider hosts; issuer binding and PKCS#11 remoting use their explicit recipes | [USB HSM option](stage-3-trust/step-1b-usb-hsm.md), [remoting](stage-3-trust/procedures/pkcs11-remoting.md) |
-| Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes, Steps 1–19](stage-4-kubernetes/README.md) |
-| Tier 0 | `cluster-endpoint` | Before Stage 4/7/10: private independent API gateways | [API endpoint](stage-4-kubernetes/procedures/api-endpoint.md) |
-| Tier 0 | `vault` | Stage 6 option: dedicated secrets VM | [Vault VM option](stage-6-secrets/step-1b-vault-vm.md) |
-| Tier 0 | `vault` with separate `signing` inputs/environment, then `deployment/openbao-signing.yml` | Stage 6 option 11b: independent OpenBao guests/state and signing API; retains existing HashiCorp Vault | [Independent signing API](stage-6-secrets/step-11b-openbao.md) |
-| Tier 0 | `immutable-template` | Stage 9 option: image-based Linux builds | [Image-based Linux](stage-9-development/step-15b-image-based-linux.md) |
-| Tier 0 | `infrastructure-runner` | Stage 9: dedicated trusted infrastructure CI VM | [Runner](stage-9-development/procedures/infrastructure-runner.md) |
-| Tier 0 | `ci-auth` | Stage 9: Vault JWT backend, bounded claims and policies; native Vault root | [Vault CI](stage-9-development/procedures/vault-ci.md) |
-| Tier 1 | `kubernetes` | Stage 7: shared platform cluster | [Platform runtime](stage-7-delivery/procedures/platform-cluster.md) |
-| Tier 1 | `intake` | Stage 3 option 15b: verified repository and artifact intake VM | [Verified intake](stage-3-trust/step-15b-verified-intake.md) |
-| Tier 1 | `development` | Stage 9 option: source-control VM | [Source-control VM](stage-9-development/step-1b-source-control-vm.md) |
-| Tier 1 | `development-data` | Stage 9: dedicated PostgreSQL, Redis and Gitaly VMs | [GitLab data services](stage-9-development/procedures/data-services.md) |
-| Tier 1 | `podman-runner` | Stage 9 option: general build runner | [Build runner](stage-9-development/step-14b-podman-runner.md) |
-| Tier 1 | `observability` | Stage 8 alternative: native dedicated VM products and guarded data disks | [Observability](stage-8-observability/README.md), [VM recipe](stage-8-observability/step-1b-dedicated-vms.md) |
-| Tier 2 | `cache` | Stage 1: controlled outbound software access | [Software intake, Step 8](stage-1-software-intake/README.md#step-8-deploy-the-cache-pair) |
-| Tier 2 | `edge` | Stages 7/10: public service entry | [Edge deployment](stage-7-delivery/procedures/edge-proxy.md) |
+| Tier 0 | `syslog` | Stage 2: independent log hosts | [Protected logging, Steps 1–16](stage-02-logging/README.md) |
+| Tier 0 | `foundation` | Stages 3/5/6: issuer/directory resources and optional independent monitor | [Trust](stage-03-trust/README.md), [directory deployment](stage-05-identity/procedures/freeipa.md), [monitor provisioning](stage-06-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
+| Tier 0 | `hsm` | Stage 3 option: native USB/provider hosts; issuer binding and PKCS#11 remoting use their explicit recipes | [USB HSM option](stage-03-trust/step-1b-usb-hsm.md), [remoting](stage-03-trust/procedures/pkcs11-remoting.md) |
+| Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes, Steps 1–19](stage-04-kubernetes/README.md) |
+| Tier 0 | `cluster-endpoint` | Before Stage 4/7/10: private independent API gateways | [API endpoint](stage-04-kubernetes/procedures/api-endpoint.md) |
+| Tier 0 | `vault` | Stage 6 option: dedicated secrets VM | [Vault VM option](stage-06-secrets/step-1b-vault-vm.md) |
+| Tier 0 | `vault` with separate `signing` inputs/environment, then `deployment/openbao-signing.yml` | Stage 6 option 11b: independent OpenBao guests/state and signing API; retains existing HashiCorp Vault | [Independent signing API](stage-06-secrets/step-11b-openbao.md) |
+| Tier 0 | `immutable-template` | Stage 9 option: image-based Linux builds | [Image-based Linux](stage-09-development/step-15b-image-based-linux.md) |
+| Tier 0 | `infrastructure-runner` | Stage 9: dedicated trusted infrastructure CI VM | [Runner](stage-09-development/procedures/infrastructure-runner.md) |
+| Tier 0 | `ci-auth` | Stage 9: Vault JWT backend, bounded claims and policies; native Vault root | [Vault CI](stage-09-development/procedures/vault-ci.md) |
+| Tier 1 | `kubernetes` | Stage 7: shared platform cluster | [Platform runtime](stage-07-delivery/procedures/platform-cluster.md) |
+| Tier 1 | `intake` | Stage 3 option 15b: verified repository and artifact intake VM | [Verified intake](stage-03-trust/step-15b-verified-intake.md) |
+| Tier 1 | `development` | Stage 9 option: source-control VM | [Source-control VM](stage-09-development/step-1b-source-control-vm.md) |
+| Tier 1 | `development-data` | Stage 9: dedicated PostgreSQL, Redis and Gitaly VMs | [GitLab data services](stage-09-development/procedures/data-services.md) |
+| Tier 1 | `podman-runner` | Stage 9 option: general build runner | [Build runner](stage-09-development/step-14b-podman-runner.md) |
+| Tier 1 | `observability` | Stage 8 alternative: native dedicated VM products and guarded data disks | [Observability](stage-08-observability/README.md), [VM recipe](stage-08-observability/step-1b-dedicated-vms.md) |
+| Tier 2 | `cache` | Stage 1: controlled outbound software access | [Software intake, Step 8](stage-01-software-intake/README.md#step-8-deploy-the-cache-pair) |
+| Tier 2 | `edge` | Stages 7/10: public service entry | [Edge deployment](stage-07-delivery/procedures/edge-proxy.md) |
 | Tier 2 | `kubernetes` | Stage 10: workload cluster | [Workload runtime](stage-10-lab-environments/README.md#step-2-provision-the-workload-runtime) |
 | Tier 2 | `lab` | Stage 10: workload VM/LXC resources | [Workload runtime](stage-10-lab-environments/README.md#step-2-provision-the-workload-runtime) |
 
@@ -136,7 +139,7 @@ adds that independent service only when selected; its guide supplies the separat
 environment inputs, ceremony and API configuration commands.
 
 GitLab and Kubernetes job runners use the separate Tier 1
-[application recipe](stage-9-development/procedures/gitlab.md), not a Terraform VM setup.
+[application recipe](stage-09-development/procedures/gitlab.md), not a Terraform VM setup.
 The Vault `ci-auth` root likewise does not run through the Proxmox helper.
 
 ## Repository locations

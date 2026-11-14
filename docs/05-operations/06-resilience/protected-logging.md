@@ -16,7 +16,7 @@ Tier 0 producers, including the receiver OS, use the same authenticated intake.
 The producer aggregate retains each source's tier ownership; the outer box scopes the retention service.
 
 **Design:** [security logging](../../01-architecture/11-operations/01-protected-logging.md).
-**Prerequisites:** accepted [receiver/archive integration](../../03-deployment/stage-2-logging/README.md)
+**Prerequisites:** accepted [receiver/archive integration](../../03-deployment/stage-02-logging/README.md)
 and recorded failure, retention, access and recovery contracts.
 
 In **`<prefix>-tier-0/`**, [receiver VM inputs](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example),
@@ -27,9 +27,9 @@ In **`<prefix>-tier-0/`**, [receiver VM inputs](../../../tier-0/terraform/deploy
 [backup inputs](../../../tier-0/ansible/group_vars/logging_backup.yml.example) and the
 [backup recipe](../../../tier-0/ansible/playbooks/deployment/logging-backup.yml) own the independent pull job.
 NAS permissions/snapshots and the external watchdog are commissioned prerequisites.
-[Optional second intake](../../03-deployment/stage-2-logging/step-14b-redundant-intake.md),
-[retention locks](../../03-deployment/stage-2-logging/step-15b-retention-lock.md) and
-[approved search projections](../../03-deployment/stage-8-observability/step-14b-protected-log-search.md)
+[Optional second intake](../../03-deployment/stage-02-logging/step-14b-redundant-intake.md),
+[retention locks](../../03-deployment/stage-02-logging/step-15b-retention-lock.md) and
+[approved search projections](../../03-deployment/stage-08-observability/step-14b-protected-log-search.md)
 retain their separate selection and acceptance contracts.
 
 <a id="table-of-contents"></a>

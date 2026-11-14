@@ -29,9 +29,15 @@ RUNTIME_SVG = UPSTREAM / "docs/08-reference/diagrams/hosting-runtime-placement.s
 OBSERVABILITY_SVG = UPSTREAM / "docs/08-reference/diagrams/observability-capabilities.svg"
 CONTROL_SVG = UPSTREAM / "docs/08-reference/diagrams/control-applications-placement.svg"
 OBSERVABILITY_OPERATIONS_SVG = UPSTREAM / "docs/08-reference/diagrams/observability-operations.svg"
+AVAILABILITY_SVG = UPSTREAM / "docs/08-reference/diagrams/availability-cases.svg"
+PLATFORM_SVG = UPSTREAM / "docs/08-reference/diagrams/platform-cluster-runtime.svg"
+PKCS11_SVG = UPSTREAM / "docs/08-reference/diagrams/pkcs11-provider-placement.svg"
+SIGNAL_SVG = UPSTREAM / "docs/08-reference/diagrams/signal-pipelines.svg"
+K8S_PLATFORM_SVG = UPSTREAM / "docs/08-reference/diagrams/kubernetes-platform.svg"
 PLACEMENT_SVGS = (IDENTITY_SVG, CACHE_SVG, LOGGING_SVG, LAB_SVG, INTAKE_SVG, SUPPLY_SVG, SECRETS_SVG,
                   BACKUP_SVG, CRYPTO_SVG, CA_SVG, RUNNER_SVG, TELEMETRY_SVG, REFERENCE_SVG,
-                  RUNTIME_SVG, OBSERVABILITY_SVG, CONTROL_SVG, OBSERVABILITY_OPERATIONS_SVG)
+                  RUNTIME_SVG, OBSERVABILITY_SVG, CONTROL_SVG, OBSERVABILITY_OPERATIONS_SVG, AVAILABILITY_SVG,
+                  PLATFORM_SVG, PKCS11_SVG, SIGNAL_SVG, K8S_PLATFORM_SVG)
 FIGURES = re.compile(r"```mermaid\n(.*?)```|!\[[^\]]+\]\(([^)#]+\.svg)\)", re.DOTALL)
 
 
@@ -307,7 +313,7 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn("rect rgba(", sequence)
 
     def test_logging_steps_keep_deployment_boundaries_and_inventory_names(self):
-        root = UPSTREAM / "docs/03-deployment/stage-2-logging"
+        root = UPSTREAM / "docs/03-deployment/stage-02-logging"
         tier = UPSTREAM / "tier-0"
         inventory = yaml.safe_load((tier / "ansible/inventory/hosts.yml.example").read_text())
         hosts = inventory["all"]["children"]["foundation_logging"]["hosts"]
@@ -355,10 +361,10 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn('Primary <-->|Replication| Replica', identity)
         self.assertIn('class Pair replicas', identity)
         self.assertIn('Ingress{{"HTTPS sign-in', identity)
-        trust = diagrams(root / "03-deployment/stage-3-trust/README.md")[0]
+        trust = diagrams(root / "03-deployment/stage-03-trust/README.md")[0]
         self.assertLess(trust.index('subgraph Identity['), trust.index('subgraph Crypto['))
         self.assertIn('Identity ~~~ Crypto', trust)
-        directory = diagrams(root / "03-deployment/stage-5-identity/README.md")[0]
+        directory = diagrams(root / "03-deployment/stage-05-identity/README.md")[0]
         self.assertIn('subgraph Identity["Identity Network / identity"]', directory)
         self.assertIn('subgraph Crypto["Cryptography Network / cryptography"]', directory)
         self.assertIn('Identity ~~~ Crypto', directory)
@@ -369,13 +375,13 @@ class DiagramConventions(TierRepositoryTestCase):
                    for name in ('IdentityNetwork', 'ManagementNetwork', 'CryptoNetwork')]
         self.assertEqual(heights, sorted(heights))
         self.assertIn('idm-1 / idm-2', ''.join(nodes['Identity'].itertext()))
-        federation = ET.fromstring(figure_sources(root / "03-deployment/stage-5-identity/README.md")[1])
+        federation = ET.fromstring(figure_sources(root / "03-deployment/stage-05-identity/README.md")[1])
         replication = federation.find(".//{http://www.w3.org/2000/svg}path[@data-from='Primary'][@data-to='Replica']")
         self.assertIn('bidirectional', replication.get('class').split())
 
     def test_queries_enter_from_readers_and_alerts_retain_real_flow(self):
         root = UPSTREAM / "docs"
-        access = next(code for code in diagrams(root / "03-deployment/stage-8-observability/README.md")
+        access = next(code for code in diagrams(root / "03-deployment/stage-08-observability/README.md")
                       if 'participant Reader as Authorized reader' in code)
         self.assertIn('sequenceDiagram', access)
         for edge in ('Reader->>Search: Scoped log / trace query',
@@ -383,7 +389,7 @@ class DiagramConventions(TierRepositoryTestCase):
                      'Reader->>Diagnostics: Operational diagnostics'):
             self.assertIn(edge, access)
         self.assertNotIn('Read-only results| Reader', access)
-        alerts = diagrams(root / "03-deployment/stage-6-secrets/procedures/independent-monitoring.md")[2]
+        alerts = diagrams(root / "03-deployment/stage-06-secrets/procedures/independent-monitoring.md")[2]
         self.assertIn('flowchart RL', alerts)
         self.assertIn('Watch -->|Missing heartbeat alert| Admin', alerts)
         self.assertIn('Log -->|Configured heartbeat| Watch', alerts)
@@ -391,7 +397,7 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertNotIn('Admin[', external)
 
     def test_logging_diagrams_link_to_the_owning_iac_at_each_step(self):
-        root = UPSTREAM / "docs/03-deployment/stage-2-logging"
+        root = UPSTREAM / "docs/03-deployment/stage-02-logging"
         recipes = "../../../tier-0/ansible/playbooks/deployment/"
         expected = {
             "README.md": [

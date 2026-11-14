@@ -2,7 +2,7 @@
 
 # Copy to: terraform/deployments/hsm/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/03-deployment/stage-3-trust/step-1b-usb-hsm.md
+# Setup guide: docs/03-deployment/stage-03-trust/step-1b-usb-hsm.md
 # VMID allocation: docs/02-conventions/vmid-convention.md
 # Shared values live in ../../common.tfvars.
 
@@ -28,7 +28,7 @@ vm_instances = {
     usb_devices      = [{ mapping = "hsm-1-token" }]
     # Optional per-guest template override when one VM uses another template.
     # template_vm_id = 9101
-    vm_id            = 231
+    vm_id            = 331
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
@@ -38,7 +38,7 @@ vm_instances = {
   "hsm-2" = {
     proxmox_node_name = "pve02"
     usb_devices      = [{ mapping = "hsm-2-token" }]
-    vm_id             = 232
+    vm_id             = 332
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 30
@@ -48,7 +48,7 @@ vm_instances = {
   # Add replicas with matching hsm_gateways inventory and hsm.yml IP-map entries.
   # "hsm-3" = {
   #   proxmox_node_name = "pve03"
-  #   vm_id             = 233
+  #   vm_id             = 333
   #   size              = "small"
   #   storage_class     = "local"
   #   disk_size_gb      = 30
@@ -59,7 +59,7 @@ vm_instances = {
   # with the matching Ansible inventory host and hsm.yml platform_host_ips
   # entry.
   # "cadm-1" = {
-  #   vm_id            = 521
+  #   vm_id            = 621
   #   size             = "tiny"
   #   storage_class    = "local"
   #   disk_size_gb     = 20

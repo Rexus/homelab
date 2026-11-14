@@ -1,7 +1,7 @@
 # Variable definitions (this repository): terraform/deployments/intake/variables.tf
 
 # Copy to: terraform/deployments/intake/terraform.tfvars
-# Guide: docs/03-deployment/stage-3-trust/step-15b-verified-intake.md
+# Guide: docs/03-deployment/stage-03-trust/step-15b-verified-intake.md
 # Input ownership and precedence: docs/08-reference/platform-inputs.md
 # VMID allocation: docs/02-conventions/vmid-convention.md
 # Shared supplies approved Linux template references, storage mappings and sizes.
@@ -10,7 +10,7 @@
 
 vm_instances = {
   "intake-1" = {
-    vm_id            = 1221
+    vm_id            = 1321
     size             = "small-mem"
     storage_class    = "local"
     disk_size_gb     = 40

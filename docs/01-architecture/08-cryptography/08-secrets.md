@@ -12,7 +12,7 @@ service or its login path is unavailable.
 *Figure: Consumers enter from the left of the policy-controlled secret runtime. Audit events flow to independent
 protected logging on the right; offline custody below the connected services supports authorized recovery.*
 
-**Architecture:** the [Secrets deployment](../../03-deployment/stage-6-secrets/README.md) realizes the runtime;
+**Architecture:** the [Secrets deployment](../../03-deployment/stage-06-secrets/README.md) realizes the runtime;
 [protected logging](../11-operations/01-protected-logging.md) owns audit retention.
 
 The service mediates credential access; it does not transfer its administrative
@@ -63,7 +63,7 @@ contract; restoring the credential store does not restore that evidence.
 ## Optional signing
 
 An application that needs hardware-backed private-key operations can add the
-independent [signing API option](../../03-deployment/stage-6-secrets/step-11b-openbao.md).
+independent [signing API option](../../03-deployment/stage-06-secrets/step-11b-openbao.md).
 It has separate state and policy. An external-key signature uses the selected
 provider for the operation; a software signing key protected only by a startup seal
 has a different custody boundary. [Shared key services](04-usb-hsm.md) owns this design.
@@ -74,7 +74,7 @@ different providers. A reachable gateway alone does not establish integration.
 
 ## Realization
 
-The [Secrets deployment](../../03-deployment/stage-6-secrets/README.md) also adds
+The [Secrets deployment](../../03-deployment/stage-06-secrets/README.md) also adds
 control tools and independent monitoring. Those services retain their own operational
 and recovery boundaries; [operations and resilience](../11-operations/README.md)
 explains them. Use [secrets operations](../../05-operations/03-cryptography/README.md)

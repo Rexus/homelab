@@ -56,13 +56,13 @@ and recovery custody remain the storage owner's work; guest IaC consumes those a
 | Consumer | Interface used by the supplied implementation | Procedure |
 | --- | --- | --- |
 | VM/CT backup files | Proxmox-managed NAS NFS target; PBS remains a separate alternative | [Native NAS backup path](../../../05-operations/06-resilience/backups/virtual-machines.md#nas-file-target) |
-| Protected log archive | Direct encrypted SMB mount; local intake remains independent of the NAS | [NAS archive](../../stage-2-logging/step-15a-nas-archive.md) |
+| Protected log archive | Direct encrypted SMB mount; local intake remains independent of the NAS | [NAS archive](../../stage-02-logging/step-15a-nas-archive.md) |
 | Control recovery copies | Commissioned mounted file repository; read-only source views, separately encrypted backup copies | [Control backups](../../../05-operations/06-resilience/backups/control-applications.md) |
-| NetBox shared media | Existing RWX-capable Kubernetes storage, such as qualified NAS-backed CSI | [Application storage](../../stage-6-secrets/procedures/control-applications.md#dependencies-and-ownership) |
-| Keycloak, NetBox and Grafana database backups | Scheduled verified full backups to a separate NAS file PVC; existing object/WAL archive remains an explicit PITR option | [Database backup inputs](../../stage-6-secrets/procedures/control-applications.md#dependencies-and-ownership), [Grafana](../../stage-8-observability/procedures/observability-platform.md) |
-| GitLab Kubernetes chart | Existing object storage with ten private versioned buckets; S3-compatible API, including live application objects | [GitLab data services](../../stage-9-development/procedures/data-services.md#prepare-object-storage) |
-| GitLab data-VM recovery copies | Encrypted file repository on a commissioned NAS mount or existing SFTP destination | [Data-service backup inputs](../../stage-9-development/procedures/data-services.md#backups-and-recovery) |
-| Spinnaker recovery | Existing retained NAS PVC or object endpoint; installer can commission a new file repository from explicit inputs | [Backup inputs](../../stage-7-delivery/step-2b-spinnaker.md#choose-backup-storage) |
+| NetBox shared media | Existing RWX-capable Kubernetes storage, such as qualified NAS-backed CSI | [Application storage](../../stage-06-secrets/procedures/control-applications.md#dependencies-and-ownership) |
+| Keycloak, NetBox and Grafana database backups | Scheduled verified full backups to a separate NAS file PVC; existing object/WAL archive remains an explicit PITR option | [Database backup inputs](../../stage-06-secrets/procedures/control-applications.md#dependencies-and-ownership), [Grafana](../../stage-08-observability/procedures/observability-platform.md) |
+| GitLab Kubernetes chart | Existing object storage with ten private versioned buckets; S3-compatible API, including live application objects | [GitLab data services](../../stage-09-development/procedures/data-services.md#prepare-object-storage) |
+| GitLab data-VM recovery copies | Encrypted file repository on a commissioned NAS mount or existing SFTP destination | [Data-service backup inputs](../../stage-09-development/procedures/data-services.md#backups-and-recovery) |
+| Spinnaker recovery | Existing retained NAS PVC or object endpoint; installer can commission a new file repository from explicit inputs | [Backup inputs](../../stage-07-delivery/step-2b-spinnaker.md#choose-backup-storage) |
 
 GitLab's chart requires object storage for its application objects. The Barman
 Cloud path uses object storage for continuous WAL/PITR. A NAS file-backup choice

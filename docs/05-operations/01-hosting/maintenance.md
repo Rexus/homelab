@@ -82,7 +82,7 @@ there is no automatic rollback. Restore the last approved configuration through 
 For Kubernetes, retain original machine configuration/secrets and etcd snapshots; use release-matched
 Talos lifecycle commands, not fresh Terraform bootstrap, to upgrade nodes. For GitLab, follow its
 required upgrade stops and dependency ordering in the
-[data-service guide](../../03-deployment/stage-9-development/procedures/data-services.md).
+[data-service guide](../../03-deployment/stage-09-development/procedures/data-services.md).
 For CA/directory services, preserve the original signing/domain identity and audit continuity.
 For Proxmox packages, follow [host updates through the approved proxy](../02-software-intake/host-updates.md#how-are-proxmox-updates-installed).
 

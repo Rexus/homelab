@@ -28,8 +28,9 @@ each tier owns its specific networks, guest selections and overrides.
 | Local environment or secret injection | Provider access and local SSH public-key file paths |
 
 Guest IDs follow the [VMID allocation convention](../02-conventions/vmid-convention.md),
-including the Tier 0 Kubernetes exception and reserved lab/client/template groups. Reservations stay tier-local
-and unique across the cluster; Shared is not an allocator.
+with uniform categories across Tier 0/1/2 and lab/client allocation groups. Tier 0 omits
+the leading zero. Template and builder IDs in `9xxx` use catalog allocations.
+Tier-local inputs own reservations, which must be unique across the cluster.
 
 The shared profile is a reference catalog, not a Terraform root. It contains
 no resources, state, guest assignments, host addresses, credentials, or keys.
@@ -175,7 +176,7 @@ while `platform_host_ips` remains the single tier-owned IP map. Optional `dns_se
 overrides qualified host defaults. No Linux users, SSH keys or machine-config
 snippets are supplied on that drive; the Talos API owns machine configuration.
 Omitted firmware and `bootstrap_network = null` preserve the older BIOS/DHCP contract.
-See the [cluster inputs](../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure).
+See the [cluster inputs](../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md#configure).
 The optional [SDN subnet lookup](network-inputs.md#sdn-subnet-lookup) replaces
 explicit prefix/gateway inputs with an existing VNet reference for either path.
 
@@ -233,7 +234,7 @@ Additional sources and public trust are explicit local selections:
 | `baseline_apt_direct_hosts` | Exact internal APT publication hosts bypassing a global proxy |
 
 The [Shared defaults](../../shared/ansible/roles/baseline/defaults/main.yml) own these schemas.
-[Verified consumer deployment](../03-deployment/stage-3-trust/step-15b-verified-consumers.md)
+[Verified consumer deployment](../03-deployment/stage-03-trust/step-15b-verified-consumers.md)
 applies the package/trust subset from the controller without changing guest time, IPv6 or SSH policy.
 
 Shared's [baseline role](../../shared/ansible/roles/baseline/tasks/main.yml) manages
@@ -258,6 +259,10 @@ it. Existing local copies of those values must not be counted as enforced contro
 Verify effective SSH, time, firewall and audit behavior before accepting a host.
 
 ## Existing collections
+
+Retain existing guest VMIDs and their state when reviewing refreshed examples. Follow the
+[existing-installation guidance](../02-conventions/vmid-convention.md#allocation-and-existing-installations)
+for deliberate renumbering.
 
 Refresh preserves local `common.tfvars`, environment files, and state. Their
 explicit values continue to override the new profile. Move common storage and

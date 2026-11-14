@@ -12,12 +12,18 @@ remains separate from hypervisor and cluster lifecycle authority.
 ## Expected outcome: selected workload runtimes
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":12,"padding":10,"subGraphTitleMargin":{"top":6,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+%%{init: {"theme":"base","flowchart":{"nodeSpacing":12,"rankSpacing":4,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 flowchart TB
   subgraph T2["Tier 2"]
+    subgraph Layout[" "]
+      direction LR
     subgraph WorkloadNetwork["Workload Cluster Network"]
       subgraph Cluster["Tier 2 Kubernetes / kubernetes"]
-        CPs["wctl-1 / wctl-2 / wctl-3<br/>Talos control-plane VMs"]
+        direction TB
+        CP1["wctl-1<br/>Talos control plane"]
+        CP2["wctl-2<br/>Talos control plane"]
+        CP3["wctl-3<br/>Talos control plane"]
+        CP1 ~~~ CP2 ~~~ CP3
       end
     end
     subgraph ApplicationNetwork["Application Network / application"]
@@ -26,9 +32,10 @@ flowchart TB
       CT["util-1 / LXC container"]
       VM ~~~ CT
     end
+    WorkloadNetwork ~~~ ApplicationNetwork
+    end
     State[("Protected Tier 2 inputs / state<br/>Retained with the owning root")]
-    WorkloadNetwork ~~~ State
-    ApplicationNetwork ~~~ State
+    Layout ~~~ State
   end
   subgraph T0["Tier 0"]
     Runner["Privileged workstation<br/>or iac-1 protected runner"]
@@ -42,13 +49,14 @@ flowchart TB
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
   classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
   classDef tier2 fill:#f6f3ef,stroke:#aca59b,color:#4b443c
-  class CPs,VM,CT services
+  class CP1,CP2,CP3,VM,CT services
   class State data
   class Runner control
   class Cluster kubernetes
   class WorkloadNetwork,ApplicationNetwork network
   class T2 tier2
   class T0 tier0
+  style Layout fill:none,stroke:none
 ```
 
 **IaC:** *Figure: Tier 2 owns the selected VM/LXC or Kubernetes resources and their state. An authorized Tier 0
@@ -66,8 +74,8 @@ The [Shared executor](../../../shared/scripts/deploy.sh) consumes Tier 2 invento
 The state shape records Tier 2 ownership, not a new storage service; the authorized execution host
 uses those original inputs under the selected access policy.
 
-**Prerequisites:** accepted [Development platform and trusted execution](../stage-9-development/README.md),
-accepted [Observability interfaces](../stage-8-observability/README.md), scoped
+**Prerequisites:** accepted [Development platform and trusted execution](../stage-09-development/README.md),
+accepted [Observability interfaces](../stage-08-observability/README.md), scoped
 credentials, protected state and tested recovery.
 **Working repositories:** `<prefix>-tier-2` for workload definitions;
 `<prefix>-tier-0` for privileged execution (source: matching `tier-N/`).
@@ -245,7 +253,7 @@ In **`<prefix>-tier-2/`**, edit:
 - `terraform/deployments/kubernetes/terraform.tfvars`: unused VMIDs, approved template,
   live storage, isolated node attachment, private API endpoint and ordered native patches.
 
-Complete the common procedure's [configuration](../stage-4-kubernetes/procedures/talos-terraform.md#configure)
+Complete the common procedure's [configuration](../stage-04-kubernetes/procedures/talos-terraform.md#configure)
 and node-configuration steps for image access, CNI and logging. Keep Tier 2's own values, then return here.
 
 #### 3. Load the provider environment
@@ -301,7 +309,7 @@ cp -n ansible/group_vars/cluster_platform.yml.example ansible/group_vars/cluster
 ```
 
 Edit `ansible/group_vars/cluster_platform.yml`: Tier 2's kubeconfig/context, selected components,
-exact pins, image access, storage and trust using the [basic-platform input contract](../stage-4-kubernetes/procedures/basic-platform.md).
+exact pins, image access, storage and trust using the [basic-platform input contract](../stage-04-kubernetes/procedures/basic-platform.md).
 This new cluster needs its own add-ons; it does not reuse another tier's live resources.
 Render from **the same Tier 2 root**:
 
@@ -324,7 +332,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
 ```
 
 Apply changes the selected cluster without an extra confirmation. Verify selected CNI, logging,
-storage, private ingress/TLS and [cluster handoff checks](../stage-4-kubernetes/procedures/talos-terraform.md#verify-and-hand-over),
+storage, private ingress/TLS and [cluster handoff checks](../stage-04-kubernetes/procedures/talos-terraform.md#verify-and-hand-over),
 then rejoin below. No second node bootstrap or basic-platform installation is needed at Step 3.
 
 Before either branch rejoins Step 3, verify isolation, readiness, original-state
@@ -364,7 +372,7 @@ checks before rejoining Step 5. A private application needs no public DNS/NAT.
 ## Step 5: Connect the selected signals
 
 **5a: protected OS/audit evidence** retains the direct Tier 0 submission path. For Linux sources,
-use the existing [protected-source recipe](../stage-2-logging/procedures/sources.md) with Tier 2-owned
+use the existing [protected-source recipe](../stage-02-logging/procedures/sources.md) with Tier 2-owned
 inventory and stream inputs. Cluster OS/API forwarding was commissioned with its platform; verify it
 rather than bootstrapping that cluster again.
 

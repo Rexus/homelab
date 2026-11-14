@@ -93,7 +93,7 @@ class GitLabVMContracts(unittest.TestCase):
         self.assertNotIn("enabled: true", source)
 
     def test_runbook_is_controller_driven_and_states_recovery_limits(self):
-        guide = (UPSTREAM / "docs/03-deployment/stage-9-development/step-1b-source-control-vm.md").read_text()
+        guide = (UPSTREAM / "docs/03-deployment/stage-09-development/step-1b-source-control-vm.md").read_text()
         self.assertNotIn("podman exec -it", guide)
         for recipe in ("gitlab-vm-initial-access.yml", "gitlab-vm-backup.yml", "gitlab-vm-recovery.yml"):
             self.assertIn(recipe, guide)

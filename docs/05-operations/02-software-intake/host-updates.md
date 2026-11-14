@@ -1,7 +1,7 @@
 # Proxmox update-access tasks
 
 Connect Proxmox-managed downloads and host APT to the accepted repository proxy, then install
-updates during maintenance. First deployment stays on [Stage 1, Steps 14–16](../../03-deployment/stage-1-software-intake/README.md#step-14-configure-proxmox-update-inputs);
+updates during maintenance. First deployment stays on [Stage 1, Steps 14–16](../../03-deployment/stage-01-software-intake/README.md#step-14-configure-proxmox-update-inputs);
 this runbook covers later changes and patch maintenance.
 Hosts pull approved content; the cache does not push updates or receive host credentials.
 
@@ -105,7 +105,7 @@ Proxmox GUI/API update refreshes can rewrite `76pveproxy` from the Datacenter se
 Recheck after GUI refreshes; APT HTTPS inherits the HTTP setting when no HTTPS override exists. [2][3]
 The Datacenter setting does not configure ordinary shell `curl`/Git commands.
 
-**Continue:** install updates below, or return to [Stage 1](../../03-deployment/stage-1-software-intake/README.md#capability-available)
+**Continue:** install updates below, or return to [Stage 1](../../03-deployment/stage-01-software-intake/README.md#capability-available)
 when this change only commissions update access.
 
 ## How are Proxmox updates installed?
@@ -246,7 +246,7 @@ A successful download alone is not release approval.
 <a id="read-more"></a>
 
 **Related:** [template operations](../01-hosting/templates/template-lifecycle.md),
-[guest package intake](../../03-deployment/stage-1-software-intake/README.md#step-3-connect-and-verify-consumers),
+[guest package intake](../../03-deployment/stage-01-software-intake/README.md#step-3-connect-and-verify-consumers),
 and [network policy](../../01-architecture/05-networking/01-firewall-policy.md).
 
 ## References

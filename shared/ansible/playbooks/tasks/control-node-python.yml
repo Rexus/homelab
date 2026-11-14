@@ -3,6 +3,12 @@
 - name: Prepare selected controller Python clients
   vars:
     control_node_python_catalog:
+      - collection: community.proxmox
+        requirements: ['proxmoxer>=2.3.0', 'proxmoxer<3.0.0', 'requests>=2.32.0', 'requests<3.0.0']
+        imports: [proxmoxer, requests]
+        packages:
+          RedHat: [python3-proxmoxer, python3-requests]
+          Debian: [python3-proxmoxer, python3-requests]
       - collection: netbox.netbox
         requirements: ['pynetbox>=7.5.0', 'pynetbox<8', 'requests>=2.32.0', 'requests<3']
         imports: [pynetbox, requests]

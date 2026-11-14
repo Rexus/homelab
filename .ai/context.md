@@ -13,6 +13,16 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Repository intent
 
+- Deployment stage folders use zero-padded two-digit numbers (stage-01 through stage-10) so
+  lexical/GitHub sorting follows the installation sequence. Update references and migration targets
+  together; retain former route keys so project-owned links survive generated-documentation refresh.
+- Availability is explained in docs/01-architecture/04-hosting/05-availability.md. Distinguish
+  active-active, active-passive and automatic VM restart (Proxmox HA); neither topology nor
+  the product's HA label proves uninterrupted service. Tie acceptance to measured outage,
+  data guarantees, independent failure domains and the scaling/headroom budget.
+  Tier 0's ansible/playbooks/proxmox-ha.yml manages selected existing guests and affinity through native
+  modules. Keep initial Terraform placement separate from continuing Proxmox placement.
+  Use one separation rule per voter/replica set, and record rule-blocked degraded operation.
 - In every diagram, choose boundaries for the reader's question. Logical service views show actual
   networks and runtimes, without decorative Proxmox-host wrappers. Include physical hosts for host
   placement, availability/failure domains, capacity, storage attachment, passthrough or host operations.
@@ -32,6 +42,11 @@ This file keeps durable context for AI-assisted work across sessions.
   and split competing placement, request and health/recovery questions. Successful parsing, palette
   matching or collision checks alone do not establish a clear picture. Reuse one editable asset when
   deployment and operations show the same selected scope, so visual repairs reach both reader paths.
+- Step 11's basic platform placement uses docs/08-reference/diagrams/kubernetes-platform.svg.
+  Its service stacks, existing dependencies and source links retain one scope. Explicit node stacks
+  in platform-cluster-runtime.svg and the control/workload runtime figures illustrate the linked starter
+  inputs. Use editable SVG when Mermaid's compound ranks stretch cells or break the required placement;
+  keep new assets registered with the generator and checked against actual inventory/module inputs.
 - Static Mermaid block/flowchart figures declare Arial at 14px in both the root fontFamily setting and
   themeVariables; the root setting is required for consistent HTML labels in the reviewed renderer.
   Keep sequence/plot colours theme-aware. See docs/04-development/diagrams.md for the exact source contract.
@@ -252,7 +267,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - public cluster entry points are `terraform/deployments/kubernetes/` and
   `scripts/kubernetes-cluster.sh`; retain existing Talos state, inventory, provider,
   and credential contracts. The old script delegates; old roots require deliberate migration
-- `docs/03-deployment/stage-4-kubernetes/procedures/kubernetes.md` owns cluster choices and common readiness;
+- `docs/03-deployment/stage-04-kubernetes/procedures/kubernetes.md` owns cluster choices and common readiness;
   its `talos-terraform.md` sibling and stage's `step-1b-existing-cluster.md` own implementation procedures
 - The complete supplied human-SSO rollout qualifies Talos 1.13.x and requires the original
   Terraform-owned plan. Manual cluster credentials survive later guides, but that alternative's
@@ -327,9 +342,10 @@ This file keeps durable context for AI-assisted work across sessions.
   platform-standards.md is the project-owned selection sheet beside the generated architecture README.
   Preserve older naming-conventions.md records on refresh; link them for manual review.
 - docs/02-conventions/vmid-convention.md owns the central VMID quick reference and editable SVG.
-  Starter IDs use T C NN; Tier 0 uses the same category hundreds, with a Kubernetes exception:
-  control planes 100-149, workers 150-199, infrastructure 2xx, network 3xx, logging 4xx,
-  bootstrap/automation 5xx (manual boot-1 501, runner 511, optional ceremony 521).
+  Starter IDs use T C NN with category 0 reserved in every guest allocation group.
+  Categories 1-6 are control planes, workers, infrastructure, network/edge, observability/logging,
+  and bootstrap/automation. Tier 0 omits its leading zero and uses full hundred-ID blocks:
+  1xx, 2xx, 3xx, 4xx, 5xx, 6xx (manual boot-1 601, runner 611, optional ceremony 621).
   3xxx labs and 4xxx clients remain Tier 2-owned, 9xxx templates/builders Tier 0-owned.
   Existing local IDs/state are never renumbered by refresh; new example IDs are not a migration.
 - `docs/auto-docs/` holds upstream reference docs with visible refresh/do-not-edit
@@ -556,7 +572,7 @@ This file keeps durable context for AI-assisted work across sessions.
 - Stage 1 Steps 14–16 explicitly commission Proxmox host update access using Tier 0's existing
   proxmox-hosts.yml recipe (Datacenter download proxy plus per-host APT), then links controlled
   one-host-at-a-time maintenance. Hosts pull through the proxy; the cache gets no host authority.
-- software intake is a separate early capability at docs/03-deployment/stage-1-software-intake/,
+- software intake is a separate early capability at docs/03-deployment/stage-01-software-intake/,
   not a foundation option; it is numbered Stage 1 and
   the later Stage 7 Harbor/OCI path extends this capability without becoming a bootstrap dependency
 - connected Tier 0 clients may initiate approved update pulls without granting lower-tier

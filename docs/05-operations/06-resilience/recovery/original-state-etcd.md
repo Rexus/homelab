@@ -69,7 +69,7 @@ independent backup; paths in this guide refer to that verified extracted set.
    committing refresh-only at that point can remove its binding. Confirm endpoint/token visibility
    and review through [state reconciliation](../../01-hosting/terraform-state.md#restored-resources).
    Stop on unexplained creation/replacement/destruction; do not apply merely to test recovery. The
-   [cluster workflow](../../../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md)
+   [cluster workflow](../../../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md)
    owns its original state/input contract. Fresh creation is not recovery.
 
 <a id="capture-an-etcd-recovery-point"></a>

@@ -1,6 +1,6 @@
 # Copy to: ansible/group_vars/vault.yml
 # Replace every value before use.
-# Reference guide: docs/03-deployment/stage-6-secrets/step-1b-vault-vm.md
+# Reference guide: docs/03-deployment/stage-06-secrets/step-1b-vault-vm.md
 # Schema/defaults: ansible/roles/vault/defaults/main.yml
 # Post-unseal API fields: ansible/roles/control_applications/defaults/main.yml
 # Service DNS: docs/02-conventions/service-dns.md

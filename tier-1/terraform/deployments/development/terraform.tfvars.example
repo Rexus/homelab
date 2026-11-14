@@ -2,7 +2,7 @@
 
 # Copy to: terraform/deployments/development/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/03-deployment/stage-9-development/step-1b-source-control-vm.md
+# Setup guide: docs/03-deployment/stage-09-development/step-1b-source-control-vm.md
 # Shared values live in ../../common.tfvars.
 # VMID allocations: docs/02-conventions/vmid-convention.md
 
@@ -15,7 +15,7 @@ vm_instances = {
   # Keep the host key aligned with ansible/inventory/hosts.yml and
   # ansible/group_vars/development.yml.
   "git-1" = {
-    vm_id            = 1201
+    vm_id            = 1301
     size             = "xl"
     storage_class    = "shared"
     disk_size_gb     = 200

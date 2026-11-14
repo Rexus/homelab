@@ -28,7 +28,7 @@ class SoftwareIntake(TierRepositoryTestCase):
         self.assertFalse((tier0 / "ansible/inventory/hosts.yml").exists())
 
         guide = (self.root / "verify-architecture/docs/auto-docs/03-deployment/"
-                 "stage-1-software-intake/README.md").read_text()
+                 "stage-01-software-intake/README.md").read_text()
         commands = re.search(r"```bash\n(.*?)```", guide, re.DOTALL).group(1)
         self.assertRegex(guide, r"Run from \*\*`verify-tier-2/`\*\*[^\n]*\n\n```bash\n"
                                r"bash scripts/init-local-files\.sh --setup cache\n")
@@ -56,7 +56,7 @@ class SoftwareIntake(TierRepositoryTestCase):
             for source in ("01-architecture/10-delivery/README.md", "01-architecture/10-delivery/01-artifact-supply.md",
                            "05-operations/02-software-intake/host-updates.md"):
                 self.assertIn("software-intake/", (docs / source).read_text(), source)
-            self.assertIn("../stage-1-software-intake/README.md",
+            self.assertIn("../stage-01-software-intake/README.md",
                           (docs / "03-deployment/foundation/README.md").read_text())
             guide = (docs / "08-reference/proxy-cache.md").read_text()
             for expected in (f"**Working repository:** `{prefix}-tier-2`", "not cached",
@@ -69,18 +69,18 @@ class SoftwareIntake(TierRepositoryTestCase):
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             deployment = docs / "03-deployment"
             self.assertFalse((deployment / "foundation/step-3b-outbound-cache.md").exists())
-            capability = (deployment / "stage-1-software-intake/README.md").read_text()
+            capability = (deployment / "stage-01-software-intake/README.md").read_text()
             for step in range(1, 4):
                 self.assertIn(f"## Step {step}:", capability)
             for expected in ("cache-1", "cache-2", "proxy-cache.md", "**IaC:**", "Harbor",
                              "complete without PKI or a hosted registry", "Harbor belongs to Stage 7"):
                 self.assertIn(expected, capability)
-            self.assertIn("../stage-3-trust/README.md#15b-verified-repository-and-artifact-publication-optional", capability)
+            self.assertIn("../stage-03-trust/README.md#15b-verified-repository-and-artifact-publication-optional", capability)
             foundation = (deployment / "foundation/README.md").read_text()
-            self.assertIn("../stage-1-software-intake/README.md", foundation)
+            self.assertIn("../stage-01-software-intake/README.md", foundation)
             self.assertNotIn("step-3b-outbound-cache.md", foundation)
-            registry = (deployment / "stage-7-delivery/procedures/registry.md").read_text()
-            self.assertIn("../../stage-1-software-intake/README.md#extend-the-capability-later", registry)
+            registry = (deployment / "stage-07-delivery/procedures/registry.md").read_text()
+            self.assertIn("../../stage-01-software-intake/README.md#extend-the-capability-later", registry)
             self.assertIn("not a replacement", registry)
             index = (deployment / "README.md").read_text()
             for connection in ("Base --> Intake", "Intake --> Logs", "Logs --> Trust"):

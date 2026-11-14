@@ -64,7 +64,7 @@ def tier_readme(writer, tier, prefix, setups):
     if tier == "tier-0":
         deployments[:0] = [
             "| `ci-auth` | [main.tf](terraform/deployments/ci-auth/main.tf) "
-            "| [Vault CI guide](" + docs + "/03-deployment/stage-9-development/procedures/vault-ci.md) |",
+            "| [Vault CI guide](" + docs + "/03-deployment/stage-09-development/procedures/vault-ci.md) |",
             "| `templates` | [main.tf](terraform/deployments/templates/main.tf) "
             "| [image recipes](templates/proxmox.yml.example) |",
         ]
@@ -78,7 +78,7 @@ def tier_readme(writer, tier, prefix, setups):
         "```bash\n"
         "bash scripts/kubernetes-cluster.sh init\n"
         "```\n\n"
-        f"Follow the [cluster procedure]({docs}/03-deployment/stage-4-kubernetes/procedures/talos-terraform.md)\n"
+        f"Follow the [cluster procedure]({docs}/03-deployment/stage-04-kubernetes/procedures/talos-terraform.md)\n"
         "to configure, plan, deploy and verify. Cluster manifests are starters, not installed services.\n"
         f"Record the [delivery choice]({docs}/01-architecture/10-delivery/02-controllers.md) separately;\n"
         "Tier 1 does not inherit Tier 0 Flux automatically.\n"
@@ -105,35 +105,35 @@ def tier_readme(writer, tier, prefix, setups):
             "before Stage 1. No hosted CI or control cluster is required.\n"
             f"Later changes use [template maintenance]({docs}/05-operations/01-hosting/templates/template-lifecycle.md#local-workflow)\n"
             f"or intentional [boot-disk replacement]({docs}/05-operations/01-hosting/templates/template-disk.md).\n\n"
-            f"Accept [Stage 1: software intake]({docs}/03-deployment/stage-1-software-intake/README.md) first,\n"
+            f"Accept [Stage 1: software intake]({docs}/03-deployment/stage-01-software-intake/README.md) first,\n"
             "using existing approved supply or the Tier 2 proxy/cache path.\n\n"
-            f"Deploy [Stage 2: protected logging]({docs}/03-deployment/stage-2-logging/README.md), Steps 1-16,\n"
+            f"Deploy [Stage 2: protected logging]({docs}/03-deployment/stage-02-logging/README.md), Steps 1-16,\n"
             "outside Kubernetes with this repository's `syslog` setup. The supplied code\n"
             "provisions receiver VMs/disks and installs the isolated receiver after\n"
             "storage/TLS preparation. Separate logging recipes configure producers, NAS checkpoints\n"
             "and independent backups; NAS custody and live acceptance remain explicit gates.\n\n"
-            f"After logging, complete [trust]({docs}/03-deployment/stage-3-trust/README.md) before the cluster.\n"
+            f"After logging, complete [trust]({docs}/03-deployment/stage-03-trust/README.md) before the cluster.\n"
             "**Kubernetes control cluster.** Initialize its Tier 0 inputs:\n\n"
             f"Run from `{repo_prefix}-tier-0/`.\n\n"
             "```bash\n"
             "bash scripts/kubernetes-cluster.sh init\n"
             "```\n\n"
-            f"Follow the numbered [Stage 4: Kubernetes]({docs}/03-deployment/stage-4-kubernetes/README.md) actions\n"
+            f"Follow the numbered [Stage 4: Kubernetes]({docs}/03-deployment/stage-04-kubernetes/README.md) actions\n"
             "to configure, review and apply nodes and the basic platform in order. The optional\n"
-            f"[Talos reference]({docs}/03-deployment/stage-4-kubernetes/procedures/talos-terraform.md) explains\n"
+            f"[Talos reference]({docs}/03-deployment/stage-04-kubernetes/procedures/talos-terraform.md) explains\n"
             "the implementation without restarting the installation. The node OS\n"
             "is an implementation choice; other OS installers are not included.\n"
             "Keycloak is a later service in this cluster.\n"
             "FreeIPA runs on two dedicated VMs through\n"
             "the Linux `foundation` setup, outside Kubernetes. The Linux\n"
             "helper does not create the cluster or install Keycloak.\n"
-            f"The [externally signed CA flow]({docs}/03-deployment/stage-5-identity/procedures/freeipa.md#external-ca-integration-gate)\n"
+            f"The [externally signed CA flow]({docs}/03-deployment/stage-05-identity/procedures/freeipa.md#external-ca-integration-gate)\n"
             "uses explicit CSR/pause and signed-certificate completion phases; offline signing remains separate.\n"
         )
     elif tier == "tier-1":
         prerequisites += (
-            f"\nAfter [Delivery]({docs}/03-deployment/stage-7-delivery/README.md) and Observability,\n"
-            f"follow [Stage 9: Development platform]({docs}/03-deployment/stage-9-development/README.md).\n"
+            f"\nAfter [Delivery]({docs}/03-deployment/stage-07-delivery/README.md) and Observability,\n"
+            f"follow [Stage 9: Development platform]({docs}/03-deployment/stage-09-development/README.md).\n"
             "Its native Helm recipe installs GitLab and on-demand Kubernetes job runners.\n"
             "Stage 9 provisions the dedicated data-service VMs before installing GitLab.\n"
             "The Linux VM quick start below is an alternative.\n"
@@ -169,7 +169,12 @@ def copy_documentation(writer, prefix, upstream):
               "08-reference/diagrams/hosting-runtime-placement.svg",
               "08-reference/diagrams/observability-capabilities.svg",
               "08-reference/diagrams/control-applications-placement.svg",
-              "08-reference/diagrams/observability-operations.svg")
+              "08-reference/diagrams/observability-operations.svg",
+              "08-reference/diagrams/availability-cases.svg",
+              "08-reference/diagrams/platform-cluster-runtime.svg",
+              "08-reference/diagrams/pkcs11-provider-placement.svg",
+              "08-reference/diagrams/signal-pipelines.svg",
+              "08-reference/diagrams/kubernetes-platform.svg")
     current_paths = {f"{AUTO_DOCS}/{path.relative_to(upstream / 'docs').as_posix()}" for path in documents}
     referenced = referenced_manual_aliases(writer, prefix)
     aliases = {path: [alias for alias in compatibility_paths(Path("docs") / path.relative_to(upstream / "docs"))

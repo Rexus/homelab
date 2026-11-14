@@ -18,7 +18,7 @@ class HSMEndpoint(TierRepositoryTestCase):
                        "p11-kit", "restricted SSH", "YubiHSM 2", "PicoHSM", "public-key fingerprints",
                        "default Shamir", "does not make backups interchangeable", "No implicit product migration"):
             self.assertIn(phrase, design)
-        deployment = (UPSTREAM / "docs/03-deployment/stage-3-trust/step-1b-usb-hsm.md").read_text()
+        deployment = (UPSTREAM / "docs/03-deployment/stage-03-trust/step-1b-usb-hsm.md").read_text()
         self.assertIn("scripts/deploy.sh hsm", deployment)
         self.assertIn("pkcs11-remoting.md", deployment)
         remoting = yaml.safe_load((UPSTREAM / "tier-0/ansible/roles/hsm_remote/defaults/main.yml").read_text())
@@ -28,7 +28,7 @@ class HSMEndpoint(TierRepositoryTestCase):
         listener = (UPSTREAM / "tier-0/ansible/roles/hsm_remote/templates/sshd_config.j2").read_text()
         for boundary in ("ForceCommand", "DisableForwarding yes", "PasswordAuthentication no", "PermitTTY no"):
             self.assertIn(boundary, listener)
-        single = (UPSTREAM / "docs/03-deployment/stage-3-trust/step-1d-single-usb.md").read_text()
+        single = (UPSTREAM / "docs/03-deployment/stage-03-trust/step-1d-single-usb.md").read_text()
         self.assertIn("hsm-issuer.yml", single)
         self.assertIn("hsm-token.yml", single)
         self.assertIn("do not bring offline root custody online", single)

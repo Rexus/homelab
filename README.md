@@ -94,7 +94,7 @@ README/prose differences are omitted; project documents stay protected.
 | Back up or recover a VM, host or platform | [Operations and recovery](docs/05-operations/README.md) |
 | Find implementation files | [Automation layout](docs/04-development/code-layout.md) |
 | Handle secrets | [Secret strategy](docs/05-operations/03-cryptography/secret-handling.md) |
-| Deploy private PKI and public HTTPS | [Software-backed PKI](docs/03-deployment/stage-3-trust/procedures/software-pki.md) |
+| Deploy private PKI and public HTTPS | [Software-backed PKI](docs/03-deployment/stage-03-trust/procedures/software-pki.md) |
 
 ## Repository Structure
 

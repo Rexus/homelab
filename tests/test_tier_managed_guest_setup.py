@@ -51,7 +51,7 @@ class ManagedGuestSetup(TierRepositoryTestCase):
         self.assertEqual(storage[1]['tasks'][0]['ansible.builtin.include_role'],
                          {'name': 'syslog_ng', 'tasks_from': 'storage'})
         self.assertTrue((repo / 'ansible/playbooks/deployment/logging-verify.yml').is_file())
-        guide = (self.root / 'verify-architecture/docs/auto-docs/03-deployment/stage-2-logging/README.md').read_text()
+        guide = (self.root / 'verify-architecture/docs/auto-docs/03-deployment/stage-02-logging/README.md').read_text()
         self.assertIn('--ansible-only --playbook deployment/logging-storage.yml', guide)
         self.assertNotRegex(guide, r'(?m)^\s*ssh\s')
 
@@ -60,7 +60,7 @@ class ManagedGuestSetup(TierRepositoryTestCase):
         for page in (page for stage in stages for page in stage.rglob('*.md')):
             for block in re.findall(r'```bash\n(.*?)```', page.read_text(), re.S):
                 self.assertNotRegex(block, r'(?m)^\s*(?:ssh|scp|sftp)\s', str(page))
-        cluster = UPSTREAM / 'docs/03-deployment/stage-4-kubernetes/step-1b-existing-cluster.md'
+        cluster = UPSTREAM / 'docs/03-deployment/stage-04-kubernetes/step-1b-existing-cluster.md'
         self.assertIn('existing owner manages its nodes through IaC', cluster.read_text())
         self.assertNotIn('In the Proxmox UI, make', cluster.read_text())
 

@@ -1,6 +1,6 @@
 # Optional extension after local provider/issuer acceptance; never required for PKI.
 # Schema: roles/hsm_remote/defaults/main.yml
-# Guide: docs/03-deployment/stage-3-trust/procedures/pkcs11-remoting.md
+# Guide: docs/03-deployment/stage-03-trust/procedures/pkcs11-remoting.md
 hsm_remote_enabled: true
 hsm_remote_pool_id: signing
 hsm_remote_family: yubihsm2  # Alternative: picohsm, on BOTH backends; never mix wrapped backups.

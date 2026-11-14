@@ -130,6 +130,9 @@ review restart/replacement requirements before resizing. Application replication
 data/quorum lifecycle. No cluster autoscaler is supplied. Proxmox HA/rebalancing relocates or restarts
 existing VMs; it adds neither instances nor physical capacity.
 
+The [availability guide](05-availability.md#how-scaling-changes-the-failure-budget) connects these
+changes to redundancy, failover and HA, with separate migration and host-loss illustrations.
+
 ### Keep room for failure as well as growth
 
 Budget against the selected failure scenario, such as **N+1**: required workloads must still fit after
@@ -190,7 +193,7 @@ copies and local administrative execution remain available.
 - Parent: [Hosting and orchestration](README.md).
 - Whole system: [reference platform](../03-reference-platform.md), [interaction index](../README.md#how-the-platform-works-together) and [selection guidance](../02-organization/README.md#selected-design).
 - Interfaces: [networking](../05-networking/README.md), [infrastructure control](02-provisioning.md) and [tier ownership](../02-organization/01-tier-ownership.md).
-- Realization: [host/image foundation](../../03-deployment/foundation/README.md#step-1-prepare-compute-and-templates) and [Kubernetes capability](../../03-deployment/stage-4-kubernetes/README.md).
+- Realization: [host/image foundation](../../03-deployment/foundation/README.md#step-1-prepare-compute-and-templates) and [Kubernetes capability](../../03-deployment/stage-04-kubernetes/README.md).
 - Persistence: [Data and storage](../06-data/README.md), including its selected storage qualification links.
 - Acceptance and implementation coverage: [deployment readiness](../../03-deployment/readiness.md).
 

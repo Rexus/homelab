@@ -2,7 +2,7 @@
 
 # Copy to: terraform/deployments/podman-runner/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/03-deployment/stage-9-development/step-14b-podman-runner.md
+# Setup guide: docs/03-deployment/stage-09-development/step-14b-podman-runner.md
 # Shared values live in ../../common.tfvars.
 # VMID allocations: docs/02-conventions/vmid-convention.md
 
@@ -14,7 +14,7 @@ vm_instances = {
   # Keys match the stable logical host names in the Ansible inventory.
   # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
   "runner-1" = {
-    vm_id            = 1501
+    vm_id            = 1601
     size             = "medium"
     storage_class    = "local"
     disk_size_gb     = 80
@@ -22,7 +22,7 @@ vm_instances = {
     tags             = ["gitlab-runner", "podman", "bootc", "restricted", "always-on", "delivery"]
   }
   # "runner-2" = {
-  #   vm_id            = 1502
+  #   vm_id            = 1602
   #   size             = "medium"
   #   storage_class    = "local"
   #   disk_size_gb     = 80

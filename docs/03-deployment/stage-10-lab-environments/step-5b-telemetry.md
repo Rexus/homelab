@@ -48,7 +48,7 @@ The [Collector values](../../../tier-2/ansible/roles/workload_telemetry/template
 define the namespace Service, per-replica storage and the two authenticated export pipelines.
 
 **Working repository:** `<prefix>-tier-2` (source: `tier-2/`).
-**Prerequisites:** accepted [Observability](../stage-8-observability/README.md),
+**Prerequisites:** accepted [Observability](../stage-08-observability/README.md),
 an existing application namespace, CSI storage and enforced network policies.
 Application SDK instrumentation and its receiver configuration are application-owned.
 **Design:** [telemetry boundaries](../../01-architecture/11-operations/03-observability.md).
@@ -68,9 +68,9 @@ Application SDK instrumentation and its receiver configuration are application-o
 
 ## Step 1: Prepare the selected sources
 
-For Linux VMs such as `lab-1`, use the [Linux source recipe](../stage-2-logging/procedures/sources.md).
+For Linux VMs such as `lab-1`, use the [Linux source recipe](../stage-02-logging/procedures/sources.md).
 It installs Shared's native sender using Tier 2-owned inventory and source selections.
-Cluster OS/API evidence uses the [cluster security-event gate](../stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation),
+Cluster OS/API evidence uses the [cluster security-event gate](../stage-04-kubernetes/procedures/kubernetes.md#cluster-foundation),
 not the application analytics path below. Register missing sources explicitly.
 Application security/audit events must also enter a protected source, such as
 captured container stdout or an approved file stream, never only the SDK analytics path.

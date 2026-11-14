@@ -4,6 +4,9 @@ Backups preserve recoverable data and authority outside the systems being protec
 Availability keeps a service running; recovery restores its accepted identity and data
 after loss or compromise. Both need explicit owners and independently usable credentials.
 
+The [availability cases](../04-hosting/05-availability.md) explain migration, redundancy and
+failover; this page owns independent recovery after the live service or its data is lost.
+
 <a id="figure-recovery-boundaries"></a>
 
 ![Independent copies and authorized recovery](../../08-reference/diagrams/backup-recovery-context.svg)

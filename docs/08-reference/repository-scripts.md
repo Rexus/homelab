@@ -38,10 +38,10 @@ these shared implementations.
 | `scripts/init-tier-repos.sh` | generates tier-owned inputs and shared automation | to generate the repo set |
 | `shared/scripts/init-local-files.sh` | creates ignored local files | when setting up the repo or an environment |
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | to deploy, plan, or destroy a setup |
-| `shared/scripts/gitlab-iac.sh` | executes explicitly trusted CI with Vault ID tokens and private saved plans | [Stage 9 handover](../03-deployment/stage-9-development/procedures/handover.md); not a tenant request API |
+| `shared/scripts/gitlab-iac.sh` | executes explicitly trusted CI with Vault ID tokens and private saved plans | [Stage 9 handover](../03-deployment/stage-09-development/procedures/handover.md); not a tenant request API |
 | `tier-0/scripts/proxmox-templates.sh` | initializes, plans publication/adoption, applies templates or explicitly replaces one boot disk | [Template lifecycle](../05-operations/01-hosting/templates/template-lifecycle.md), [boot-disk maintenance](../05-operations/01-hosting/templates/template-disk.md) |
 | `shared/scripts/log-evidence.py` via Tier 0's `scripts/log-evidence.sh` | generates synthetic manifests and reconciles received/restored records | [Logging drill](../05-operations/06-resilience/logging-drill.md); no faults or service changes |
-| `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports private credentials/plan JSON; currently Talos | [Kubernetes cluster](../03-deployment/stage-4-kubernetes/procedures/kubernetes.md) |
+| `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports private credentials/plan JSON; currently Talos | [Kubernetes cluster](../03-deployment/stage-04-kubernetes/procedures/kubernetes.md) |
 
 ## Cheat sheet
 
@@ -86,12 +86,12 @@ Successful apply also refreshes the sibling Shared template references, preservi
 default and older entries; see the [catalog contract](template-catalog.md#publish-references-and-select-a-default).
 It never configures a Talos guest through Ansible.
 
-Each tier's independent Kubernetes cluster currently uses the [Talos implementation](../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md)
+Each tier's independent Kubernetes cluster currently uses the [Talos implementation](../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md)
 and `bash scripts/kubernetes-cluster.sh init` from its own root. It owns a separate state
 root, uses tier-local inventory, and does not use the Linux setup/environment wrapper.
 `export-plan` writes the existing saved plan as sensitive JSON under `secrets/talos/`
 using that same backend and working-data context. It does not apply the plan. The
-[Kubernetes SSO procedure](../03-deployment/stage-5-identity/procedures/kubernetes-sso.md)
+[Kubernetes SSO procedure](../03-deployment/stage-05-identity/procedures/kubernetes-sso.md)
 uses this private export for its guarded serial rollout; never publish it as a CI artifact.
 
 Saved Linux plans are confined to the owning tier's `.terraform/plans/` directory,
@@ -113,7 +113,7 @@ state, reconcile its identity before another creation attempt; keep state backup
 
 Tier 0's `terraform/deployments/ci-auth/` configures Vault JWT roles/policies with
 native Terraform, not the Proxmox helper. GitLab uses the Tier 1 native
-Ansible/Helm recipe. See [Stage 9](../03-deployment/stage-9-development/README.md).
+Ansible/Helm recipe. See [Stage 9](../03-deployment/stage-09-development/README.md).
 
 ## Initialize tier repositories
 
@@ -357,18 +357,18 @@ their `.deployment-setups`; see [setup ownership](../04-development/generated-re
 
 | Setup | What it targets | Start with |
 | --- | --- | --- |
-| `foundation` | Tier 0 online issuer, directory and optional independent monitoring VM resources share the original state; select Stage 6 monitor provisioning with `--terraform-only`; root custody stays offline | [Issuer](../03-deployment/stage-3-trust/procedures/issuer.md), [directory](../03-deployment/stage-5-identity/procedures/freeipa.md), [monitor](../03-deployment/stage-6-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
-| `syslog` | Tier 0 VMs/disks, guarded filesystem/UUID mount and isolated TLS receiver; accepted certificate files are inputs, with HA/WORM outside this installer | [Protected logging](../03-deployment/stage-2-logging/README.md) |
-| `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../03-deployment/stage-7-delivery/procedures/edge-proxy.md) |
-| `cache` | Tier 2 ordinary cache pair or larger set for controlled outbound access | [Software intake](../03-deployment/stage-1-software-intake/README.md) |
-| `intake` | Tier 1 verified RPM/APT and selected-artifact publication with managed VM/disks and UUID-mounted data volume; Stage 3 option 15b | [Verified intake](../03-deployment/stage-3-trust/step-15b-verified-intake.md) |
-| `development` | GitLab on a dedicated Podman VM | [Development platform path](../03-deployment/stage-9-development/step-1b-source-control-vm.md) |
-| `vault` | Stage 6 dedicated HashiCorp Vault; optional independent OpenBao signing uses a separate named environment/state, never the original Vault guests | [Vault VM deployment](../03-deployment/stage-6-secrets/step-1b-vault-vm.md), [signing option](../03-deployment/stage-6-secrets/step-11b-openbao.md) |
-| `observability` | Optional Tier 1 native gateway, metrics, search and query products with guarded data disks; separate from Kubernetes and Tier 0 evidence | [Observability VM alternative](../03-deployment/stage-8-observability/step-1b-dedicated-vms.md) |
-| `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../03-deployment/stage-9-development/step-14b-podman-runner.md) |
-| `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../03-deployment/stage-9-development/step-15b-image-based-linux.md) |
+| `foundation` | Tier 0 online issuer, directory and optional independent monitoring VM resources share the original state; select Stage 6 monitor provisioning with `--terraform-only`; root custody stays offline | [Issuer](../03-deployment/stage-03-trust/procedures/issuer.md), [directory](../03-deployment/stage-05-identity/procedures/freeipa.md), [monitor](../03-deployment/stage-06-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
+| `syslog` | Tier 0 VMs/disks, guarded filesystem/UUID mount and isolated TLS receiver; accepted certificate files are inputs, with HA/WORM outside this installer | [Protected logging](../03-deployment/stage-02-logging/README.md) |
+| `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../03-deployment/stage-07-delivery/procedures/edge-proxy.md) |
+| `cache` | Tier 2 ordinary cache pair or larger set for controlled outbound access | [Software intake](../03-deployment/stage-01-software-intake/README.md) |
+| `intake` | Tier 1 verified RPM/APT and selected-artifact publication with managed VM/disks and UUID-mounted data volume; Stage 3 option 15b | [Verified intake](../03-deployment/stage-03-trust/step-15b-verified-intake.md) |
+| `development` | GitLab on a dedicated Podman VM | [Development platform path](../03-deployment/stage-09-development/step-1b-source-control-vm.md) |
+| `vault` | Stage 6 dedicated HashiCorp Vault; optional independent OpenBao signing uses a separate named environment/state, never the original Vault guests | [Vault VM deployment](../03-deployment/stage-06-secrets/step-1b-vault-vm.md), [signing option](../03-deployment/stage-06-secrets/step-11b-openbao.md) |
+| `observability` | Optional Tier 1 native gateway, metrics, search and query products with guarded data disks; separate from Kubernetes and Tier 0 evidence | [Observability VM alternative](../03-deployment/stage-08-observability/step-1b-dedicated-vms.md) |
+| `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../03-deployment/stage-09-development/step-14b-podman-runner.md) |
+| `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../03-deployment/stage-09-development/step-15b-image-based-linux.md) |
 | `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../03-deployment/foundation/proxmox/templates.md) |
-| `hsm` | Tier 0 native USB/provider host pool, original-key issuer binding and optional native restricted PKCS#11 remoting; physical key custody and application HA remain separate | [USB HSM host-pool option](../03-deployment/stage-3-trust/step-1b-usb-hsm.md) |
+| `hsm` | Tier 0 native USB/provider host pool, original-key issuer binding and optional native restricted PKCS#11 remoting; physical key custody and application HA remain separate | [USB HSM host-pool option](../03-deployment/stage-03-trust/step-1b-usb-hsm.md) |
 | `lab` | general-purpose lab guests | this reference and the local inventory |
 
 ## What the deployment wrapper does
@@ -514,7 +514,7 @@ consistent.
 - [Local setup](../04-development/local-setup.md)
 - [Infrastructure automation layout](../04-development/code-layout.md)
 - [Environment variable conventions](environment-variables.md)
-- [Identity foundation path](../03-deployment/stage-5-identity/procedures/freeipa.md)
+- [Identity foundation path](../03-deployment/stage-05-identity/procedures/freeipa.md)
 
 ## References
 

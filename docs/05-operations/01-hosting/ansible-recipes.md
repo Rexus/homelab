@@ -65,7 +65,7 @@ restore approved configuration using the product's runbook. Normal deployment wi
    inspection never initializes or activates a token.
 
 The override selects only a tier-local recipe; it creates no new Terraform root/state owner.
-Initial deployment uses the separate [issuer procedure](../../03-deployment/stage-3-trust/procedures/issuer.md).
+Initial deployment uses the separate [issuer procedure](../../03-deployment/stage-03-trust/procedures/issuer.md).
 
 <a id="recipe-map"></a>
 
@@ -85,9 +85,9 @@ The signing play is a gated backend renderer, not a service, VIP or HA installer
 | 0 / issuer, explicit custody | `deployment/openxpki-bundle.yml` (controller), `deployment/openxpki-key.yml` | `maintenance/openxpki-backup.yml` and `maintenance/openxpki-restore.yml`: separately approved recovery operations |
 | 0 / `syslog` | `deployment/foundation-logging.yml` | `maintenance/syslog.yml`: baseline and isolated receiver convergence; no package upgrades, evidence/queue deletion or retention changes |
 | 0 / `vault` | `deployment/vault-vm.yml` | `maintenance/vault.yml`: reconcile existing role configuration |
-| 0 / `vault`, independent signing environment | `deployment/vault-vm.yml` with explicit OpenBao inputs; `deployment/openbao-signing.yml` after original initialization | [Signing API](../../03-deployment/stage-6-secrets/step-11b-openbao.md): scoped keys/clients, audit and independent recovery; never migrates Vault |
+| 0 / `vault`, independent signing environment | `deployment/vault-vm.yml` with explicit OpenBao inputs; `deployment/openbao-signing.yml` after original initialization | [Signing API](../../03-deployment/stage-06-secrets/step-11b-openbao.md): scoped keys/clients, audit and independent recovery; never migrates Vault |
 | 0 / `hsm` | `deployment/hsm-gateways.yml`; explicit `hsm-issuer.yml`/`hsm-token.yml` for original-key binding | `maintenance/hsm.yml`: baseline/provider reconciliation; `deployment/hsm-inspect.yml`: read-only provider check, no key rotation |
-| 0 / `hsm`, optional remoting | `deployment/hsm-remote.yml`, `hsm-remote-client.yml` | `hsm-remote-check.yml`: explicit original-key identity/signature checks; [native transport](../../03-deployment/stage-3-trust/procedures/pkcs11-remoting.md) |
+| 0 / `hsm`, optional remoting | `deployment/hsm-remote.yml`, `hsm-remote-client.yml` | `hsm-remote-check.yml`: explicit original-key identity/signature checks; [native transport](../../03-deployment/stage-03-trust/procedures/pkcs11-remoting.md) |
 | 0 / `immutable-template` | `deployment/immutable-template.yml` | Existing builder recipe, with its current gates |
 | 0 / `template-refresh` | `deployment/template-refresh.yml` | Existing refresh recipe; replacement remains explicitly enabled |
 | 2 / `edge` | `deployment/edge-proxy.yml` | `maintenance/edge.yml`: proxy configuration |
@@ -105,19 +105,19 @@ explicit kubeconfig. Their default action is offline `render`; `apply` is explic
 
 | Working tier | Native application recipe | Authoritative guide |
 | --- | --- | --- |
-| 0, 1, 2 | `deployment/cluster-platform.yml` | [Kubernetes basic platform](../../03-deployment/stage-4-kubernetes/README.md#step-2-establish-the-basic-platform); tier-local inputs, Shared execution |
-| 0, 1, 2 | `deployment/cluster-security-logging.yml` | [Protected cluster-source collection](../../03-deployment/stage-4-kubernetes/procedures/security-logging.md) |
-| 0 | `deployment/control-applications.yml` | [Identity](../../03-deployment/stage-5-identity/README.md), [Secrets](../../03-deployment/stage-6-secrets/README.md) |
-| 1 | `deployment/delivery-platform.yml` | [Delivery](../../03-deployment/stage-7-delivery/README.md) |
-| 1 | `deployment/observability-platform.yml` | [Observability](../../03-deployment/stage-8-observability/README.md) |
-| 1 | `deployment/development-platform.yml` | [GitLab and runners](../../03-deployment/stage-9-development/procedures/gitlab.md) |
+| 0, 1, 2 | `deployment/cluster-platform.yml` | [Kubernetes basic platform](../../03-deployment/stage-04-kubernetes/README.md#step-2-establish-the-basic-platform); tier-local inputs, Shared execution |
+| 0, 1, 2 | `deployment/cluster-security-logging.yml` | [Protected cluster-source collection](../../03-deployment/stage-04-kubernetes/procedures/security-logging.md) |
+| 0 | `deployment/control-applications.yml` | [Identity](../../03-deployment/stage-05-identity/README.md), [Secrets](../../03-deployment/stage-06-secrets/README.md) |
+| 1 | `deployment/delivery-platform.yml` | [Delivery](../../03-deployment/stage-07-delivery/README.md) |
+| 1 | `deployment/observability-platform.yml` | [Observability](../../03-deployment/stage-08-observability/README.md) |
+| 1 | `deployment/development-platform.yml` | [GitLab and runners](../../03-deployment/stage-09-development/procedures/gitlab.md) |
 | 2 | `deployment/lab-environment.yml` | [Bounded application](../../03-deployment/stage-10-lab-environments/step-3a-application.md) |
 | 2 | `deployment/workload-telemetry.yml` | [Scoped application telemetry](../../03-deployment/stage-10-lab-environments/step-5b-telemetry.md) |
 
 Tier 0's `deployment/infrastructure-monitoring.yml` instead targets an explicitly
-prepared host outside observed clusters; use the [independent monitoring guide](../../03-deployment/stage-6-secrets/procedures/independent-monitoring.md).
+prepared host outside observed clusters; use the [independent monitoring guide](../../03-deployment/stage-06-secrets/procedures/independent-monitoring.md).
 Tier 0's control-application recipe also owns the guarded
-[Kubernetes API SSO operation](../../03-deployment/stage-5-identity/procedures/kubernetes-sso.md),
+[Kubernetes API SSO operation](../../03-deployment/stage-05-identity/procedures/kubernetes-sso.md),
 which uses the selected target tier's plan and credentials, not Helm.
 
 Reconcile the same release with the same values owner; do not run direct apply and

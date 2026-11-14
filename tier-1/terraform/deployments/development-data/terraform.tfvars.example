@@ -2,7 +2,7 @@
 
 # Copy to: terraform/deployments/development-data/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/03-deployment/stage-9-development/procedures/data-services.md
+# Setup guide: docs/03-deployment/stage-09-development/procedures/data-services.md
 # Shared values live in ../../common.tfvars.
 # VMID allocations: docs/02-conventions/vmid-convention.md
 
@@ -15,7 +15,7 @@ vm_instances = {
   # Main path: chart applications consume these dedicated native data services.
   # Select an approved EL9 x86_64 template for these hosts. No all-in-one GitLab VM.
   "db-1" = {
-    vm_id            = 1211
+    vm_id            = 1311
     size             = "small-mem"
     storage_class    = "shared"
     disk_size_gb     = 100
@@ -23,7 +23,7 @@ vm_instances = {
     tags             = ["gitlab", "postgresql", "internal", "always-on", "apps"]
   }
   "kv-1" = {
-    vm_id            = 1212
+    vm_id            = 1312
     size             = "tiny-mem"
     storage_class    = "shared"
     disk_size_gb     = 40
@@ -31,7 +31,7 @@ vm_instances = {
     tags             = ["gitlab", "redis", "internal", "always-on", "apps"]
   }
   "repo-1" = {
-    vm_id            = 1213
+    vm_id            = 1313
     size             = "medium-mem"
     storage_class    = "shared"
     disk_size_gb     = 200

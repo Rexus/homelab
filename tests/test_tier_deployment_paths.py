@@ -1,8 +1,10 @@
 """Prerequisites and deployable capabilities have distinct, navigable entry points."""
 
 import re
+import xml.etree.ElementTree as ET
 
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
+from test_tier_diagrams import figure_sources
 
 
 class DeploymentPaths(TierRepositoryTestCase):
@@ -57,7 +59,7 @@ class DeploymentPaths(TierRepositoryTestCase):
         }
         for docs in (UPSTREAM / 'docs', self.root / 'verify-architecture/docs/auto-docs'):
             for stage, markers in required.items():
-                path = next((docs / '03-deployment').glob(f'stage-{stage}-*/README.md'))
+                path = next((docs / '03-deployment').glob(f'stage-{stage:02d}-*/README.md'))
                 content = path.read_text(encoding='utf-8')
                 actions = {int(match[1]): match[2] for match in re.finditer(
                     r'(?ms)^## Step (\d+):[^\n]*\n(.*?)(?=^## |\Z)', content)}
@@ -66,18 +68,17 @@ class DeploymentPaths(TierRepositoryTestCase):
 
     def test_capability_names_have_unique_numbers_and_federation_belongs_to_identity(self):
         self.generate()
-        expected = ["stage-1-software-intake", "stage-2-logging", "stage-3-trust", "stage-4-kubernetes",
-                    "stage-5-identity", "stage-6-secrets",
-                    "stage-7-delivery", "stage-8-observability", "stage-9-development", "stage-10-lab-environments"]
+        expected = ["stage-01-software-intake", "stage-02-logging", "stage-03-trust", "stage-04-kubernetes",
+                    "stage-05-identity", "stage-06-secrets",
+                    "stage-07-delivery", "stage-08-observability", "stage-09-development", "stage-10-lab-environments"]
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             root = docs / "03-deployment"
-            directories = sorted((path.name for path in root.glob("stage-*") if path.is_dir()),
-                                 key=lambda name: int(name.split("-")[1]))
+            directories = sorted(path.name for path in root.glob("stage-*") if path.is_dir())
             self.assertEqual(directories, expected)
             numbers = [int(name.split("-")[1]) for name in directories]
             self.assertEqual(numbers, list(range(1, 11)))
-            identity = (root / "stage-5-identity/README.md").read_text()
-            secrets = (root / "stage-6-secrets/README.md").read_text()
+            identity = (root / "stage-05-identity/README.md").read_text()
+            secrets = (root / "stage-06-secrets/README.md").read_text()
             self.assertTrue(identity.startswith("# Stage 5: Identity\n"))
             self.assertTrue(secrets.startswith("# Stage 6: Secrets\n"))
             federation = identity.split("## Step 12: Select the existing cluster and identity-provider inputs", 1)[1]
@@ -85,8 +86,10 @@ class DeploymentPaths(TierRepositoryTestCase):
                          "control_applications_ldap_bind_dn", "read-only FreeIPA federation", "**IaC:**"):
                 self.assertIn(term, federation)
             self.assertIn("## Step 1: Select Vault placement and seal", secrets)
-            self.assertIn("Keycloak[\"Existing Keycloak / IdP\"]", secrets)
-            added = re.search(r'subgraph Added\[.*?\n        end', secrets, re.DOTALL)[0]
+            svg = ET.fromstring(figure_sources(root / 'stage-06-secrets/README.md')[0])
+            nodes = {node.get('id'): node for node in svg.iter() if node.get('id')}
+            self.assertIn('Existing Keycloak / IdP', ''.join(nodes['Keycloak'].itertext()))
+            added = ''.join(nodes['Added'].itertext())
             self.assertNotIn("Keycloak", added)
             self.assertIn("step-1b-vault-vm.md", secrets)
             self.assertIn("step-1c-seal-integration.md", secrets)
@@ -103,14 +106,14 @@ class DeploymentPaths(TierRepositoryTestCase):
             self.assertTrue(foundation.startswith("# Foundation and prerequisites"))
             self.assertIn("not a numbered capability stage", foundation)
             self.assertNotIn("## Step 4: Establish protected logging", foundation)
-            self.assertIn("stage-2-logging/README.md", foundation)
+            self.assertIn("stage-02-logging/README.md", foundation)
             stages = sorted(root.glob("stage-*/README.md"), key=lambda path: int(path.parent.name.split("-")[1]))
-            self.assertEqual(stages[0].parent.name, "stage-1-software-intake")
-            self.assertFalse((root / "stage-1-foundation").exists())
+            self.assertEqual(stages[0].parent.name, "stage-01-software-intake")
+            self.assertFalse((root / "stage-01-foundation").exists())
             expected_steps = {
-                "stage-2-logging/README.md": [str(number) for number in range(1, 17)],
-                "stage-6-secrets/procedures/independent-monitoring.md": ["1", "2", "3"],
-                "stage-8-observability/README.md": [str(number) for number in range(1, 16)],
+                "stage-02-logging/README.md": [str(number) for number in range(1, 17)],
+                "stage-06-secrets/procedures/independent-monitoring.md": ["1", "2", "3"],
+                "stage-08-observability/README.md": [str(number) for number in range(1, 16)],
                 "stage-10-lab-environments/step-5b-telemetry.md": [str(number) for number in range(1, 9)],
             }
             for relative, expected in expected_steps.items():
@@ -121,7 +124,7 @@ class DeploymentPaths(TierRepositoryTestCase):
                 self.assertIn("```mermaid", content, relative)
                 # A step can refer to a result figure introduced earlier; action
                 # numbering must not force a duplicate diagram for the same topology.
-                if relative not in ("stage-2-logging/README.md", "stage-8-observability/README.md",
+                if relative not in ("stage-02-logging/README.md", "stage-08-observability/README.md",
                                     "stage-10-lab-environments/step-5b-telemetry.md"):
                     for section in sections:
                         if "```mermaid" not in section:
@@ -165,7 +168,7 @@ class DeploymentPaths(TierRepositoryTestCase):
             self.assertEqual(re.findall(r"(?m)^### (\d+[a-z])[.:] ", logging), ["9a", "9b"])
             self.assertEqual(re.findall(r"(?m)^\| \*\*(\d+[a-z]):", logging),
                              ["14a", "14b", "15a", "15b"])
-            self.assertEqual(len(re.findall(r"```mermaid\n", logging)), 3)
+            self.assertEqual(len(figure_sources(stages[1])), 3)
             self.assertIn("baseline", actions[4])
             self.assertIn("sources.md", logging)
             self.assertIn("step-15a-nas-archive.md", logging)
@@ -194,7 +197,7 @@ class DeploymentPaths(TierRepositoryTestCase):
             self.assertRegex(
                 capability_map,
                 r"(?m)^\| Tier 1 \| `intake` \| Stage 3[^\n]+"
-                r"\(stage-3-trust/step-15b-verified-intake\.md\) \|$",
+                r"\(stage-03-trust/step-15b-verified-intake\.md\) \|$",
             )
             self.assertIn("never rename state roots", index)
             support = (docs / "08-reference/implementation-support.md").read_text()
@@ -206,22 +209,22 @@ class DeploymentPaths(TierRepositoryTestCase):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             deployment = docs / "03-deployment"
-            cluster = (deployment / "stage-4-kubernetes/README.md").read_text()
-            identity = (deployment / "stage-5-identity/README.md").read_text()
+            cluster = (deployment / "stage-04-kubernetes/README.md").read_text()
+            identity = (deployment / "stage-05-identity/README.md").read_text()
             self.assertEqual(re.findall(r"(?m)^## Step (\d+):", cluster),
                              [str(number) for number in range(1, 20)])
-            implementation = (deployment / "stage-4-kubernetes/procedures/talos-terraform.md").read_text()
+            implementation = (deployment / "stage-04-kubernetes/procedures/talos-terraform.md").read_text()
             self.assertIn("procedures/talos-terraform.md", cluster)
             for action in ("init", "plan", "apply", "credentials"):
                 self.assertIn(f"bash scripts/kubernetes-cluster.sh {action}", implementation)
             for expected in ("independent DNS/time", "private", "API endpoint outside this cluster",
                              "cluster-security-logging.yml", "security-logging.md", "etcd",
-                             "../stage-5-identity/README.md", "step-1b-existing-cluster.md"):
+                             "../stage-05-identity/README.md", "step-1b-existing-cluster.md"):
                 self.assertIn(expected, cluster)
             self.assertEqual(re.findall(r"(?m)^## Step (\d+):", identity),
                              [str(number) for number in range(1, 24)])
-            self.assertIn("../stage-4-kubernetes/README.md", identity)
+            self.assertIn("../stage-04-kubernetes/README.md", identity)
             self.assertNotIn("## Step 2: Create the Kubernetes cluster", identity)
             for procedure in ("kubernetes.md", "talos-terraform.md"):
-                self.assertTrue((deployment / "stage-4-kubernetes/procedures" / procedure).is_file())
-                self.assertFalse((deployment / "stage-5-identity/procedures" / procedure).exists())
+                self.assertTrue((deployment / "stage-04-kubernetes/procedures" / procedure).is_file())
+                self.assertFalse((deployment / "stage-05-identity/procedures" / procedure).exists())

@@ -20,15 +20,15 @@ class OperatorJourney(TierRepositoryTestCase):
             host = (docs / "03-deployment/foundation/proxmox/README.md").read_text()
             handoff = host.split("### Step 6:", 1)[1].split("## Platform guides", 1)[0]
             self.assertIn("../README.md", handoff)
-            self.assertIn("stage-1-software-intake/README.md", foundation)
-            self.assertIn("stage-2-logging/README.md", foundation)
+            self.assertIn("stage-01-software-intake/README.md", foundation)
+            self.assertIn("stage-02-logging/README.md", foundation)
             self.assertNotIn("freeipa.md", handoff)
             network = (docs / "03-deployment/foundation/network/unifi.md").read_text()
             for expected in ("## Step 1: Bring up the network", "switch alone is not", "controller",
                              "native/untagged", "control_cluster"):
                 self.assertIn(expected.lower(), network.lower())
             for relative in ("README.md", "procedures/receiver.md"):
-                logging = (docs / "03-deployment/stage-2-logging" / relative).read_text()
+                logging = (docs / "03-deployment/stage-02-logging" / relative).read_text()
                 self.assertIn("software-pki.md#decisions-and-recovery-kit", logging)
                 self.assertIn("client-auth", logging)
                 self.assertIn("independent producer authority", logging)
@@ -36,13 +36,13 @@ class OperatorJourney(TierRepositoryTestCase):
     def test_service_walkthroughs_initialize_edit_then_deploy_with_optional_preview(self):
         self.generate()
         guides = (
-            ("stage-1-software-intake/README.md", "cache", ""),
-            ("stage-7-delivery/procedures/edge-proxy.md", "edge", ""),
-            ("stage-6-secrets/step-1b-vault-vm.md", "vault", ""),
-            ("stage-5-identity/README.md", "foundation", ""),
-            ("stage-9-development/step-1b-source-control-vm.md", "development", ""),
-            ("stage-9-development/step-14b-podman-runner.md", "podman-runner", ""),
-            ("stage-9-development/step-15b-image-based-linux.md", "immutable-template", " --env test"),
+            ("stage-01-software-intake/README.md", "cache", ""),
+            ("stage-07-delivery/procedures/edge-proxy.md", "edge", ""),
+            ("stage-06-secrets/step-1b-vault-vm.md", "vault", ""),
+            ("stage-05-identity/README.md", "foundation", ""),
+            ("stage-09-development/step-1b-source-control-vm.md", "development", ""),
+            ("stage-09-development/step-14b-podman-runner.md", "podman-runner", ""),
+            ("stage-09-development/step-15b-image-based-linux.md", "immutable-template", " --env test"),
         )
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             for relative, setup, environment in guides:
@@ -58,7 +58,7 @@ class OperatorJourney(TierRepositoryTestCase):
                 self.assertRegex(configuration, r"\b(?:edit|replace|set|configure)\b", relative)
                 for block in re.findall(r"```bash\n(.*?)```", content, re.DOTALL):
                     self.assertFalse(apply + " --plan-only" in block and apply + "\n" in block, relative)
-            vault = (docs / "03-deployment/stage-6-secrets/step-1b-vault-vm.md").read_text()
+            vault = (docs / "03-deployment/stage-06-secrets/step-1b-vault-vm.md").read_text()
             self.assertLess(vault.index("export VAULT_ADDR VAULT_CACERT"), vault.index("vault status"))
             # Audit/SSO now uses controller API reconciliation after the human ceremony.
             configure = (
@@ -68,7 +68,7 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertLess(vault.index("vault login"), vault.index(configure))
             self.assertLess(vault.index("export VAULT_TOKEN"), vault.index(configure))
             self.assertLess(vault.index(configure), vault.index("unset VAULT_TOKEN"))
-            identity = (docs / "03-deployment/stage-5-identity/procedures/freeipa.md").read_text()
+            identity = (docs / "03-deployment/stage-05-identity/procedures/freeipa.md").read_text()
             self.assertIn("foundation root owns both issuer and directory resources", identity)
 
     def test_hidden_follow_up_covers_every_branch_without_entering_generated_docs(self):
@@ -133,7 +133,7 @@ class OperatorJourney(TierRepositoryTestCase):
                   ("step-15b-image-based-linux.md", "immutable-template"))
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
             for relative, setup in guides:
-                content = (docs / "03-deployment/stage-9-development" / relative).read_text()
+                content = (docs / "03-deployment/stage-09-development" / relative).read_text()
                 initialized = re.search(rf"bash scripts/init-local-files.sh --setup {setup}(?: --env test)?\n",
                                         content)
                 deployed = re.search(rf"bash scripts/deploy.sh {setup}(?: --env test)?(?: --terraform-only)?\n",
@@ -189,5 +189,5 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertIn("../bootstrap/README.md", entry)
             bootstrap = (docs / "03-deployment/foundation/bootstrap/README.md").read_text()
             self.assertIn(relative + "#step-1-trust-the-bootstrap-ca", bootstrap)
-            trust = (docs / "03-deployment/stage-3-trust/README.md").read_text()
+            trust = (docs / "03-deployment/stage-03-trust/README.md").read_text()
             self.assertIn(relative + "#step-2-adopt-the-platform-pki", trust)

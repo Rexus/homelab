@@ -49,7 +49,7 @@ Tier 2 [public HTTPS inputs](../../../tier-2/ansible/group_vars/public-https.yml
 [certificate recipe](../../../tier-2/ansible/playbooks/maintenance/public-certificates.yml) and
 [controller timer recipe](../../../tier-2/ansible/playbooks/deployment/public-certificate-schedule.yml).
 These configure existing edge hosts/controller, not new VMs, DNS, origins or a public CA.
-The [edge deployment view](../stage-7-delivery/procedures/edge-proxy.md#figure-edge-pool) owns the guest resources.
+The [edge deployment view](../stage-07-delivery/procedures/edge-proxy.md#figure-edge-pool) owns the guest resources.
 
 <a id="figure-public-https-issuance"></a>
 
@@ -79,7 +79,7 @@ owns challenge deployment, validation and certificate installation.
 with OpenSSL and system CA trust, community.crypto, valid origin certificates,
 accepted audit forwarding and authorized public DNS/firewall access.
 If the edge pool does not exist, follow the
-[edge provisioning path](../stage-7-delivery/procedures/edge-proxy.md#configuration),
+[edge provisioning path](../stage-07-delivery/procedures/edge-proxy.md#configuration),
 then return here before publishing a website.
 
 ## Contents

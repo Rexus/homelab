@@ -112,7 +112,7 @@ B is the stronger fit when Tier 0 must consume only retained, approved releases
 without depending on live public repositories. Synchronization and promotion are
 separate operations; downloading into a mirror does not itself approve a release.
 An existing mirror is valid. The repository supplies A and an optional
-[verified RPM/APT and artifact publication path](../../03-deployment/stage-3-trust/step-15b-verified-intake.md)
+[verified RPM/APT and artifact publication path](../../03-deployment/stage-03-trust/step-15b-verified-intake.md)
 for B. C still requires a prepared, independently verified offline supply bundle.
 
 ## Transport and integrity
@@ -161,7 +161,7 @@ A clean malware scan cannot establish a publisher's identity or prove the absenc
 
 ## Realization
 
-[Software intake](../../03-deployment/stage-1-software-intake/README.md) deploys the
+[Software intake](../../03-deployment/stage-01-software-intake/README.md) deploys the
 Tier 2 Squid/keepalived reference. Each consuming tier owns its local proxy inputs;
 Shared supplies reusable package-manager and shell configuration.
 [Proxmox update access](../../05-operations/02-software-intake/host-updates.md) covers the

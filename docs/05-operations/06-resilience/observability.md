@@ -21,12 +21,12 @@ The [collector](../../../tier-1/ansible/roles/observability_platform/templates/c
 [query proxy](../../../tier-1/ansible/roles/observability_platform/templates/query-values.yml.j2) and
 [bridge](../../../tier-1/ansible/roles/observability_platform/templates/bridge-values.yml.j2) define the signal paths.
 The [VM selection](#figure-observability-vm-operations) replaces these Kubernetes workloads.
-[Tier 0 infrastructure collection](../../03-deployment/stage-8-observability/step-13-infrastructure-monitoring.md),
-[optional protected-log projections](../../03-deployment/stage-8-observability/step-14b-protected-log-search.md) and
+[Tier 0 infrastructure collection](../../03-deployment/stage-08-observability/step-13-infrastructure-monitoring.md),
+[optional protected-log projections](../../03-deployment/stage-08-observability/step-14b-protected-log-search.md) and
 [database backups](backups/postgresql.md) retain separate inputs and acceptance.
 
 **Design:** [Observability](../../01-architecture/11-operations/03-observability.md).
-**Install and acceptance:** [Stage 8](../../03-deployment/stage-8-observability/README.md).
+**Install and acceptance:** [Stage 8](../../03-deployment/stage-08-observability/README.md).
 
 ## Table of contents
 
@@ -108,7 +108,7 @@ bash scripts/deploy.sh observability --ansible-only
 Use the complete seven-host inventory. The recipe configures all members, starts the Netdata
 parents and children, then reconciles backends, search policy and gateways/frontends. It checks
 verified TLS, seven reachable identities on each parent and samples for selected bridge metrics.
-Repeat the [VM acceptance checks](../../03-deployment/stage-8-observability/step-1b-dedicated-vms.md#step-4-integrate-and-accept-the-services)
+Repeat the [VM acceptance checks](../../03-deployment/stage-08-observability/step-1b-dedicated-vms.md#step-4-integrate-and-accept-the-services)
 and retained-data recovery tests; installation checks do not establish catch-up completeness or HA.
 
 ## How are VM diagnostics maintained?
@@ -119,7 +119,7 @@ and retained-data recovery tests; installation checks do not establish catch-up 
    streams only. Keep these endpoints outside tenant Grafana/Dashboards routes.
 2. Preserve the distinct child and peer stream keys and each guest's issued TLS identity.
    Children list both parents; each parent streams to its peer. Review image pins and shared
-   gateway capacity with the [VM installation inputs](../../03-deployment/stage-8-observability/step-1b-dedicated-vms.md#step-1-configure-the-hosts)
+   gateway capacity with the [VM installation inputs](../../03-deployment/stage-08-observability/step-1b-dedicated-vms.md#step-1-configure-the-hosts)
    before reconciliation. The [native Netdata installer](../../../tier-1/ansible/roles/observability_vm/tasks/netdata.yml)
    owns configuration and the [Quadlet](../../../tier-1/ansible/roles/observability_vm/templates/netdata.container.j2)
    generating `obs-netdata.service` on all seven guests.
@@ -140,7 +140,7 @@ collection remain separately owned; the VM installer receives no Tier 0 collecto
 For the **Kubernetes runtime**, use its render/review/apply workflow:
 
 1. Review the existing context, source allowlists, access policy and recovery copies using
-   the [configuration procedure](../../03-deployment/stage-8-observability/procedures/observability-platform.md).
+   the [configuration procedure](../../03-deployment/stage-08-observability/procedures/observability-platform.md).
    Keep `observability_search_bootstrap: false` on an established search cluster.
 2. In **`<prefix>-tier-1/`**, render the selected inputs. Supply the existing Vault password:
 
@@ -172,7 +172,7 @@ For the **Kubernetes runtime**, use its render/review/apply workflow:
 | Check VM maintenance scope | [Recipe map](../01-hosting/ansible-recipes.md#recipe-map) |
 | Protect PostgreSQL data | [PostgreSQL backups](backups/postgresql.md) |
 | Restore shared product data | [Tier 1 recovery](recovery/tier-1-products.md) |
-| Check node, Proxmox, IPMI and Netdata source coverage | [Stage 8 checks](../../03-deployment/stage-8-observability/README.md#main-path) |
+| Check node, Proxmox, IPMI and Netdata source coverage | [Stage 8 checks](../../03-deployment/stage-08-observability/README.md#main-path) |
 
 Configuration reconciliation does not replace version-specific database or search migrations.
 

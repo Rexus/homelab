@@ -37,7 +37,7 @@ automatically when that file exists.
 
 That automatic loading is specific to `scripts/deploy.sh`. The
 [template publisher](template-publication.md#state-and-execution) needs `--env-file .env.local`;
-the [Kubernetes lifecycle](../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure)
+the [Kubernetes lifecycle](../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md#configure)
 uses exported native provider variables. Direct Ansible invocations need their own documented inputs.
 
 `PROXMOX_API_URL` is for the Terraform `bpg/proxmox` provider and should not

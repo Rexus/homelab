@@ -94,9 +94,9 @@ depend on the extension it supports.
 
 ## Read more
 
-- [Identity foundation path](../../03-deployment/stage-5-identity/procedures/freeipa.md)
-- [Hardware-backed user authentication](../../03-deployment/stage-6-secrets/step-21b-hardware-authentication.md)
-- [Vault foundation deployment](../../03-deployment/stage-6-secrets/step-1b-vault-vm.md)
+- [Identity foundation path](../../03-deployment/stage-05-identity/procedures/freeipa.md)
+- [Hardware-backed user authentication](../../03-deployment/stage-06-secrets/step-21b-hardware-authentication.md)
+- [Vault foundation deployment](../../03-deployment/stage-06-secrets/step-1b-vault-vm.md)
 - [Deployment readiness](../../03-deployment/readiness.md)
 - [Design decision log](../../07-decisions/README.md)
 

@@ -50,7 +50,7 @@ share identities and independent retention remain existing prerequisites. Client
 **Working repository:** generated Tier 1.
 **Run configuration on:** the deployment host. **Run checks on:** each existing data VM.
 **Prerequisites:** commissioned NAS shares/identities or SFTP service, independent encryption passwords,
-approved restic 0.17+ and [accepted data services](../../../03-deployment/stage-9-development/procedures/data-services.md#render-and-apply).
+approved restic 0.17+ and [accepted data services](../../../03-deployment/stage-09-development/procedures/data-services.md#render-and-apply).
 **Design:** [backup and recovery](../../../01-architecture/11-operations/04-backup-recovery.md).
 
 <a id="contents"></a>
@@ -87,7 +87,7 @@ approved restic 0.17+ and [accepted data services](../../../03-deployment/stage-
 
 2. For NAS, complete the next task before applying. For SFTP, qualify scoped credentials and
    repository access through the existing service; retain the selected transport on existing projects.
-3. Apply via the [data-service installer](../../../03-deployment/stage-9-development/procedures/data-services.md#render-and-apply).
+3. Apply via the [data-service installer](../../../03-deployment/stage-09-development/procedures/data-services.md#render-and-apply).
    It mounts the client, verifies the independent marker/repository, persists the mount and probes access before scheduling.
    It installs no NAS server or export and never creates/replaces the marker.
 
@@ -106,7 +106,7 @@ approved restic 0.17+ and [accepted data services](../../../03-deployment/stage-
    target path, type, marker and UID/GID. Set `manage_mount: true`. For CIFS, also set
    `credentials_src` to a private controller file with `username=`, `password=` and optional
    `domain=` lines. Keep credentials outside Git; Ansible copies them as root-only files. [4][6]
-4. Apply through [the data-service installer](../../../03-deployment/stage-9-development/procedures/data-services.md#render-and-apply).
+4. Apply through [the data-service installer](../../../03-deployment/stage-09-development/procedures/data-services.md#render-and-apply).
    IaC installs the NAS client, rejects conflicting mount/fstab declarations and nonempty or unreadable
    local targets, mounts, checks the independent marker and repository, then persists the accepted mount.
    Require capacity and create/read/sync/rename/delete probes to pass before any component stops.

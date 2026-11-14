@@ -168,9 +168,9 @@ selected inventory, cluster interfaces and supporting services.
 
 ## Realization
 
-Implementation procedures: [foundational logging](../../03-deployment/stage-2-logging/README.md),
-[independent monitoring](../../03-deployment/stage-8-observability/step-13-infrastructure-monitoring.md),
-[Observability](../../03-deployment/stage-8-observability/README.md),
-[operational tools](../../03-deployment/stage-6-secrets/README.md#step-2-add-operational-tools)
-and [operational acceptance](../../03-deployment/stage-6-secrets/README.md#step-3-integrate-access-and-recovery).
+Implementation procedures: [foundational logging](../../03-deployment/stage-02-logging/README.md),
+[independent monitoring](../../03-deployment/stage-08-observability/step-13-infrastructure-monitoring.md),
+[Observability](../../03-deployment/stage-08-observability/README.md),
+[operational tools](../../03-deployment/stage-06-secrets/README.md#step-2-add-operational-tools)
+and [operational acceptance](../../03-deployment/stage-06-secrets/README.md#step-3-integrate-access-and-recovery).
 Recurring work belongs in [administration](../../05-operations/README.md).

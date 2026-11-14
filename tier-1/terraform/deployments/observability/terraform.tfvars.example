@@ -1,7 +1,7 @@
 # Variable definitions (this repository): terraform/deployments/observability/variables.tf
 
 # Copy to: terraform/deployments/observability/terraform.tfvars
-# Guide: docs/03-deployment/stage-8-observability/step-1b-dedicated-vms.md
+# Guide: docs/03-deployment/stage-08-observability/step-1b-dedicated-vms.md
 # VMID allocations: docs/02-conventions/vmid-convention.md
 # Optional dedicated-VM alternative to the Tier 1 Kubernetes observability workloads.
 # Separate gateway, metrics and search roles scale independently.
@@ -15,7 +15,7 @@ vm_instances = {
   # Keys match the tier-local Ansible inventory and platform_host_ips.
   # Initial placement is not a persistent Proxmox anti-affinity rule.
   "otel-1" = {
-    vm_id             = 1401
+    vm_id             = 1501
     proxmox_node_name = "pve01"
     size              = "large"
     cores             = 4
@@ -27,7 +27,7 @@ vm_instances = {
     tags              = ["otel-collector", "internal", "always-on", "platform"]
   }
   "otel-2" = {
-    vm_id             = 1402
+    vm_id             = 1502
     proxmox_node_name = "pve02"
     size              = "large"
     cores             = 4
@@ -39,7 +39,7 @@ vm_instances = {
     tags              = ["otel-collector", "internal", "always-on", "platform"]
   }
   "metric-1" = {
-    vm_id             = 1411
+    vm_id             = 1511
     proxmox_node_name = "pve01"
     size              = "large"
     storage_class     = "local"
@@ -50,7 +50,7 @@ vm_instances = {
     tags              = ["victoriametrics", "internal", "always-on", "platform"]
   }
   "metric-2" = {
-    vm_id             = 1412
+    vm_id             = 1512
     proxmox_node_name = "pve02"
     size              = "large"
     storage_class     = "local"
@@ -61,7 +61,7 @@ vm_instances = {
     tags              = ["victoriametrics", "internal", "always-on", "platform"]
   }
   "search-1" = {
-    vm_id             = 1421
+    vm_id             = 1521
     proxmox_node_name = "pve01"
     size              = "large"
     storage_class     = "local"
@@ -72,7 +72,7 @@ vm_instances = {
     tags              = ["opensearch", "internal", "always-on", "platform"]
   }
   "search-2" = {
-    vm_id             = 1422
+    vm_id             = 1522
     proxmox_node_name = "pve02"
     size              = "large"
     storage_class     = "local"
@@ -83,7 +83,7 @@ vm_instances = {
     tags              = ["opensearch", "internal", "always-on", "platform"]
   }
   "search-3" = {
-    vm_id             = 1423
+    vm_id             = 1523
     proxmox_node_name = "pve03"
     size              = "large"
     storage_class     = "local"

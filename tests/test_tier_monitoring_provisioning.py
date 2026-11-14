@@ -104,9 +104,9 @@ run "stage_six_enabled" {
   }
   assert {
     condition = (
-      module.environment.vm_instances["mon-1"].vm_id == 411 &&
+      module.environment.vm_instances["mon-1"].vm_id == 511 &&
       module.environment.vm_instances["mon-1"].network_zone_key == "management" &&
-      module.environment.vm_instances["mon-1"].ipv4_address == "10.10.10.60/24" &&
+      module.environment.vm_instances["mon-1"].ipv4_address == "10.10.10.70/24" &&
       module.environment.vm_instances["mon-1"].disk_size_gb == 40 &&
       module.environment.vm_instances["mon-1"].template_vm_id == 9101
     )
@@ -122,7 +122,7 @@ run "stage_six_enabled" {
     def test_documented_shared_baseline_selects_only_the_monitor(self):
         repo = self.prepare()
         activate_monitor(repo)
-        guide = self.root / "verify-architecture/docs/auto-docs/03-deployment/stage-6-secrets/procedures/independent-monitoring.md"
+        guide = self.root / "verify-architecture/docs/auto-docs/03-deployment/stage-06-secrets/procedures/independent-monitoring.md"
         command = next(block for block in re.findall(r"(?ms)^```bash\n(.*?)^```", guide.read_text())
                        if "-shared/ansible/playbooks/site.yml" in block)
         result = subprocess.run(["bash", "-c", command.rstrip() + " --list-hosts"], cwd=repo,
@@ -137,7 +137,7 @@ run "stage_six_enabled" {
     def test_documented_monitor_and_audit_inputs_resolve_managed_and_external_hosts(self):
         repo = self.prepare()
         activate_monitor(repo)
-        docs = self.root / "verify-architecture/docs/auto-docs/03-deployment/stage-6-secrets"
+        docs = self.root / "verify-architecture/docs/auto-docs/03-deployment/stage-06-secrets"
         for relative, host_variable in (("procedures/independent-monitoring.md", "MONITOR_HOST"),
                                         ("procedures/netbox-audit.md", "AUDIT_HOST")):
             blocks = re.findall(r"(?ms)^```bash\n(.*?)^```", (docs / relative).read_text())
@@ -155,7 +155,7 @@ run "stage_six_enabled" {
                 probe.write_text(yaml.safe_dump([{
                     "hosts": "infrastructure_monitoring", "gather_facts": False,
                     "tasks": [{"ansible.builtin.assert": {"that": [
-                        "ansible_host == '" + ("192.0.2.60" if external else "10.10.10.60") + "'",
+                        "ansible_host == '" + ("192.0.2.60" if external else "10.10.10.70") + "'",
                     ]}}],
                 }]), encoding="utf-8")
                 invocation = command.replace(playbook, f"'{probe}'")

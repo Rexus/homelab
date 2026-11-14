@@ -1,4 +1,5 @@
 # Tier-owned logical hosts. IPs live in setup group vars.
+# Use explicit host-name: {} entries; put addresses in ansible_host or setup group vars.
 all:
   vars:
     # DHCP guests need a resolvable environment-specific DNS name before Ansible runs.
@@ -11,6 +12,10 @@ all:
   children:
     hypervisors:
       hosts: {}
+      # Replace hosts: {} above with a host mapping when managing Proxmox.
+      # hosts:
+      #   pve01:
+      #     ansible_host: pve01.corp.example.com
     # Stage 6 managed monitor or accepted existing host; outside observed Kubernetes clusters.
     infrastructure_monitoring:
       hosts: {}

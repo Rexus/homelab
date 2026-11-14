@@ -1,0 +1,5 @@
+---
+# Explicit mapping keys are local resource/rule identifiers.
+# Full supported input fields and examples live in group_vars/proxmox_ha.yml.example.
+proxmox_ha_resources: {}
+proxmox_ha_rules: {}

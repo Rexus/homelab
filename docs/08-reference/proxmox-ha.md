@@ -1,121 +1,153 @@
 # Proxmox VE HA controls
 
-Field reference for the [cluster/HA setup](../03-deployment/foundation/proxmox/step-1b-cluster-ha.md).
-Target Proxmox VE 9+; native dynamic balancing and HA arm/disarm require 9.2+.
-Values below are a conservative homelab starting policy, not settings applied by this kit.
-Use the installed UI's help if its patch-level labels differ.
+Exact field lookup for the HA dialogs, CLI and API. Follow the operations guide for
+configuration, illustrations and recovery tasks. Proxmox VE 9 uses affinity rules.
+Dynamic scheduling, automatic balancing and cluster-wide arm/disarm require 9.2+.
+[Operations guide](../05-operations/01-hosting/proxmox-ha.md)
 
 ## Contents
 
-- [HA menu](#ha-menu)
-- [Resources](#resources)
+- [HA menu and status](#ha-menu)
+- [Resource fields and states](#resources)
 - [Affinity rules](#affinity-rules)
 - [Scheduling and maintenance](#scheduling-and-maintenance)
 - [References](#references)
 
-## HA menu
+<a id="ha-menu"></a>
 
-| Area / action | Meaning | Expected use |
-| --- | --- | --- |
-| Status | Quorum, active cluster resource manager (CRM), each node's local manager (LRM), guest state | Healthy quorum, active CRM, current LRM updates; investigate stale timestamps/errors |
-| Resources: Add/Edit | Enroll a VM/CT and set its requested behavior | Add only after storage, mobility and fencing tests |
-| Resources: Remove | Remove HA supervision; does not itself stop/delete the guest | Planned ownership change; no automatic recovery afterward |
-| Rules: Node Affinity | Allowed/preferred host placement | Hardware/storage restrictions or preferences |
-| Rules: Resource Affinity | Keep selected guests together or apart | Separate replicas; avoid unnecessary together-rules |
-| Rule errors / disabled rule | A rule is ineffective or conflicts with another rule | Resolve the reported conflict; do not assume the intended separation exists |
-| Groups, if retained during upgrade | Deprecated predecessor to node-affinity rules | Review migrated rules; no new group-based setup |
-| Arm / Disarm (9.2+) | Enable or suspend cluster-wide fencing/recovery | Keep **armed** normally; disarm only under an approved whole-cluster maintenance plan |
+## HA menu and status
 
-CRM coordinates the cluster; LRM performs actions on its node. Neither is an application
-health probe. Do not kill these daemons or `watchdog-mux` to simulate failure. [1]
+CRM means cluster resource manager. Each host's local resource manager, LRM, performs
+its assigned actions. The GUI's requested configuration and observed status can differ
+while an operation runs. [1][2]
 
-## Resources
-
-Resource ID is `vm:<VMID>` or `ct:<VMID>`, not its display name. The requested state
-is a policy; the status column is the asynchronous outcome. Current controls: [2][3]
-
-| Field | Meaning | Starting choice |
-| --- | --- | --- |
-| VM / CT | Guest enrolled in HA | The exact tier-owned VMID; never a template |
-| Request State | Desired service state, below | `started` for accepted always-on services |
-| Max. Restart | Extra start attempts on the current host before relocation is considered | `1`; raising it can prolong a failed-start outage |
-| Max. Relocate | Attempts at another eligible host after local retries fail | `1`; investigate persistent failures rather than retry indefinitely |
-| Failback | Return toward higher-priority node-affinity placement when it becomes available | Off initially to avoid an immediate return to a repaired host; review with rule priorities |
-| Auto-Rebalance (9.2+) | Permit this resource to participate in automatic load-balancing migrations | On for proven movable guests; off for a measured exception |
-| Comment | Operational context | Owner, service, dependencies and recovery-runbook link; no secrets |
-
-| Requested state | Effect |
+| Area / field | Meaning |
 | --- | --- |
-| `started` | Attempt to run and recover the guest; `enabled` is an API alias |
-| `stopped` | Keep stopped, but still relocate its ownership after node failure |
-| `disabled` | Stop, do not relocate; also clears the HA error state for deliberate repair |
-| `ignored` | Bypass HA supervision without requesting a stop; ordinary management resumes |
+| Status / Quorum | Whether this partition has the votes needed for cluster decisions |
+| Status / Fencing | Watchdog/arming state, detailed below |
+| Status / Master and LRM | Coordinating CRM and each node's LRM, with current timestamps |
+| Resources / Add or Edit | Enroll an existing VM/CT or change its HA policy |
+| Resources / Remove | Remove HA supervision while retaining the guest |
+| Affinity Rules | Placement constraints on enrolled resources |
+| Rule State | Reported feasibility or conflict, inspect after changing a rule |
+| Arm HA / Disarm HA | Resume HA protection or release cluster-wide watchdogs |
+| CRS Settings | Open the cluster resource scheduling options |
 
-`starting`, `migrate`, `relocate`, `fence`, `recovery`, `freeze` and `error` can appear
-as observed states. `fence`/`recovery` may mean waiting safely, not successful recovery.
-An `error` requires fixing the cause before disabling/re-enabling the resource. [1][2]
+| Fencing state | Interpretation |
+| --- | --- |
+| `standby` | CRM watchdog on standby, for example before active HA work exists |
+| `armed` | HA watchdog protection is armed, inspect node/resource status as well |
+| `disarming` | Watchdogs are being released, wait for completion |
+| `disarmed` | Watchdogs released, automatic fencing and recovery suspended |
+
+`quorum OK` with an empty resource list and standby fencing is a cluster awaiting
+HA enrollment. Check the effective state after enrollment and after every maintenance
+window. Preserve the installed release's displayed detail when investigating a fault. [2]
+
+<a id="resources"></a>
+
+## Resource fields and states
+
+Resource IDs use `vm:<VMID>` or `ct:<VMID>`. Defaults describe Proxmox's schema.
+The local `proxmox_ha.yml` supplies the policy selected for this cluster. [3][4]
+
+In the native recipe, `state` selects membership (`present` / `absent`), while `hastate`
+selects the GUI's Request State. The recipe exposes retries and comments. The current collection
+leaves Failback, Auto-Rebalance, negative node affinity and CRS settings to the GUI.
+[Maintained input schema](../../tier-0/ansible/group_vars/proxmox_ha.yml.example)
+
+| GUI field | API / CLI key | Meaning | Proxmox default |
+| --- | --- | --- | --- |
+| VM / CT, ID | `sid` | Existing guest selected for supervision | Required |
+| Max. Restart | `max_restart` | Local restart attempts when starting the resource fails | `1` |
+| Max. Relocate | `max_relocate` | Relocation attempts after local restart attempts are exhausted | `1` |
+| Failback | `failback` | Move toward higher-priority node placement when available again | On |
+| Auto-Rebalance | `auto-rebalance` | Permit periodic load-balancing migration of this resource | On |
+| Request State | `state` | Desired state, table below | `started` |
+| Comment | `comment` | Owner, purpose and runbook context | Empty |
+
+Retry counts govern failed starts. They neither set a host-failure detection timeout
+nor guarantee an outage duration. The relocation counter resets after a successful start. [3]
+
+| Requested state | Controller behavior |
+| --- | --- |
+| `started` | Start and recover the resource, API alias `enabled` |
+| `stopped` | Keep stopped, retain relocation of resource ownership on node failure |
+| `disabled` | Stop and retain its node assignment, clear an existing HA error state |
+| `ignored` | Stop HA supervision and allow ordinary guest management, retain configuration |
+
+Observed `starting`, `migrate`, `relocate`, `fence`, `recovery`, `freeze`, `queued` and
+`error` describe work or outcomes. Inspect the task log before changing requested state.
+`recovery` can persist while no eligible destination exists. [1][3]
 
 ## Affinity rules
 
-| Field / type | Meaning | Starting choice |
+| GUI field | API / CLI key | Meaning |
 | --- | --- | --- |
-| ID, Comment, Enabled/Disable | Rule identity, rationale and whether enforced | Stable purpose name; enabled only after reviewing eligibility |
-| Resources | Enrolled resource IDs affected by the rule | Explicit VMIDs; keep unrelated services out |
-| Node Affinity: Nodes / Priority | Preferred host list; a higher priority is preferred | Equal priorities for general movable guests; omit unnecessary preferences |
-| Node Affinity: Strict | Restrict to listed hosts instead of permitting fallback | Off for preference; on only for a real dependency/security restriction |
-| Node Affinity: Positive/Negative, where exposed | Prefer/require listed hosts, or avoid/exclude them | Positive allowlist for hardware constraints; qualify negative rules on installed release |
-| Resource Affinity: Positive | All selected resources must share a host | Avoid for redundant service members |
-| Resource Affinity: Negative | Selected resources must use distinct hosts | Use for the directory pair; capacity and host count must permit it |
+| ID | Rule identifier | Stable, unique rule name |
+| Enable | Inverse of `disable` | Apply the rule when enabled |
+| State | Observed result | Inspect conflicts or disabled rules |
+| HA Resources | `resources` | Explicit enrolled resource IDs |
+| Comment | `comment` | Reason for the constraint |
+| Node Affinity / Prefer Nodes | `affinity=positive` | Prefer the selected host set |
+| Node Affinity / Avoid Nodes | `affinity=negative` | Avoid the selected host set |
+| Node Affinity / Strict | `strict` | Make preference/exclusion mandatory |
+| Node Affinity / Priority | `nodes` entries | Higher positive-rule priority is preferred, equal values form a peer set |
+| Resource Affinity / Keep Together | `affinity=positive` | Selected resources must share a host |
+| Resource Affinity / Keep Separate | `affinity=negative` | Selected resources must occupy different hosts |
 
-Node preference is not resource anti-affinity. Resource affinity has no soft/strict
-toggle in the reviewed implementation: unsatisfied separation can block recovery. [4][5]
-For example, three separated control planes on three hosts leave one unrecovered
-after a host dies, even when the other two have spare RAM. Document that degraded
-state or design an explicit reviewed alternative; never promise automatic relaxation.
+Node rules select eligible/preferred hosts. Resource rules relate guests to each other
+and enforce hard placement constraints. Three separated VMs on three hosts leave one
+waiting when only two hosts remain. Resource affinity exposes no soft/strict switch. [5][6]
+
+Negative node rules accept no priorities. A resource belongs to at most one node rule.
+When combining node and resource affinity, use a single node-priority class. Inspect
+rule state after applying, because conflicting rules can be disabled. [5][6]
 
 ## Scheduling and maintenance
 
-These controls are in **Datacenter > Options**, not all under the HA submenu. [6][7]
-
-| Control | Meaning | Starting choice |
+| Control | Meaning | Initial choice to qualify |
 | --- | --- | --- |
-| HA Settings: Shutdown Policy | Behavior during an orderly node shutdown/reboot; not unexpected power loss | `migrate` after qualification; can wait indefinitely if rules/devices prevent migration |
-| CRS: Scheduling Mode | `basic`: guest count; `static`: configured CPU/RAM; `dynamic`: observed and configured load | `dynamic` on 9.2+; `static` for 9.0/9.1 placement, not periodic balancing |
-| CRS: Rebalance on Start | Choose placement again when an HA resource starts | Off initially; separate from node-failure recovery and periodic balancing |
-| CRS: Automatic Rebalance | Periodic HA-guest migrations for lower imbalance; static/dynamic modes only | On after migration/affinity tests; 9.2+ |
-| CRS: Imbalance Threshold | Trigger based on normalized cluster imbalance, not one host's CPU percentage | `30%` initially; do not set to zero to chase every difference |
-| CRS: Hold Duration | Consecutive HA rounds above threshold before considering a move | `3` rounds initially; roughly 30 seconds, not a failover timer |
-| CRS: Minimum Imbalance Improvement | Minimum predicted relative improvement to justify migration | `10%` initially to reduce churn |
-| CRS: Rebalancing Method | Candidate-selection algorithm: `bruteforce` or `topsis` | `bruteforce` default for a small cluster; change only after measurement |
-| HA worker limit (`max_worker`, HA-manager option) | Concurrent HA work per node; distinct from the generic bulk-action worker setting | Keep HA default `4`, reduce on constrained migration networks after testing |
-| Node maintenance | Evacuate HA guests and prevent new HA placement there | One node at a time; confirm no guest/work remains before poweroff; non-HA guests need separate handling |
+| HA Settings / Shutdown Policy | Response to orderly host shutdown/reboot | `migrate` for movable resources |
+| CRS / Scheduling Mode | `basic` counts guests, `static` considers configured CPU/RAM, `dynamic` also considers measured use | `static` on 9.0/9.1, assess `dynamic` on 9.2+ |
+| Rebalance on Start | Select placement when an HA resource starts | Off during initial qualification |
+| Automatic Rebalance | Periodically migrate HA resources to reduce cluster imbalance | Enable after mobility and affinity checks |
+| Imbalance Threshold | Normalized cluster imbalance that triggers evaluation | Default `30%` |
+| Hold Duration | Consecutive HA rounds above threshold | Default `3` rounds, approximately 30 seconds |
+| Minimum Imbalance Improvement | Required predicted improvement before moving | Default `10%` |
+| Rebalancing Method | Candidate-selection algorithm | Default `bruteforce`, alternative `topsis` |
+| HA `max_worker` | Concurrent HA workers per node | Default `4`, qualify against migration bandwidth |
+| Node Maintenance | Evacuate HA resources, exclude this host from new HA placement | One host at a time |
 
-`migrate` evacuates on orderly shutdown; `failover` stops then permits recovery;
-`freeze` waits for that same node; `conditional` uses failover for poweroff and
-freeze for reboot. Returning from maintenance can move guests back, so review
-the outcome before allowing routine rebalancing. [1]
+The UI reaches HA/CRS settings through **Datacenter > Options** or **HA > CRS Settings**.
+Automatic balancing uses static/dynamic mode and each resource's Auto-Rebalance flag.
+Positive-affinity peers of a resource excluded from balancing are excluded with it. [7][8]
 
-Disabling Failback prevents priority-driven return, not all load-balancing moves.
-Keep a repaired host in maintenance, or pause automatic rebalancing, until its
-hardware/storage checks pass. For three equal hosts, the protected workload must
-fit within **two hosts' usable capacity**, after OS/Ceph reservations, and each
-recoverable VM must fit on an eligible individual survivor.
+| Shutdown policy | Orderly host action |
+| --- | --- |
+| `migrate` | Evacuate running HA resources, can wait when mobility/rules block evacuation |
+| `failover` | Stop resources, permit recovery on another host |
+| `freeze` | Stop and retain resources for return on the same host |
+| `conditional` | Use failover for poweroff and freeze for reboot |
 
-Keep headroom for a failed node, host/OS/Ceph needs and migration overhead; low average
-CPU is not N+1 capacity. A node returning online is not proof its storage or hardware
-is healthy. Do not lower Ceph safety thresholds or quorum votes to force a guest start.
-During HA disarm there is **no automatic fencing or recovery**. It is not ordinary
-single-node maintenance. The [worked test](../03-deployment/foundation/proxmox/failover.md)
-records both service downtime and rule-constrained degraded states.
+| Disarm mode | During the disarmed interval |
+| --- | --- |
+| `freeze` | Preserve current resource state and suspend HA requests |
+| `ignore` | Suspend HA tracking and permit manual guest management |
+
+Node-maintenance state survives disarm/re-arm. Watch the observed arming state until
+its requested transition completes. Consult the operations guide for the complete
+maintenance and re-arm sequence. [1][2]
 
 ## References
 
-Official sources reviewed 2026-10-27; installed-release help is authoritative.
+Official sources checked 2026-11-14. Use the installed Proxmox release's help for its supported controls.
 
-1. [HA manager: fencing, states, shutdown and maintenance](https://github.com/proxmox/pve-docs/blob/master/ha-manager.adoc).
-2. [HA resource state and retry schema](https://github.com/proxmox/pve-ha-manager/blob/master/src/PVE/HA/Resources.pm).
-3. [Resource dialog](https://github.com/proxmox/pve-manager/blob/master/www/manager6/ha/ResourceEdit.js).
-4. [Node-affinity schema](https://github.com/proxmox/pve-ha-manager/blob/master/src/PVE/HA/Rules/NodeAffinity.pm).
-5. [Resource-affinity constraints](https://github.com/proxmox/pve-ha-manager/blob/master/src/PVE/HA/Rules/ResourceAffinity.pm).
-6. [Datacenter HA options](https://github.com/proxmox/pve-manager/blob/master/www/manager6/dc/OptionView.js).
+1. [HA manager, service states and maintenance](https://github.com/proxmox/pve-docs/blob/master/ha-manager.adoc).
+2. [HA status API and fencing state](https://github.com/proxmox/pve-ha-manager/blob/master/src/PVE/API2/HA/Status.pm).
+3. [Resource state, retry and failback schema](https://github.com/proxmox/pve-ha-manager/blob/master/src/PVE/HA/Resources.pm).
+4. [Resource dialog and defaults](https://github.com/proxmox/pve-manager/blob/master/www/manager6/ha/ResourceEdit.js).
+5. [Node-affinity schema](https://github.com/proxmox/pve-ha-manager/blob/master/src/PVE/HA/Rules/NodeAffinity.pm).
+6. [Resource-affinity schema](https://github.com/proxmox/pve-ha-manager/blob/master/src/PVE/HA/Rules/ResourceAffinity.pm).
 7. [CRS dialog and defaults](https://github.com/proxmox/pve-manager/blob/master/www/manager6/form/CRSOptions.js).
+8. [HA options and worker limit](https://github.com/proxmox/pve-cluster/blob/master/src/PVE/DataCenterConfig.pm).

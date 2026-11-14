@@ -230,7 +230,7 @@ Hardware-backed OTP/PIV and phishing-resistant FIDO2/WebAuthn are explicit integ
 choices, with different supported protocols. Harden privileged users first and retain
 the separately authorized recovery path; selecting an identity service does not
 configure every application or eliminate bootstrap/recovery passwords.
-See [hardware authentication choices](../../03-deployment/stage-6-secrets/step-21b-hardware-authentication.md)
+See [hardware authentication choices](../../03-deployment/stage-06-secrets/step-21b-hardware-authentication.md)
 for supplied integration and acceptance boundaries.
 
 ## Design constraints
@@ -253,10 +253,10 @@ authentication in complete service access.
 
 ## Realization
 
-Implementation procedures: [directory authority](../../03-deployment/stage-5-identity/procedures/freeipa.md)
-and [IdP integration](../../03-deployment/stage-5-identity/README.md#step-2-deploy-identity-federation).
+Implementation procedures: [directory authority](../../03-deployment/stage-05-identity/procedures/freeipa.md)
+and [IdP integration](../../03-deployment/stage-05-identity/README.md#step-2-deploy-identity-federation).
 Windows integration is an explicit project option, not a supplied domain installer.
-The [Identity stage](../../03-deployment/stage-5-identity/README.md) owns installation;
+The [Identity stage](../../03-deployment/stage-05-identity/README.md) owns installation;
 [identity operations](../../05-operations/04-identity.md) owns routine access and recovery.
 
 ## References

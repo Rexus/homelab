@@ -40,7 +40,7 @@ Existing managed resources require their original inputs/state.
 | Existing private project | Initialized `hosts.yml`, `lab.yml`, `terraform.tfvars`; preserve other entries |
 | Maintained kit example | Their `.example` counterparts under `tier-2/`; keep live credentials/state outside Git |
 
-The example adds **`lab-2` / VMID `3203`**. Reserve an unused ID under the
+The example adds **`lab-2` / VMID `3303`**. Reserve an unused ID under the
 [VMID convention](../02-conventions/vmid-convention.md).
 The displayed IP/attachment match the starter's application network; use the actual selected
 network and a free address outside DHCP. Unsafe workloads first need the
@@ -93,7 +93,7 @@ Add this hardware entry:
 
 ```hcl
 "lab-2" = {
-  vm_id            = 3203
+  vm_id            = 3303
   size             = "tiny"
   storage_class    = "local"
   disk_size_gb     = 20

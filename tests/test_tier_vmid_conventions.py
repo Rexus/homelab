@@ -13,11 +13,11 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 class VmidConventions(TierRepositoryTestCase):
     def test_starter_ids_match_categories_without_cluster_wide_collisions(self):
         linux_categories = {
-            0: {"foundation": 2, "hsm": 2, "vault": 2, "cluster-endpoint": 3,
-                "syslog": 4, "infrastructure-runner": 5},
-            1: {"development": 2, "development-data": 2, "intake": 2,
-                "podman-runner": 5, "observability": 4},
-            2: {"edge": 3, "cache": 3, "lab": 2},
+            0: {"foundation": 3, "hsm": 3, "vault": 3, "cluster-endpoint": 4,
+                "syslog": 5, "infrastructure-runner": 6},
+            1: {"development": 3, "development-data": 3, "intake": 3,
+                "podman-runner": 6, "observability": 5},
+            2: {"edge": 4, "cache": 4, "lab": 3},
         }
         allocated = {}
 
@@ -28,7 +28,7 @@ class VmidConventions(TierRepositoryTestCase):
             allocated[vmid] = location
 
         # Keep manual recovery access separate from every managed guest and optional example.
-        reserve(501, "tier-0/manual/boot-1")
+        reserve(601, "tier-0/manual/boot-1")
 
         for tier in range(3):
             inventory = yaml.safe_load((UPSTREAM / f"tier-{tier}/ansible/inventory/hosts.yml.example").read_text())
@@ -58,15 +58,13 @@ class VmidConventions(TierRepositoryTestCase):
                         continue
                     if setup == "kubernetes":
                         self.assertIn(name, control_planes | workers, location)
-                        category = 0 if name in control_planes else 1
+                        category = 1 if name in control_planes else 2
                     else:
                         category = linux_categories[tier][setup]
                     group = 3 if tier == 2 and setup in ("lab", "kubernetes") else tier
-                    if tier == 0 and setup == "kubernetes":
-                        start, stop = (100, 150) if category == 0 else (150, 200)
-                    else:
-                        start = group * 1000 + category * 100
-                        stop = start + 100
+                    self.assertNotEqual((vmid // 100) % 10, 0, location)
+                    start = group * 1000 + category * 100
+                    stop = start + 100
                     self.assertTrue(start <= vmid < stop, f"{location}: {vmid} outside {start}-{stop-1}")
                 # Commented optional guest examples also reserve IDs, not source-template references.
                 for match in re.finditer(r"(?m)^\s*#\s+vm_id\s*=\s*(\d+)", path.read_text(encoding="utf-8")):
@@ -82,15 +80,15 @@ class VmidConventions(TierRepositoryTestCase):
             self.assertNotEqual(replacement["staged_vm_id"], replacement["target_vm_id"])
 
     def test_tier_0_starters_use_the_approved_service_reservations(self):
-        # Optional examples reserve space too; new starters must not consume boot-1's 501.
+        # Optional examples reserve space too; new starters must not consume boot-1's 601.
         allocations = {
             "kubernetes": ({"k8ctl-1": 101, "k8ctl-2": 102, "k8ctl-3": 103}, set()),
-            "foundation": ({"idm-1": 201, "idm-2": 202, "ca-1": 211}, {411}),
-            "vault": ({"vault-1": 221}, set()),
-            "hsm": ({"hsm-1": 231, "hsm-2": 232}, {233, 521}),
-            "cluster-endpoint": ({"api-gw-1": 301, "api-gw-2": 302}, set()),
-            "syslog": ({"log-1": 401}, {402, 403}),
-            "infrastructure-runner": ({"iac-1": 511}, set()),
+            "foundation": ({"idm-1": 301, "idm-2": 302, "ca-1": 311}, {511}),
+            "vault": ({"vault-1": 321}, set()),
+            "hsm": ({"hsm-1": 331, "hsm-2": 332}, {333, 621}),
+            "cluster-endpoint": ({"api-gw-1": 401, "api-gw-2": 402}, set()),
+            "syslog": ({"log-1": 501}, {502, 503}),
+            "infrastructure-runner": ({"iac-1": 611}, set()),
         }
         for setup, (expected_guests, expected_optional) in allocations.items():
             path = UPSTREAM / f"tier-0/terraform/deployments/{setup}/terraform.tfvars.example"
@@ -112,14 +110,17 @@ class VmidConventions(TierRepositoryTestCase):
         image = "02-conventions/vmid-convention.svg"
         reference = (manual / relative).read_text(encoding="utf-8")
         self.assertIn("AUTO-DOCS - DO NOT EDIT", reference)
-        self.assertIn("**`2103` = Tier 2, Kubernetes worker, instance 03**", reference)
-        self.assertIn("Tier 0 Kubernetes exception", reference)
+        self.assertIn("**`2203` = Tier 2, Kubernetes worker, instance 03**", reference)
+        self.assertIn("## Categories", reference)
         self.assertIn("<a id=\"categories-and-tier-0-offset\"></a>", reference)
+        self.assertIn("<a id=\"categories-and-tier-0-kubernetes-exception\"></a>", reference)
         self.assertIn("100 × C + NN", reference)
         self.assertNotIn("100 × (C + 1) + NN", reference)
-        for row in ("| `0` | Kubernetes control plane | `000-099` | `100-149` |",
-                    "| `1` | Kubernetes workers | `100-199` | `150-199` |",
-                    "| `501` | Reserved for the manually created Tier 0 bootstrap host, `boot-1` |"):
+        for row in ("| `0` | Reserved | `000-099` |",
+                    "| `1` | Kubernetes control plane | `100-199` |",
+                    "| `2` | Kubernetes workers | `200-299` |",
+                    "| `6` | Bootstrap / Automation | `600-699` |",
+                    "| `601` | Reserved for the manually created Tier 0 bootstrap host, `boot-1` |"):
             self.assertIn(row, reference)
         self.assertIn("three security tiers", reference)
         self.assertIn("retain its local VMIDs and state", reference)
@@ -144,11 +145,31 @@ class VmidConventions(TierRepositoryTestCase):
         text = " ".join(diagram.itertext())
         for label in ("T C NN", "Tier (T)", "Category (C)", "Kubernetes control plane",
                       "Kubernetes workers", "Infrastructure services", "Network / Edge",
-                      "Observability / protected logging", "Bootstrap / Automation", "Other / Reserved", "2103",
-                      "control planes 100–149", "workers 150–199", "boot-1 at 501"):
+                      "Observability / protected logging", "Bootstrap / Automation", "Other / Reserved", "2203",
+                      "control planes 100–199", "workers 200–299", "601"):
             self.assertIn(label, text)
-        self.assertNotIn("shifted categories", text)
+        self.assertIn("Reserved", text)
+        self.assertNotIn("100–149", text)
+        self.assertNotIn("150–199", text)
         self.assertIn("aria-labelledby", diagram.attrib)
+
+    def test_refresh_keeps_existing_ids_inventory_and_state(self):
+        self.generate()
+        tier = self.root / 'verify-tier-0'
+        variables = tier / 'terraform/deployments/syslog/terraform.tfvars'
+        variables.write_text('vm_instances = { "log-1" = { vm_id = 401 } }\n')
+        inventory = tier / 'ansible/inventory/hosts.yml'
+        inventory.write_text('all:\n  children:\n    foundation_logging:\n      hosts:\n        log-1: {}\n')
+        state = tier / '.terraform/state/syslog/prod/terraform.tfstate'
+        state.parent.mkdir(parents=True)
+        state.write_text('{"fixture": "original VMID 401 state"}\n')
+        retained = {path: path.read_bytes() for path in (variables, inventory, state)}
+        self.generate('--refresh')
+        for path, expected in retained.items():
+            self.assertEqual(path.read_bytes(), expected)
+        current = hcl2.loads(variables.with_name('terraform.tfvars.example').read_text())
+        guests = {name.strip('"'): guest for name, guest in current['vm_instances'].items()}
+        self.assertEqual(guests['log-1']['vm_id'], 501)
 
 
 if __name__ == "__main__":

@@ -115,6 +115,10 @@ Separate physical placement, resilient API access, adequate capacity after failu
 storage availability, application replicas and restore tests remain obligations.
 Proxmox HA membership must preserve the selected physical failure domains after moves.
 
+The [two scheduling layers](05-availability.md#two-scheduling-layers) explain why pod spread alone
+cannot keep node VMs on separate physical hosts. Use the [HA operations recipe](../../05-operations/01-hosting/proxmox-ha.md)
+to maintain selected guest separation after creation and migration.
+
 Tier 0 bootstrap and recovery cannot depend on Tier 1 delivery or normal identity
 login. Every cluster retains its own state, node secrets, administrator credentials,
 etcd recovery material and workload backups outside that cluster.
@@ -128,8 +132,8 @@ command and approved image/sizing references, never cluster resources or invento
 The supplied roots support explicit node definitions and a `node-pool` label.
 They do not install an autoscaler, self-service controller, add-ons or applications.
 Delivery selection is independent: [controller patterns](../10-delivery/02-controllers.md).
-Installation: [common Kubernetes procedure](../../03-deployment/stage-4-kubernetes/procedures/kubernetes.md).
-The [Kubernetes deployment path](../../03-deployment/stage-4-kubernetes/README.md) joins node creation,
+Installation: [common Kubernetes procedure](../../03-deployment/stage-04-kubernetes/procedures/kubernetes.md).
+The [Kubernetes deployment path](../../03-deployment/stage-04-kubernetes/README.md) joins node creation,
 platform services and acceptance; [operations](../../05-operations/01-hosting/kubernetes-and-labs.md)
 covers ongoing cluster and lab work.
 

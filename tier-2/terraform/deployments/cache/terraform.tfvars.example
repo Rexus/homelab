@@ -2,7 +2,7 @@
 
 # Copy to: terraform/deployments/cache/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/03-deployment/stage-1-software-intake/README.md
+# Setup guide: docs/03-deployment/stage-01-software-intake/README.md
 # Shared values live in ../../common.tfvars.
 # VMID allocations: docs/02-conventions/vmid-convention.md
 
@@ -30,7 +30,7 @@ vm_instances = {
   # for extra_disks[*].storage_class. The example uses "local" as the portable
   # default.
   "cache-1" = {
-    vm_id            = 2311
+    vm_id            = 2411
     size             = "small-mem"
     storage_class    = "local"
     disk_size_gb     = 30
@@ -47,7 +47,7 @@ vm_instances = {
     tags             = ["squid", "keepalived", "restricted", "always-on", "egress"]
   }
   "cache-2" = {
-    vm_id            = 2312
+    vm_id            = 2412
     size             = "small-mem"
     storage_class    = "local"
     disk_size_gb     = 30
@@ -63,7 +63,7 @@ vm_instances = {
     tags             = ["squid", "keepalived", "restricted", "always-on", "egress"]
   }
   # "cache-3" = {
-  #   vm_id            = 2313
+  #   vm_id            = 2413
   #   size             = "small-mem"
   #   storage_class    = "local"
   #   disk_size_gb     = 30

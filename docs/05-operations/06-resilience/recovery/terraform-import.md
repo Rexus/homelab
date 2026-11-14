@@ -84,7 +84,7 @@ overrides. Explicit `--env prod` can select overlays even though omitted `--env`
 
    ```bash
    read -r -p 'Exact existing address (e.g. module.vms["cache-1"].proxmox_virtual_environment_vm.this): ' IAC_ADDRESS
-   read -r -p 'Restored VM import ID, node/VMID (e.g. pve02/2313): ' IAC_IMPORT_ID
+   read -r -p 'Restored VM import ID, node/VMID (e.g. pve02/2413): ' IAC_IMPORT_ID
    [[ "$IAC_IMPORT_ID" =~ ^[A-Za-z0-9_.-]+/[0-9]+$ ]] || exit 1
    terraform -chdir="$IAC_ROOT" state rm -dry-run "$IAC_ADDRESS"
    ```

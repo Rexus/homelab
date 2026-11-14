@@ -1,0 +1,57 @@
+---
+- name: Require explicit resource and rule mappings
+  ansible.builtin.assert:
+    that:
+      - proxmox_ha_resources is mapping
+      - proxmox_ha_resources | length > 0
+      - proxmox_ha_rules is mapping
+    fail_msg: Select existing VMs explicitly in proxmox_ha_resources and use a mapping for proxmox_ha_rules.
+
+- name: Require a mapping for each selected resource
+  ansible.builtin.assert:
+    that:
+      - item.key is string
+      - item.key | length > 0
+      - item.value is mapping
+    fail_msg: Each proxmox_ha_resources entry needs a nonempty key and a mapping.
+  loop: "{{ proxmox_ha_resources | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Validate selected resource fields
+  ansible.builtin.assert:
+    that:
+      - item.value.keys() | difference(['vmid', 'name', 'state', 'hastate', 'max_restart', 'max_relocate', 'comment']) | length == 0
+      - item.value.state | default('present') in ['present', 'absent']
+      - item.value.hastate | default('started') in ['started', 'stopped', 'disabled', 'ignored']
+      - item.value.vmid is not defined or (item.value.vmid is integer and item.value.vmid is not boolean and item.value.vmid >= 100 and item.value.vmid <= 999999999)
+      - item.value.name is not defined or (item.value.name is string and item.value.name | trim | length > 0)
+      - item.value.comment | default('') is string
+      - item.value.max_restart | default(1) is integer and item.value.max_restart | default(1) is not boolean
+      - item.value.max_restart | default(1) >= 0
+      - item.value.max_relocate | default(1) is integer and item.value.max_relocate | default(1) is not boolean
+      - item.value.max_relocate | default(1) >= 0
+    fail_msg: >-
+      Resource {{ item.key }} has unsupported fields or invalid values.
+      VMIDs and retry counts must be integers. Review group_vars/proxmox_ha.yml.example.
+  loop: "{{ proxmox_ha_resources | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Require a mapping for each selected rule
+  ansible.builtin.assert:
+    that:
+      - item.key is string
+      - item.key is match('^[A-Za-z][A-Za-z0-9_-]*$')
+      - item.value is mapping
+    fail_msg: Each rule needs a Proxmox rule identifier and a mapping.
+  loop: "{{ proxmox_ha_rules | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Validate each affinity rule before any HA changes
+  ansible.builtin.include_tasks: validate-rule.yml
+  loop: "{{ proxmox_ha_rules | dict2items }}"
+  loop_control:
+    loop_var: proxmox_ha_rule
+    label: "{{ proxmox_ha_rule.key }}"

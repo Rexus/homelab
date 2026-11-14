@@ -3,7 +3,7 @@
 <a id="usb-hsm-gateway-maintenance"></a>
 
 
-Operate an already qualified [USB HSM deployment](../../03-deployment/stage-3-trust/step-1b-usb-hsm.md).
+Operate an already qualified [USB HSM deployment](../../03-deployment/stage-03-trust/step-1b-usb-hsm.md).
 The `hsm` recipe manages native USB attachments, middleware/configuration and provider identity checks.
 Device ceremonies, signing-application replication and routing/readiness retain their selected owners.
 The [service design](../../01-architecture/08-cryptography/04-usb-hsm.md) owns their relationships.
@@ -15,8 +15,8 @@ independent wrapping/recovery material and an accepted failure/capacity budget.
 | Configuration in **`<prefix>-tier-0/`** | Owning task |
 | --- | --- |
 | `ansible/group_vars/hsm.yml`, inventory/host vars | Provider, physical serial, native middleware and assigned reader |
-| `ansible/group_vars/hsm_remoting.yml` | Optional endpoints, SSH pins, source-restricted clients and original SPKI; [native remoting](../../03-deployment/stage-3-trust/procedures/pkcs11-remoting.md) |
-| `ansible/group_vars/openbao_signing.yml`, independent `signing` environment | Optional API keys/clients and recovery; [signing API](../../03-deployment/stage-6-secrets/step-11b-openbao.md) |
+| `ansible/group_vars/hsm_remoting.yml` | Optional endpoints, SSH pins, source-restricted clients and original SPKI; [native remoting](../../03-deployment/stage-03-trust/procedures/pkcs11-remoting.md) |
+| `ansible/group_vars/openbao_signing.yml`, independent `signing` environment | Optional API keys/clients and recovery; [signing API](../../03-deployment/stage-06-secrets/step-11b-openbao.md) |
 
 <a id="table-of-contents"></a>
 
@@ -34,7 +34,7 @@ independent wrapping/recovery material and an accepted failure/capacity budget.
 ## Is a gateway healthy?
 
 1. Run [provider inspection](#device-identity). For optional remoting, run its
-   [per-endpoint identity/signing check](../../03-deployment/stage-3-trust/procedures/pkcs11-remoting.md#5-check-signing-and-qualify-failure-behavior).
+   [per-endpoint identity/signing check](../../03-deployment/stage-03-trust/procedures/pkcs11-remoting.md#5-check-signing-and-qualify-failure-behavior).
    The native listener is `hsm-remote-<pool-id>.service`; inspect it through Ansible if a transport
    probe fails. An accepted external application follows its own runtime runbook.
 2. Use that application's scoped readiness operation against the expected local

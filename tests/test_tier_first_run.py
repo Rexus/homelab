@@ -77,7 +77,7 @@ class NativeFirstRun(unittest.TestCase):
             self.assertNotIn('No inventory was parsed', result.stderr)
 
     def test_documented_logging_commands_load_global_setup_and_host_inputs(self):
-        docs = (UPSTREAM / 'docs/03-deployment/stage-2-logging/procedures/sources.md').read_text()
+        docs = (UPSTREAM / 'docs/03-deployment/stage-02-logging/procedures/sources.md').read_text()
         blocks = re.findall(r'```bash\n(.*?)```', docs, re.S)
         inputs = next(block for block in blocks if 'logging_inputs=' in block)
         commands = [block for block in blocks if 'ansible-playbook "${logging_inputs[@]}"' in block]
@@ -116,7 +116,7 @@ class NativeFirstRun(unittest.TestCase):
         cases = [(inputs + command, f'{host}\nansible/group_vars/{setup}.yml\n{self.root}/public\n',
                   'ansible/playbooks/deployment/logging-producers.yml')
                  for host, setup in (('log-1', 'syslog'), ('ca-1', 'foundation')) for command in commands]
-        installation = (UPSTREAM / 'docs/03-deployment/stage-2-logging/README.md').read_text()
+        installation = (UPSTREAM / 'docs/03-deployment/stage-02-logging/README.md').read_text()
         first_producer = [block for block in re.findall(r'```bash\n(.*?)```', installation, re.S)
                           if 'ansible/playbooks/deployment/logging-producers.yml --limit log-1' in block]
         self.assertEqual(len(first_producer), 2, 'First-source preparation and installation stay executable in-page')
@@ -125,7 +125,7 @@ class NativeFirstRun(unittest.TestCase):
             self.assertIn('-e @ansible/inventory/host_vars/log-1.yml', block)
             cases.append((block, f'{self.root}/requests\n',
                           'ansible/playbooks/deployment/logging-producers.yml'))
-        archive = (UPSTREAM / 'docs/03-deployment/stage-2-logging/step-15a-nas-archive.md').read_text()
+        archive = (UPSTREAM / 'docs/03-deployment/stage-02-logging/step-15a-nas-archive.md').read_text()
         for variable, host, recipe in (('LOGGING_COLLECTOR', 'log-1', 'logging-archive'),
                                        ('LOGGING_RECOVERY_HOST', 'recovery', 'logging-backup')):
             block = next(block for block in re.findall(r'```bash\n(.*?)```', archive, re.S)

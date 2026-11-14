@@ -182,7 +182,7 @@ For Talos, leave **User, Password, SSH public keys, DNS and other fields at defa
 regenerate the initialization image if edited. Its NoCloud drive supplies **networking only**. [4]
 Boot and perform the [clone checks below](#clone-and-guest-control-checks).
 
-Talos machine configuration/bootstrap belongs to [Stage 4](../../stage-4-kubernetes/procedures/talos-terraform.md)
+Talos machine configuration/bootstrap belongs to [Stage 4](../../stage-04-kubernetes/procedures/talos-terraform.md)
 when that cluster is deployed. Do not jump to that installation to finish the initial Linux-template path.
 
 For EL packages or cleanup that require booting a builder, follow the
@@ -280,7 +280,7 @@ Use a matching **NoCloud installer** from the same Factory schematic/version so
 the platform networking survives Talos installation and upgrades. A generic metal
 installer is not an equivalent replacement for this boot contract.
 Cluster configuration and bootstrap remain in the
-[cluster guide](../../stage-4-kubernetes/procedures/talos-terraform.md), not in the template.
+[cluster guide](../../stage-04-kubernetes/procedures/talos-terraform.md), not in the template.
 Never add Talos to mutable Linux template builders or capture an initialized node.
 Publishing a new image does not update existing nodes; retain original state,
 installer artifacts and recovery secrets independently of the cluster and hosted CI.

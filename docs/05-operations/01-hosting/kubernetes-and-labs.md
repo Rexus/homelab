@@ -30,7 +30,7 @@ flowchart LR
       end
     end
     VIP -->|Active gateway| Gateways
-    Gateways -->|TCP 6443 / all three APIs| Nodes
+    Gateways -->|TCP 6443<br/>All three APIs| Nodes
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -57,19 +57,20 @@ and [installer](../../../tier-0/ansible/playbooks/deployment/cluster-endpoint.ym
 [cluster lifecycle](../../../tier-0/scripts/kubernetes-cluster.sh).
 The [HAProxy configuration](../../../tier-0/ansible/roles/cluster_endpoint/templates/haproxy.cfg.j2)
 defines the VIP listener and its control-plane backends.
-The [complete platform view](../../03-deployment/stage-4-kubernetes/README.md#figure-2-basic-platform-services)
+The [complete platform view](../../03-deployment/stage-04-kubernetes/README.md#figure-2-basic-platform-services)
 owns the add-on inventory. An accepted external API endpoint is a separate selection;
 [Tier 2 VM/LXC and Kubernetes lab views](../../03-deployment/stage-10-lab-environments/README.md#figure-workload-runtimes)
 retain their own inputs and state.
 
 **Design:** [Kubernetes](../../01-architecture/04-hosting/03-kubernetes.md) and
 [Lab environments](../../01-architecture/04-hosting/04-lab-environments.md).
-**Install:** [Stage 4: Kubernetes](../../03-deployment/stage-4-kubernetes/README.md) and
+**Install:** [Stage 4: Kubernetes](../../03-deployment/stage-04-kubernetes/README.md) and
 [Stage 10: Lab environments](../../03-deployment/stage-10-lab-environments/README.md).
 
 | Task | Start here |
 | --- | --- |
 | Add or reserve workers | The worker-pool tasks below, using the owning tier's inputs and state |
+| Preserve physical separation of node VMs | [Proxmox resource affinity and host-loss capacity](proxmox-ha.md#resource-affinity) |
 | Plan cluster/node upgrades | [Upgrade gate](maintenance.md#upgrade-gate), then release-matched Talos/Kubernetes procedures |
 | Operate a VM or LXC lab | [Stage 10 selected runtime](../../03-deployment/stage-10-lab-environments/README.md#main-path), [maintenance recipe scope](ansible-recipes.md#recipe-map) |
 | Protect or restore a lab VM | [VM backups](../06-resilience/backups/virtual-machines.md), [VM recovery](../06-resilience/recovery/virtual-machines.md) |
@@ -79,13 +80,13 @@ Application-specific lab runbooks and any bounded self-service dispatcher remain
 
 Use explicit node definitions for capacity and Kubernetes scheduling controls for
 placement. [Topology design](../../01-architecture/04-hosting/03-kubernetes.md) defines the
-boundaries; [cluster provisioning](../../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md)
+boundaries; [cluster provisioning](../../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md)
 owns hardware, inventory and state. No autoscaler or rolling node-upgrade controller is supplied.
 
 **Working repository:** the cluster's `<prefix>-tier-0`, `<prefix>-tier-1` or `<prefix>-tier-2` root.
 **Before starting:** accepted original state, node reservations, sufficient capacity,
 and that cluster's protected kubeconfig. Load the same
-[provider exports](../../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md#configure)
+[provider exports](../../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md#configure)
 as cluster deployment; this script does not load `.env.local`. Confirm the target before every task:
 
 Run from the selected **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`** repository.
@@ -217,7 +218,7 @@ the reservation is verified. This is not a secure multi-tenant runner installer.
 selectors, persistent-volume placement and remaining capacity after a node failure.
 2. Change `cluster.allow_scheduling_on_control_planes` to false and review the
 configuration plan, then apply the reviewed configuration through the
-[owning cluster workflow](../../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md#plan-and-deploy).
+[owning cluster workflow](../../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md#plan-and-deploy).
 Configuration apply is not a health-gated rolling controller;
 use the pinned Talos release's maintenance procedure where a reboot is required.
 

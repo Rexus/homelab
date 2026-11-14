@@ -13,7 +13,7 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
     def test_source_and_generated_guides_cover_netdata_and_hardware(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            stage = docs / "03-deployment/stage-8-observability"
+            stage = docs / "03-deployment/stage-08-observability"
             overview = (stage / "README.md").read_text()
             self.assertIn("## Step 13: Extend infrastructure collection", overview)
             self.assertIn('id="step-3-publish-and-verify-read-only-views"', overview)
@@ -55,7 +55,7 @@ class InfrastructureMonitoring(TierRepositoryTestCase):
                           ipaddress.ip_network(networks["management"]["cidr_ipv4"].strip('"')))
             self.assertEqual(monitor["infrastructure_monitoring_export_endpoint"], "")
             self.assertFalse((collection / f"{prefix}shared/ansible/inventory").exists())
-            overview = (docs / "03-deployment/stage-8-observability/README.md").read_text()
+            overview = (docs / "03-deployment/stage-08-observability/README.md").read_text()
             code = re.findall(r"```mermaid\n(.*?)```", overview, re.DOTALL)[2]
             for expected in ('subgraph T1[', 'subgraph T0[', "Existing platform Kubernetes",
                              "native releases", "Existing / manually inventoried",

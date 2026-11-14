@@ -113,7 +113,7 @@ class DeploymentViews(unittest.TestCase):
             self.assertIn('connection', path.get('class').split())
             values = [float(value) for value in re.findall(r'-?\d+(?:\.\d+)?', path.get('d'))]
             self.assertLess(values[-2 + axis], values[axis], f'{edge}: preserve request direction')
-        for relative in ('03-deployment/stage-1-software-intake/README.md',
+        for relative in ('03-deployment/stage-01-software-intake/README.md',
                          '05-operations/02-software-intake/README.md'):
             self.assertEqual(figure_sources(DOCS / relative)[0], CACHE_SVG.read_text())
 
@@ -195,7 +195,7 @@ class DeploymentViews(unittest.TestCase):
         self.assertEqual(len(urls), 2)
         for source, target in (('Ingress', 'Service'), ('Service', 'IdP')):
             self.assertIsNotNone(svg.find(f".//svg:path[@data-from='{source}'][@data-to='{target}']", namespace))
-        self.assertEqual(figure_sources(DOCS / '03-deployment/stage-5-identity/README.md')[1],
+        self.assertEqual(figure_sources(DOCS / '03-deployment/stage-05-identity/README.md')[1],
                          IDENTITY_SVG.read_text())
         offline_ids = {element.get('id') for element in nodes['Recovery'].iter() if element.get('id')}
         for path in svg.findall('.//svg:path[@data-from]', namespace):
@@ -208,7 +208,7 @@ class DeploymentViews(unittest.TestCase):
         values = (role / "templates/netbox-values.yml.j2").read_text()
         web = re.search(r"(?m)^replicaCount: (\d+)$", values)[1]
         worker = re.search(r"(?ms)^worker:\n.*?^  replicaCount: (\d+)$", values)[1]
-        code = figure_sources(DOCS / "03-deployment/stage-6-secrets/README.md")[0]
+        code = figure_sources(DOCS / "03-deployment/stage-06-secrets/README.md")[0]
         self.assertIn(f"netbox web x{web} / worker x{worker}", code)
         self.assertIn(f'vault x{defaults["control_applications_vault_replicas"]}', code)
         self.assertIn(f'netbox-db x{defaults["control_applications_database_instances"]}', code)
@@ -238,7 +238,7 @@ class DeploymentViews(unittest.TestCase):
     def test_identity_replica_views_match_the_product_defaults(self):
         defaults = yaml.safe_load((UPSTREAM /
             "tier-0/ansible/roles/control_applications/defaults/main.yml").read_text())
-        stage = ' '.join(ET.fromstring(figure_sources(DOCS / '03-deployment/stage-5-identity/README.md')[1]).itertext())
+        stage = ' '.join(ET.fromstring(figure_sources(DOCS / '03-deployment/stage-05-identity/README.md')[1]).itertext())
         operation = ' '.join(ET.parse(IDENTITY_SVG).getroot().itertext())
         for code in (stage, operation):
             self.assertIn(f'PostgreSQL x{defaults["control_applications_database_instances"]}', code)
@@ -301,27 +301,27 @@ class DeploymentViews(unittest.TestCase):
     def test_deployment_resource_views_account_for_the_selected_starter_hosts(self):
         # Each row expands an actual input/inventory selection, not a second guest catalogue.
         cases = [
-            ("stage-2-logging/README.md", 1, "tier-0", "syslog", ["foundation_logging"]),
-            ("stage-3-trust/README.md", 0, "tier-0", "foundation",
+            ("stage-02-logging/README.md", 1, "tier-0", "syslog", ["foundation_logging"]),
+            ("stage-03-trust/README.md", 0, "tier-0", "foundation",
              ["issuing_ca", "identity_primary", "identity_replicas"]),
-            ("stage-3-trust/step-1b-usb-hsm.md", 0, "tier-0", "hsm", ["hsm_gateways"]),
-            ("stage-5-identity/README.md", 0, "tier-0", "foundation",
+            ("stage-03-trust/step-1b-usb-hsm.md", 0, "tier-0", "hsm", ["hsm_gateways"]),
+            ("stage-05-identity/README.md", 0, "tier-0", "foundation",
              ["issuing_ca", "identity_primary", "identity_replicas"]),
-            ("stage-4-kubernetes/README.md", 0, "tier-0", "kubernetes", ["talos_control_plane"]),
-            ("stage-6-secrets/step-1b-vault-vm.md", 0, "tier-0", "vault", ["vault"]),
-            ("stage-8-observability/step-1b-dedicated-vms.md", 0, "tier-1", "observability",
+            ("stage-04-kubernetes/README.md", 0, "tier-0", "kubernetes", ["talos_control_plane"]),
+            ("stage-06-secrets/step-1b-vault-vm.md", 0, "tier-0", "vault", ["vault"]),
+            ("stage-08-observability/step-1b-dedicated-vms.md", 0, "tier-1", "observability",
              ["observability"]),
-            ("stage-7-delivery/README.md", 0, "tier-1", "kubernetes", ["talos_control_plane"]),
-            ("stage-9-development/step-1b-source-control-vm.md", 0, "tier-1", "development",
+            ("stage-07-delivery/README.md", 0, "tier-1", "kubernetes", ["talos_control_plane"]),
+            ("stage-09-development/step-1b-source-control-vm.md", 0, "tier-1", "development",
              ["development_platform"]),
-            ("stage-9-development/step-14b-podman-runner.md", 0, "tier-1", "podman-runner", ["podman_runner"]),
-            ("stage-9-development/step-15b-image-based-linux.md", 0, "tier-0", "immutable-template",
+            ("stage-09-development/step-14b-podman-runner.md", 0, "tier-1", "podman-runner", ["podman_runner"]),
+            ("stage-09-development/step-15b-image-based-linux.md", 0, "tier-0", "immutable-template",
              ["immutable_template_builders"]),
-            ("stage-7-delivery/procedures/edge-proxy.md", 0, "tier-2", "edge", ["edge_load_balancers"]),
+            ("stage-07-delivery/procedures/edge-proxy.md", 0, "tier-2", "edge", ["edge_load_balancers"]),
             ("stage-10-lab-environments/README.md", 0, "tier-2", "kubernetes", ["talos_control_plane"]),
             ("stage-10-lab-environments/README.md", 0, "tier-2", "lab", ["lab"]),
             ("stage-10-lab-environments/README.md", 0, "tier-0", "infrastructure-runner", ["infrastructure_runner"]),
-            ("stage-1-software-intake/README.md", 0, "tier-2", "cache", ["cache"]),
+            ("stage-01-software-intake/README.md", 0, "tier-2", "cache", ["cache"]),
         ]
         selections = {}
         for relative, index, tier, setup, selected in cases:
@@ -345,12 +345,12 @@ class DeploymentViews(unittest.TestCase):
 
     def test_application_installers_are_not_confused_with_owned_gitops_starters(self):
         cases = [
-            ("stage-4-kubernetes", "tier-0", "cluster-platform", "infrastructure/cni"),
-            ("stage-5-identity", "tier-0", "control-applications", "applications/keycloak"),
-            ("stage-6-secrets", "tier-0", "control-applications", "applications/vault"),
-            ("stage-7-delivery", "tier-1", "delivery-platform", "platform/artifact-registry"),
-            ("stage-8-observability", "tier-1", "observability-platform", "platform/observability"),
-            ("stage-9-development", "tier-1", "development-platform", "platform/source-control"),
+            ("stage-04-kubernetes", "tier-0", "cluster-platform", "infrastructure/cni"),
+            ("stage-05-identity", "tier-0", "control-applications", "applications/keycloak"),
+            ("stage-06-secrets", "tier-0", "control-applications", "applications/vault"),
+            ("stage-07-delivery", "tier-1", "delivery-platform", "platform/artifact-registry"),
+            ("stage-08-observability", "tier-1", "observability-platform", "platform/observability"),
+            ("stage-09-development", "tier-1", "development-platform", "platform/source-control"),
             ("stage-10-lab-environments", "tier-2", "lab-environment", ""),
         ]
         for stage, tier, recipe, relative in cases:
@@ -363,8 +363,8 @@ class DeploymentViews(unittest.TestCase):
 
     def test_cluster_logging_picture_matches_tier_owned_node_streams(self):
         inputs = yaml.safe_load((UPSTREAM / "tier-0/ansible/group_vars/cluster_security_logging.yml.example").read_text())
-        document = (DOCS / "03-deployment/stage-4-kubernetes/README.md").read_text()
-        picture = FENCES.findall(document)[2]
+        document = (DOCS / "03-deployment/stage-04-kubernetes/README.md").read_text()
+        picture = figure_sources(DOCS / '03-deployment/stage-04-kubernetes/README.md')[2]
         nodes = inputs["cluster_security_logging_nodes"]
         self.assertEqual({node["name"] for node in nodes},
                          set(inventory_groups("tier-0")["talos_control_plane"]["hosts"]))
@@ -378,17 +378,18 @@ class DeploymentViews(unittest.TestCase):
         from test_tier_observability_platform import ROLE, platform_inputs, render_template
         inputs = platform_inputs()
         releases = yaml.safe_load(render_template(ROLE, 'releases.yml.j2', inputs))
-        document = (DOCS / '03-deployment/stage-8-observability/README.md').read_text()
-        pictures = FENCES.findall(document)
+        pictures = figure_sources(DOCS / '03-deployment/stage-08-observability/README.md')
         for release in releases:
             self.assertIn(release['name'], pictures[0], release['name'])
         expected_counts = {
-            'otel-gateway': ('observability_gateway_replicas', 'replicas'),
-            'data-prepper': ('observability_prepper_replicas', 'replicas'),
-            'opensearch': ('observability_search_replicas', 'members'),
+            'otel-gateway': 'observability_gateway_replicas',
+            'data-prepper': 'observability_prepper_replicas',
+            'opensearch': 'observability_search_replicas',
         }
-        for name, (key, unit) in expected_counts.items():
-            self.assertRegex(pictures[1], rf'{re.escape(name)}\s*(?:/\s*{inputs[key]} {unit}|x{inputs[key]})(?:<|\s|\")')
+        svg = ET.fromstring(pictures[1])
+        for name, key in expected_counts.items():
+            match = next(node for node in svg.iter() if node.get('data-replicas') and name in ''.join(node.itertext()))
+            self.assertEqual(int(match.get('data-replicas')), inputs[key])
         bridge = next(code for code in pictures if 'Allowlisted metric bridge' in code)
         self.assertIn('Tier 0', bridge)
 

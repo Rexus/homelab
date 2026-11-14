@@ -1,0 +1,67 @@
+---
+- name: Reconcile HA through verified native API clients
+  module_defaults:
+    group/community.proxmox.proxmox: "{{ proxmox_ha_api_defaults }}"
+  block:
+    - name: Read existing affinity rules before changing membership
+      community.proxmox.proxmox_cluster_ha_rules_info:
+      register: proxmox_ha_existing_rules
+      no_log: true
+
+    - name: Start a fresh map of explicitly selected VM identifiers
+      ansible.builtin.set_fact:
+        proxmox_ha_resolved_resources: {}
+
+    - name: Resolve and verify each selected existing VM
+      ansible.builtin.include_tasks: resolve-resource.yml
+      loop: "{{ proxmox_ha_resources | dict2items }}"
+      loop_control:
+        loop_var: proxmox_ha_resource
+        label: "{{ proxmox_ha_resource.key }}"
+
+    - name: Reject aliases which select the same VM more than once
+      ansible.builtin.assert:
+        that: proxmox_ha_resolved_resources.values() | unique | length == proxmox_ha_resources | length
+        fail_msg: Each resource key must select a distinct VM before affinity can enforce separation.
+
+    - name: Read actual cluster node names for selected node-affinity rules
+      community.proxmox.proxmox_node_info:
+      register: proxmox_ha_nodes
+      no_log: true
+      when: >-
+        proxmox_ha_rules.values() | selectattr('type', 'defined')
+        | selectattr('type', 'equalto', 'node-affinity') | list | length > 0
+
+    - name: Require eligible nodes to exist before enrollment
+      ansible.builtin.assert:
+        that: >-
+          item.value.nodes | map('regex_replace', ':[0-9]+$', '')
+          | difference(proxmox_ha_nodes.proxmox_nodes | map(attribute='node') | list) | length == 0
+        fail_msg: "Rule {{ item.key }} references node names outside this Proxmox cluster."
+      loop: "{{ proxmox_ha_rules | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+      when:
+        - item.value.state | default('present') == 'present'
+        - item.value.type == 'node-affinity'
+
+    - name: Validate existing rule types and removal references
+      ansible.builtin.include_tasks: validate-existing-rule.yml
+      loop: "{{ proxmox_ha_existing_rules.rules }}"
+      loop_control:
+        loop_var: proxmox_ha_existing_rule
+        label: "{{ proxmox_ha_existing_rule.rule }}"
+
+    - name: Show the selected HA bindings and execution mode
+      ansible.builtin.debug:
+        msg:
+          resources: "{{ proxmox_ha_resolved_resources }}"
+          rules: "{{ proxmox_ha_rules.keys() | list }}"
+          mode: "{{ 'Validate inputs and VM identities only' if ansible_check_mode else 'Apply HA membership and affinity' }}"
+          effect: Proxmox schedules the selected VM request states and affinity constraints.
+
+    # The membership module has no check-mode support. Keep preview behavior consistent
+    # across membership and rules, including rules for resources awaiting enrollment.
+    - name: Apply the selected HA changes in dependency order
+      ansible.builtin.include_tasks: apply.yml
+      when: not ansible_check_mode

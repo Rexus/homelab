@@ -10,9 +10,9 @@ import unittest
 
 UPSTREAM = Path(__file__).resolve().parents[1]
 GUIDES = (
-    "stage-4-kubernetes/procedures/basic-platform.md",
-    "stage-4-kubernetes/procedures/flux-sops.md",
-    "stage-5-identity/README.md",
+    "stage-04-kubernetes/procedures/basic-platform.md",
+    "stage-04-kubernetes/procedures/flux-sops.md",
+    "stage-05-identity/README.md",
 )
 
 

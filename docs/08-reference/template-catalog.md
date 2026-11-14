@@ -47,8 +47,8 @@ settings, host inventory, or Terraform state.
    [tag convention](../02-conventions/proxmox-conventions.md#template-tags) applies to the synchronized image tags.
 4. Set `default_linux_vm_template_id` in Shared to the tested Linux ID when ready for
    consumers to adopt it. Talos references are listed too, but cannot be used by
-   the Linux VM module; use the [Talos Kubernetes implementation](../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md) or the
-   [manual procedure](../03-deployment/stage-4-kubernetes/step-1b-existing-cluster.md).
+   the Linux VM module; use the [Talos Kubernetes implementation](../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md) or the
+   [manual procedure](../03-deployment/stage-04-kubernetes/step-1b-existing-cluster.md).
 5. Review and version the shared change, then review plans in consuming tiers.
    Changing the selected source template may replace VMs; pin existing guests
    with `template_vm_id` when they must stay on their current revision.

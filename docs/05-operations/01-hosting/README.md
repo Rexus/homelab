@@ -22,7 +22,7 @@ flowchart LR
       Console["Independent host console<br/>Existing recovery access"]
       Nodes ~~~ Console
     end
-    Tools -->|SSH / remote Python| Nodes
+    Execute -->|SSH / remote Python| Hosts
   end
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
@@ -57,6 +57,7 @@ Existing hosts are registered here; they are not created or imported into Terraf
 
 | Task | Procedure |
 | --- | --- |
+| Configure host failover, VM separation or planned migration | [Proxmox HA operations](proxmox-ha.md) |
 | Change host SSH, time, audit or firewall settings | [Linux security setup](linux-security.md), [security operations](host-security.md) |
 | Configure approved host update access | [Software intake consumers](../02-software-intake/host-updates.md) |
 | Import, publish or promote a template | [Template lifecycle](templates/template-lifecycle.md) |
@@ -177,7 +178,8 @@ Stop on an unexpected target, changed host key or failed login. Correct registra
 | --- | --- | --- |
 | Configure approved update access | [Proxmox proxy configuration, action 2](../02-software-intake/host-updates.md#2-register-the-existing-hosts-and-proxy) | Existing `proxmox-hosts.yml` manages the Datacenter/APT proxy only |
 | Restrict management access | [Proxmox access and hardening](proxmox-hardening.md) | Reviewed host/gateway policy and manual acceptance |
-| Collect host security events | [Protected log sources](../../03-deployment/stage-2-logging/procedures/sources.md) | Enroll each host's source identity before forwarding |
+| Enroll existing guests in HA and maintain affinity | [Proxmox HA setup](proxmox-ha.md#configure-through-iac) | Tier 0 native HA playbook and local HA inputs |
+| Collect host security events | [Protected log sources](../../03-deployment/stage-02-logging/procedures/sources.md) | Enroll each host's source identity before forwarding |
 | Trust the provisioning API | [Proxmox API trust](proxmox-tls.md#step-1-trust-the-bootstrap-ca) | Separate verified HTTPS trust for API callers |
 
 Registration alone changes no host configuration. Retain the inventory and approved SSH identity

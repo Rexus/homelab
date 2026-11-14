@@ -141,6 +141,6 @@ git push -u origin main
 ```
 
 Use the actual reviewed branch if different. GitLab is the reference; other private source control is valid.
-[CI handover](../03-deployment/stage-9-development/procedures/handover.md) transfers original state/ignored inputs
+[CI handover](../03-deployment/stage-09-development/procedures/handover.md) transfers original state/ignored inputs
 separately; it never recreates the infrastructure. Infrastructure runners require the explicit Tier 0
 trust contract, not general build access.

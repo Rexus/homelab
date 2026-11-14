@@ -451,7 +451,7 @@ Retain the selected stage's review/approval gates; this guide does not deploy gu
 
 ## Use approved sources after bootstrap
 
-After [Stage 1 software intake](../../stage-1-software-intake/README.md#step-10-configure-bootstrap-intake),
+After [Stage 1 software intake](../../stage-01-software-intake/README.md#step-10-configure-bootstrap-intake),
 configure this manually created bootstrap VM too. It is not automatically enrolled
 in the Shared baseline. Keep the disconnected recovery bundle independently.
 

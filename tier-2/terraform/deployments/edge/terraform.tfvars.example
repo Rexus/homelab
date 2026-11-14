@@ -2,7 +2,7 @@
 
 # Copy to: terraform/deployments/edge/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/03-deployment/stage-7-delivery/procedures/edge-proxy.md
+# Setup guide: docs/03-deployment/stage-07-delivery/procedures/edge-proxy.md
 # Shared values live in ../../common.tfvars.
 # VMID allocations: docs/02-conventions/vmid-convention.md
 
@@ -16,7 +16,7 @@ vm_instances = {
   # The default is a 3-node edge set. Keep matching Ansible inventory and IP
   # entries when you add or remove edge hosts.
   "lb-1" = {
-    vm_id            = 2301
+    vm_id            = 2401
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20
@@ -24,7 +24,7 @@ vm_instances = {
     tags             = ["haproxy", "keepalived", "public", "always-on", "edge"]
   }
   "lb-2" = {
-    vm_id            = 2302
+    vm_id            = 2402
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20
@@ -32,7 +32,7 @@ vm_instances = {
     tags             = ["haproxy", "keepalived", "public", "always-on", "edge"]
   }
   "lb-3" = {
-    vm_id            = 2303
+    vm_id            = 2403
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20

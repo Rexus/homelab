@@ -52,6 +52,6 @@ class ProxmoxGuides(TierRepositoryTestCase):
             self.assertFalse((docs / "03-deployment/foundation/procedures" / old).exists())
         self.assertIn("## Cluster handoff", guide)
         self.assertFalse((docs / "03-deployment/foundation/procedures").exists())
-        cluster = (docs / "03-deployment/stage-4-kubernetes/procedures/talos-terraform.md").read_text()
+        cluster = (docs / "03-deployment/stage-04-kubernetes/procedures/talos-terraform.md").read_text()
         self.assertIn("vm_firmware", cluster)
         self.assertIn("not a firmware", cluster)

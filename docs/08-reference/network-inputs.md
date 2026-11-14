@@ -55,7 +55,7 @@ default_platform_node_name = "pve01"
 
 vm_instances = {
   "lab-1" = {
-    vm_id            = 3201
+    vm_id            = 3301
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30

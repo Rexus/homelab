@@ -31,7 +31,7 @@ class IntakeCompute(TierRepositoryTestCase):
                 self.assertEqual(inputs["platform_host_ips"], {"intake-1": "10.30.31.40"})
                 root = owner / DEPLOYMENT
                 example = (root / "terraform.tfvars.example").read_text()
-                for pattern in (r'vm_id\s*=\s*1221\b', r'size\s*=\s*"small-mem"',
+                for pattern in (r'vm_id\s*=\s*1321\b', r'size\s*=\s*"small-mem"',
                                 r'disk_size_gb\s*=\s*40\b', r'size_gb\s*=\s*200\b',
                                 r'interface\s*=\s*"scsi1"', r'network_zone_key\s*=\s*"delivery_edge"'):
                     self.assertRegex(example, pattern)
@@ -143,7 +143,7 @@ run "explicit_overrides" {
   variables {
     vm_instances = {
       "intake-1" = {
-        vm_id = 1221
+        vm_id = 1321
         size = "small-mem"
         storage_class = "local"
         disk_size_gb = 40
@@ -197,7 +197,7 @@ run "explicit_overrides" {
         guests = [r["values"] for r in resources if r["type"] == "proxmox_virtual_environment_vm"]
         self.assertEqual(len(guests), 1)
         vm = guests[0]
-        self.assertEqual((vm["name"], vm["vm_id"], vm["node_name"]), ("intake-1", 1221, "guest-node"))
+        self.assertEqual((vm["name"], vm["vm_id"], vm["node_name"]), ("intake-1", 1321, "guest-node"))
         self.assertEqual(vm["memory"][0]["dedicated"], 8192)
         self.assertEqual(vm["clone"][0]["vm_id"], 9101)
         self.assertEqual(vm["clone"][0]["node_name"], "template-node")
@@ -230,7 +230,7 @@ run "explicit_overrides" {
             self.check_starter_diagram(vm)
 
     def check_starter_diagram(self, vm):
-        guide = UPSTREAM / "docs/03-deployment/stage-3-trust/step-15b-verified-intake.md"
+        guide = UPSTREAM / "docs/03-deployment/stage-03-trust/step-15b-verified-intake.md"
         diagrams = re.findall(r"```mermaid\n(.*?)\n```", guide.read_text(), re.DOTALL)
         identity = f'VM["{vm["name"]}<br/>'
         drawings = [diagram for diagram in diagrams if identity in diagram and "scsi0" in diagram]

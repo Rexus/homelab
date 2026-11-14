@@ -1,5 +1,5 @@
 # Copy to: ansible/group_vars/syslog.yml
-# Guide: docs/03-deployment/stage-2-logging/README.md
+# Guide: docs/03-deployment/stage-02-logging/README.md
 # Tier 0 owns receiver configuration and evidence. Shared owns no log inventory.
 # Receiver defaults: ansible/roles/syslog_ng/defaults/main.yml
 # Guest package access: common proxy in all.yml; receiver-specific DNF/APT sources in this file.

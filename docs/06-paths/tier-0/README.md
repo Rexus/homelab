@@ -20,21 +20,21 @@ The bootstrap guide covers local tools, artifacts, Proxmox CA/API access and rep
 record [project conventions](../../04-development/project-documentation.md#start-with-project-values) there.
 Verify the foundation,
 then follow the [numbered capability stages](../../03-deployment/README.md), beginning
-with [Software intake](../../03-deployment/stage-1-software-intake/README.md).
+with [Software intake](../../03-deployment/stage-01-software-intake/README.md).
 Each stage's README explains its numbered steps with diagrams and acceptance checks;
 options branch from the relevant decision and return to the main path.
 
 | Stage | Tier 0 responsibility | Walkthrough |
 | --- | --- | --- |
-| **1: Software intake** | Configure approved consumers; Tier 2 owns the ordinary proxy/cache | [Software intake](../../03-deployment/stage-1-software-intake/README.md) |
-| **2: Protected logging** | Independent collector, protected evidence and offline inspection | [Logging, Steps 1–16](../../03-deployment/stage-2-logging/README.md) |
-| **3: Cryptographic trust** | Offline root and online issuer; optional hardware protection and approved Tier 0 consumers of verified intake | [Trust](../../03-deployment/stage-3-trust/README.md) |
-| **4: Kubernetes** | Control-cluster lifecycle, basic platform, node/API logging and recovery | [Kubernetes, Steps 1–19](../../03-deployment/stage-4-kubernetes/README.md) |
-| **5: Identity** | Dedicated FreeIPA pair and Keycloak/OIDC on the accepted cluster | [Identity](../../03-deployment/stage-5-identity/README.md) |
-| **6: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../03-deployment/stage-6-secrets/README.md), [monitoring](../../03-deployment/stage-6-secrets/procedures/independent-monitoring.md) |
-| **7: Delivery** | Retain independent Flux/recovery; Tier 1 selects its application controller | [Delivery](../../03-deployment/stage-7-delivery/README.md) |
-| **8: Observability** | Own Proxmox/BMC collectors and credentials; export approved metrics/evidence copies to Tier 1 | [Infrastructure monitoring](../../03-deployment/stage-8-observability/step-13-infrastructure-monitoring.md) |
-| **9: Development platform** | Install the dedicated runner and Vault CI policy; hand over original state with explicit CI trust | [Development platform](../../03-deployment/stage-9-development/README.md) |
+| **1: Software intake** | Configure approved consumers; Tier 2 owns the ordinary proxy/cache | [Software intake](../../03-deployment/stage-01-software-intake/README.md) |
+| **2: Protected logging** | Independent collector, protected evidence and offline inspection | [Logging, Steps 1–16](../../03-deployment/stage-02-logging/README.md) |
+| **3: Cryptographic trust** | Offline root and online issuer; optional hardware protection and approved Tier 0 consumers of verified intake | [Trust](../../03-deployment/stage-03-trust/README.md) |
+| **4: Kubernetes** | Control-cluster lifecycle, basic platform, node/API logging and recovery | [Kubernetes, Steps 1–19](../../03-deployment/stage-04-kubernetes/README.md) |
+| **5: Identity** | Dedicated FreeIPA pair and Keycloak/OIDC on the accepted cluster | [Identity](../../03-deployment/stage-05-identity/README.md) |
+| **6: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../03-deployment/stage-06-secrets/README.md), [monitoring](../../03-deployment/stage-06-secrets/procedures/independent-monitoring.md) |
+| **7: Delivery** | Retain independent Flux/recovery; Tier 1 selects its application controller | [Delivery](../../03-deployment/stage-07-delivery/README.md) |
+| **8: Observability** | Own Proxmox/BMC collectors and credentials; export approved metrics/evidence copies to Tier 1 | [Infrastructure monitoring](../../03-deployment/stage-08-observability/step-13-infrastructure-monitoring.md) |
+| **9: Development platform** | Install the dedicated runner and Vault CI policy; hand over original state with explicit CI trust | [Development platform](../../03-deployment/stage-09-development/README.md) |
 | **10: Lab environments** | Approve bounded infrastructure requests; an automated allocator is not supplied | [Lab environments](../../03-deployment/stage-10-lab-environments/README.md) |
 
 Select optional [HA](../../03-deployment/foundation/proxmox/step-1b-cluster-ha.md) and
@@ -60,8 +60,8 @@ to configure, adopt/publish, apply and qualify images and recovery. Tier 0 appro
 Verified existing templates are valid. No hosted CI or cluster is required.
 Later changes use [template maintenance](../../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow).
 
-After templates, accept [software intake](../../03-deployment/stage-1-software-intake/README.md),
-then establish [foundational syslog](../../03-deployment/stage-2-logging/README.md)
+After templates, accept [software intake](../../03-deployment/stage-01-software-intake/README.md),
+then establish [foundational syslog](../../03-deployment/stage-02-logging/README.md)
 with the Tier 0 `syslog` setup. Prepare storage/TLS before installing its isolated
 receiver, then follow its producer, NAS checkpoint and independent-backup recipes.
 NAS snapshots/access custody and live acceptance remain commissioning gates; HA is a separate selection.
@@ -73,10 +73,10 @@ Run from **`<prefix>-tier-0/`**.
 bash scripts/kubernetes-cluster.sh init
 ```
 
-Follow the numbered [Kubernetes actions](../../03-deployment/stage-4-kubernetes/README.md)
-to configure, plan, deploy and accept the cluster. The [common cluster reference](../../03-deployment/stage-4-kubernetes/procedures/kubernetes.md)
-and [Talos implementation](../../03-deployment/stage-4-kubernetes/procedures/talos-terraform.md) explain details.
-The [Identity actions](../../03-deployment/stage-5-identity/README.md)
+Follow the numbered [Kubernetes actions](../../03-deployment/stage-04-kubernetes/README.md)
+to configure, plan, deploy and accept the cluster. The [common cluster reference](../../03-deployment/stage-04-kubernetes/procedures/kubernetes.md)
+and [Talos implementation](../../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md) explain details.
+The [Identity actions](../../03-deployment/stage-05-identity/README.md)
 deploy the separate FreeIPA pair. Linux setup commands use tier-local inventory
 and state; they do not bootstrap Kubernetes or install cluster services.
 Replace `homelab` in paths if another prefix was selected.

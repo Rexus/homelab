@@ -1,7 +1,7 @@
 # Variable definitions (this repository): terraform/deployments/cluster-endpoint/variables.tf
 
 # Copy to: terraform/deployments/cluster-endpoint/terraform.tfvars
-# Guide: docs/03-deployment/stage-4-kubernetes/procedures/api-endpoint.md
+# Guide: docs/03-deployment/stage-04-kubernetes/procedures/api-endpoint.md
 # VMID allocation: docs/02-conventions/vmid-convention.md
 # IPs and naming come from Tier 0 inventory/group vars through environment_guests.
 # Set approved Enterprise Linux image/storage references in the shared catalog/profile.
@@ -9,7 +9,7 @@
 vm_instances = {
   api-gw-1 = {
     proxmox_node_name = "pve01"
-    vm_id            = 301
+    vm_id            = 401
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20
@@ -18,7 +18,7 @@ vm_instances = {
   }
   api-gw-2 = {
     proxmox_node_name = "pve02"
-    vm_id            = 302
+    vm_id            = 402
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20

@@ -159,8 +159,8 @@ Stage 7 establishes delivery using an existing bootstrap source and approved art
 Stage 9 adds hosted source control and general CI; delivery must therefore work before the
 new GitLab service exists. Observability is established between those deployment stages.
 
-**Deploy:** [Stage 7: Delivery](../../03-deployment/stage-7-delivery/README.md), then follow
-its onward path through Observability to [Stage 9: Development](../../03-deployment/stage-9-development/README.md).
+**Deploy:** [Stage 7: Delivery](../../03-deployment/stage-07-delivery/README.md), then follow
+its onward path through Observability to [Stage 9: Development](../../03-deployment/stage-09-development/README.md).
 **Operate:** [Delivery and development](../../05-operations/05-delivery.md).
 The [support map](../../08-reference/implementation-support.md) distinguishes supplied installers
 from required existing interfaces and project integrations.

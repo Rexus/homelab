@@ -78,7 +78,7 @@ realize the pictured NAS path; the separate retention-lock procedure below owns 
 | Protection | Storage-owned snapshots plus an independently recoverable backup | Locked object versions for an approved retention period, plus independent recovery copies |
 | Trusted authority | NAS/backup administrators can ultimately delete their copies | Depends on lock mode, storage operator and key/account custody |
 | Principal limit | Not immutable against NAS/backup administration; snapshot/backup lag exposes a tail | Does not protect unavailable/deleted keys, every provider failure or records not yet committed |
-| Reference deployment | [15a: NAS-backed archive](../../03-deployment/stage-2-logging/step-15a-nas-archive.md) | [15b: Retention-locked archive](../../03-deployment/stage-2-logging/step-15b-retention-lock.md) |
+| Reference deployment | [15a: NAS-backed archive](../../03-deployment/stage-02-logging/step-15a-nas-archive.md) | [15b: Retention-locked archive](../../03-deployment/stage-02-logging/step-15b-retention-lock.md) |
 
 **Recommendation:** use A when trusted storage administration and a measured
 recovery-point objective are acceptable. Use B when deletion by a privileged
@@ -150,7 +150,7 @@ coverage rather than assuming a new lock protects previously mutable records.
 
 ## Realization
 
-Select A or B at [Stage 2, Step 15](../../03-deployment/stage-2-logging/README.md#step-15-protect-retained-records).
+Select A or B at [Stage 2, Step 15](../../03-deployment/stage-02-logging/README.md#step-15-protect-retained-records).
 [Logging administration](../../05-operations/06-resilience/protected-logging.md) owns recurring
 checks; the [fault/restore drill](../../05-operations/06-resilience/logging-drill.md) records the
 chosen protection boundary and its demonstrated limits. Implementation coverage

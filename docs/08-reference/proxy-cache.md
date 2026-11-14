@@ -1,7 +1,7 @@
 # Proxy/cache inputs and behavior
 
-Optional lookup for [Stage 1, Step 3](../03-deployment/stage-1-software-intake/README.md#step-3-configure-the-cache-deployment).
-The [Stage 1 README](../03-deployment/stage-1-software-intake/README.md) is the complete installation path.
+Optional lookup for [Stage 1, Step 3](../03-deployment/stage-01-software-intake/README.md#step-3-configure-the-cache-deployment).
+The [Stage 1 README](../03-deployment/stage-01-software-intake/README.md) is the complete installation path.
 This page explains settings and behavior; it is not another deployment to perform.
 
 **Working repository:** `<prefix>-tier-2` for cache inputs. Each consumer's owning tier selects its endpoint.
@@ -39,7 +39,7 @@ This page explains settings and behavior; it is not another deployment to perfor
 [Terraform examples](../../tier-2/terraform/deployments/cache/terraform.tfvars.example),
 [cache inputs](../../tier-2/ansible/group_vars/cache.yml.example) and
 [role defaults](../../tier-2/ansible/roles/cache_proxy/defaults/main.yml) are the maintained definitions.
-Configure and deploy through [Stage 1, Steps 2 to 5](../03-deployment/stage-1-software-intake/README.md#step-2-initialize-cache-inputs).
+Configure and deploy through [Stage 1, Steps 2 to 5](../03-deployment/stage-01-software-intake/README.md#step-2-initialize-cache-inputs).
 
 ## Service shape
 
@@ -121,7 +121,7 @@ Never force caching through expiry/privacy/reload overrides; repository metadata
 Each consumer selects `repository_proxy_enabled`, `repository_proxy_url` and optionally
 `repository_proxy_fqdn` in its own `ansible/group_vars/all.yml` or `all.<env>.yml`.
 Use `repository_proxy_ip` only for a temporary hosts entry before independent DNS works;
-consumer URLs contain no subnet prefix. Follow [bootstrap Step 6](../03-deployment/stage-1-software-intake/procedures/bootstrap-consumer.md)
+consumer URLs contain no subnet prefix. Follow [bootstrap Step 6](../03-deployment/stage-01-software-intake/procedures/bootstrap-consumer.md)
 and the [Proxmox host procedure](../05-operations/02-software-intake/host-updates.md) for existing hosts.
 
 | Consumer | Behavior |
@@ -160,7 +160,7 @@ without `trusted=yes` or insecure overrides. Publisher verification is not malwa
 
 ## Update an existing cache
 
-Use [Stage 1 option 2b](../03-deployment/stage-1-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
+Use [Stage 1 option 2b](../03-deployment/stage-01-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
 That guide owns refresh, retained-policy review, reconciliation and consumer revalidation.
 
 ## Security events
@@ -171,7 +171,7 @@ HTTP status, proxy result and error code. URL 06-paths/queries, headers and cred
 Keep diagnostics restricted separately; they are not the sanitized event interface.
 
 After Stage 2 is accepted, commission each cache's streams through the
-[logging-source procedure](../03-deployment/stage-2-logging/procedures/sources.md).
+[logging-source procedure](../03-deployment/stage-02-logging/procedures/sources.md).
 In the owning Tier 2 `ansible/host_vars/<host>.yml`, retain its security journal and add its proxy file stream:
 
 ```yaml
@@ -189,7 +189,7 @@ later OpenSearch reads only approved copies and is not an update-access dependen
 
 ## Validation
 
-[Stage 1, Step 9](../03-deployment/stage-1-software-intake/README.md#step-9-test-the-accepted-supply)
+[Stage 1, Step 9](../03-deployment/stage-01-software-intake/README.md#step-9-test-the-accepted-supply)
 owns manual acceptance from permitted/forbidden source networks: approved retrieval,
 unapproved-destination denial, direct-WAN denial and HTTP cache-hit checks when caching is selected.
 Acceptance requires that direct WAN bypass fails.

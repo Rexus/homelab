@@ -7,8 +7,9 @@ import xml.etree.ElementTree as ET
 
 import yaml
 
-from test_tier_diagrams import (BACKUP_SVG, INTAKE_SVG, LAB_SVG, RUNNER_SVG, RUNTIME_SVG, SECRETS_SVG, SUPPLY_SVG,
-                                TELEMETRY_SVG, diagrams, figure_sources)
+from test_tier_diagrams import (BACKUP_SVG, INTAKE_SVG, K8S_PLATFORM_SVG, LAB_SVG, PKCS11_SVG, PLATFORM_SVG, RUNNER_SVG,
+                                RUNTIME_SVG, SECRETS_SVG, SIGNAL_SVG, SUPPLY_SVG, TELEMETRY_SVG,
+                                diagrams, figure_sources)
 from tier_repo_test_support import UPSTREAM
 
 
@@ -138,10 +139,19 @@ class DiagramDependencies(unittest.TestCase):
         self.assertIn('T1 -- "Controller: approved application scope" --> T2', code)
 
     def test_cluster_foundation_and_runner_providers_keep_declared_order(self):
-        runtime = diagrams(DOCS / "03-deployment/stage-4-kubernetes/README.md")[1]
-        self.assertIn("Apps ~~~ Reconcile ~~~ NodeServices", runtime)
-        self.assertIn('subgraph Existing["Service Dependencies"]', runtime)
-        runner = diagrams(DOCS / "03-deployment/stage-9-development/step-14b-podman-runner.md")[0]
+        namespace = {'svg': 'http://www.w3.org/2000/svg'}
+        svg = ET.parse(K8S_PLATFORM_SVG).getroot()
+        nodes = {node.get('id'): node for node in svg.iter() if node.get('id')}
+        parents = {child: parent for parent in svg.iter() for child in parent}
+        for name in ('Apps', 'Reconcile', 'NodeServices'):
+            self.assertIs(parents[nodes[name]], nodes['Cluster'])
+        self.assertIs(parents[nodes['Existing']], nodes['T0'])
+        positions = [float(nodes[name].find('svg:rect', namespace).get('x'))
+                     for name in ('Apps', 'Reconcile', 'NodeServices')]
+        self.assertEqual(positions, sorted(set(positions)))
+        self.assertEqual(figure_sources(DOCS / '03-deployment/stage-04-kubernetes/README.md')[1],
+                         K8S_PLATFORM_SVG.read_text())
+        runner = diagrams(DOCS / "03-deployment/stage-09-development/step-14b-podman-runner.md")[0]
         self.assertIn('subgraph T1["Tier 1"]\n    direction LR', runner)
         self.assertIn("Runner -->|Starts jobs| Podman", runner)
         self.assertIn("Runner -->|HTTPS job polling| Git", runner)
@@ -150,9 +160,9 @@ class DiagramDependencies(unittest.TestCase):
 
     def test_control_plane_and_edge_peers_stack_without_changing_instance_counts(self):
         cases = [
-            ("stage-4-kubernetes/README.md", 0, "Cluster", "CP1 ~~~ CP2 ~~~ CP3"),
-            ("stage-7-delivery/README.md", 0, "Nodes", "CP1 ~~~ CP2 ~~~ CP3"),
-            ("stage-7-delivery/procedures/edge-proxy.md", 0, "Pool", "A ~~~ B ~~~ C"),
+            ("stage-04-kubernetes/README.md", 0, "Cluster", "CP1 ~~~ CP2 ~~~ CP3"),
+            ("stage-10-lab-environments/README.md", 0, "Cluster", "CP1 ~~~ CP2 ~~~ CP3"),
+            ("stage-07-delivery/procedures/edge-proxy.md", 0, "Pool", "A ~~~ B ~~~ C"),
         ]
         for path, index, group, peers in cases:
             with self.subTest(document=path):
@@ -165,14 +175,50 @@ class DiagramDependencies(unittest.TestCase):
             self.assertEqual(len(re.findall(rf'(?<![\w-]){re.escape(host)}(?![\w-])', public)), 1)
 
     def test_controller_option_and_nodes_are_inside_the_runtime_they_extend(self):
-        code = diagrams(DOCS / "03-deployment/stage-7-delivery/README.md")[0]
-        self.assertRegex(code, r'subgraph Network\["Application Network / application[^\n]+\n\s+direction TB\n\s+subgraph Cluster\[')
-        self.assertLess(code.index('subgraph Cluster['), code.index('subgraph Nodes['))
-        self.assertLess(code.index('subgraph Cluster['), code.index('subgraph Added['))
-        self.assertIn("Nodes ~~~ Added", code)
-        self.assertIn("class Cluster kubernetes", code)
-        self.assertIn("A: Argo CD", code)
-        self.assertIn("or B: Spinnaker", code)
+        namespace = {'svg': 'http://www.w3.org/2000/svg'}
+        svg = ET.parse(PLATFORM_SVG).getroot()
+        nodes = {node.get('id'): node for node in svg.iter() if node.get('id')}
+        parents = {child: parent for parent in svg.iter() for child in parent}
+        self.assertIs(parents[nodes['Cluster']], nodes['Network'])
+        self.assertIs(parents[nodes['Nodes']], nodes['Cluster'])
+        self.assertIs(parents[nodes['Added']], nodes['Cluster'])
+        self.assertEqual(nodes['Cluster'].get('class'), 'kubernetes')
+        names = []
+        positions = []
+        for number in (1, 2, 3):
+            node = nodes[f'CP{number}']
+            self.assertIs(parents[node], nodes['Nodes'])
+            names.append(''.join(node.itertext()).strip())
+            positions.append(float(node.find('svg:rect', namespace).get('y')))
+        inputs = (UPSTREAM / 'tier-1/terraform/deployments/kubernetes/terraform.tfvars.example').read_text()
+        self.assertEqual(names, re.findall(r'^  (pctl-\d+) = \{', inputs, re.M))
+        self.assertEqual(positions, sorted(set(positions)))
+        controller = ''.join(nodes['Controller'].itertext())
+        self.assertIn('A: Argo CD', controller)
+        self.assertIn('or B: Spinnaker', controller)
+        self.assertEqual(figure_sources(DOCS / '03-deployment/stage-07-delivery/README.md')[0],
+                         PLATFORM_SVG.read_text())
+
+    def test_signal_and_hardware_views_keep_actual_endpoints_and_counts(self):
+        namespace = {'svg': 'http://www.w3.org/2000/svg'}
+        svg = ET.parse(SIGNAL_SVG).getroot()
+        nodes = {node.get('id'): node for node in svg.iter() if node.get('id')}
+        defaults = yaml.safe_load((UPSTREAM / 'tier-1/ansible/roles/observability_platform/defaults/main.yml').read_text())
+        for node, key in (('Gateway', 'gateway'), ('Prepper', 'prepper'), ('Search', 'search')):
+            self.assertEqual(int(nodes[node].get('data-replicas')), defaults[f'observability_{key}_replicas'])
+        edges = {(edge.get('data-from'), edge.get('data-to')) for edge in svg.findall('.//svg:path[@data-from]', namespace)}
+        self.assertEqual(edges, {('Apps', 'Gateway'), ('Gateway', 'Metrics'), ('Gateway', 'Prepper'), ('Prepper', 'Search')})
+        svg = ET.parse(PKCS11_SVG).getroot()
+        nodes = {node.get('id'): node for node in svg.iter() if node.get('id')}
+        parents = {child: parent for parent in svg.iter() for child in parent}
+        for number in (1, 2):
+            self.assertIs(parents[nodes[f'H{number}']], nodes[f'Host{number}'])
+            self.assertIs(parents[nodes[f'Token{number}']], nodes[f'Host{number}'])
+        edges = {(edge.get('data-from'), edge.get('data-to')) for edge in svg.findall('.//svg:path[@data-from]', namespace)}
+        self.assertEqual(edges, {('Client', 'H1'), ('Client', 'H2'), ('H1', 'Token1'), ('H2', 'Token2')})
+        recovery = nodes['Recovery'].find('svg:rect', namespace)
+        network = nodes['Network'].find('svg:rect', namespace)
+        self.assertGreater(float(recovery.get('y')), float(network.get('y')) + float(network.get('height')))
 
     def test_execution_owns_original_state_and_recovery_stays_outside_hosting(self):
         namespace = {'svg': 'http://www.w3.org/2000/svg'}
@@ -190,7 +236,7 @@ class DiagramDependencies(unittest.TestCase):
         self.assertIs(parents[nodes['Recovery']], nodes['T0'])
         edges = {(edge.get('data-from'), edge.get('data-to')) for edge in svg.findall('.//svg:path[@data-from]', namespace)}
         self.assertEqual(edges, {('Runner', 'State'), ('Runner', 'Vault')})
-        blocks = diagrams(DOCS / "03-deployment/stage-9-development/README.md")
+        blocks = diagrams(DOCS / "03-deployment/stage-09-development/README.md")
         sequence = next(block for block in blocks if 'participant Runner as iac-1' in block)
         self.assertIn('Runner->>Git: HTTPS job polling', sequence)
         self.assertIn('Runner->>Git: HTTPS job results', sequence)
@@ -216,7 +262,7 @@ class DiagramDependencies(unittest.TestCase):
         self.assertIn('application-client', values)
 
     def test_vault_operator_is_external_and_recovery_is_below_connected_runtime(self):
-        code = diagrams(DOCS / "03-deployment/stage-6-secrets/step-1b-vault-vm.md")[0]
+        code = diagrams(DOCS / "03-deployment/stage-06-secrets/step-1b-vault-vm.md")[0]
         self.assertIn("flowchart LR", code)
         self.assertLess(code.index('Operator["'), code.index('subgraph T0['))
         self.assertIn('subgraph T0["Tier 0"]\n    direction BT', code)

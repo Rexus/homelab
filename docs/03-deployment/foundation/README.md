@@ -326,6 +326,10 @@ Complete enrollment, the selected scheduler and the disposable-guest failover ch
 The [worked failure example](proxmox/failover.md) explains the expected behavior; it does not require
 deploying the later directory service now.
 
+Use the [HA operations fast track](../../05-operations/01-hosting/proxmox-ha.md) to initialize
+and apply selected guest enrollment and placement rules. The [availability cases](../../01-architecture/04-hosting/05-availability.md)
+explain the difference between migration, restart and service failover before choosing a policy.
+
 ### 10a: Native scheduler — main path
 
 Retain the native rebalancing policy qualified in HA setup. Continue at Foundation ready below.
@@ -344,10 +348,10 @@ Continue at Foundation ready below; critical HA guests retain their native recov
 - [ ] Template clones boot and the selected Linux VMID is recorded in Shared.
 - [ ] Guest backup/restore and original-state recovery have recorded results.
 
-Continue to **[Stage 1: Software intake](../stage-1-software-intake/README.md)**.
+Continue to **[Stage 1: Software intake](../stage-01-software-intake/README.md)**.
 The cache is the next deployment in the main track and runs from **Tier 2**; stay on
 the bootstrap host and change repository as the stage directs. After that stage,
-return to Tier 0 for **[Stage 2: Protected logging](../stage-2-logging/README.md)**.
+return to Tier 0 for **[Stage 2: Protected logging](../stage-02-logging/README.md)**.
 Neither capability waits for FreeIPA or Kubernetes.
 
 This completes the compute portion of the

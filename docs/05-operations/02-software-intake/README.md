@@ -1,6 +1,6 @@
 # Software intake operations
 
-Operate the Tier 2 Squid/keepalived outbound proxy after [software intake deployment](../../03-deployment/stage-1-software-intake/README.md).
+Operate the Tier 2 Squid/keepalived outbound proxy after [software intake deployment](../../03-deployment/stage-01-software-intake/README.md).
 The [software intake architecture](../../01-architecture/07-software-intake/README.md) describes its trust and recovery boundaries;
 the [proxy/cache reference](../../08-reference/proxy-cache.md) owns the complete settings and behavior.
 For verified publication, use [verified software intake operations](verified-publication.md).
@@ -17,7 +17,7 @@ Each instance has its own cache disk; the VIP has one active owner and does not 
 **Owner:** `<prefix>-tier-2`; [VM inputs](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example),
 [policy inputs](../../../tier-2/ansible/group_vars/cache.yml.example) and
 [deployment recipe](../../../tier-2/ansible/playbooks/deployment/outbound-cache.yml).
-An [existing approved supply service](../../03-deployment/stage-1-software-intake/README.md#1b-use-existing-approved-supply)
+An [existing approved supply service](../../03-deployment/stage-01-software-intake/README.md#1b-use-existing-approved-supply)
 is a separate alternative; it does not create this pair.
 
 ## Find the configuration or task
@@ -25,7 +25,7 @@ is a separate alternative; it does not create this pair.
 | Owner | Inputs or procedure |
 | --- | --- |
 | **`<prefix>-tier-2/`** | `ansible/group_vars/cache.yml` for VIP, client networks, approved sources and storage; `ansible/inventory/hosts.yml` for targets |
-| **`<prefix>-tier-1/`** | `ansible/group_vars/intake.yml`: [verified publication](verified-publication.md), installed as the [Stage 3 option](../../03-deployment/stage-3-trust/step-15b-verified-intake.md) |
+| **`<prefix>-tier-1/`** | `ansible/group_vars/intake.yml`: [verified publication](verified-publication.md), installed as the [Stage 3 option](../../03-deployment/stage-03-trust/step-15b-verified-intake.md) |
 | Consumer's tier | Proxy/mirror inputs for that consumer; [Proxmox updates](host-updates.md), [APT troubleshooting](apt-refresh.md) |
 
 The cache controls transport; verified intake owns quarantine and publication after
@@ -60,7 +60,7 @@ or use a separate working upstream proxy. Preserve independent bootstrap and rec
 3. Expect each host to converge and, when enabled, its local approved and denied proxy tests to pass.
    The maintenance recipe does not run the deployment playbook's VIP or failover exercise.
    Check the service and consumer path below. For a kit update, follow
-   [existing-cache update adoption](../../03-deployment/stage-1-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
+   [existing-cache update adoption](../../03-deployment/stage-01-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
 
 For full Ansible deployment validation on existing VMs, run without concurrent package jobs from
 **`<prefix>-tier-2/`**:
@@ -84,7 +84,7 @@ and the `cache_validation_failover_enabled` option; disabling it skips the takeo
    ```
 
    Expect both services active and exactly one cache host to own the configured VIP.
-2. Follow [Stage 1 acceptance](../../03-deployment/stage-1-software-intake/README.md#step-5-test-the-selected-intake-path)
+2. Follow [Stage 1 acceptance](../../03-deployment/stage-01-software-intake/README.md#step-5-test-the-selected-intake-path)
    from permitted and forbidden networks: approved retrieval succeeds, an unapproved destination and
    direct WAN bypass fail, and HTTP cache hits are checked where selected. Check DNS for clients using
    the FQDN and retain native signature and digest verification.

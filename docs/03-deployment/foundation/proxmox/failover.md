@@ -1,152 +1,183 @@
-# Proxmox host failure and recovery
+# Proxmox failure and recovery qualification
 
-**Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Prerequisites:** three accepted Proxmox VE 9.2+ hosts, resilient shared live storage,
-tested watchdog/fencing, N+1 capacity and independent console/backup access.
-Complete [HA configuration](step-1b-cluster-ha.md) first.
+Test planned migration and automatic VM restart separately. Record how the complete
+service behaves while a guest is unavailable and after the same guest starts again.
 
-This worked example uses the existing directory pair, not additional VMs. The
-host placements and HA rules below are an **operator-selected example**, not created
-by Terraform. Prove the behavior with disposable guests before testing identity.
+<a id="figure-availability-cases"></a>
 
-<a id="figure-1-selected-placement-before-failure"></a>
+![Planned migration, automatic VM restart and application failover](../../../08-reference/diagrams/availability-cases.svg)
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
-flowchart TB
-  subgraph T0["Tier 0"]
-    direction TB
-    subgraph P1["Proxmox pve01"]
-      A["idm-1<br/>Running directory<br/>primary"]
-    end
-    subgraph P2["Proxmox pve02"]
-      B["idm-2<br/>Running directory<br/>replica"]
-    end
-    subgraph P3["Proxmox pve03"]
-      Spare["Recovery capacity<br/>No directory VM yet"]
-    end
-    Storage[("Existing resilient Ceph<br/>Live disks / all hosts<br/>Independent backup separate")]
-    P1 ~~~ P3
-    P2 ~~~ Storage
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class A,B control
-  class P1,P2,P3,Spare runtime
-  class Storage data
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
-```
+**Workflow:** *Figure 1. The three strips compare planned migration, automatic VM restart
+(Proxmox HA) and application-level failover.* Only source and survivor hosts are shown.
+The complete deployment supplies cluster quorum, fencing, accessible disks and recovery capacity.
+[Availability design](../../../01-architecture/04-hosting/05-availability.md)
 
-**Manual:** **Figure 1: Selected placement before failure.** Tier 0's [guest definitions](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
-and [inventory](../../../../tier-0/ansible/inventory/hosts.yml.example) supply the exact guest names/VMIDs.
-Set initial node overrides in the local definitions; their example does not already spread the pair.
-HA enrollment, affinity, hosts and Ceph are manually commissioned prerequisites.
-The figure omits the foundation root's unrelated CA guest; it is not another directory member.
-This placement-only view shows no implied replication or network route.
+**Working repository:** `<prefix>-tier-0/` for HA policy, with each guest's original
+tier retaining its provisioning inputs and state.
+
+**Before testing**, complete cluster, mobility and HA policy preparation with a disposable
+VM. Keep independent console access and a verified backup. Choose the expected outage
+and recovery point before testing an important service.
+[Foundation HA setup](step-1b-cluster-ha.md) ·
+[Operational commands](../../../05-operations/01-hosting/proxmox-ha.md)
 
 ## Contents
 
-- [Selected configuration](#selected-configuration)
-- [When pve01 fails](#when-pve01-fails)
-- [Verify the result](#verify-the-result)
+- [Select the failure model](#selected-configuration)
+- [Read the directory example](#figure-1-selected-placement-before-failure)
+- [Follow host-loss recovery](#when-pve01-fails)
+- [Check constrained recovery](#constrained-recovery)
+- [Run the qualification](#verify-the-result)
 - [References](#references)
 
-## Selected configuration
+<a id="selected-configuration"></a>
 
-| Item | Example selection |
-| --- | --- |
-| Guests | `idm-1` / VMID `201`, `idm-2` / VMID `202` |
-| Initial placement | `idm-1` on `pve01`, `idm-2` on `pve02`; `pve03` has recovery capacity |
-| Storage/network | Every guest disk, including EFI, on qualified shared Ceph; identity network on all three hosts |
-| HA resources | Both `started`, restart `1`, relocate `1`, failback off, auto-rebalance on |
-| Rule | Negative resource affinity between `vm:201` and `vm:202`; no extra node restriction |
-| Scheduler | Native dynamic automatic balancing; no ProxLB for these guests |
+## Select the failure model
 
-## When pve01 fails
+| Path | Expected interruption | Recovery data |
+| --- | --- | --- |
+| Planned live migration | Short switchover while both hosts remain working | Running state transferred and accessible current disks |
+| Automatic VM restart through Proxmox HA | Detection/fencing, boot and application-recovery interval | Original shared disks, or last accepted replicated disk state |
+| Application-level failover | Client retry/routing/promotion interval according to the native protocol | Surviving member's consistent application state |
+| Backup restore | Restore, reconfiguration and application-recovery interval | Selected retained recovery point |
 
-Compare [Figure 1](#figure-1-selected-placement-before-failure) with the recovered placement
-in [Figure 2](#figure-2-placement-after-safe-ha-recovery). The same guest and disks move only
-after safe fencing; no new directory instance is created.
+A spare host supplies somewhere to run. Disk replication supplies another disk copy.
+An application replica runs its own service instance. Test client selection, data consistency
+and remaining capacity for the chosen combination. Local asynchronous replication can lose
+writes after its last completed synchronization. [1][2]
+
+<a id="figure-1-selected-placement-before-failure"></a>
+
+## Read the directory example
+
+This operator-selected example uses the existing `idm-1` and `idm-2` directory members
+on separate hosts, with a third eligible host retaining recovery capacity. The local HA inputs
+maintain one negative resource-affinity rule for the pair.
+
+```mermaid
+%%{init: {"theme":"base","fontFamily":"Arial, sans-serif","flowchart":{"nodeSpacing":12,"rankSpacing":18,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":16}},"themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px","lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph P1["pve01"]
+    A["idm-1<br/>Running"]
+  end
+  subgraph P2["pve02"]
+    B["idm-2<br/>Running"]
+  end
+  subgraph P3["pve03"]
+    Spare["Recovery capacity"]
+  end
+  P1 ~~~ P2 ~~~ P3
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
+  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
+  class P1,P2,P3 runtime
+  class A,B control
+  class Spare actor
+```
+
+**IaC:** *Figure 2. The directory pair occupies separate physical hosts.* This selected
+placement uses the existing [foundation guest inputs](../../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
+and [inventory](../../../../tier-0/ansible/inventory/hosts.yml.example).
+Each member's full disk set is accessible to the eligible survivor hosts. Independent backup,
+shared-storage health and directory client endpoint failover are prerequisites outside this placement view.
+
+<a id="when-pve01-fails"></a>
+
+## Follow host-loss recovery
 
 <a id="figure-2-placement-after-safe-ha-recovery"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"subGraphTitleMargin":{"top":8,"bottom":16}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
-flowchart TB
-  subgraph T0["Tier 0"]
-    direction TB
-    subgraph P1["Proxmox pve01"]
-      Failed["Failed / fenced host<br/>Original idm-1<br/>is not running"]
-    end
-    subgraph P2["Proxmox pve02"]
-      B["idm-2<br/>Continues serving<br/>clients"]
-    end
-    subgraph P3["Proxmox pve03"]
-      A["idm-1<br/>Cold restart<br/>Then replication"]
-    end
-    Storage[("Same resilient Ceph<br/>Original live disks<br/>No backup restore here")]
-    P1 ~~~ P3
-    P2 ~~~ Storage
+%%{init: {"theme":"base","fontFamily":"Arial, sans-serif","flowchart":{"nodeSpacing":12,"rankSpacing":18,"padding":8,"subGraphTitleMargin":{"top":4,"bottom":16}},"themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px","lineColor":"#627581","edgeLabelBackground":"#f8fafc"}}}%%
+flowchart LR
+  subgraph P1["pve01"]
+    Failed["Failed / fenced"]
   end
+  subgraph P2["pve02"]
+    B["idm-2<br/>Running"]
+  end
+  subgraph P3["pve03"]
+    A["idm-1<br/>Restarted"]
+  end
+  P1 ~~~ P2 ~~~ P3
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
+  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
   classDef fault fill:#fce8e6,stroke:#a3453d,color:#652c28
-  class A,B control
   class P1,P2,P3 runtime
-  class Storage data
+  class A,B control
   class Failed fault
-  classDef tier0 fill:#d8cbb9,stroke:#83715a,color:#352a1e
-  class T0 tier0
 ```
 
-**Manual:** **Figure 2: Placement after safe HA recovery.** Fault scenario using the same
-[selected configuration](#selected-configuration), not a second
-deployment or Terraform apply. No ProxLB, CI or Kubernetes dependency performs this recovery.
-Disk accessibility, quorum and fencing are conditions, not properties proved by this drawing.
+**Workflow:** *Figure 3. Safe ownership and the separation rule select pve03 for the original
+idm-1 guest.* The host-failure sequence acts on the same resources in
+[Figure 2](#figure-1-selected-placement-before-failure). The failed host remains unavailable. [1]
 
-1. `idm-1` stops with the failed host. `idm-2` remains available if its own
-   dependencies work and clients are configured to use both directory/DNS servers.
-2. The surviving quorate cluster waits for safe fencing/ownership recovery.
-   A network-isolated host might still write its disks: never start a second copy manually.
-3. HA selects an eligible target. Anti-affinity excludes `pve02`, so in this
-   configuration `pve03` boots **the same VMID and disks** for `idm-1`.
-4. The guest performs crash recovery and rejoins directory replication. Its memory,
-   open sessions and in-flight work were not transferred. Measure the interruption. [1]
+1. `idm-1` stops with its host. `idm-2` can continue serving clients configured to use
+   both directory endpoints, provided its own dependencies remain available.
+2. The surviving quorate cluster establishes safe fencing of the failed host.
+3. The separation rule excludes the host already running `idm-2`. HA selects `pve03`
+   and boots the **same VMID and disks** for `idm-1`.
+4. `idm-1` performs crash recovery and rejoins directory replication. Verify consistency
+   and client access before reporting redundancy restored.
 
-| Failure condition | Expected outcome |
+<a id="constrained-recovery"></a>
+
+## Check constrained recovery
+
+| Condition | Expected result |
 | --- | --- |
-| One of three hosts lost; remaining Ceph replicas/monitors and networks healthy | Eligible HA guests can restart; application recovery still takes time |
-| No cluster quorum or fencing not established | Recovery waits; forcing starts risks split-brain |
-| Guest disks inaccessible, lost, or Ceph below safe write availability | No useful restart; repair storage or follow independent backup recovery |
-| Only pve02 eligible while it runs idm-2 | Hard anti-affinity blocks idm-1 recovery; do not bypass the rule silently |
-| Three strictly separated control planes, one of three hosts lost | Two survive; third waits for another eligible host, even with spare RAM |
-| Application frozen but VM process remains running | Hypervisor HA alone may not detect it; application monitoring/remediation is separate |
+| One host lost, eligible capacity and shared storage remain healthy | Selected HA guests can restart after fencing |
+| Quorum or safe fencing unavailable | Recovery waits for safe ownership |
+| Any required disk/network/device unavailable | Restore that dependency or use the selected recovery path |
+| Directory pair with only the other member's host eligible | Hard separation blocks restarting the failed member there |
+| Three separated control-plane VMs on three physical hosts, one host lost | Two survive, third waits for an eligible host |
+| Same control-plane set with a fourth eligible host | Third can restart if capacity, disks and networks remain available |
+| Application hangs while its VM remains running | Application monitoring and native recovery must handle the failure |
+| Shared live disks lost/corrupted | Independent backup recovery supplies the retained data |
 
-## Verify the result
+Make one control-plane separation rule per Kubernetes cluster. Workers have their own
+capacity/placement policy. A large rule containing all clusters or every worker would demand
+one eligible physical host per member. Kubernetes pod topology spread addresses the inner
+scheduler separately. [Resource-affinity procedure](../../../05-operations/01-hosting/proxmox-ha.md#resource-affinity)
 
-Use a reviewed maintenance window, disposable guests and out-of-band control.
-Never power-cut real identity or storage hosts as an unreviewed first test.
+Vertical scaling increases the space each recovered guest needs on one survivor. Horizontal
+scaling adds members and their placement/data requirements. Recalculate usable N+1 capacity
+after either change, including host, storage-service and migration overhead.
+[Capacity and failure-budget design](../../../01-architecture/04-hosting/05-availability.md#how-scaling-changes-the-failure-budget)
 
-1. Record healthy quorum, Ceph health, resources/rules and original guest location against
-   [Figure 1](#figure-1-selected-placement-before-failure).
-   Test a live migration first, then require a no-unexpected-change Terraform plan.
-2. Exercise the approved host-death/fencing test, not merely an orderly reboot.
-   Record failure time, fencing/recovery states, selected target, guest boot and client recovery.
-3. Confirm exactly one instance of each VMID, intact data, directory replication,
-   expected allow/deny paths, critical-log delivery and another clean Terraform plan.
-4. Bring back the repaired host only after hardware/storage checks. Confirm no
-   premature failback, rule violation or migration churn, then test planned maintenance separately.
-5. Record remaining capacity and constrained-recovery cases. Keep an independent
-   [backup/restore test](../../../05-operations/06-resilience/backups/virtual-machines.md); HA does not cover lost shared disks.
+<a id="verify-the-result"></a>
 
-The repository's mocked plans verify creation/placement contracts only. They do
-not qualify host power loss, Ceph behavior, fencing or a recovery-time objective.
+## Run the qualification
+
+1. **Record the baseline.** Save healthy quorum/fencing status, storage health, resources,
+   rules, guest locations, application replication and a working client request.
+2. **Test planned migration.** Migrate the disposable guest while both hosts work.
+   Confirm completion and endpoint/data access. Preview its owning Terraform root and
+   investigate unexpected recreation or placement changes.
+3. **Test host-loss recovery.** Follow the reviewed fault procedure using independent console
+   control. Record failure detection, fencing, destination selection, guest boot and client recovery.
+4. **Verify the service.** Require one running instance per original VMID, intact data,
+   healthy application replication/quorum, protected log delivery and the intended separation.
+5. **Test the constrained case.** Confirm a hard-separated member waits when there are too
+   few eligible hosts. Record the degraded service state and its remaining failure tolerance.
+6. **Return the repaired host.** Check hardware, storage and networks, then release its
+   maintenance state. Review failback/balancing and verify the required redundant members.
+7. **Keep the result.** Record measured downtime, observed recovery point, residual risks,
+   successful service checks and the owning IaC revision in the protected operating record.
+
+A live migration result qualifies the planned-transfer path. The host-loss test qualifies
+safe automatic restart and its actual interruption. Repeat after changes to storage,
+networking, hardware, affinity or VM size that affect the accepted failure model.
+
+Return to **Foundation Step 10** after recording acceptance.
+[Foundation return](../README.md#step-10-qualify-selected-ha-and-balancing) ·
+[Independent VM backup/restore](../../../05-operations/06-resilience/backups/virtual-machines.md)
 
 ## References
 
-1. [Proxmox HA manager: fencing and recovery](https://github.com/proxmox/pve-docs/blob/master/ha-manager.adoc), reviewed 2026-10-27.
+Official sources checked 2026-11-14.
+
+1. [Proxmox HA fencing, recovery and placement](https://github.com/proxmox/pve-docs/blob/master/ha-manager.adoc).
+2. [Proxmox storage replication and possible loss since the last sync](https://github.com/proxmox/pve-docs/blob/master/pvesr.adoc).

@@ -151,8 +151,8 @@ owns that independence.
 
 ## Realization
 
-[Delivery](../../03-deployment/stage-7-delivery/README.md) selects the Tier 1 controller.
-[Development platform](../../03-deployment/stage-9-development/README.md) installs
+[Delivery](../../03-deployment/stage-07-delivery/README.md) selects the Tier 1 controller.
+[Development platform](../../03-deployment/stage-09-development/README.md) installs
 GitLab/general runners and configures the direct-CI handover.
 [Lab environments](../../03-deployment/stage-10-lab-environments/README.md) consume the accepted
 platform without granting users its infrastructure authority.

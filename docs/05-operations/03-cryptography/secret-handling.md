@@ -56,7 +56,7 @@ revocation owner. Never replace an unknown credential merely because it is unava
 
 ## How are Flux bootstrap secrets maintained?
 
-1. In Tier 0, follow [Flux/SOPS Steps 1-2](../../03-deployment/stage-4-kubernetes/procedures/flux-sops.md)
+1. In Tier 0, follow [Flux/SOPS Steps 1-2](../../03-deployment/stage-04-kubernetes/procedures/flux-sops.md)
    for the exact Git URL/commit, read-only credential and age Secret inputs.
 2. Commit only ciphertext/public recipient settings. Keep the private identity and
    source-access recovery outside the cluster. Verify the encrypted canary after changes. [1]
@@ -71,7 +71,7 @@ installation alone does not migrate existing credentials or configure external-s
 
 ## When can applications use the secret service?
 
-1. Complete [Stage 6 Secrets](../../03-deployment/stage-6-secrets/README.md) using the
+1. Complete [Stage 6 Secrets](../../03-deployment/stage-06-secrets/README.md) using the
    selected Kubernetes or VM path. Initialization/unseal remains an operator ceremony.
 2. Verify TLS, scoped access, protected audit delivery, backups and independent recovery.
 3. Enable each consumer's accepted authentication/injection path. Move a credential

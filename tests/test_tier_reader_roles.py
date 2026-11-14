@@ -22,7 +22,7 @@ class ReaderRoles(TierRepositoryTestCase):
                 expected = UPSTREAM / name if root == source else self.root / f"verify-{name}"
                 self.assertEqual((root / link).resolve(), expected)
             for document in [*root.glob("stage-*/**/*.md"), *root.glob("foundation/**/*.md"),
-                             *root.glob("stage-1-software-intake/**/*.md")]:
+                             *root.glob("stage-01-software-intake/**/*.md")]:
                 content = document.read_text(encoding="utf-8")
                 # Result figures can precede context; execution ownership must precede commands.
                 opening = re.split(r"(?m)^```(?:bash|sh|shell|powershell|hcl|yaml)\b", content, maxsplit=1)[0]
@@ -34,14 +34,14 @@ class ReaderRoles(TierRepositoryTestCase):
                 self.assertIn(f"{prefix}-tier-", opening, str(document))
             for relative, owner in (
                 ("../08-reference/proxy-cache.md", "tier-2"),
-                ("stage-3-trust/step-1b-usb-hsm.md", "tier-0"),
-                ("stage-5-identity/procedures/freeipa.md", "tier-0"),
-                ("stage-6-secrets/step-1b-vault-vm.md", "tier-0"),
-                ("stage-8-observability/step-1b-dedicated-vms.md", "tier-1"),
-                ("stage-9-development/step-1b-source-control-vm.md", "tier-1"),
-                ("stage-9-development/step-14b-podman-runner.md", "tier-1"),
-                ("stage-9-development/step-15b-image-based-linux.md", "tier-0"),
-                ("stage-7-delivery/procedures/edge-proxy.md", "tier-2"),
+                ("stage-03-trust/step-1b-usb-hsm.md", "tier-0"),
+                ("stage-05-identity/procedures/freeipa.md", "tier-0"),
+                ("stage-06-secrets/step-1b-vault-vm.md", "tier-0"),
+                ("stage-08-observability/step-1b-dedicated-vms.md", "tier-1"),
+                ("stage-09-development/step-1b-source-control-vm.md", "tier-1"),
+                ("stage-09-development/step-14b-podman-runner.md", "tier-1"),
+                ("stage-09-development/step-15b-image-based-linux.md", "tier-0"),
+                ("stage-07-delivery/procedures/edge-proxy.md", "tier-2"),
             ):
                 content = (root / relative).read_text(encoding="utf-8")
                 self.assertIn(f"**Working repository:** `{prefix}-{owner}`", content)
@@ -180,18 +180,18 @@ class ReaderRoles(TierRepositoryTestCase):
             self.assertIn("Required readiness", deployment)
             self.assertIn("03-deployment/readiness.md", deployment)
             self.assertIn("Selected variant / local procedure", deployment)
-            for stage in ("stage-1-software-intake", "stage-2-logging", "stage-3-trust", "stage-4-kubernetes", "stage-5-identity",
-                          "stage-6-secrets",
-                          "stage-7-delivery", "stage-8-observability", "stage-9-development", "stage-10-lab-environments"):
+            for stage in ("stage-01-software-intake", "stage-02-logging", "stage-03-trust", "stage-04-kubernetes", "stage-05-identity",
+                          "stage-06-secrets",
+                          "stage-07-delivery", "stage-08-observability", "stage-09-development", "stage-10-lab-environments"):
                 self.assertIn(f"{stage}/README.md", deployment)
             self.assertIn("../architecture/README.md", deployment)
             self.assertIn("do not transfer resource or state ownership", deployment)
         reference = self.root / "verify-architecture/docs/auto-docs/03-deployment"
         self.assertEqual(sorted((path.parent.name for path in reference.glob("stage-*/README.md")),
                                 key=lambda name: int(name.split("-")[1])),
-                         ["stage-1-software-intake", "stage-2-logging", "stage-3-trust", "stage-4-kubernetes", "stage-5-identity",
-                          "stage-6-secrets",
-                          "stage-7-delivery", "stage-8-observability", "stage-9-development", "stage-10-lab-environments"])
+                         ["stage-01-software-intake", "stage-02-logging", "stage-03-trust", "stage-04-kubernetes", "stage-05-identity",
+                          "stage-06-secrets",
+                          "stage-07-delivery", "stage-08-observability", "stage-09-development", "stage-10-lab-environments"])
         for old in ("stages", "compute", "cryptography", "identity", "network", "delivery", "operations"):
             self.assertFalse((reference / old).exists(), old)
         architecture = self.root / "verify-architecture/docs/architecture"

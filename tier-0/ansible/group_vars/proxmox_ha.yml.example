@@ -1,0 +1,51 @@
+---
+# Schema and validation in this repository:
+#   ansible/roles/proxmox_ha/defaults/main.yml
+#   ansible/roles/proxmox_ha/tasks/validate.yml
+#   ansible/roles/proxmox_ha/tasks/validate-rule.yml
+# Native modules and their supported fields:
+# https://docs.ansible.com/projects/ansible/latest/collections/community/proxmox/proxmox_cluster_ha_resources_module.html
+# https://docs.ansible.com/projects/ansible/latest/collections/community/proxmox/proxmox_cluster_ha_rules_module.html
+# Run on the controller with -e @ansible/group_vars/proxmox_ha.yml.
+# Export PROXMOX_API_URL, PROXMOX_API_TOKEN_ID and PROXMOX_API_TOKEN_SECRET
+# using the separately accepted Tier 0 HA identity. The normalized
+# PROXMOX_VE_ENDPOINT / PROXMOX_VE_API_TOKEN convention is also supported.
+# TLS uses the system trust store or PROXMOX_CA_FILE.
+# Existing cluster, quorum, fencing and accessible VM disks are prerequisites.
+
+# Explicit selections only. A key defaults to the exact Proxmox guest name.
+# Optional vmid selects an existing QEMU VM by integer ID instead.
+# name overrides the default name lookup and is checked when vmid is also set.
+# Optional fields and defaults per resource:
+#   state: present | absent (default present)
+#   hastate: started | stopped | disabled | ignored (default started)
+#   max_restart: 1, max_relocate: 1, comment: ""
+# state: absent removes HA membership while retaining the VM and its disks.
+# Keep entries until an explicit removal succeeds. Omitted entries are unmanaged.
+proxmox_ha_resources: {}
+
+# Rules reference resource keys above. state defaults to present.
+# Shared optional fields are disable: false and comment: "".
+# resource-affinity requires affinity: positive | negative and at least two members.
+# Resource affinity is inherently strict in Proxmox VE 9.
+# node-affinity requires nodes: [pve01, pve02:10] and accepts strict: false.
+# This collection version supports preferred/eligible node lists.
+# Node exclusion affinity, failback and auto-rebalance are outside its module schema.
+# Rule types are immutable. Remove a rule before recreating it under another type.
+# Removed rules are processed before resource removal.
+proxmox_ha_rules: {}
+
+# One cluster's control-plane voters, reusing their inventory names:
+# proxmox_ha_resources:
+#   k8ctl-1: {}
+#   k8ctl-2: {}
+#   k8ctl-3: {}
+# proxmox_ha_rules:
+#   tier0-control-plane-separate:
+#     type: resource-affinity
+#     affinity: negative
+#     resources: [k8ctl-1, k8ctl-2, k8ctl-3]
+#
+# A VMID selection can replace one name lookup, for example:
+#   k8ctl-1: {vmid: 101}
+# To remove that group, set its rule and selected resources to state: absent.

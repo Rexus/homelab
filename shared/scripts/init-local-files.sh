@@ -98,6 +98,11 @@ if [[ -n "$deployment_env" && ! "$deployment_env" =~ ^[A-Za-z0-9-]+$ ]]; then
 fi
 
 for setup_name in "${selected_setups[@]}"; do
+  # Existing-VM HA is an Ansible-only operation owned by Tier 0.
+  if [[ "$setup_name" == proxmox-ha && -f "$repo_root/ansible/group_vars/proxmox_ha.yml.example" &&
+        -f "$repo_root/ansible/playbooks/proxmox-ha.yml" ]]; then
+    continue
+  fi
   require_owned_setup "$setup_name"
 done
 
@@ -172,6 +177,10 @@ if [[ "${#selected_setups[@]}" -gt 0 ]]; then
   setups_to_create=("${selected_setups[@]}")
 else
   setups_to_create=("${all_setups[@]}")
+  if [[ -f "$repo_root/ansible/group_vars/proxmox_ha.yml.example" &&
+        -f "$repo_root/ansible/playbooks/proxmox-ha.yml" ]]; then
+    setups_to_create+=(proxmox-ha)
+  fi
 fi
 
 create_setup_files() {

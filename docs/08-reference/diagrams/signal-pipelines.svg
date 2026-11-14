@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="610" viewBox="0 0 960 610" role="img" aria-labelledby="title description">
+  <title id="title">Scoped observability signal pipelines</title>
+  <desc id="description">Approved producers reach the two gateway replicas. Metrics write to both metric stores; logs and traces pass through Data Prepper into OpenSearch. This focused interaction view omits the unchanged runtime placement.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581" />
+    </marker>
+    <style>
+      svg { font: 15px Arial, sans-serif; }
+      text { fill: currentColor; stroke: none; text-anchor: middle; }
+      .actor { fill: #edf0f3; stroke: #697682; color: #293642; }
+      .traffic { fill: #303841; stroke: #8a9baa; color: #ffffff; }
+      .services { fill: #e7f0fc; stroke: #4d719b; color: #203a5b; }
+      .actor, .traffic, .services { stroke-dasharray: none; }
+      .connection { fill: none; stroke: #627581; stroke-width: 1.5; stroke-dasharray: none; marker-end: url(#arrow); }
+      .edge-label { fill: #1f2937; font-size: 13px; }
+    </style>
+  </defs>
+  <g id="Apps" class="actor">
+    <rect x="20" y="245" width="160" height="90" />
+    <text x="100.0" y="285.0">Approved</text>
+    <text x="100.0" y="305.0">producers</text>
+  </g>
+  <g id="Gateway" class="traffic" data-replicas="2">
+    <polygon points="316,240 514,240 530,290.0 514,340 316,340 300,290.0" />
+    <text x="415.0" y="285.0">otel-gateway x2</text>
+    <text x="415.0" y="305.0">Separate queue PVCs</text>
+  </g>
+  <g id="Metrics" class="services">
+    <rect x="690" y="40" width="240" height="100" />
+    <text x="810.0" y="85.0">metrics-1 / metrics-2</text>
+    <text x="810.0" y="105.0">Write both copies</text>
+  </g>
+  <g id="Prepper" class="services" data-replicas="2">
+    <rect x="690" y="240" width="240" height="100" />
+    <text x="810.0" y="285.0">data-prepper</text>
+    <text x="810.0" y="305.0">2 replicas</text>
+  </g>
+  <g id="Search" class="services" data-replicas="3">
+    <rect x="690" y="475" width="240" height="100" />
+    <text x="810.0" y="520.0">opensearch</text>
+    <text x="810.0" y="540.0">3 members</text>
+  </g>
+  <path class="connection" data-from="Apps" data-to="Gateway" d="M180 290 L300 290" />
+  <rect x="184.0" y="239" width="112" height="41" fill="#f8fafc" stroke="none" />
+  <text x="240" y="255" class="edge-label">OTLP</text>
+  <text x="240" y="273" class="edge-label">Scoped mTLS</text>
+  <path class="connection" data-from="Gateway" data-to="Metrics" d="M530 265 L610 265 L610 90 L690 90" />
+  <rect x="551.0" y="154" width="118" height="41" fill="#f8fafc" stroke="none" />
+  <text x="610" y="170" class="edge-label">Metrics</text>
+  <text x="610" y="188" class="edge-label">Verified TLS</text>
+  <path class="connection" data-from="Gateway" data-to="Prepper" d="M530 310 L690 310" />
+  <rect x="549.0" y="259" width="122" height="41" fill="#f8fafc" stroke="none" />
+  <text x="610" y="275" class="edge-label">Logs / traces</text>
+  <text x="610" y="293" class="edge-label">Verified TLS</text>
+  <path class="connection" data-from="Prepper" data-to="Search" d="M810 340 L810 475" />
+  <rect x="818.0" y="394" width="120" height="23" fill="#f8fafc" stroke="none" />
+  <text x="878" y="410" class="edge-label">Indexing / TLS</text>
+</svg>

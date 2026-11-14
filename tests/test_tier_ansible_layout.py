@@ -13,6 +13,35 @@ from payload import TIERS
 
 
 class AnsibleOwnership(TierRepositoryTestCase):
+    @unittest.skipUnless(os.name != "nt" and shutil.which("ansible-inventory"),
+                         "Requires native Ansible inventory parsing")
+    def test_invalid_inventory_is_fatal_while_valid_hosts_and_local_prechecks_work(self):
+        self.generate()
+        inventory = self.root / 'inventory.yml'
+        for collection, prefix in ((UPSTREAM, ''), (self.root, 'verify-')):
+            for tier in TIERS:
+                repo = collection / f'{prefix}{tier}'
+                env = dict(os.environ, ANSIBLE_CONFIG=str(repo / 'ansible/ansible.cfg'))
+                env.pop('ANSIBLE_INVENTORY_ANY_UNPARSED_IS_FAILED', None)
+                command = ['ansible-inventory', '--playbook-dir', str(repo / 'ansible'),
+                           '-i', str(inventory), '--graph']
+                for invalid_hypervisors in ('pve01.example.com', dict(hosts={'ansible_host': 'pve01.example.com'})):
+                    groups = dict(hypervisors=invalid_hypervisors,
+                                  foundation_logging=dict(hosts={'log-1': {}}))
+                    inventory.write_text(yaml.safe_dump(dict(all=dict(children=groups))))
+                    invalid = subprocess.run(command, cwd=repo, env=env, capture_output=True, text=True)
+                    self.assertNotEqual(invalid.returncode, 0, f'{repo}\n{invalid.stdout}{invalid.stderr}')
+                groups['hypervisors'] = dict(hosts={'pve01': dict(ansible_host='pve01.example.com')})
+                inventory.write_text(yaml.safe_dump(dict(all=dict(children=groups))))
+                valid = subprocess.run(command, cwd=repo, env=env, capture_output=True, text=True)
+                self.assertEqual(valid.returncode, 0, f'{repo}\n{valid.stdout}{valid.stderr}')
+                self.assertIn('@foundation_logging:', valid.stdout)
+                self.assertIn('log-1', valid.stdout)
+                local = subprocess.run(['ansible-inventory', '-i', 'localhost,', '--graph'],
+                                       cwd=repo, env=env, capture_output=True, text=True)
+                self.assertEqual(local.returncode, 0, local.stdout + local.stderr)
+                self.assertIn('localhost', local.stdout)
+
     def test_recipes_use_native_imports_and_reuse_existing_roles(self):
         for tier in TIERS:
             repo = UPSTREAM / tier

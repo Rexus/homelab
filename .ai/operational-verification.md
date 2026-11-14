@@ -34,10 +34,10 @@ prerequisite for the logging path that records its own bootstrap ceremony.
 **Implementation:** hardened proxy/native consumer policy and optional Tier 1 RPM/APT/artifact
 verification, ClamAV quarantine and immutable publication are supplied. OCI vulnerability policy
 and automatic patch rollout remain separate integrations.
-**Procedure:** [Stage 1](../docs/03-deployment/stage-1-software-intake/README.md) and
-[existing-cache migration](../docs/03-deployment/stage-1-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
+**Procedure:** [Stage 1](../docs/03-deployment/stage-01-software-intake/README.md) and
+[existing-cache migration](../docs/03-deployment/stage-01-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
 The first five checks cover the basic route; the remaining checks apply to the selected
-[verified extension](../docs/03-deployment/stage-3-trust/step-15b-verified-intake.md). None qualify patch rollout.
+[verified extension](../docs/03-deployment/stage-03-trust/step-15b-verified-intake.md). None qualify patch rollout.
 
 - [ ] **INTAKE-1: Real network enforcement.** From every selected subnet, approve actual sources and
   redirects; deny another source, a forbidden client and direct WAN bypass. Check HTTP and CONNECT,
@@ -140,7 +140,7 @@ envelope, accepted-event boundary, queue limits and any source-side gaps explici
 **Implementation:** the selected software-first path is supplied; package/runtime and
 security behavior still need live qualification. Hardware custody, internal automated
 ACME and public edge HTTPS are separate selections, not hidden bootstrap requirements.
-**Procedures:** [software PKI](../docs/03-deployment/stage-3-trust/procedures/software-pki.md),
+**Procedures:** [software PKI](../docs/03-deployment/stage-03-trust/procedures/software-pki.md),
 [CA operations](../docs/05-operations/03-cryptography/certificate-authority.md).
 **Coverage and variants:** [CA implementation checklist](ca-implementation.md).
 
@@ -173,7 +173,7 @@ ACME and public edge HTTPS are separate selections, not hidden bootstrap require
 
 ## 4. Development platform and CI handover
 
-**Procedure:** [Stage 9](../docs/03-deployment/stage-9-development/README.md).
+**Procedure:** [Stage 9](../docs/03-deployment/stage-09-development/README.md).
 The supplied charts, runner role, Vault policy and saved-plan helpers have no live acceptance yet.
 
 - [ ] **CI-1: Application and recovery.** Verify external PostgreSQL/Redis/Gitaly/object

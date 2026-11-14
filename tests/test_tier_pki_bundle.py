@@ -20,7 +20,7 @@ class PkiBundle(TierRepositoryTestCase):
     def test_documented_controller_commands_resolve_roles_in_a_fresh_shell(self):
         self.generate()
         guides = (
-            ('tier-0', 'stage-3-trust/procedures/software-pki.md', 'openxpki-bundle.yml'),
+            ('tier-0', 'stage-03-trust/procedures/software-pki.md', 'openxpki-bundle.yml'),
             ('tier-2', 'stage-10-lab-environments/step-4b-public-https.md', 'public-certificate-schedule.yml'),
         )
         for collection, prefix, docs in (

@@ -57,7 +57,7 @@ For FreeIPA, on the Tier 0 execution host:
    export FREEIPA_DM_PASSWORD FREEIPA_ADMIN_PASSWORD
    ```
 
-3. Continue the selected [FreeIPA phase](../../03-deployment/stage-5-identity/procedures/freeipa.md).
+3. Continue the selected [FreeIPA phase](../../03-deployment/stage-05-identity/procedures/freeipa.md).
    Changing these inputs does not itself rotate an already-installed domain's passwords.
 
 <a id="suggested-environment-variable"></a>
@@ -110,7 +110,7 @@ Review the plan and confirm only the intended resources. Use the original inputs
 
 ### 5. Run the selected Ansible phase
 
-From **`<prefix>-tier-0/`**, retain the selected [FreeIPA CSR/completion phase](../../03-deployment/stage-5-identity/procedures/freeipa.md).
+From **`<prefix>-tier-0/`**, retain the selected [FreeIPA CSR/completion phase](../../03-deployment/stage-05-identity/procedures/freeipa.md).
 The external-signing pause is still required:
 
 ```bash

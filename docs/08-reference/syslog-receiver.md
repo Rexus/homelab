@@ -3,7 +3,7 @@
 Tier 0 owns `ansible/roles/syslog_ng/`, the `foundation_logging` inventory and
 receiver inputs. Shared supplies reusable baseline/data-volume/execution code,
 with no inventory or resource ownership. Deployment is in
-[Stage 2 installation](../03-deployment/stage-2-logging/README.md); the
+[Stage 2 installation](../03-deployment/stage-02-logging/README.md); the
 [evidence design](../01-architecture/11-operations/01-protected-logging.md) owns retention and trust boundaries.
 
 ## Contents
@@ -22,6 +22,11 @@ The starter uses `log-1`, with optional `log-2`, as stable logical keys in Tier 
 suffixes come from `ansible/group_vars/all.yml`; deployment stages are not guest-name prefixes.
 `syslog` remains the deployment/state entry point. The existing `foundation_logging`
 Ansible group and recipe paths remain compatible selectors, not a deployed namespace.
+
+The receiver's incoming interface is syslog; the VM's selected role also covers local security/audit
+records and queues, NAS checkpoint publication and optional OpenTelemetry exports of approved log copies.
+`log-1` names that protected logging role and fits the short-hostname convention. General application
+hosting, metric storage and searchable analytics remain separate deployments.
 
 Existing installations keep their current keys, including earlier `foundation-log-1`
 and `foundation-log-2` selections. Terraform uses map keys to identify module instances;

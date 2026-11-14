@@ -104,10 +104,10 @@ replacement for target authorization. [1][2]
 
 ## Realization
 
-[Stage 7](../../03-deployment/stage-7-delivery/README.md) provisions the platform runtime
-and guides selection of [Argo CD](../../03-deployment/stage-7-delivery/step-2a-argocd.md)
-or [Spinnaker](../../03-deployment/stage-7-delivery/step-2b-spinnaker.md).
-[Cluster foundation](../../03-deployment/stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation)
+[Stage 7](../../03-deployment/stage-07-delivery/README.md) provisions the platform runtime
+and guides selection of [Argo CD](../../03-deployment/stage-07-delivery/step-2a-argocd.md)
+or [Spinnaker](../../03-deployment/stage-07-delivery/step-2b-spinnaker.md).
+[Cluster foundation](../../03-deployment/stage-04-kubernetes/procedures/kubernetes.md#cluster-foundation)
 defines shared readiness gates. Native installation does not replace controller
 commissioning, scoped destination approval or recovery qualification.
 The supplied [Argo CD projects](../../../tier-1/ansible/roles/delivery_platform/templates/argocd-projects.yml.j2)

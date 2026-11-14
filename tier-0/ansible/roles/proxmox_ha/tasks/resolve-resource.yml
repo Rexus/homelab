@@ -1,0 +1,28 @@
+---
+- name: Inspect the selected existing QEMU VM without guest-agent access
+  community.proxmox.proxmox_vm_info:
+    vmid: "{{ proxmox_ha_resource.value.vmid | default(omit) }}"
+    name: "{{ proxmox_ha_resource.value.name | default(omit if proxmox_ha_resource.value.vmid is defined else proxmox_ha_resource.key) }}"
+    type: qemu
+    config: none
+    network: false
+  register: proxmox_ha_vm_info
+  no_log: true
+  when: proxmox_ha_resource.value.state | default('present') == 'present' or proxmox_ha_resource.value.vmid is not defined
+
+- name: Require one existing VM for the selected name or VMID
+  ansible.builtin.assert:
+    that:
+      - proxmox_ha_vm_info.proxmox_vms | length == 1
+      - not proxmox_ha_vm_info.proxmox_vms[0].template | default(false) | bool
+    fail_msg: >-
+      Resource {{ proxmox_ha_resource.key }} must identify exactly one existing QEMU VM.
+      Use vmid to disambiguate names. Templates cannot be enrolled in HA.
+  when: not proxmox_ha_vm_info.skipped | default(false)
+
+- name: Record the selected VM's HA identifier
+  ansible.builtin.set_fact:
+    proxmox_ha_resolved_resources: >-
+      {{ proxmox_ha_resolved_resources | combine({proxmox_ha_resource.key:
+         'vm:' ~ (proxmox_ha_resource.value.vmid if proxmox_ha_resource.value.vmid is defined
+                  else proxmox_ha_vm_info.proxmox_vms[0].vmid) | string}) }}

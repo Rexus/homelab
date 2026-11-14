@@ -98,7 +98,7 @@ API tokens and Terraform follow creation of the first manual template and bootst
 | HA controls and fault behavior | [Menu reference](../../../08-reference/proxmox-ha.md), [worked failover](failover.md) |
 | ProxLB instead of native rebalancing | [Alternative balancer](step-10b-proxlb.md) |
 | Restore a disposable guest | [Backup/restore](../../../05-operations/06-resilience/backups/virtual-machines.md) |
-| Apply the Linux service-VM profile after guest deployment | [Stage 1, option 8b](../../stage-1-software-intake/README.md#8b-apply-the-linux-security-profile--optional) |
+| Apply the Linux service-VM profile after guest deployment | [Stage 1, option 8b](../../stage-01-software-intake/README.md#8b-apply-the-linux-security-profile--optional) |
 
 <a id="related-references"></a>
 

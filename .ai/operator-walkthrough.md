@@ -19,6 +19,125 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Uniform VMID categories, 2026-11-14
+
+The central convention now reserves category 0 in every guest allocation group. Categories 1-6
+are control planes, workers, infrastructure services, network/edge, observability/logging and
+bootstrap/automation. Tier 0 omits its leading zero and uses the same full hundred-ID ranges;
+its former split Kubernetes range is retired. Template/builder catalog allocations remain independent.
+Starter Terraform inputs, optional reservations, Kubernetes fixtures, guides and the editable SVG agree.
+Existing local inputs, inventory and state remain preserved; the convention explains occupied-ID
+collisions and the separate recovery/rebinding path before deliberate renumbering.
+
+All five allocation/reference/refresh checks and eleven affected provisioning checks passed in an
+isolated Linux workspace. Native Terraform mocked plans cover source/generated intake, optional
+monitoring and cluster placement; real Talos configuration generation and validation cover all
+three cluster roots. Corrected monitoring-test expectations to the existing 10.10.10.70 starter input.
+The reference SVG was rendered and inspected at 1100/760 px on light/dark pages with no overlap
+or clipping. The broader source/generated documentation, navigation and bootstrap checks exposed
+one stale physical-host/SSH-target assertion; it now checks the existing management boundary and
+actual bootstrap listener. After that targeted recheck, all 54 distinct focused checks passed,
+with no skips. Git diff whitespace validation passed. No live resource renumbering, state migration,
+commit or push was performed.
+
+### Malformed inventory handling, 2026-11-14
+
+A reported syslog run fell back to implicit localhost after rejecting a scalar where the inventory
+required a mapping. All three tier configurations now enable Ansible's native
+inventory.any_unparsed_is_failed option. The syslog guide shows explicit host entries and an inventory
+graph check before provisioning. Existing local inventory remains project-owned and is not rewritten.
+Native Ansible 2.16.16 verified fatal rejection, valid host selection and explicit localhost parsing in
+each source/generated tier. No guest configuration or live inventory repair was performed locally.
+
+### Complete compact diagram review, 2026-11-14
+
+Reviewed every current documentation figure: 128 Mermaid diagrams and 23 SVG sources, including
+the convention reference. All 604 width/theme combinations rendered without errors at 1100/760 px
+on light/dark pages. Contact sheets covered the full scope; changed pictures were inspected individually.
+Geometry checks confirm that control/workload node VMs and per-node collectors actually stack vertically.
+The shared SVG palette checks passed. This does not establish GitHub-renderer parity or live operation.
+
+Stage 4 action 11 now uses a compact 4:3 native SVG: five installed chart releases, reconciliation
+objects and the accepted CSI prerequisite sit in separate groups; existing Git/block dependencies
+remain below the runtime. Platform and workload node views retain three named starter VMs in stacks.
+The telemetry path and USB-provider view use SVG to keep interfaces and offline custody legible without
+compound-layout routing errors. New assets are included in generated documentation and correspondence
+checks; the tests retain real replica counts, resource names, endpoints and containment.
+
+Architecture and operations repairs cover intake, HSMs, evidence authority, hosting, publication and
+delivery. Clear short interactions and chronological sequences retain their reading axes. The final
+83 focused diagram/source, generated-link, capability-navigation and reader-journey checks passed.
+No infrastructure changes, commit or push were performed.
+
+### Guided Kubernetes HA selections, 2026-11-14
+
+Stage 4 now branches at action 9 into retained recovery ownership or the dedicated option 9b.
+The new guide maps the actual starter's three existing voters to explicit HA resource inputs,
+one Keep Separate rule and the corresponding Proxmox dialog fields. Optional eligible-host
+restrictions remain a separate rule; each later cluster gets its own voter selection. Operations
+and the generated deployment checklist link the same procedure. GUI-only scheduling controls
+remain explicitly outside the current collection's supported fields.
+
+All 77 distinct focused documentation, reader-route and diagram checks passed after targeted
+prose/palette corrections. Both copyable YAML selections passed the actual role's validation
+without API calls. The opening figure was rendered and inspected at normal/narrow widths on light
+and dark pages. No live HA changes, commit or push were performed.
+
+### Padded deployment stage folders, 2026-11-14
+
+The nine single-digit stage folders now use stage-01 through stage-09; stage-10 remains the final
+stage. Ordinary lexical sorting in the source and freshly generated manual follows installation
+order. Stage titles and action numbers retain their existing meaning. Local links, generated
+front doors/checklists, source-side guide pointers and tests use the padded canonical paths.
+
+Migration-map targets were updated while historical keys were retained. Seventy formerly current
+guide paths now have direct mappings to their padded destinations. A manifest-backed refresh test
+preserves a project-owned old-path link and its historical anchor through a compatibility page,
+removes an unreferenced old copy, and verifies that dry-run performs no migration writes.
+
+All 83 distinct focused checks passed after targeted corrections: source/generated links, reader
+journeys, lexical stage ordering, refresh ownership/cleanup and diagram/source correspondence.
+Two earlier reader checks were adapted to the existing native SVGs rather than counting only
+Mermaid fences. No diagram labels changed, so this path-only change required no new visual render.
+No deployment, state migration, commit or push was performed.
+
+### Availability, placement and native HA policy, 2026-11-14
+
+Hosting now connects scaling/headroom to redundancy, active-active, active-passive,
+automatic VM restart (Proxmox HA), application failover and independent recovery. A shared
+before/during/after storyboard distinguishes planned live migration from host-loss restart
+and already-running application members. Failure never transfers a dead host's memory.
+The architecture names the protected layer and measured service objective rather than
+treating an HA label or replica count as proof of continuity.
+
+Foundation routes to an operations edit/run/check procedure, with detailed field lookup
+remaining in the HA reference. Operations illustrates fencing, start retries, node preference,
+resource separation and rebalancing, with separate maintenance and recovery tasks. Three voters
+kept on distinct hosts may preserve quorum after one host loss while the third waits; a fourth
+eligible host is needed to recover all three without relaxing that separation.
+
+The Tier 0 Ansible-only proxmox-ha setup initializes local selections and uses native
+community.proxmox resources/rules/info modules. It resolves exact guest names or explicit VMIDs,
+rejects ambiguous/template selections, protects unrelated rules and removes selected rules before
+memberships. Preview validates inputs and identities; it does not predict placement or reserve
+capacity. Native controller checks prepare the Proxmox Python clients. A separate HA identity
+has the API-required Sys.Audit/Sys.Console and VM.Audit visibility; ordinary provisioning rights
+are unchanged. Existing node-exclusion rules cannot silently become preference rules, and
+HTTPS endpoint ports are honored. Failback, Auto-Rebalance and negative node-affinity remain
+explicit GUI settings outside this collection's supported input schema.
+
+Verification: 71 diagram/documentation/reader-route/generated-link checks and ten HA contract/native
+checks passed. Thirteen controller-dependency checks passed; one optional prepared-wheel test
+was skipped because its fixture was unavailable. HA tests used Ansible 2.21.5 and community.proxmox
+2.1.0. The nine affected Mermaid figures rendered in 36 theme/width combinations; the shared SVG
+rendered in four combinations with matching computed palette roles. Normal/narrow layouts were
+inspected, including routed arrows avoiding host headings. Browser rendering used the existing
+Mermaid 11.17.2 and Edge 157.0.4341.46 tooling documented in the diagram guide.
+
+No live enrollment, host migration/failure, fencing, application failover, re-arm or recovery was
+performed. Cluster/storage/watchdog commissioning, surviving capacity and service acceptance remain
+target obligations. No commit or push was performed for this change.
+
 ### Rendered clutter and shared logging overview, 2026-11-14
 
 The follow-up started from the actual pictures rather than treating successful rendering or
@@ -856,7 +975,7 @@ and [operational verification](operational-verification.md) before checking live
   Keep malware detection, publisher authentication and vulnerability assessment distinct.
 
 The subsequent verified-intake implementation adds the optional Tier 1 `intake` setup and
-source-mapped [deployment guide](../docs/03-deployment/stage-3-trust/step-15b-verified-intake.md).
+source-mapped [deployment guide](../docs/03-deployment/stage-03-trust/step-15b-verified-intake.md).
 It supplies native RPM/APT acquisition, copied-content verification, ClamAV gates, private quarantine,
 immutable HTTPS publication and scheduling. Terraform supplies its VM/disks; guarded Ansible supplies
 the dedicated filesystem and UUID mount. The single worker still requires approved native tools,
@@ -866,7 +985,7 @@ Live acceptance remains [INTAKE-6–9](operational-verification.md#software-inta
 Proposal-completeness review, 2026-11-10: the core staged-intake installer is supplied;
 the following implementation/integration work remains before the entire proposal is covered:
 
-- [x] Supply [tier-owned native consumer recipes](../docs/03-deployment/stage-3-trust/step-15b-verified-consumers.md)
+- [x] Supply [tier-owned native consumer recipes](../docs/03-deployment/stage-03-trust/step-15b-verified-consumers.md)
   for RPM/APT selections, publisher keyrings, public trust and strict metadata refresh.
   Independent network bypass denial remains a live acceptance check, not an Ansible assertion.
 - [ ] Add intake-specific health metrics and severity-based alerts: definition age, scanner/job
@@ -1053,7 +1172,7 @@ No live acceptance box is checked by this consistency review.
   credentials, NAS-owned snapshot commissioning contract, independent restic jobs with no prune,
   offline verifier and restore procedure, native raw/view read audit and fixed application-only
   filesystem views. Actual NAS grants/snapshots/audit and physical independence need live proof.
-  [Locked retention](../docs/03-deployment/stage-2-logging/step-15b-retention-lock.md), replicated intake
+  [Locked retention](../docs/03-deployment/stage-02-logging/step-15b-retention-lock.md), replicated intake
   remain separate variants, not supplied by this NAS implementation. Tier 1 search is
   independently installed; approved projections and their scoped persistent exporter
   have a separate Tier 0 recipe and require live access/replay qualification.
@@ -1068,7 +1187,7 @@ supplied. Their live proof is tracked in the separate
   and storage are explicit pre-bootstrap prerequisites; no public Tier 2 edge dependency.
 - [x] **P1: Cluster services.** Native pinned platform, SOPS/decryption and per-node
   protected collection recipes replace the empty-starter installation gap. The
-  [cluster foundation](../docs/03-deployment/stage-4-kubernetes/procedures/kubernetes.md#cluster-foundation)
+  [cluster foundation](../docs/03-deployment/stage-04-kubernetes/procedures/kubernetes.md#cluster-foundation)
   still requires live endpoint, persistence, audit and recovery acceptance.
 - [x] **P1: Control application installers.** Native Keycloak, Vault, NetBox and Headlamp
   recipes include data dependencies, scoped authentication and explicit recovery gates.
@@ -1109,45 +1228,45 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Bootstrap home bind | [Foundation 3c](../docs/03-deployment/foundation/bootstrap/step-3c-bootstrap-home.md) | Ownership, SSH and SELinux checks before repository/key creation; console/reboot/rollback proof remains manual |
 | Offline bootstrap tooling | [Foundation 3e](../docs/03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md) | Matching OS/Python/CPU, verified bundle/provider artifacts; does not imply every later stage is disconnected-ready |
 | Alternative balancing | [Foundation 10b](../docs/03-deployment/foundation/proxmox/step-10b-proxlb.md) | ProxLB qualification after API and a movable guest exist; one scheduling owner and live failover proof required |
-| Existing cache update | [Software intake 2b](../docs/03-deployment/stage-1-software-intake/step-2b-adopt-update.md) | Preserve original inputs/state, refresh automation and retest consumers; verified worker installation remains Stage 3 |
-| Windows Update | [Software intake 7b](../docs/03-deployment/stage-1-software-intake/step-7b-windows-update.md) | Review source and client scope, configure the chosen route and validate a representative Windows consumer |
-| Bootstrap intake | [Software intake Steps 10-13](../docs/03-deployment/stage-1-software-intake/procedures/bootstrap-consumer.md) | Apply the accepted endpoint, activate the shell and prove package/tool access before retiring temporary egress |
-| Infrastructure health | [Observability Step 13](../docs/03-deployment/stage-8-observability/step-13-infrastructure-monitoring.md) | Connect Tier 0-owned hardware/host collection and approved Tier 1 metric delivery; verify alerts and isolation |
-| Protected search projections | [Observability 14b](../docs/03-deployment/stage-8-observability/step-14b-protected-log-search.md) | Tier 0-approved copies and scoped ingestion; test denial/replay without granting original-archive authority |
+| Existing cache update | [Software intake 2b](../docs/03-deployment/stage-01-software-intake/step-2b-adopt-update.md) | Preserve original inputs/state, refresh automation and retest consumers; verified worker installation remains Stage 3 |
+| Windows Update | [Software intake 7b](../docs/03-deployment/stage-01-software-intake/step-7b-windows-update.md) | Review source and client scope, configure the chosen route and validate a representative Windows consumer |
+| Bootstrap intake | [Software intake Steps 10-13](../docs/03-deployment/stage-01-software-intake/procedures/bootstrap-consumer.md) | Apply the accepted endpoint, activate the shell and prove package/tool access before retiring temporary egress |
+| Infrastructure health | [Observability Step 13](../docs/03-deployment/stage-08-observability/step-13-infrastructure-monitoring.md) | Connect Tier 0-owned hardware/host collection and approved Tier 1 metric delivery; verify alerts and isolation |
+| Protected search projections | [Observability 14b](../docs/03-deployment/stage-08-observability/step-14b-protected-log-search.md) | Tier 0-approved copies and scoped ingestion; test denial/replay without granting original-archive authority |
 | Private application | [Lab 3a](../docs/03-deployment/stage-10-lab-environments/step-3a-application.md) | Native namespace/application path; verify access isolation, update/rollback and recovery |
 | Public website | [Lab 4b](../docs/03-deployment/stage-10-lab-environments/step-4b-public-https.md) | Existing edge or explicitly provision it first; real DNS, origin TLS, renewal/failover and denied-route proof required |
 | Workload signals | [Lab 5b](../docs/03-deployment/stage-10-lab-environments/step-5b-telemetry.md) | Scoped Collector, queues and distinct credentials; verify source-to-query delivery and recovery |
 | Foundation | [Preparation](../docs/03-deployment/foundation/README.md) | Network, access, templates and recovery precede capability deployment; live commissioning required |
-| Software intake | [Stage 1](../docs/03-deployment/stage-1-software-intake/README.md) | Early Squid/VIP path; independent bootstrap supply and later repository/Harbor extensions; no complete patch controller |
-| Logging | [Stage 2](../docs/03-deployment/stage-2-logging/README.md) | Linux/NAS recipes supplied; actual NAS custody, devices, bounded-loss fault and restore acceptance outstanding |
-| Trust | [Stage 3](../docs/03-deployment/stage-3-trust/README.md) | Software PKI, native YubiHSM/PicoHSM provider and original-key issuer operations supplied; qualify physical mechanisms, CA audit, ceremonies and live recovery |
-| Kubernetes | [Stage 4](../docs/03-deployment/stage-4-kubernetes/README.md) | Native node/platform/audit recipes; independent endpoint, storage, enrollment and live acceptance required |
-| Identity | [Stage 5](../docs/03-deployment/stage-5-identity/README.md) | Dedicated directory, Keycloak/LDAP and staged Kubernetes SSO; ceremony, accounts and live denial/recovery acceptance required |
-| Secrets | [Stage 6](../docs/03-deployment/stage-6-secrets/README.md) | Native cluster Vault/NetBox/Headlamp and independent monitoring; initialization and qualified recovery custody required |
-| Delivery | [Stage 7](../docs/03-deployment/stage-7-delivery/README.md) | Native platform/Harbor plus Argo CD or complete native Spinnaker; exact selected controller, targets and live acceptance remain explicit |
-| Observability | [Stage 8](../docs/03-deployment/stage-8-observability/README.md) | Native Kubernetes signal backends/UIs and independent Tier 0 polling; scoped projections and live availability/access tests remain required |
-| Development platform | [Stage 9](../docs/03-deployment/stage-9-development/README.md) | Native GitLab/runner charts and separate native data VMs, dedicated infrastructure runner, Vault JWT root and saved-plan handover; data/backup commissioning and live acceptance required |
+| Software intake | [Stage 1](../docs/03-deployment/stage-01-software-intake/README.md) | Early Squid/VIP path; independent bootstrap supply and later repository/Harbor extensions; no complete patch controller |
+| Logging | [Stage 2](../docs/03-deployment/stage-02-logging/README.md) | Linux/NAS recipes supplied; actual NAS custody, devices, bounded-loss fault and restore acceptance outstanding |
+| Trust | [Stage 3](../docs/03-deployment/stage-03-trust/README.md) | Software PKI, native YubiHSM/PicoHSM provider and original-key issuer operations supplied; qualify physical mechanisms, CA audit, ceremonies and live recovery |
+| Kubernetes | [Stage 4](../docs/03-deployment/stage-04-kubernetes/README.md) | Native node/platform/audit recipes; independent endpoint, storage, enrollment and live acceptance required |
+| Identity | [Stage 5](../docs/03-deployment/stage-05-identity/README.md) | Dedicated directory, Keycloak/LDAP and staged Kubernetes SSO; ceremony, accounts and live denial/recovery acceptance required |
+| Secrets | [Stage 6](../docs/03-deployment/stage-06-secrets/README.md) | Native cluster Vault/NetBox/Headlamp and independent monitoring; initialization and qualified recovery custody required |
+| Delivery | [Stage 7](../docs/03-deployment/stage-07-delivery/README.md) | Native platform/Harbor plus Argo CD or complete native Spinnaker; exact selected controller, targets and live acceptance remain explicit |
+| Observability | [Stage 8](../docs/03-deployment/stage-08-observability/README.md) | Native Kubernetes signal backends/UIs and independent Tier 0 polling; scoped projections and live availability/access tests remain required |
+| Development platform | [Stage 9](../docs/03-deployment/stage-09-development/README.md) | Native GitLab/runner charts and separate native data VMs, dedicated infrastructure runner, Vault JWT root and saved-plan handover; data/backup commissioning and live acceptance required |
 | Lab environments | [Stage 10](../docs/03-deployment/stage-10-lab-environments/README.md) | VM/cluster, bounded application/policy/RBAC, scoped telemetry and opt-in HTTPS; profiles are not an allocator; live tenant acceptance required |
 | Proxmox HA | [Foundation 1b](../docs/03-deployment/foundation/proxmox/step-1b-cluster-ha.md) | Quorum/storage/fencing separate from VM creation; physical failure tests outstanding |
 | Guest SDN | [Foundation 1c](../docs/03-deployment/foundation/proxmox/step-1c-sdn.md) | Manual VNet setup; verify every eligible node and one tagging owner |
-| Redundant logging | [Logging 14b](../docs/03-deployment/stage-2-logging/step-14b-redundant-intake.md) | Added hosts do not establish replicated commitment or retention |
-| NAS-backed evidence | [Logging 15a](../docs/03-deployment/stage-2-logging/step-15a-nas-archive.md) | Checkpoint/backup/audit-view recipes supplied; NAS-owned snapshots/accounts and live failure/access proof remain commissioning |
-| Retention-locked evidence | [Logging 15b](../docs/03-deployment/stage-2-logging/step-15b-retention-lock.md) | Stronger deletion boundary documented; actual lock mode, publication, replica and recovery integration still required |
-| Shared USB HSM | [Trust 1b](../docs/03-deployment/stage-3-trust/step-1b-usb-hsm.md) | Native host/provider/remoting installation and original-key checks; physical key copies, application sessions and actual failure recovery remain acceptance |
-| Network HSM | [Trust 1c](../docs/03-deployment/stage-3-trust/step-1c-network-hsm.md) | Vendor commissioning/client/HA procedure required |
-| Single USB device | [Trust 1d](../docs/03-deployment/stage-3-trust/step-1d-single-usb.md) | Custody/backup procedure required; availability is not inferred from a token |
-| Existing managed cluster | [Kubernetes 1b](../docs/03-deployment/stage-4-kubernetes/step-1b-existing-cluster.md) | Existing IaC lifecycle owner; adoption/restore distinct from fresh bootstrap |
-| Vault VM | [Secrets 1b](../docs/03-deployment/stage-6-secrets/step-1b-vault-vm.md) | Supplied host/service recipe; initialization, authorization, audit forwarding and restore remain explicit |
-| Seal choice | [Secrets 1c](../docs/03-deployment/stage-6-secrets/step-1c-seal-integration.md) | Shamir/Transit/PKCS#11 capability and edition checks; no automatic migration |
-| Observability VMs | [Observability 1b](../docs/03-deployment/stage-8-observability/step-1b-dedicated-vms.md) | Native seven-host products, data mounts and two-parent/five-child Netdata; live service/recovery checks remain separate from Tier 0 monitoring |
-| Independent signing API | [Secrets 11b](../docs/03-deployment/stage-6-secrets/step-11b-openbao.md) | Native OpenBao/plugin and original external-key mappings, scoped certificate clients and audit; native software-token integration passed, actual Yubi/Pico/HA/recovery proof remains |
-| Operator hardware authentication | [Secrets 21b](../docs/03-deployment/stage-6-secrets/step-21b-hardware-authentication.md) | Enrollment and lost-token recovery are manual; retain break-glass access |
-| Argo CD | [Delivery 2a](../docs/03-deployment/stage-7-delivery/step-2a-argocd.md) | Native installation guide; restricted projects, SSO, destination and rollback acceptance required |
-| Spinnaker | [Delivery 2b](../docs/03-deployment/stage-7-delivery/step-2b-spinnaker.md) | Native installation guide; storage, service identities and pipeline commissioning required |
-| Source-control VM | [Development 1b](../docs/03-deployment/stage-9-development/step-1b-source-control-vm.md) | Supplied container recipe; pin image, prepare TLS and verify product backup/restore |
-| Kubernetes build runner | [Development 14a](../docs/03-deployment/stage-9-development/step-14a-kubernetes-runners.md) | Native runner manager and bounded job policy; approved runner identity, images, Secret ownership and live denied-job proof required |
-| General build runner | [Development 14b](../docs/03-deployment/stage-9-development/step-14b-podman-runner.md) | Supplied host recipe; registration/credentials/trust required; no Tier 0 authority |
-| Image-based Linux | [Development 15b](../docs/03-deployment/stage-9-development/step-15b-image-based-linux.md) | Conversion is distro/product-specific; retain source image and test rollback |
+| Redundant logging | [Logging 14b](../docs/03-deployment/stage-02-logging/step-14b-redundant-intake.md) | Added hosts do not establish replicated commitment or retention |
+| NAS-backed evidence | [Logging 15a](../docs/03-deployment/stage-02-logging/step-15a-nas-archive.md) | Checkpoint/backup/audit-view recipes supplied; NAS-owned snapshots/accounts and live failure/access proof remain commissioning |
+| Retention-locked evidence | [Logging 15b](../docs/03-deployment/stage-02-logging/step-15b-retention-lock.md) | Stronger deletion boundary documented; actual lock mode, publication, replica and recovery integration still required |
+| Shared USB HSM | [Trust 1b](../docs/03-deployment/stage-03-trust/step-1b-usb-hsm.md) | Native host/provider/remoting installation and original-key checks; physical key copies, application sessions and actual failure recovery remain acceptance |
+| Network HSM | [Trust 1c](../docs/03-deployment/stage-03-trust/step-1c-network-hsm.md) | Vendor commissioning/client/HA procedure required |
+| Single USB device | [Trust 1d](../docs/03-deployment/stage-03-trust/step-1d-single-usb.md) | Custody/backup procedure required; availability is not inferred from a token |
+| Existing managed cluster | [Kubernetes 1b](../docs/03-deployment/stage-04-kubernetes/step-1b-existing-cluster.md) | Existing IaC lifecycle owner; adoption/restore distinct from fresh bootstrap |
+| Vault VM | [Secrets 1b](../docs/03-deployment/stage-06-secrets/step-1b-vault-vm.md) | Supplied host/service recipe; initialization, authorization, audit forwarding and restore remain explicit |
+| Seal choice | [Secrets 1c](../docs/03-deployment/stage-06-secrets/step-1c-seal-integration.md) | Shamir/Transit/PKCS#11 capability and edition checks; no automatic migration |
+| Observability VMs | [Observability 1b](../docs/03-deployment/stage-08-observability/step-1b-dedicated-vms.md) | Native seven-host products, data mounts and two-parent/five-child Netdata; live service/recovery checks remain separate from Tier 0 monitoring |
+| Independent signing API | [Secrets 11b](../docs/03-deployment/stage-06-secrets/step-11b-openbao.md) | Native OpenBao/plugin and original external-key mappings, scoped certificate clients and audit; native software-token integration passed, actual Yubi/Pico/HA/recovery proof remains |
+| Operator hardware authentication | [Secrets 21b](../docs/03-deployment/stage-06-secrets/step-21b-hardware-authentication.md) | Enrollment and lost-token recovery are manual; retain break-glass access |
+| Argo CD | [Delivery 2a](../docs/03-deployment/stage-07-delivery/step-2a-argocd.md) | Native installation guide; restricted projects, SSO, destination and rollback acceptance required |
+| Spinnaker | [Delivery 2b](../docs/03-deployment/stage-07-delivery/step-2b-spinnaker.md) | Native installation guide; storage, service identities and pipeline commissioning required |
+| Source-control VM | [Development 1b](../docs/03-deployment/stage-09-development/step-1b-source-control-vm.md) | Supplied container recipe; pin image, prepare TLS and verify product backup/restore |
+| Kubernetes build runner | [Development 14a](../docs/03-deployment/stage-09-development/step-14a-kubernetes-runners.md) | Native runner manager and bounded job policy; approved runner identity, images, Secret ownership and live denied-job proof required |
+| General build runner | [Development 14b](../docs/03-deployment/stage-09-development/step-14b-podman-runner.md) | Supplied host recipe; registration/credentials/trust required; no Tier 0 authority |
+| Image-based Linux | [Development 15b](../docs/03-deployment/stage-09-development/step-15b-image-based-linux.md) | Conversion is distro/product-specific; retain source image and test rollback |
 
 ## User and operating paths still needed
 
@@ -1286,7 +1405,7 @@ Observability are not installed by their empty starters. This review does not cl
 those implementation boxes or turn the reference into an end-to-end installer.
 
 Software-intake capability placement, 2026-10-22: moved the proxy/cache guide out
-of foundation into `deployment/stage-1-software-intake/`, with a short numbered capability
+of foundation into `deployment/stage-01-software-intake/`, with a short numbered capability
 overview and the existing source-backed deployment figure. Foundation now links
 to intake; Stage 5's registry procedure extends it with OCI supply without adding
 a second proxy or making early bootstrap depend on Harbor. Stage numbers, resource

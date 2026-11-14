@@ -9,9 +9,9 @@ approved image IDs and titles; keep only workload selections and service tags he
 
 ## Deployment order
 
-For a new installation, early [software intake](../../03-deployment/stage-1-software-intake/README.md)
+For a new installation, early [software intake](../../03-deployment/stage-01-software-intake/README.md)
 uses the `cache` setup from this repository, after Tier 0's foundation/template gates.
-Later, public application access uses the [edge load-balancer set](../../03-deployment/stage-7-delivery/procedures/edge-proxy.md)
+Later, public application access uses the [edge load-balancer set](../../03-deployment/stage-07-delivery/procedures/edge-proxy.md)
 and its publication checks. Edge publication is not a prerequisite to software intake or private labs.
 These setups retain independent inventory selections and state.
 Client VLANs are network-policy references, not provisioned server guests.
@@ -83,5 +83,5 @@ same inventory; no separate shared inventory is required.
 - [Inventory and automation layout](../../04-development/code-layout.md)
 - [Lab environments stage](../../03-deployment/stage-10-lab-environments/README.md)
 - [VM placement and Proxmox HA](../../03-deployment/foundation/proxmox/step-1b-cluster-ha.md#terraform-against-the-cluster)
-- [Development-platform handover](../../03-deployment/stage-9-development/procedures/handover.md)
+- [Development-platform handover](../../03-deployment/stage-09-development/procedures/handover.md)
 - [Project conventions and recovery records](../../04-development/project-documentation.md)
