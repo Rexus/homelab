@@ -12,10 +12,11 @@ commissioning and independent recovery remain custodial work. No provider-pool V
 **Return:** [action 10b](README.md#step-10-prepare-the-issuing-request) for the hardware-key CSR,
 then action 11 signing. **Design:** [custody choices](../../01-architecture/08-cryptography/03-hsm-selection.md).
 
-**First installation:** select custody at Stage 2 action 1; prepare the issuer through
-[actions 2-9](README.md#step-2-initialize-the-issuer-inputs), then execute this option
-from its first unfinished provider/key action at [10b](README.md#step-10-prepare-the-issuing-request).
-Retain the already installed inactive runtime and data mount; do not provision or initialize them again.
+**First installation:** complete device commissioning in action 1 now. Initialize and edit the USB
+attachment in action 2 before [Stage 2 actions 4–6](README.md#step-4-prepare-the-private-policy),
+so the immutable policy names the commissioned original key. Provision once at Stage 2 action 7,
+then install the inactive runtime at action 9. Return to this option's actions 3–4 at
+[10b](README.md#step-10-prepare-the-issuing-request). Action 5 rejoins signing and token activation.
 
 ## Contents
 
@@ -24,9 +25,18 @@ Retain the already installed inactive runtime and data mount; do not provision o
 - [3. Bind the inactive issuer to its original key](#3-bind-the-inactive-issuer-to-its-original-key)
 - [4. Create a CSR from the existing key](#4-create-a-csr-from-the-existing-key)
 - [5. Complete activation and acceptance](#5-complete-activation-and-acceptance)
+- [Later: expand to a provider pool](#later-expand-to-a-provider-pool)
 - [References](#references)
 
 ## 1. Select custody and preserve key identity
+
+Choose the device-specific preparation, then use the shared VM/provider steps below:
+
+| Device | Prepare before attaching it to the issuer |
+| --- | --- |
+| **YubiHSM 2** | Approved SDK, changed authentication credentials, existing issuer key and tested vendor wrapping/recovery custody [4][6] |
+| **PicoHSM, blank board** | Complete [firmware, DKEK, initial key and wrapped backup](procedures/picohsm.md); return here with its serial, key ID and public fingerprint |
+| **PicoHSM, existing key or additional board** | Preserve the original key; use [wrapped-key restoration](../../05-operations/03-cryptography/picohsm-replica.md) for an additional device |
 
 Select `picohsm` (OpenSC's `sc-hsm` driver) or `yubihsm2`, approved middleware and recovery policy.
 Physical attachment, device initialization and custodial creation/import/backup are explicit
@@ -57,9 +67,26 @@ An offline root stays on its offline ceremony host. The connected issuer playboo
 
 ## 2. Declare USB attachment and install the inactive issuer
 
-In the existing `terraform/deployments/foundation/terraform.tfvars`, add `usb_devices` to the
-original `vm_instances["ca-1"]` object, for example `[{ mapping = "ca-1-token" }]`, and set its
-explicit `proxmox_node_name` to the device's node. Each entry accepts exactly one approved `host`
+Initialize the common inputs from **`<prefix>-tier-0/`**:
+
+```bash
+bash scripts/init-local-files.sh --setup foundation --setup hsm
+```
+
+This prepares `foundation.yml`, `issuer.yml` and `hsm.yml` without deploying guests.
+The `hsm` Terraform starter is for a later provider pool; the single-device issuer stays in the
+existing **foundation** state.
+
+In **`terraform/deployments/foundation/terraform.tfvars`**, add these fields inside the existing
+`vm_instances["ca-1"]` object. Replace `pve01` with the node holding the device and `ca-1-token`
+with its approved **Datacenter → Resource Mappings → USB** mapping:
+
+```hcl
+proxmox_node_name = "pve01"
+usb_devices      = [{ mapping = "ca-1-token" }]
+```
+
+Each entry accepts exactly one approved `host`
 bus-port/ID or existing Proxmox `mapping`, with optional `usb3`. [1] The module, normalized guest
 inputs and foundation root all forward that field to the native VM resource.
 
@@ -74,7 +101,9 @@ Plan from **`<prefix>-tier-0/`**:
 bash scripts/deploy.sh foundation --terraform-only --plan-only
 ```
 
-Require an attachment change without issuer/disk replacement. Apply from **`<prefix>-tier-0/`**:
+For an existing issuer, require an attachment change without issuer/disk replacement. On a fresh
+installation, include these fields before Stage 2 action 7 and use that first provisioning run.
+Apply a pending attachment change from **`<prefix>-tier-0/`**:
 
 ```bash
 bash scripts/deploy.sh foundation --terraform-only
@@ -103,20 +132,62 @@ Configure `ansible/group_vars/hsm.yml` using the
 | PicoHSM PC/SC access | `hsm_provider_pcsc_readers`: exact accepted reader names, with `hsm_provider_pcsc_users` defaulting to the selected nonroot provider user |
 | Production custody | `hsm_provider_custody_ready: true` after changed credentials and independently tested recovery |
 
+For **PicoHSM on the Debian 12 amd64 issuer**, replace the device-specific fields in
+**`ansible/group_vars/hsm.yml`** with:
+
+```yaml
+hsm_provider: picohsm
+hsm_provider_mode: usb
+hsm_provider_packages: [opensc, libengine-pkcs11-openssl]
+hsm_provider_library: /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so
+hsm_provider_expected_serial: "COPY_THE_TOKEN_SERIAL"
+hsm_provider_user: openxpki
+hsm_provider_group: openxpki
+hsm_provider_pcsc_readers: ["COPY_THE_EXACT_READER_NAME"]
+hsm_issuer_engine_library: /usr/lib/x86_64-linux-gnu/engines-3/pkcs11.so
+hsm_issuer_key: "pkcs11:serial=COPY_THE_TOKEN_SERIAL;id=%01;type=private"
+hsm_issuer_create_csr: false
+```
+
+Use the actual commissioned token serial twice; `%01` selects the public-record key ID `01`.
+For the reader name on this VM, run the preparatory inspection from **`<prefix>-tier-0/`**:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml \
+  -e @ansible/group_vars/foundation.yml ansible/playbooks/deployment/hsm-prepare.yml
+```
+
+It installs middleware/CCID support and prints public reader/token inventory as root, without
+changing keys or granting application access. Copy that exact reader name into the field above.
+The normal binding below then verifies access as `openxpki`. Retain YubiHSM's separate connector
+settings when selecting that profile instead.
+
 For PicoHSM, the role installs a native Polkit rule granting only declared service users PC/SC
 context access and access to the exact selected readers. It does not disable PC/SC authorization.
 Obtain the reader description through the controller-run provider inspection; no guest login is
 needed. Native PC/SC and physical-token acceptance must run as the real issuer service user. [8]
 
-In the existing reviewed issuer configuration archive, select `token.ca-signer.engine: PKCS11`,
-`key_store: ENGINE`, that exact `key` URI and a native `engine_section` with the selected engine
-`dynamic_path`, provider `MODULE_PATH`, and `PIN = __PIN__`. Retain the protected native `secret`
-reference. The supplied role validates this contract rather than editing the immutable bundle. [2]
+The native PKCS#11 policy built at [Stage 2 actions 4–6](README.md#step-4-prepare-the-private-policy)
+must already use the same key URI, module and engine paths. The supplied builder selects
+`token.ca-signer.engine: PKCS11`, `key_store: ENGINE` and a protected native PIN secret.
+The binding role validates that immutable artifact instead of editing it on the running host. [2]
+Retain that accepted archive and checksum. If its key or paths differ, correct the selected policy
+before the first runtime installation; an installed immutable deployment needs its qualified change procedure.
 
-In `issuer.yml`, keep `openxpki_required_state_paths` aligned with the original certificate,
-DataVault recovery state and any persistent provider/client identity under `openxpki_data_mount`.
-These are recovery records or enrolled client files, not an exported hardware private key. The
-normal issuer activation guard requires the selected files to exist on the original mounted volume.
+In **`ansible/group_vars/issuer.yml`**, select the generated bundle's CLI and real hardware-state paths:
+
+```yaml
+openxpki_managed_cli: true
+openxpki_required_state_paths:
+  - /srv/openxpki/identity/issuer.pem
+  - "{{ openxpki_release_dir }}/config.d/realm/{{ openxpki_realm }}/crypto.yaml"
+  - "{{ openxpki_release_dir }}/config.d/system/crypto.yaml"
+```
+
+These retain the public issuer identity and immutable signer/DataVault configuration; the private
+signing key stays on the device. Independently retain device wrapping material and credentials too.
+The activation guard requires these files on the original mounted data volume.
 
 Run from **`<prefix>-tier-0/`**:
 
@@ -142,7 +213,9 @@ prepared disconnected controller, use `CONTROL_NODE_COLLECTIONS_MODE=check` to f
 
 ## 4. Create a CSR from the existing key
 
-Set `hsm_issuer_create_csr: true` and `hsm_issuer_common_name` in the selected hardware inputs.
+Set `hsm_issuer_create_csr: true` and `hsm_issuer_common_name` in **`ansible/group_vars/hsm.yml`**,
+for example `Example Infrastructure Issuing CA`. Set `hsm_issuer_csr_dest` to a protected absolute
+controller file, for example `/home/automation/.local/share/pki-ceremony/ca-1-issuer.csr`.
 Supply the existing device's application PIN through protected controller environment
 `HSM_ISSUER_PIN`; for YubiHSM its format includes the authentication-key ID. [4] Never use a default
 credential or put it in Git, command arguments or a PKCS#11 URI. Automated execution can inject
@@ -169,7 +242,14 @@ backend through the normal issuer certificate/runtime steps. Keep the original p
 protected signer secret and DataVault state. Use `deployment/hsm-token.yml` for hardware activation;
 the separate software token recipe checks a filesystem key.
 
-Run each explicit operation from **`<prefix>-tier-0/`**, with the existing `HSM_ISSUER_PIN` injected:
+Reload the original device credential after the offline ceremony. Run from **`<prefix>-tier-0/`**:
+
+```bash
+read -r -s -p 'Existing HSM application PIN: ' HSM_ISSUER_PIN; printf '\n'
+export HSM_ISSUER_PIN
+```
+
+Run each explicit operation from the same protected Tier 0 shell:
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
@@ -190,6 +270,14 @@ Qualify disposable sign/verify, denied operations, token removal, service restar
 restore before production use. Match the signed issuer certificate to the original hardware public
 key. Optional [shared remote access](procedures/pkcs11-remoting.md) follows this local acceptance;
 it is not a prerequisite for PKI or HashiCorp Vault. A backup token is not automatic failover.
+
+## Later: expand to a provider pool
+
+Start with the local issuer device and retain its wrapping/recovery material from the first key.
+For PicoHSM, add boards by [restoring the same wrapped key](../../05-operations/03-cryptography/picohsm-replica.md),
+then follow [single device to provider pool](../../05-operations/03-cryptography/usb-hsm.md#single-device-to-pool).
+YubiHSM uses its own original wrap key and backup format instead. Never generate a new issuing key
+just to add capacity; device replication and CA/database replication are separate operations.
 
 ## References
 

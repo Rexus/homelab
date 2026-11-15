@@ -17,17 +17,17 @@ and original hardware-key CSR, then action 11 signing.
 flowchart TB
   subgraph T0["Tier 0"]
     direction TB
-    subgraph Network["Cryptography Network / cryptography"]
+    subgraph Network["Provider Host Placement"]
       direction LR
       subgraph A["pve01 / physical device affinity"]
         direction TB
-        VM1["hsm-1<br/>Native middleware and provider"]
+        VM1["hsm-1<br/>cryptography guest NIC<br/>Native middleware and provider"]
         Token1["Existing local USB HSM"]
         VM1 -->|Native passthrough| Token1
       end
       subgraph B["pve02 / physical device affinity"]
         direction TB
-        VM2["hsm-2<br/>Native middleware and provider"]
+        VM2["hsm-2<br/>cryptography guest NIC<br/>Native middleware and provider"]
         Token2["Existing local USB HSM"]
         VM2 -->|Native passthrough| Token2
       end
@@ -47,20 +47,36 @@ flowchart TB
   class T0 tier0
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
-  class Network network
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class Network group
 ```
 
 **IaC:** **Figure 1: USB provider hosts and custody.** [HSM VM inputs](../../../tier-0/terraform/deployments/hsm/terraform.tfvars.example) and
 [deployment recipe](../../../tier-0/ansible/playbooks/deployment/hsm-gateways.yml) own the two-host
 starter, USB attachment and provider installation. Hardware and key custody already exist.
 The host boundaries show `proxmox_node_name` and host-local USB mappings: device affinity is the
-question here, so `pve01` and `pve02` remain explicit beneath the guest-network boundary.
+question here, so `pve01` and `pve02` remain explicit in a dotted placement group.
+Only the guest NICs attach to `cryptography`; the physical hosts and USB devices are not that network.
 This view adds no signing application, key replication or VIP; shared transport is selected at action 2.
 
 **First installation:** select custody at Stage 2 action 1; prepare the issuer through
 [actions 2-9](README.md#step-2-initialize-the-issuer-inputs), then execute this option
 from its first unfinished provider/key action at [10b](README.md#step-10-prepare-the-issuing-request).
 Retain the already installed inactive runtime and data mount; do not provision or initialize them again.
+
+The two setup names have separate scopes: `foundation` owns the issuer VM `ca-1` and its disks;
+`hsm` owns the separate USB provider VMs. Select and edit the foundation inputs in
+[Stage 2, Step 3](README.md#step-3-select-the-image-host-and-data-disk) before its Terraform run.
+For a fresh issuer-only setup, keep `ca-1` and leave the optional directory examples commented;
+preserve all guests already managed by an existing foundation state.
+
+**Start small:** one board uses [option 1d](step-1d-single-usb.md). Prepare its retained wrapping
+domain now, then [expand to a provider pool](../../05-operations/03-cryptography/usb-hsm.md#single-device-to-pool)
+when additional devices are available. The original issuer and signing key retain their identities.
+
+**OS selection:** these separate `hsm-1` / `hsm-2` provider hosts can use Rocky/Alma EL10 or a
+qualified Debian provider profile. Only the supplied OpenXPKI **issuer** installer requires
+Debian 12 amd64. A common HSM device does not make those host-package paths interchangeable.
 
 ## Contents
 

@@ -139,7 +139,7 @@ Separate [release orchestration and desired-state reconciliation](02-controllers
 coordinates requests, evidence, approval and promotion. The second continuously corrects drift,
 orders components by dependency readiness and reports the result. One suite or several products
 can implement these roles; each managed object still has one active writer.
-[Approval controls](approval-controls.md) define the authority and immutable change boundary.
+[Approval controls](04-approval-controls.md) define the authority and immutable change boundary.
 
 Then select [artifact supply](01-artifact-supply.md): an existing compatible registry or
 an independently operated registry, with distribution acceleration only where justified.

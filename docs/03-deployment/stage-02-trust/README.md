@@ -6,64 +6,18 @@ it is an optional branch, not a prerequisite for the rest of the platform.
 
 <a id="figure-1-offline-root-and-online-issuer"></a>
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
-flowchart BT
-  subgraph T0["Tier 0"]
-    direction BT
-    subgraph Offline["Offline Custody"]
-      direction LR
-      Root["Offline root CA<br/>Root key and recovery material"]
-      Ceremony["Existing ceremony environment"]
-      Root -. Authorized signing .-> Ceremony
-    end
-    subgraph Foundation["Foundation Services"]
-      direction LR
-      subgraph Identity["Identity Network / identity"]
-        direction TB
-        Primary["idm-1<br/>Allocated VM only"]
-        Replica["idm-2<br/>Allocated VM only"]
-        Primary ~~~ Replica
-      end
-      subgraph Crypto["Cryptography Network / cryptography"]
-        direction TB
-        subgraph VM["ca-1 / issuer VM"]
-          Issuer["OpenXPKI runtime"]
-          Data[("scsi1 / CA data disk<br/>IaC-managed data mount")]
-          Issuer -->|Attached disk| Data
-        end
-      end
-      Identity ~~~ Crypto
-    end
-    Offline -. "Signed certificate transfer; no network route" .-> Foundation
-  end
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class VM boundary
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
-  class Foundation group
-  class Offline,Root,Ceremony custody
-  class Issuer,Primary,Replica control
-  class Data data
-  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
-  class T0 tier0
-  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
-  class Identity,Crypto network
-```
+![Offline root and online infrastructure issuer](../../08-reference/diagrams/stage2-trust.svg)
 
-**IaC:** **Figure 1: Offline root and online issuer.** Tier 0 [foundation guest definitions](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example)
-and [issuer recipe](../../../tier-0/ansible/playbooks/deployment/openxpki.yml).
-The unchanged starter root allocates all three VMs; directory configuration follows in Stage 5.
-The two guest networks follow the [Tier 0 network inputs](../../../tier-0/terraform/common.tfvars.example);
-the foundation group denotes a shared provisioning root, not one host or network.
-The issuer is configured first and drawn to the right; the FreeIPA CA remains its
-sibling under the offline root, not a subordinate of the infrastructure issuer.
-Ansible prepares the data mount; the root ceremony and CA activation remain controlled operations.
-Hardware options replace software key custody; they are not additional default VMs.
+**IaC / Manual:** *Figure 1: Offline root and online issuer. The software-custody main path deploys
+`ca-1` on the cryptography network, with its portal and persistent CA state. The separate offline root
+signs the issuer certificate; the dashed upward link transfers signed public objects, not network access.*
+
+Tier 0 [foundation inputs](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example),
+[network inputs](../../../tier-0/terraform/common.tfvars.example) and
+[issuer recipe](../../../tier-0/ansible/playbooks/deployment/openxpki.yml) own the VM and its data mount.
+The fresh starter selects `ca-1` only. Directory VMs are a later Stage 5 selection under the same
+provisioning root; their FreeIPA CA becomes a sibling issuer under the offline root.
+Hardware options replace the issuer-key custody shown here and keep the root separate.
 
 **Related:** [Architecture](../../01-architecture/08-cryptography/01-certificate-authority.md) · [Operations](../../05-operations/03-cryptography/README.md)
 
@@ -89,7 +43,7 @@ key/provider work. Offline signing and token activation remain explicit custodia
 
 | Action | Continue at |
 | --- | --- |
-| [1. Select custody](#step-1-prepare-issuer-and-key-custody) | Software 1a, USB pool 1b, network HSM 1c or single USB 1d |
+| [1. Prepare the offline root and select issuer custody](#step-1-prepare-issuer-and-key-custody) | Separate offline root; software issuer 1a, USB pool 1b, network HSM 1c or single USB 1d |
 | [2-7. Prepare inputs, policy and the issuer host](#step-2-initialize-the-issuer-inputs) | Same existing foundation state |
 | [8-10. Install the inactive issuer and prepare its CSR](#step-8-prepare-runtime-credentials-and-tls) | Selected software or hardware key |
 | [11-13. Sign, activate and verify issuance](#step-11-sign-the-approved-request-offline) | Root ceremony, public certificate import, native token activation |
@@ -98,36 +52,71 @@ key/provider work. Offline signing and token activation remain explicit custodia
 
 ## Step 1: Prepare issuer and key custody
 
-Use the [key-custody procedure](procedures/local-key-custody.md) for the selected physical key path.
-
 [Figure 1](#figure-1-offline-root-and-online-issuer) separates the online runtime from offline custody.
 Approve names, [algorithms](../../01-architecture/08-cryptography/02-algorithm-selection.md), requester/approver
 roles, root custodians and recovery recipients before creating keys.
+
+| Role | Required preparation |
+| --- | --- |
+| **Offline root CA** | Separate offline system and retained CA instance; signs issuer certificates, not routine service requests |
+| **Online issuing CA / `ca-1`** | Terraform VM and OpenXPKI runtime; issues service certificates after the root signs its CSR |
+| **HSM, when selected** | Key-protection device used by its owning CA; the single USB option below protects `ca-1`'s issuer key, not the root key |
+
+**Prepare the root first.** For a new root, follow the
+[offline software-root procedure](procedures/offline-software-root.md#prepare-the-instance): prepare
+the separate system/media, create the root once, then publish/preserve its state and close custody.
+Return here before continuing to Step 2. No subordinate CSR exists yet; signing happens at Step 11.
+An existing root is restored and verified instead of initialized again.
+
+The default is an encrypted **software root offline**, even when the **online issuer** uses PicoHSM
+or YubiHSM. Hardware protection of the root is a separate
+[offline provider qualification](procedures/offline-root.md#step-1-prepare-and-rehearse-custody), not
+the connected USB installation below. Never attach the root's device or copy its private key to `ca-1`
+or the normal online bootstrap. `root_ca` stays empty in connected inventory; there is no root Terraform VM.
+
+**Then choose the online issuer's custody:**
+
+HSM protection can also serve other compatible consumers with **their own keys**. This stage installs
+the CA/provider path; [Vault seal integration](../stage-06-secrets/step-1c-seal-integration.md) and
+application signing are separate selections. The [consumer map](../../01-architecture/08-cryptography/04-usb-hsm.md#initial-scope)
+shows which keys and access boundaries belong to each.
 
 | Path | Select before installation | Key preparation later |
 | --- | --- | --- |
 | **1a: software, main** | Encrypted software issuer key; independent signer passphrase, DataVault and root recovery custody | Action 10a |
 | **1b: USB pool** | [Provider hosts and device custody](step-1b-usb-hsm.md); no generic application HA is implied | Action 10b with the qualified original key |
 | **1c: network HSM** | [Existing appliance and native client](step-1c-network-hsm.md); appliance commissioning remains product-specific | Action 10b |
-| **1d: single USB** | [Local YubiHSM 2 or PicoHSM](step-1d-single-usb.md); qualify backup and physical host affinity | Action 10b |
+| **1d: single USB** | [Local YubiHSM 2 or PicoHSM](step-1d-single-usb.md); [commission a blank Pico](procedures/picohsm.md) before binding its original key | Action 10b |
 
-For hardware, read the selected option's input/custody requirements now; perform its issuer-binding/CSR
-commands at action 10b after the inactive runtime exists. If its host/runtime actions were already completed,
+The [local key-custody reference](procedures/local-key-custody.md) explains the software/device boundary.
+
+For local USB, complete [device commissioning and attachment inputs](step-1d-single-usb.md#1-select-custody-and-preserve-key-identity)
+before action 4. Record the existing key URI and issuer-host middleware paths for the policy builder.
+Apply the attachment with the issuer's first provisioning at action 7. Perform issuer binding and CSR
+commands at action 10b after the inactive runtime exists. Pool/appliance paths must also select their
+qualified original key and native client contract before building the policy. If host/runtime actions were already completed,
 retain that installation and continue at the first unfinished action below. Do not generate a software key
 for an HSM-backed issuer. Optional [PKCS#11 remoting](procedures/pkcs11-remoting.md) follows qualified local
 provider/key recovery; a shared signing API is a separate Stage 6 option.
 
 ## Step 2: Initialize the issuer inputs
 
-Run from **`<prefix>-tier-0/`**:
+Here, `foundation` is the shared Terraform setup for the issuer and directory VMs;
+it does not mean repeating the earlier foundation chapter. This step creates editable inputs only.
+Its default Ansible entry point, `ansible/playbooks/foundation.yml`, imports
+`deployment/identity-freeipa.yml` for Stage 5. Use Step 7's `--terraform-only` provisioning and
+Step 9's explicit `deployment/openxpki.yml` recipe for this issuer installation.
+
+**Return to the protected controller. Run from `<prefix>-tier-0/`.**
 
 ```bash
 bash scripts/init-local-files.sh --setup foundation
-cp -n ansible/group_vars/issuer.yml.example ansible/group_vars/issuer.yml
 ```
 
-**Expected:** missing files created, existing inputs retained. Keep the original `--env` on all subsequent
-wrapper commands if a named environment is already in use.
+**Expected:** foundation Terraform/Ansible inputs and `ansible/group_vars/issuer.yml` created if missing;
+existing inputs retained. Keep the original `--env` on all subsequent
+wrapper commands if a named environment is already in use. Continue to Step 3 before deploying;
+the starter contains example guests and values that need selecting and editing.
 
 ## Step 3: Select the image, host and data disk
 
@@ -143,16 +132,48 @@ Edit in **`<prefix>-tier-0/`**:
 | `ansible/group_vars/foundation.yml` | Reserved `platform_host_ips.ca-1`; preserve the complete existing IP map |
 | `terraform/common.tfvars` | Applied `network_zones.cryptography` attachment or its actual bridge/VLAN/subnet |
 | `.env.local` | Real Proxmox credentials and approved SSH public-key paths |
+| `ansible/group_vars/all.yml` | Accepted Stage 1 package proxy/mirror and standalone `platform_internal_domain`; retain the bootstrap login and approved key |
 
-Keep previously managed guests in this same foundation map/state. Fresh inputs may select only `ca-1`,
-or retain the starter's allocated directory pair for Stage 5. Never run the identity recipe to install this CA.
+In independent DNS, reserve the machine name `ca-1.internal.example.com` for the chosen IP and
+the stable service name `ca.internal.example.com` for that machine. Substitute the configured
+internal suffix. Permit controller SSH, restricted administrator HTTPS, approved public-object HTTP
+readers and the selected package route before installation. Keep this DNS independent of Stage 5.
+
+For a **fresh issuer-only deployment**, edit `terraform/deployments/foundation/terraform.tfvars`:
+
+- Keep `vm_instances["ca-1"]` and replace its example template, placement, storage and network values.
+- Leave the optional `idm-1` and `idm-2` objects commented until Stage 5. In an older local file,
+  comment out those objects only if they have not already been deployed.
+- Keep `lxc_instances = {}` unless containers were deliberately selected in this setup.
+
+For an **existing foundation deployment**, retain previously managed guests in this same map/state;
+removing them can plan destruction. Add or update `ca-1` alongside them. Use the issuer-specific Ansible
+command in Step 9 for CA configuration.
+
+The example already declares `ca-1` and its data disk. Replace these site values before Step 7:
+
+| Input | Example | Find the real value in |
+| --- | --- | --- |
+| `template_vm_id` | `9103` | Approved Debian 12 template in Shared `templates/proxmox-catalog.tfvars` and Proxmox |
+| `vm_id` | `311` | The site's allocation under the [VMID convention](../../02-conventions/vmid-convention.md); it must be unused |
+| `proxmox_node_name`, when pinning a USB device | `pve01` | The Proxmox node containing that physical device |
+| `storage_class` and each extra disk's class | `local` | Shared `config/platform.tfvars`; its `vm_disk` must name VM-image storage |
+| `network_zone_key` | `cryptography` | The configured attachment in Tier 0 `terraform/common.tfvars` |
+| `platform_host_ips.ca-1` | `10.20.21.10` | Reserved unused address in that network, entered in `ansible/group_vars/foundation.yml` |
+
+For local USB custody, add the two attachment fields in
+[option 1d, action 2](step-1d-single-usb.md#2-declare-usb-attachment-and-install-the-inactive-issuer)
+before this first Terraform apply. Software custody leaves them absent.
 
 ## Step 4: Prepare the private policy
 
-For **software 1a**, run from **`<prefix>-tier-0/`**; select a file in an existing protected directory:
+For every selected custody path, run from **`<prefix>-tier-0/`**. This creates the default private
+parent directory; use an absolute policy path there, or another existing protected directory:
 
 ```bash
-read -r -e -p 'Absolute private issuer policy file path: ' ISSUER_POLICY_FILE
+umask 077
+install -d -m 0700 "$HOME/.local/share/pki"
+read -r -e -p "Absolute private issuer policy file (example $HOME/.local/share/pki/issuer-policy.yml): " ISSUER_POLICY_FILE
 cp -n ansible/group_vars/issuer-policy.yml.example "$ISSUER_POLICY_FILE"
 ```
 
@@ -160,20 +181,47 @@ Edit **the selected private policy file**:
 
 | Field | Set |
 | --- | --- |
-| `openxpki_bundle_directory` | New protected absolute build directory; retain each immutable bundle |
-| `openxpki_bundle_portal_fqdn` | Stable `ca.<domain>` service name matching portal TLS |
-| `openxpki_bundle_publication_url` | Reachable public-object URL ending in `/download/` |
-| `openxpki_bundle_dns_suffixes` | Approved certificate scope |
+| `openxpki_bundle_directory` | New protected absolute build directory, e.g. `/home/automation/.local/share/pki/configuration-001`; retain each immutable bundle |
+| `openxpki_bundle_portal_fqdn` | Stable service name from Step 3, e.g. `ca.internal.example.com`, matching portal TLS |
+| `openxpki_bundle_publication_url` | Approved public-object URL, e.g. `http://ca.internal.example.com/download/`; it becomes reachable after runtime installation |
+| `openxpki_bundle_dns_suffixes` | Approved certificate scope, e.g. `[internal.example.com]` with the actual internal suffix |
 | `openxpki_bundle_users` | Separate named requester/approver accounts and independent Argon2id hashes |
 
-**Hardware 1b-1d:** supply a separately qualified immutable production configuration with the selected native
-provider binding. The filesystem-key policy builder is not an HSM configuration generator; skip actions 5-6
-when using that accepted bundle. Keep its reviewed artifact path/checksum for action 8.
+Retain the starter's `infrastructure` realm and `/srv/openxpki` data mount in both policy and runtime
+inputs. A selected different realm/mount must match `openxpki_bundle_realm` / `openxpki_bundle_data_mount`
+and `openxpki_realm` / `openxpki_data_mount` throughout.
 
-## Step 5: Prepare software-policy secrets
+For **1a**, retain `openxpki_bundle_signer_backend: software`.
+For **local PicoHSM on the Debian issuer**, add the following to that same private policy file;
+copy the serial/key ID recorded during commissioning:
 
-For **1a**, generate each account's encoded hash on the trusted controller with the native `argon2` CLI.
-Install its OS package if missing; the [policy reference](procedures/software-pki.md) records costs and custody.
+```yaml
+openxpki_bundle_signer_backend: pkcs11
+openxpki_bundle_pkcs11_key_uri: "pkcs11:serial=COPY_THE_TOKEN_SERIAL;id=%01;type=private"
+openxpki_bundle_pkcs11_library: /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so
+openxpki_bundle_pkcs11_engine_library: /usr/lib/x86_64-linux-gnu/engines-3/pkcs11.so
+```
+
+For YubiHSM, use the SDK's actual PKCS#11 library path from `hsm.yml` instead. A remote provider
+uses its qualified native client module; it does not turn on application HA. Both builder profiles
+retain the common requester/approver and publication policy. Neither creates hardware keys.
+An accepted external configuration artifact can replace the builder; preserve its checksum and native contract.
+
+<a id="step-5-prepare-software-policy-secrets"></a>
+
+## Step 5: Prepare policy secrets
+
+Install the native hash tool on **the trusted controller**, from **`<prefix>-tier-0/`** through its
+accepted package source:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible localhost -i localhost, -c local --become \
+  -m ansible.builtin.package -a 'name=argon2 state=present'
+```
+
+Add `--ask-become-pass` when the controller account requires its sudo password. Require successful
+package installation, then generate each account's encoded hash. The [policy reference](procedures/software-pki.md)
+records costs and custody.
 Run from **`<prefix>-tier-0/`**, once per account:
 
 ```bash
@@ -182,21 +230,37 @@ printf '%s' "$account_password" | argon2 "$(openssl rand -hex 16)" -id -e -t 3 -
 unset account_password
 ```
 
-Save the hash in that account's policy entry. Prepare independently retained signer/DataVault secrets in
-**the same protected Tier 0 shell**, for a fresh policy only:
+Save the hash in that account's policy entry. For **software 1a**, load the independently retained
+key passphrase in **the same protected Tier 0 shell**:
 
 ```bash
 read -rsp 'Issuer key passphrase (32+ characters): ' OPENXPKI_SIGNER_PASSWORD; echo
 export OPENXPKI_SIGNER_PASSWORD
+```
+
+For **hardware custody**, load the commissioned device's existing application PIN instead:
+
+```bash
+read -rsp 'Existing HSM application PIN: ' HSM_ISSUER_PIN; echo
+export HSM_ISSUER_PIN
+```
+
+For **either fresh profile**, create and independently retain the separate DataVault recovery secret:
+
+```bash
 export OPENXPKI_DATAVAULT_SECRET="$(openssl rand -hex 32)"
 ```
 
-Back up those exact values before building. Restore them on a retry; a newly generated DataVault value
-cannot recover existing state.
+Restore original secrets on retries; do not generate another DataVault value for an existing CA.
+The configuration artifact contains protected runtime secrets, including the selected hardware PIN.
+Keep it private and under independent recovery custody.
 
-## Step 6: Build the software-policy artifact
+<a id="step-6-build-the-software-policy-artifact"></a>
 
-For **1a**, run from **`<prefix>-tier-0/`**:
+## Step 6: Build the immutable policy artifact
+
+For the selected **software or PKCS#11 profile**, run from **`<prefix>-tier-0/`** with
+`ISSUER_POLICY_FILE` and Step 5's secrets retained in the same shell:
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/openxpki-bundle.yml -e "@$ISSUER_POLICY_FILE"
@@ -216,6 +280,8 @@ bash scripts/deploy.sh foundation --terraform-only
 
 Review the whole-state plan and enter `yes` for intended changes. Optional preview adds `--plan-only`;
 approved unattended provisioning adds `--auto-approve`. Neither authorizes signing.
+For a fresh issuer-only setup, the VM to create is `ca-1`; unexpected directory VMs mean the starter's
+`idm-1` / `idm-2` entries are still selected. Correct the inputs before approving.
 
 **Expected:** host and dedicated `scsi1` disk allocated. Ansible manages the filesystem/UUID mount and
 database bind during action 9; no guest disk-formatting or mounting step is required.
@@ -228,25 +294,27 @@ Edit **`<prefix>-tier-0/ansible/group_vars/issuer.yml`**:
 | --- | --- |
 | `openxpki_data_device`, `openxpki_data_mount`, `openxpki_data_fstype` | Stable `scsi1` by-id path, `/srv/openxpki`, `xfs` for a new disk; `ext4` only for qualified existing storage |
 | `openxpki_data_uuid` | Empty for a new disk, or the independently recorded existing-volume UUID |
-| `openxpki_configuration_src`, `openxpki_configuration_sha256` | Reviewed artifact from action 6 or the qualified hardware policy |
+| `openxpki_configuration_src`, `openxpki_configuration_sha256` | Reviewed artifact from action 6 or an accepted external policy |
 | `openxpki_repository_key_sha256`, `openxpki_package_versions` | Approved repository-key hash and exact native package versions |
 | `openxpki_portal_fqdn`, `openxpki_admin_networks`, `openxpki_publication_networks` | Stable service name, restricted portal clients and approved public-object readers |
-| `openxpki_managed_cli` | `true` for the supplied software bundle; hardware follows its qualified native configuration |
-| `openxpki_initialize_database`, `openxpki_activate_runtime` | `true` only for the first empty database; activation remains `false` |
+| `openxpki_managed_cli` | `true` for either supplied bundle profile; external configurations follow their qualified native contract |
+| `openxpki_initialize_database` | `true` for the first empty database; return to `false` after Step 9 succeeds |
+| `openxpki_activate_runtime` | `false` through the unsigned installation; change at Step 12 |
 
 In the protected shell, run from **`<prefix>-tier-0/`**; restore the same values on retries:
 
 ```bash
-read -r -s -p 'Issuer database password: ' OPENXPKI_DATABASE_PASSWORD; echo
-read -r -s -p 'Issuer session database password: ' OPENXPKI_SESSION_PASSWORD; echo
-read -r -s -p 'Issuer session secret: ' OPENXPKI_SESSION_SECRET; echo
-read -r -e -p 'Absolute portal TLS certificate path: ' OPENXPKI_TLS_CERT_FILE
-read -r -e -p 'Absolute matching portal TLS key path: ' OPENXPKI_TLS_KEY_FILE
+read -r -s -p 'Issuer database password (32+ characters): ' OPENXPKI_DATABASE_PASSWORD; echo
+read -r -s -p 'Different session database password (32+ characters): ' OPENXPKI_SESSION_PASSWORD; echo
+read -r -s -p 'Independent session secret (32+ characters): ' OPENXPKI_SESSION_SECRET; echo
+read -r -e -p 'Absolute portal certificate path (example /home/automation/.local/share/pki/configuration-001/portal-bootstrap.pem): ' OPENXPKI_TLS_CERT_FILE
+read -r -e -p 'Absolute matching key path (example /home/automation/.local/share/pki/configuration-001/portal-key.pem): ' OPENXPKI_TLS_KEY_FILE
 export OPENXPKI_DATABASE_PASSWORD OPENXPKI_SESSION_PASSWORD OPENXPKI_SESSION_SECRET
 export OPENXPKI_TLS_CERT_FILE OPENXPKI_TLS_KEY_FILE
 ```
 
-The software bundle supplies private bootstrap portal files in its build directory. Keep credentials and
+Both supplied bundle profiles create `portal-bootstrap.pem` and `portal-key.pem` in the selected build directory.
+The database and session passwords must differ. Keep credentials and
 TLS keys outside Git. The [issuer input reference](procedures/issuer.md) owns the recovery/activation constraints.
 
 Retain `ca-1`'s persistent local OS journal and CA audit files throughout commissioning and back up
@@ -270,8 +338,9 @@ Do not initialize again to recover a partial/existing CA.
 
 ### 10a: Software key: main path
 
-In **Tier 0 `ansible/group_vars/issuer.yml`**, set `openxpki_issuer_common_name`, a protected absolute
-`openxpki_ceremony_directory`, and `openxpki_create_issuer_key: true`. Keep activation false.
+In **Tier 0 `ansible/group_vars/issuer.yml`**, set `openxpki_issuer_common_name`, for example
+`Example Infrastructure Issuing CA`, a protected absolute `openxpki_ceremony_directory`, for example
+`/home/automation/.local/share/pki-ceremony`, and `openxpki_create_issuer_key: true`. Keep activation false.
 Run from **`<prefix>-tier-0/`**, with the original signer passphrase loaded:
 
 ```bash
@@ -279,7 +348,9 @@ bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki-
 ```
 
 **Expected:** encrypted issuer key retained on the issuer; only its public CSR fetched to the controller.
-Return `openxpki_create_issuer_key` to `false`; retain the same key for any retry.
+The controller file is `<openxpki_ceremony_directory>/ca-1-issuer.csr`. Return
+`openxpki_create_issuer_key` to `false`. If a run fails after creating the key, recover the retained
+CSR/key state before retrying; the fresh-key recipe refuses an existing key.
 
 ### 10b: Original hardware key: selected 1b-1d
 
@@ -293,9 +364,11 @@ Both paths continue at action 11.
 
 ## Step 11: Sign the approved request offline
 
-Verify the CSR signature, subject, constraints and public-key fingerprint. Follow only the authorized
-[software-root ceremony](procedures/offline-software-root.md) or
-[hardware-root ceremony](procedures/offline-root.md) for the custody selected in action 1.
+Return to the **same offline root prepared in Step 1**. Restore its retained instance, verify its
+recorded fingerprint and inspect the CSR signature, subject, constraints and public-key fingerprint.
+Follow [Sign a subordinate](procedures/offline-software-root.md#sign-a-subordinate) for the software root,
+or the separately qualified [hardware-root ceremony](procedures/offline-root.md) if that root uses hardware.
+Do not create another root, and do not choose this operation from `ca-1`'s software/HSM selection.
 Return signed public certificates/CRLs only, back up the changed root instance and close offline custody.
 This human signing handoff is not a CI job or an instruction to log into `ca-1`.
 
@@ -307,15 +380,37 @@ not a ceremony VLAN alone.
 
 In **Tier 0 `ansible/group_vars/issuer.yml`**, set `openxpki_issuer_certificate_src`,
 `openxpki_root_certificate_src`, `openxpki_issuer_fingerprint` and `openxpki_root_fingerprint`
-from the independently verified ceremony outputs. Run from **`<prefix>-tier-0/`**:
+from the independently verified ceremony outputs.
+
+Set `openxpki_public_root_files` in the same file to the returned public DER objects so their
+publication can be checked before accepting issuance:
+
+```yaml
+openxpki_public_root_files:
+  root.cer: /home/automation/.local/share/pki-ceremony/root.cer
+  root.crl: /home/automation/.local/share/pki-ceremony/root.crl
+```
+
+Use actual controller paths. The root PEM and signed issuer PEM go in
+`openxpki_root_certificate_src` and `openxpki_issuer_certificate_src`; fingerprints are the
+colon-separated SHA256 values recorded offline. Install from **`<prefix>-tier-0/`**:
 
 ```bash
 bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki-certificates.yml --ansible-vars ansible/group_vars/issuer.yml
 ```
 
-**Expected:** verified public files installed without copying private keys. Set
-`openxpki_required_state_paths` to the actual signer/provider and DataVault state under the mounted volume;
-for the software bundle retain `keys/issuer.pem`, `keys/cli.pem` and `config.d/system/crypto.yaml`.
+**Expected:** verified public files installed. For software custody, set the complete runtime paths
+in **`ansible/group_vars/issuer.yml`**:
+
+```yaml
+openxpki_required_state_paths:
+  - /srv/openxpki/identity/issuer.pem
+  - /srv/openxpki/keys/issuer.pem
+  - /srv/openxpki/keys/cli.pem
+  - "{{ openxpki_release_dir }}/config.d/system/crypto.yaml"
+```
+
+Hardware custody uses [its retained provider/DataVault paths](step-1d-single-usb.md#3-bind-the-inactive-issuer-to-its-original-key).
 Set `openxpki_activate_runtime: true`, then rerun **action 9's command** once to start that prepared backend.
 Hardware activation also requires its qualified provider and custody inputs. A running backend is not token import.
 

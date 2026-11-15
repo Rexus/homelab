@@ -32,6 +32,20 @@ Application streams use separate `kind: application`, `input: files` identities 
 a shared security journal is not an application-log filter.
 The combined Tier 0 workflow reads `setup` to reuse its existing IP map.
 
+For the infrastructure CA, inspect its installed native logging configuration from **`<prefix>-tier-0/`**:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible ca-1 --playbook-dir ansible \
+  -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml \
+  -e @ansible/group_vars/foundation.yml --become \
+  -m ansible.builtin.command -a 'cat /etc/openxpki/log.conf'
+```
+
+Read the configured audit appender's file path and add that actual path to the selected security file
+stream above, alongside the OS audit file when present. Retain `ca-1-os` in the explicit list.
+The immutable bundle owns `log.conf`; selecting only the OS journal leaves file-based CA audit records
+outside forwarding. Generate a real CA approval/issuance event to verify that file capture in Step 2.
+
 ## 2. Install and test forwarding
 
 For selected **Tier 0** producers, run in **`<prefix>-tier-0/`**:

@@ -44,5 +44,7 @@ openxpki_backup_recipient: ""
 openxpki_backup_id: ""
 openxpki_restore_approved: false
 openxpki_restore_directory: ""
+# Optional controller-held decrypted recovery set. Empty retains pre-staged guest recovery.
+openxpki_restore_source_directory: ""
 openxpki_restore_manifest_sha256: ""
 openxpki_release_dir: "{{ openxpki_data_mount }}/configuration/{{ openxpki_configuration_sha256 }}"

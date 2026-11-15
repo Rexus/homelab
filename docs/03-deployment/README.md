@@ -87,7 +87,7 @@ Find each stage's corresponding design and operating guides in the
 | 4: Kubernetes | Independently bootstrapped Tier 0 cluster and basic platform | Tier 0 | [Kubernetes](stage-04-kubernetes/README.md) |
 | 5: Identity | Directory authority and federated OIDC access | Tier 0 | [Identity](stage-05-identity/README.md) |
 | 6: Secrets | Secret storage, scoped access, audit and independent unseal/recovery; supporting control tools | Tier 0 | [Secrets](stage-06-secrets/README.md), [monitoring](stage-06-secrets/procedures/independent-monitoring.md) |
-| 7: Delivery | Tier 1 runtime, Argo CD or Spinnaker, approved artifact supply | Tier 1 platform; optional Tier 2 edge | [Delivery](stage-07-delivery/README.md) |
+| 7: Delivery | Tier 1 runtime, independent Flux and Spinnaker promotion, approved artifact supply; explicit controller alternatives | Tier 1 platform; optional Tier 2 edge | [Delivery](stage-07-delivery/README.md) |
 | 8: Observability | Netdata diagnostics, infrastructure health, logs, metrics, traces and scoped queries | Tier 1; Tier 0-owned infrastructure collection and approved exports | [Observability](stage-08-observability/README.md) |
 | 9: Development platform | GitLab, SSO, on-demand build pods, Vault CI and infrastructure handover | Tier 1 applications; Tier 0 execution/auth policy | [Development platform](stage-09-development/README.md) |
 | 10: Lab environments | Isolated Tier 2 runtimes, applications and future bounded requests | Tier 2 definitions; Tier 0 execution | [Lab environments](stage-10-lab-environments/README.md), [isolated clusters](stage-10-lab-environments/procedures/isolated-clusters.md) |

@@ -176,7 +176,7 @@ class NativeProviderChecks(unittest.TestCase):
     def test_direct_recipes_parse_before_controller_collections_are_installed(self):
         collections = self.root / 'empty-collections'
         collections.mkdir()
-        for name in ('hsm-issuer.yml', 'hsm-token.yml', 'hsm-inspect.yml',
+        for name in ('hsm-prepare.yml', 'hsm-issuer.yml', 'hsm-token.yml', 'hsm-inspect.yml',
                      'hsm-remote.yml', 'hsm-remote-client.yml', 'hsm-remote-check.yml'):
             recipe = UPSTREAM / 'tier-0/ansible/playbooks/deployment' / name
             result = subprocess.run(

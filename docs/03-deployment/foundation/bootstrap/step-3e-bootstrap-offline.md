@@ -77,6 +77,13 @@ require a clean committed revision. Use a new bundle directory for each release.
 
 Run on **the connected matching acquisition host**.
 
+Open a child Bash shell before the strict acquisition sequence. Keep Steps 2–5 in that same shell.
+A failed command returns to the login shell. Stop there and resolve it before restarting acquisition.
+
+```bash
+bash
+```
+
 ```bash
 set -euo pipefail
 read -r -p "Reviewed kit checkout (absolute path): " KIT
@@ -210,6 +217,12 @@ ssh "$BOOTSTRAP" 'umask 077; mkdir -p /srv/tier0/offline'
 scp "$HOME/homelab-bootstrap.tar" "$BOOTSTRAP:/srv/tier0/offline/"
 ```
 
+After successful transfer, close **the acquisition host's child shell**:
+
+```bash
+exit
+```
+
 <a id="2a-check-the-transferred-archive"></a>
 
 <a id="6-verify-the-transferred-bundle"></a>
@@ -219,6 +232,13 @@ scp "$HOME/homelab-bootstrap.tar" "$BOOTSTRAP:/srv/tier0/offline/"
 On **`boot-1`**, print the digest and inspect the archive listing:
 
 Run on **`boot-1`** as automation.
+
+Open a child Bash shell for Steps 6–17. A failed strict check returns to the login shell;
+stop before subsequent actions, resolve the failure and resume at the applicable verified step.
+
+```bash
+bash
+```
 
 ```bash
 set -euo pipefail
@@ -443,6 +463,18 @@ execution environment, not the scripts' allowlisted Proxmox `.env.local` file.
 Both `check` modes refuse dependency acquisition. `auto` may fetch remote Git sources, or Galaxy
 when explicitly selected, and must not be used for this disconnected path. `ansible-galaxy --offline`
 alone does not prevent remote Git access; the local-archive installation in Step 12 does not use Git.
+
+After the checks succeed, close **`boot-1`'s child shell**:
+
+```bash
+exit
+```
+
+In **`boot-1`'s parent login shell**, reload the retained execution environment:
+
+```bash
+source "$HOME/.config/homelab/offline.env"
+```
 
 **Rejoin:** [Bootstrap Step 13](README.md#step-13-prepare-the-execution-ssh-key),
 then configure verified Proxmox CA/API access and local inputs. Images and repositories are already staged;

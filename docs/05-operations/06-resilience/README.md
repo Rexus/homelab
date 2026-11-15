@@ -16,7 +16,7 @@ flowchart TB
   end
   subgraph T1["Tier 1"]
     direction LR
-    Delivery["Argo CD / Harbor / GitLab / build runners<br/>Dedicated GitLab data services"]
+    Delivery["Flux / Spinnaker / Harbor / GitLab / build runners<br/>Dedicated GitLab data services"]
     Observability["Signal / query / diagnostic services<br/>Scoped copies of evidence"]
     Delivery ~~~ Observability
   end

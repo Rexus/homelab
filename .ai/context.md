@@ -13,6 +13,27 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Repository intent
 
+- Stage 2's fresh foundation input selects ca-1 only; directory members are an explicit Stage 5 choice.
+  foundation initialization also creates missing issuer.yml, preserving existing local inputs/state.
+  OpenXPKI currently requires Debian 12 amd64; HSM provider/ceremony hosts may use EL10. Keep the Debian
+  cloud image, guest-agent preparation and per-VM template selection visible in Foundation.
+  Step 1 establishes/restores the separate offline root; Step 11 returns to that same instance for
+  subordinate signing. Root and issuer custody are independent choices: local USB protects ca-1's
+  issuing key, not automatically the root. Never provision an online root VM as an implicit prerequisite.
+- Bootstrap and ceremony host are distinct responsibilities. Prefer a dedicated trusted workstation
+  for HSM commissioning/recovery. boot-1 is a deliberate constrained/learning choice for the online
+  issuer's device, with paused jobs, restricted access and temporary recovery/USB cleanup. It is not
+  offline root custody. Retain recovery independently of bootstrap, its snapshots and the issuer.
+  PicoHSM commissioning preserves the original DKEK/wrapped key for later replicas. Read-only native
+  preparation may discover an unknown serial, but normal deployment requires its exact accepted identity.
+  HSM is a general key-protection capability: CA, secret-service and application consumers retain
+  separate keys, permissions and recovery. Offline root devices are not online pool members. Raw
+  token remoting has no per-object policy; do not promise shared-device isolation from key labels.
+  Vault native PKCS#11 seal remains Enterprise/device-mechanism qualified; default unseal is Shamir.
+- The baseline currently uses UEFI without Secure Boot; no later stage enables it automatically.
+  User-selected next work is Secure Boot design/maintenance after completing PicoHSM. Qualify signed
+  media, guest/host trust separately, enrollment, revocation/dbx/SBAT maintenance and EFI/vTPM recovery,
+  including Talos's distinct installation path. Do not silently flip live boot policy or device OTP fuses.
 - Deployment stage folders use zero-padded two-digit numbers (stage-01 through stage-10) so
   lexical/GitHub sorting follows the installation sequence. Update references and migration targets
   together; retain former route keys so project-owned links survive generated-documentation refresh.

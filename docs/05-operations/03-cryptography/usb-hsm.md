@@ -7,6 +7,8 @@ Operate an already qualified [USB HSM deployment](../../03-deployment/stage-02-t
 The `hsm` recipe manages native USB attachments, middleware/configuration and provider identity checks.
 Device ceremonies, signing-application replication and routing/readiness retain their selected owners.
 The [service design](../../01-architecture/08-cryptography/04-usb-hsm.md) owns their relationships.
+An issuer-local device remains owned by `foundation`, not the pool's `hsm` state. Use the local-issuer
+inspection branch below and [CA operations](certificate-authority.md) for that installation.
 
 **Run from:** generated Tier 0 on the authorized controller; checks use Ansible rather than guest login.
 **Before starting:** actual application unit/provider, approved device/key records,
@@ -26,6 +28,7 @@ independent wrapping/recovery material and an accepted failure/capacity budget.
 - [How is the attached device verified?](#device-identity)
 - [How is one gateway maintained?](#how-is-one-gateway-maintained)
 - [How are approved key objects replicated or rotated?](#replica-updates)
+- [How do I expand a single device into a pool?](#single-device-to-pool)
 - [Which checks are repeated after maintenance?](#routine-checks)
 - [References](#references)
 
@@ -51,10 +54,20 @@ healthy backend. Use the qualified application/session model, not blind retries.
 
 ## How is the attached device verified?
 
-From **`<prefix>-tier-0/`**, verify the expected provider serial without login or key changes:
+For a **provider pool**, from **`<prefix>-tier-0/`**, verify the expected serial without login or key changes:
 
 ```bash
 bash scripts/deploy.sh hsm --ansible-only --playbook deployment/hsm-inspect.yml
+```
+
+For the **device attached directly to `ca-1`**, run from **the same Tier 0 repository**, using its
+original foundation address map and issuer service identity:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml \
+  -e @ansible/group_vars/foundation.yml -e @ansible/group_vars/issuer.yml \
+  -e hsm_inspect_group=issuing_ca ansible/playbooks/deployment/hsm-inspect.yml
 ```
 
 1. Compare the vendor/provider's reported stable serial/reader/token identity with
@@ -134,6 +147,31 @@ remain authorized ceremonies; no batch key-rotation installer is supplied.
 
 Retain results and review whether tier-owned `vm_instances`/placement still matches
 real failure domains. Matching replica counts alone do not prove HA.
+
+<a id="single-device-to-pool"></a>
+
+## How do I expand a single device into a pool?
+
+Keep the original issuer VM, database, certificates and signing key. The expansion adds provider
+hosts and device copies; it does not create another CA or automatically make the issuer highly available.
+
+| Phase | Edit or run | Continue when |
+| --- | --- | --- |
+| 1. Retain original custody | Preserve the original CA recovery set and device wrapping material; [issuer recovery](issuer-recovery.md) | Original public-key fingerprint and backups are independently available |
+| 2. Prepare each additional device | **PicoHSM:** [restore the original wrapped key](picohsm-replica.md). **YubiHSM:** use its qualified original-wrap-key restore procedure | Each device signs with the same recorded original key; serials and credentials remain device-specific |
+| 3. Prepare provider VMs | Follow [USB pool action 1](../../03-deployment/stage-02-trust/step-1b-usb-hsm.md#1-prepare-the-service-hosts); initialize `hsm`, edit its VM/node/USB map, inventory and provider inputs | Only the selected new `hsm-*` guests and attachments appear in the plan; `ca-1` stays in foundation state |
+| 4. Select shared access | If needed, install [native PKCS#11 remoting](../../03-deployment/stage-02-trust/procedures/pkcs11-remoting.md), pinning each endpoint and the original SPKI | Authorized sign/verify and denied-client tests pass on every endpoint |
+| 5. Migrate the consumer | Plan the application's native module/endpoint configuration and original-state recovery using [hardware migration](hardware-migration.md) | The original CA/key/data remain intact; rollback and explicit reconnect behavior are accepted |
+
+Use the same device family for a replicated wrapping domain. A Pico DKEK does not restore a YubiHSM
+wrapped key. Keep a single USB device assigned to one VM: moving the original board from `ca-1` to
+`hsm-1` requires a planned issuer pause, removal of its **foundation** attachment, then the **hsm**
+attachment. Do not copy the issuer guest into the HSM Terraform root or discard its state.
+
+Provider provisioning and selected remoting are automated. An already deployed issuer's immutable
+configuration is not automatically upgraded by adding the pool; its consumer cutover still needs
+the controlled application migration and live acceptance. Do not replace its bundle/binding in place.
+Sessions are reestablished explicitly; more boards do not provide transparent replay or database HA.
 
 ## References
 

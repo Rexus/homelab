@@ -1,0 +1,29 @@
+---
+- name: Read the installed immutable signer configuration for recovery
+  ansible.builtin.slurp:
+    src: "{{ openxpki_release_dir }}/config.d/realm/{{ openxpki_realm }}/crypto.yaml"
+  register: openxpki_recovery_crypto
+  no_log: true
+
+- name: Resolve the native signer selected by the approved bundle
+  ansible.builtin.set_fact:
+    openxpki_recovery_signer: "{{ (openxpki_recovery_crypto.content | b64decode | from_yaml).token['ca-signer'] }}"
+  no_log: true
+
+- name: Require a supported original signer without generating a replacement key
+  ansible.builtin.assert:
+    that:
+      - not openxpki_create_issuer_key | bool
+      - openxpki_recovery_signer.engine in ['OpenSSL', 'PKCS11']
+      - >-
+        (openxpki_recovery_signer.engine == 'OpenSSL' and
+         openxpki_recovery_signer.key_store == 'OPENXPKI' and
+         openxpki_recovery_signer.key == openxpki_data_mount ~ '/keys/issuer.pem') or
+        (openxpki_recovery_signer.engine == 'PKCS11' and
+         openxpki_recovery_signer.key_store == 'ENGINE')
+    fail_msg: Recovery requires the approved software key or the original PKCS11 signer in the immutable bundle.
+  no_log: true
+
+- name: Retain the backend selected by the immutable configuration
+  ansible.builtin.set_fact:
+    openxpki_recovery_backend: "{{ 'pkcs11' if openxpki_recovery_signer.engine == 'PKCS11' else 'software' }}"

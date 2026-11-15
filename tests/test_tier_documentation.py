@@ -24,7 +24,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
     def test_delivery_roles_stay_logical_and_selected_products_have_a_separate_reference(self):
         self.generate()
         manual = self.root / 'verify-architecture/docs/auto-docs'
-        for name in ('README.md', '02-controllers.md', 'approval-controls.md'):
+        for name in ('README.md', '02-controllers.md', '04-approval-controls.md'):
             document = manual / '01-architecture/10-delivery' / name
             content = document.read_text(encoding='utf-8')
             logical = content.split('## Realization', 1)[0].split('## Selected implementation', 1)[0]

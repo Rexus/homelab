@@ -1,5 +1,5 @@
 ---
-- name: Restore a software issuer onto a fresh inactive runtime
+- name: Restore the original issuer onto a fresh inactive runtime
   hosts: issuing_ca
   become: true
   roles:

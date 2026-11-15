@@ -32,6 +32,7 @@ Use the operations below in order. Run from **`<prefix>-tier-0/`** with the acce
 read -r -p 'Operation (inspect, import-root, import-issuer, check, publish-crl, publish-ca): ' ISSUER_OPERATION
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
   -e @ansible/group_vars/all.yml -e @ansible/group_vars/issuer.yml \
+  -e @ansible/group_vars/foundation.yml \
   -e "openxpki_token_operation=$ISSUER_OPERATION" \
   ansible/playbooks/deployment/openxpki-token.yml
 ```
@@ -46,6 +47,9 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.y
 Imports are explicit one-time CLI operations, not repeated reconciliation. If an alias already
 exists or an import fails, inspect the native result and retained identifiers before another write.
 The symmetric DataVault uses the separately protected master secret; no fabricated certificate is needed. [1]
+
+`foundation.yml` supplies `ca-1`'s reserved address through `platform_host_ips`. For a named environment,
+also load `all.<env>.yml` and `foundation.<env>.yml` after their base files, preserving the same issuer inputs.
 
 ## Publish and test
 

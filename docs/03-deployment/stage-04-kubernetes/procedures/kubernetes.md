@@ -90,10 +90,11 @@ The same command operates on only the current tier's root, inventory and state.
 
 Use this checklist after Kubernetes bootstrap, regardless of node OS. Select
 the owning repo's `clusters/tier0/`, `clusters/tier1/` or `clusters/tier2/` path.
-**The directories are empty starters, not installed components.** Each tier supplies
-its own inputs/playbook for the [native platform installer](basic-platform.md),
-executed through Shared roles. Pin and approve inputs before applying; Tier 1/2
-omit Tier 0 Flux and retain their independent delivery choice.
+Each tier supplies its own inputs/playbook for the [native platform installer](basic-platform.md),
+executed through Shared roles. Pin and approve inputs before applying.
+Tier 1's [independent Flux procedure](../../stage-07-delivery/procedures/flux-platform.md) exports real
+platform resources into its approved source. Tier 0/2 starter directories require their selected
+payloads and owners before reconciliation.
 
 These are acceptance gates, not a universal installation order. Follow the selected implementation's
 sequence: CNI first, protected source collection, qualified storage, then the remaining platform.
@@ -102,8 +103,8 @@ Accept each dependency before its consumers; a YAML list alone supplies no readi
 | Gate | Capability and example | Verify before consumers |
 | --- | --- | --- |
 | 1. Networking | CNI, cluster DNS, approved image access | Nodes Ready, cross-node pod traffic, DNS, and image pulls work |
-| 2. Delivery | Tier 0 Flux [1]; Tier 1 Argo CD or Spinnaker, selected separately | Approved revisions reach only authorized targets; recovery does not require normal identity login |
-| 3. Bootstrap secrets | Tier 0 Flux/SOPS; selected Tier 1/2 delivery needs its own secret/decryption integration and external recovery keys | A protected test Secret is available before workloads use it; controller installation alone does not provide secret handling |
+| 2. Delivery | Tier 0 Flux [1], independent Tier 1 Flux with Spinnaker promotion, or the owning stage's selected alternative | Approved revisions reach only authorized targets. Retain independent recovery access |
+| 3. Bootstrap secrets | Tier 0 Flux/SOPS, Tier 1's separate bootstrap/platform/application Git and age Secrets, and the selected Tier 2 Secret owner | Verify a protected test Secret before consumers. Retain decryption keys independently |
 | 4. Persistence | Storage driver/classes and backup destination | A disposable claim binds, survives pod recreation, and has a tested recovery path |
 | 5. TLS and entry points | cert-manager and private ingress; [qualified enrollment or imported application leaves](basic-platform.md#certificates-and-ingress) | Controller/webhook readiness and intended TLS access pass; qualify issuance/renewal for automated enrollment, or trust and replacement for imported leaves [2] |
 | 6. Database | PostgreSQL operator; CloudNativePG, database instances, and backups | Required CRDs/operator, claims, database connections, and backup access work before applications [3] |

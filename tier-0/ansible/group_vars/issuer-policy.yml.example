@@ -5,6 +5,15 @@ openxpki_bundle_realm: infrastructure
 openxpki_bundle_portal_fqdn: ca.internal.example.invalid
 openxpki_bundle_publication_url: http://ca.internal.example.invalid/download/
 openxpki_bundle_dns_suffixes: [internal.example.invalid]
+# A fresh bundle selects software by default. Select pkcs11 for a previously commissioned HSM key.
+# Secrets come from OPENXPKI_SIGNER_PASSWORD (software), HSM_ISSUER_PIN (pkcs11)
+# and the separate OPENXPKI_DATAVAULT_SECRET. The resulting artifact contains protected credentials.
+openxpki_bundle_signer_backend: software
+# For pkcs11, set these three issuer-host values and supply the changed PIN through HSM_ISSUER_PIN.
+# Keep serial/id identical to hsm_issuer_key; set the paths from the installed provider packages.
+# openxpki_bundle_pkcs11_key_uri: "pkcs11:serial=REPLACE_WITH_ORIGINAL_SERIAL;id=%01;type=private"
+# openxpki_bundle_pkcs11_library: /usr/lib/x86_64-linux-gnu/opensc-pkcs11.so
+# openxpki_bundle_pkcs11_engine_library: /usr/lib/x86_64-linux-gnu/engines-3/pkcs11.so
 openxpki_bundle_users:
   certificate-requester:
     role: User

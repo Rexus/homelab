@@ -1,6 +1,6 @@
 # USB-backed key services
 
-USB-backed providers hold keys for authorized PKI and application signing operations.
+USB-backed providers protect keys for compatible CA, secret-service and application operations.
 A local issuer, remote PKCS#11 client and signing API use different authority and failure
 contracts, even when they use the same hardware.
 
@@ -10,49 +10,7 @@ contracts, even when they use the same hardware.
 
 ## Shared interfaces
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":16,"rankSpacing":20,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
-flowchart LR
-  Clients["Explicitly authorized<br/>consumers<br/>Issuer, application<br/>or development signer"]
-  subgraph T0["Tier 0"]
-    direction TB
-    subgraph Connected["Services"]
-      direction LR
-      subgraph API["Signing API"]
-        direction TB
-        Policy["Authentication,<br/>key policy and audit"]
-        State[("Signing API state")]
-        Policy -->|Persist| State
-      end
-      subgraph Pool["Device hosts / pinned members"]
-        direction TB
-        ProviderA["Host A<br/>Provider and local<br/>USB token"]
-        ProviderB["Additional hosts<br/>One provider and<br/>local USB token per host"]
-        ProviderA ~~~ ProviderB
-      end
-      API -->|PKCS#11 /<br/>selected<br/>member| Pool
-    end
-    Custody["Offline custody /<br/>device-specific backups<br/>Independent of online<br/>service state"]
-    Connected ~~~ Custody
-  end
-  Clients -->|Signing API<br/>or pinned<br/>PKCS#11| T0
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef runtime fill:#d9eeec,stroke:#4d7b77,color:#173f3e
-  classDef replicas fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class T0 tier0
-  class API,ProviderA,ProviderB runtime
-  class Pool replicas
-  class Policy control
-  class Custody custody
-  class State data
-  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
-  class Connected group
-```
+![USB key services and consumer authorization](../../08-reference/diagrams/usb-key-service-context.svg)
 
 *Figure: The consumer link selects the signing API or direct PKCS#11 access to a pinned device host.
 The API selects a pool member for qualified application failover. Each device retains its own keys.
@@ -87,6 +45,7 @@ The supplied SSH remoting path uses pinned member endpoints rather than this sca
 
 - [Shared interfaces](#shared-interfaces)
 - [Initial scope](#initial-scope)
+- [Ceremony and deployment hosts](#ceremony-and-deployment-hosts)
 - [Request and response](#request-and-response)
 - [Hardware compatibility](#hardware-compatibility)
 - [Failure and recovery](#failure-and-recovery)
@@ -97,21 +56,54 @@ The supplied SSH remoting path uses pinned member endpoints rather than this sca
 
 ## Initial scope
 
-The shared service is an explicit extension of local custody. The initial reference
-keeps these four responsibilities separate so the issuer can start and recover
-without the secret service or an optional signing API:
+HSM is a reusable **key-protection capability**, not a CA role. Each consumer needs its own key,
+authorization and recovery contract. The initial reference keeps these responsibilities separate
+so the issuer can start and recover without the secret service or an optional signing API:
 
-| Responsibility | Initial choice and consequence |
-| --- | --- |
-| Root custody | Offline root CA and independent recovery custody |
-| Online issuance | Original issuer key through a qualified local provider; device-loss recovery is accepted before consumers depend on it |
-| Secrets | HashiCorp Vault with default Shamir unseal and independently held shares; an HSM-backed issuer does not require an HSM-backed Vault seal |
-| Shared signing | Optional remote key access or signing API for explicit consumers; PKI, application signing and seal keys retain distinct identities and permissions |
+| Consumer | Protected key purpose | Reference selection |
+| --- | --- | --- |
+| Offline root CA | Root signing key | Encrypted software custody by default; a separately qualified offline HSM may replace it, but is not served from the online pool |
+| Online infrastructure issuer | Its own subordinate-CA signing key | Original key through a qualified local provider first; device-loss recovery accepted before consumers depend on it |
+| Secret service | Separate seal/wrapping key, or separately selected managed application keys | Vault starts with Shamir unseal; native PKCS#11 seal requires Enterprise and qualified device mechanisms, not merely working CA signatures [7] |
+| Development/application signing | Separate application signing keys | Optional remote key access or signing API for explicitly authorized consumers; never the infrastructure CA's key |
+
+Compatible online services may share provider infrastructure **only where key access is actually
+isolated**. Separate labels are not an access-control boundary. The supplied raw PKCS#11 remoting
+exposes a dedicated token to its authorized consumer; it does not implement per-object authorization.
+Use separate devices/domains or a qualified policy-enforcing API when that isolation cannot be enforced.
+Do not reuse the CA signing key as a seal or application key.
+
+An offline root may use an HSM, but its key/device stays outside routine online service access.
+Keeping a root key on an always-connected pool does not make it offline. Root ceremony, online
+issuer and Vault integration therefore have separate deployment paths within the same capability.
+The [seal choices](06-vault-seal.md) describe the secret-service path and its remaining qualification.
 
 The [Trust stage](../../03-deployment/stage-02-trust/README.md) owns installation order
 and qualification; shared interfaces are added only for a selected consumer need.
 Device initialization, key creation and wrapped-key recovery are controlled custody
 operations; ordinary deployment preserves keys.
+
+## Ceremony and deployment hosts
+
+A **ceremony host** is the trusted computer temporarily used to initialize a device, enter its
+administrative credentials and handle wrapped-key recovery. It is a role, not another name for bootstrap.
+The online issuer/provider later uses the commissioned device with narrower signing permissions.
+
+| Host choice | Intended use |
+| --- | --- |
+| Dedicated trusted workstation | Preferred for production commissioning and recovery; prepare verified tools, restrict connectivity during the ceremony, then return recovery material to independent custody |
+| Existing `boot-1` | Explicit learning or constrained-site option for the online issuer's device; pause deployment jobs, restrict access and remove temporary device/recovery attachments afterward |
+| Offline root workstation | Separate root-signing custody; a normal connected bootstrap VM does not satisfy this role |
+
+Reusing bootstrap shares its trust with deployment tools, downloaded artifacts and administrators.
+USB passthrough also trusts the Proxmox host and its administrators; a VM on that host is not an
+independent offline boundary. A compromised ceremony host can capture entered PINs or misuse an
+attached device even when the private key cannot be exported in plaintext.
+
+Record the selected host and ceremony evidence. Keep recovery shares and their unlock secrets
+independent of bootstrap, its VM backups and the online issuer. The
+[PicoHSM procedure](../../03-deployment/stage-02-trust/procedures/picohsm.md) owns preparation and cleanup;
+device-family recovery requirements still apply. [3][6]
 
 ## Request and response
 
@@ -200,3 +192,4 @@ owns subsequent operation.
 4. [OpenBao external keys](https://openbao.org/docs/api/system/external-keys/)
 5. [PicoHSM provider capabilities](https://github.com/polhenarejos/pico-hsm/blob/master/doc/usage.md)
 6. [PicoHSM backup and restore](https://github.com/polhenarejos/pico-hsm/blob/master/doc/backup-and-restore.md)
+7. [Vault native PKCS#11 seal requirements](https://developer.hashicorp.com/vault/docs/configuration/seal/pkcs11)

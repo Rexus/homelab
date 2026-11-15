@@ -126,7 +126,7 @@ Edit **`<prefix>-tier-2/terraform/common.tfvars`**. Choose one attachment, then 
 
 ### 5a. Applied SDN VNet
 
- replace only `external_edge` inside `network_zones`:
+Replace only `external_edge` inside `network_zones`:
 
 ```hcl
 external_edge = {
@@ -140,7 +140,7 @@ The token needs scoped `SDN.Use` and `SDN.Audit`; see [API permissions](../found
 
 ### 5b. Regular VLAN-aware bridge
 
- instead retain the explicit `external_edge` bridge, VLAN,
+Retain the explicit `external_edge` bridge, VLAN,
 subnet and gateway fields and set them to the prepared network. Do not add a VLAN tag to an SDN VNet.
 
 ## Step 6: Set addresses and cache policy
@@ -183,6 +183,15 @@ Disconnected execution uses the [prepared provider mirror](../foundation/bootstr
 Keep `cache_validation_denied_url` outside the allowed sources; the default uses a reserved `.invalid` name.
 Keep `cache_validation_url` within that policy and `repository_proxy_enabled: false` for cache hosts,
 so their initial installation does not depend on their own unfinished VIP.
+
+Before retiring temporary egress in Step 17, include Stage 2's selected sources in this policy.
+The supplied issuer uses `packages.openxpki.org` for signed Debian packages and its repository key;
+add that exact hostname to `cache_squid_allowed_domains`. Include the issuer's reserved cryptography
+subnet in `cache_squid_allowed_cidrs`, for example `10.20.21.0/24` when that is the configured subnet.
+The policy builder fetches pinned configuration from GitHub on the controller. Hardware SDK sources
+and Stage 3's approved syslog-ng repository need their own selected hostnames and redirect targets.
+Review the [issuer defaults](../../../tier-0/ansible/roles/openxpki/defaults/main.yml) and
+[receiver package inputs](../../../tier-0/ansible/group_vars/syslog.yml.example) before selecting them.
 
 Keep `cache_squid_data_device` on the dedicated Terraform `scsi1` disk. The reference uses
 `/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1`; Linux `/dev/sda` and `/dev/sdb` order can
@@ -263,8 +272,8 @@ Before changing host proxy settings, test from **the bootstrap host** and each i
 For a proxy, use the accepted endpoint explicitly:
 
 ```bash
-read -r -p "Proxy URL (example: http://10.30.30.22:3128): " PROXY_URL
-read -r -p "Approved download URL: " APPROVED_URL
+read -r -p "Proxy URL (example http://10.30.30.22:3128): " PROXY_URL
+read -r -p "Approved download URL (example https://packages.openxpki.org/v3/bookworm/Release.key): " APPROVED_URL
 curl --fail --noproxy '' --proxy "$PROXY_URL" --output /dev/null "$APPROVED_URL"
 ```
 

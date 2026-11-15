@@ -2,7 +2,7 @@
 - name: Validate the prepared runtime binding and mounted storage
   ansible.builtin.import_tasks: preflight.yml
 
-- name: Require an explicit clean-target software recovery operation
+- name: Require an explicit clean-target application recovery operation
   ansible.builtin.assert:
     that:
       - openxpki_restore_approved | bool
@@ -11,7 +11,10 @@
       - openxpki_restore_directory is match('^/srv/[a-zA-Z0-9_-]+/recovery$')
       - not openxpki_restore_directory.startswith(openxpki_data_mount ~ '/')
       - openxpki_restore_manifest_sha256 is match('^[a-f0-9]{64}$')
-      - openxpki_signer_password | length >= 32
+
+- name: Stage the explicitly selected controller-held recovery set
+  ansible.builtin.import_tasks: restore-stage.yml
+  when: openxpki_restore_source_directory | length > 0
 
 - name: Inspect recovery authorization and prior attempts
   ansible.builtin.stat:
@@ -48,16 +51,26 @@
     openxpki_restore_binding: "{{ openxpki_restore_records.results[1].content | b64decode | from_json }}"
   no_log: true
 
+- name: Resolve the signing backend from the prepared immutable configuration
+  ansible.builtin.import_tasks: recovery-signer.yml
+
 - name: Require the original deployment, secrets, package set and signing identity
   ansible.builtin.assert:
     that:
-      - openxpki_restore_manifest.format == 1
+      - openxpki_restore_manifest.format in [1, 2]
       - openxpki_restore_manifest.deployment_id == openxpki_deployment_id
       - openxpki_restore_manifest.configuration_sha256 == openxpki_configuration_sha256
       - openxpki_restore_manifest.package_versions == openxpki_package_versions
       - openxpki_restore_manifest.realm == openxpki_realm
       - openxpki_restore_manifest.issuer_fingerprint | lower == openxpki_issuer_fingerprint | lower
       - openxpki_restore_binding == openxpki_binding
+      - >-
+        openxpki_restore_manifest.signer_backend | default(
+          'software' if openxpki_restore_manifest.format == 1 else '') == openxpki_recovery_backend
+      - >-
+        openxpki_recovery_backend != 'pkcs11' or
+        (openxpki_restore_manifest.format == 2 and
+         openxpki_restore_manifest.pkcs11_key_uri | default('') == openxpki_recovery_signer.key)
   no_log: true
 
 - name: Inspect restored signing identity without importing it
@@ -65,21 +78,25 @@
     path: "{{ openxpki_restore_directory }}/identity/issuer.pem"
   register: openxpki_restore_certificate
 
-- name: Verify that the recovered encrypted key matches the certificate
-  community.crypto.openssl_privatekey_info:
-    path: "{{ openxpki_restore_directory }}/keys/issuer.pem"
-    passphrase: "{{ openxpki_signer_password }}"
-  register: openxpki_restore_key
-  no_log: true
-
-- name: Require the independently recorded original public key and fingerprint
+- name: Require the independently recorded original certificate fingerprint
   ansible.builtin.assert:
     that:
       - openxpki_restore_certificate.fingerprints.sha256 | lower == openxpki_issuer_fingerprint | lower
-      - openxpki_restore_certificate.public_key == openxpki_restore_key.public_key
   no_log: true
 
-- name: Inspect the clean target's issuance and workflow history
+- name: Verify the recovered original key against the independently recorded certificate
+  ansible.builtin.import_tasks: recovery-key.yml
+  vars:
+    openxpki_recovery_state_directory: "{{ openxpki_restore_directory }}"
+    openxpki_recovery_certificate: "{{ openxpki_restore_certificate }}"
+
+- name: Keep all writers stopped throughout recovery
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: stopped
+  loop: [openxpki-crl.timer, apache2, openxpki-clientd, openxpki-serverd]
+
+- name: Inspect the quiesced target's issuance and workflow history
   ansible.mariadb.mariadb_query:
     login_unix_socket: /run/mysqld/mysqld.sock
     config_file: ""
@@ -94,12 +111,6 @@
     that:
       - openxpki_restore_history.query_result[0][0].total | int == 0
       - openxpki_restore_history.query_result[1][0].total | int == 0
-
-- name: Keep all writers stopped throughout recovery
-  ansible.builtin.systemd_service:
-    name: "{{ item }}"
-    state: stopped
-  loop: [openxpki-crl.timer, apache2, openxpki-clientd, openxpki-serverd]
 
 - name: Record a non-repeatable restore attempt before changing state
   ansible.builtin.copy:

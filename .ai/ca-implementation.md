@@ -1,7 +1,7 @@
 # CA implementation checklist
 
-Design adopted 2026-10-17; implementation coverage rechecked 2026-10-18.
-The selected software-first mechanisms are supplied; live CA acceptance remains outstanding.
+Design adopted 2026-10-17; implementation coverage rechecked 2026-11-15.
+Software-first mechanisms and original-key PKCS#11 installation are supplied; live CA acceptance remains outstanding.
 Operational tests are in the separate [manual verification list](operational-verification.md#3-initial-trust).
 This file tracks code coverage and optional integrations, not deployed-system acceptance.
 
@@ -31,16 +31,20 @@ and is not implied installed by the supplied issuer runtime.
 
 - [x] Tier 0 Debian template option, consumer ID/title references in Shared and foundation
   extra-disk forwarding without resource-address/state migration.
-- [x] Prepared-mount/UUID guards and separate offline root execution scope; no automatic formatting.
+- [x] Guarded blank-disk filesystem/UUID preparation and separate offline root execution scope;
+  existing, mounted and pinned-volume identities are preserved rather than reformatted.
 - [x] OpenXPKI native package/database/TLS runtime with pinned input binding, empty-schema
   initialization guard and explicit runtime/key-state checks.
 - [x] Deployment and maintenance recipes scoped to the issuer, independent of identity deployment.
-- [x] Pinned native policy construction, independent requester/approver roles, scoped TLS profile,
+- [x] Pinned native software/PKCS#11 policy construction, independent requester/approver roles, scoped TLS profile,
   local bootstrap administration, privileged CLI identity and CA/CRL publication settings.
 - [x] Explicit encrypted software-key/CSR preparation, offline clca templates and controlled
   token import/CRL scheduling; key creation is a separately approved operation.
 - [x] Encrypted application-consistent backup and clean-target restore mechanisms preserving
   issuer identity, database/history, configuration and DataVault material.
+  Native backend selection covers software and exact-original-provider PKCS#11; the hardware key
+  is checked through its provider and never exported. Explicit controller staging is supplied.
+  Replacement-device serial/PIN rebinding remains a separate configuration migration, not automatic restore.
 - [x] FreeIPA external CSR/pause/completion sequence with explicit CA-enabled replica.
   Existing domains are preserved; renewal/rechaining requires a separate migration procedure.
 - [x] Public HTTP-01, production chain/name checks, verified origins and serialized renewal
@@ -58,6 +62,9 @@ and is not implied installed by the supplied issuer runtime.
   EAB registration alone does not authorize arbitrary certificate requests.
 - [x] Supply native YubiHSM 2/PicoHSM provider installation, original-key issuer CSR/token operations,
   restricted PKCS#11 remoting and guarded ordinary issuer activation. Native protocol fixtures pass.
+- [x] Supply native PicoHSM read-only middleware/CCID preparation, public serial/reader discovery,
+  blank-device commissioning instructions and original DKEK/wrapped-key replica restoration.
+  Discovery of an unknown serial does not accept it for ordinary service deployment.
 - [ ] Qualify physical provider/device permissions, mechanisms and independent same-key recovery.
   Gateway/device counts do not establish CA application HA or remove state/session dependencies.
 - [ ] If CA application HA is required beyond tested single-writer recovery, select a supported
@@ -75,9 +82,10 @@ All live work remains unchecked in one authoritative place:
 | [TRUST-4](operational-verification.md#3-initial-trust) | Independent encrypted recovery, DataVault readability and measured RPO/RTO |
 | [TRUST-5](operational-verification.md#3-initial-trust) | Same identity CA on both FreeIPA hosts and real replica/failure behavior |
 
-Initial Trust also depends on the selected logging path. Source forwarding and protected
-retention are still [implementation gaps](operator-walkthrough.md#remaining-implementation-before-an-end-to-end-installation),
-not operational tests that can be waived. Hardware, an existing-domain migration,
+Initial Trust retains local journal/audit records during bootstrap. Stage 3 then enrolls signed
+network logging using the accepted infrastructure issuer; it is not an earlier trust dependency.
+Forwarding/retention mechanisms are supplied but require their own live acceptance.
+Hardware, an existing-domain migration,
 internal ACME or public HTTPS require their own acceptance only when selected.
 
 Keep private transcripts, fingerprints, backup IDs and reviewer decisions outside public

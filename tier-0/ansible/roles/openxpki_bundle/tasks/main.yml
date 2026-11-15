@@ -14,6 +14,7 @@
       - openxpki_bundle_data_mount is match('^/srv/[a-zA-Z0-9_-]+$')
       - openxpki_bundle_dns_suffixes | length > 0
       - openxpki_bundle_users | length >= 2
+      - openxpki_bundle_signer_backend in ['software', 'pkcs11']
       - "'User' in (openxpki_bundle_users.values() | map(attribute='role') | list)"
       - "'RA Operator' in (openxpki_bundle_users.values() | map(attribute='role') | list)"
 
@@ -39,10 +40,14 @@
 - name: Require independently backed-up signer and DataVault secrets
   ansible.builtin.assert:
     that:
-      - openxpki_bundle_signer_password | length >= 32
+      - openxpki_bundle_signer_backend != 'software' or openxpki_bundle_signer_password | length >= 32
       - openxpki_bundle_datavault_secret is match('^[a-fA-F0-9]{64}$')
-      - openxpki_bundle_signer_password != openxpki_bundle_datavault_secret
+      - openxpki_bundle_signer_backend != 'software' or openxpki_bundle_signer_password != openxpki_bundle_datavault_secret
   no_log: true
+
+- name: Validate the selected existing hardware signer before creating an artifact
+  ansible.builtin.import_tasks: pkcs11.yml
+  when: openxpki_bundle_signer_backend == 'pkcs11'
 
 - name: Refuse replacing an existing configuration artifact
   ansible.builtin.stat:

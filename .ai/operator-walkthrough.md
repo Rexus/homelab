@@ -19,6 +19,65 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Root, issuer and complete reader-path review, 2026-11-15
+
+Five focused reviews covered early installation, later capability stages and operations, generated
+navigation, diagram scope/placement, and source automation. Findings were reconciled in the owning
+guides and recipes rather than introducing another deployment path. Existing local inputs, state,
+resource keys and signing identities remain preserved.
+
+- Foundation now offers the Debian 12 issuer image explicitly. Its derivative is prepared as a file
+  on a Linux preparation host, not by booting the target Debian VM. The guide identifies the machine,
+  original/output paths, package-access requirement and optional SCP handoff before publication.
+- Fresh Stage 2 provisions only `ca-1`; optional directory guests are selected later under the same
+  foundation state. It uses Terraform-only provisioning followed by the explicit issuer recipe,
+  avoiding the foundation default's FreeIPA playbook. The offline root is prepared first and retained
+  for the later subordinate-signing ceremony, separately from online issuer/HSM custody.
+- Pico commissioning distinguishes firmware/device ceremonies from controller-owned guest setup.
+  Native preparation installs middleware and scoped CCID support without accepting an unknown serial
+  or initializing keys. The replica procedure restores the original DKEK/wrapped key and verifies
+  identity/signing. A one-board pre-production round trip is not spare-device availability evidence.
+- Software and PKCS#11 policy profiles retain independent DataVault custody. Application backup and
+  restore now select the original signer backend, retain the installation artifact, check certificate
+  identity and stage an optional controller-held recovery set privately without replacing a destination.
+  A new device serial/PIN still requires separately qualified immutable-configuration migration;
+  ordinary restore neither rebinds it nor generates a replacement key.
+- Later Kubernetes/lab instructions follow the implemented Tier 1 Flux ownership, Cilium-first
+  bootstrap, security-log enrollment and Secret owner. Maintenance names the selected component;
+  recovery and operating diagrams use the current selected delivery products.
+- Generated configuration comments resolve to actual sibling manual/schema paths. Setup catalogs,
+  deployment records, numbered architecture pages, migration aliases and figure exports are aligned.
+  The Stage 2 opening shows its actual fresh scope. Physical provider/receiver hosts are distinguished
+  from guest networks; placement groups, interface colors and offline custody use the shared grammar.
+
+Verification: the 74-case reader/navigation/diagram batch passed 71 checks and identified a missing
+development-capability label, an overly narrow caption assertion and Windows CRLF input in a Git
+ignore test. All three focused follow-ups passed after correction. Four further strict generated
+payload/link/language checks passed. The empty-collections HSM entry-point check passed on native
+Ansible 2.16.16. Native guard, recovery and staging batches passed 18, 8, 5, 1 and 4 checks respectively;
+Pico preparation passed 11 focused cases and both native software/PKCS#11 bundle profiles passed.
+Recovery uses real confined files/crypto with service, database and hardware doubles.
+
+Repository parsing checked 214 Python files, 818 YAML inputs, 29 shell files and 836 Bash blocks.
+The figure review covered 28 initial SVGs and 131 Mermaid sources, with 193 initial renders and 32
+targeted final renders. Eight final issuer/USB renders and visual inspection confirmed the integrated
+sources. No parser, native SVG text-overflow or text-pair collision finding remained. Source and
+generated links, exact payload/export checks, UTF-8/LF, staged whitespace and staged Gitleaks passed.
+
+Exact local logs: `.tmp/final-consistency-doc-contracts.log`, `.tmp/final-doc-followups.log`,
+`.tmp/final-payload-links.log`, `.tmp/final-empty-collections.log`, `.tmp/final-repository-syntax.log`,
+`.tmp/figure-audit/render-record.json`, `.tmp/figure-parent-final.log` and
+`.tmp/staged-release-scan-native.log`. Native isolated recovery evidence is retained under
+`/home/reex/.cache/homelab-v1-checks.{GtjEfI,XR1Idu,b3tu5L,fkZ5DU,Ap8IXv}/regression.log`.
+
+The broad initial suite was stopped after diagnosing superseded fixtures and environment assumptions;
+it was not a completed full-suite acceptance. A redundant native rerun was also stopped after confirming
+final controller-staging and hardware-archive paths; the completed focused runs above remain the
+native evidence. An obsolete test selector in that rerun was corrected by the separate successful
+empty-collections check. Live Proxmox, Debian image customization, physical HSM, MariaDB recovery, failover and
+hosted-renderer acceptance remain unperformed. Secure Boot is documented as disabled; its deployment
+and maintenance path is deliberately deferred, not implicitly enabled by a later stage.
+
 ### Import usability and cross-repository correspondence, 2026-11-15
 
 Reviewed Foundation and all ten deployment stages against their actual setup owners, input files,

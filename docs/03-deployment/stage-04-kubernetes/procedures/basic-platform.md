@@ -19,8 +19,8 @@ component's first-install procedure to reach a later phase.
 Tier-local Ansible installs pinned Cilium, optional Ceph RBD or NFS CSI, cert-manager, Traefik,
 CloudNativePG and Flux charts, with the Barman Cloud plugin as an object/WAL backup
 option. Shared's reusable platform role executes the native
-charts and health gates; Tier 0 owns selections, values and cluster resources. Rendering contacts chart
-repositories but never the Kubernetes API. It is not an air-gapped chart cache.
+charts and health gates. The cluster-owning tier owns selections, values and cluster resources.
+Rendering contacts chart repositories but never the Kubernetes API. It is not an air-gapped chart cache.
 
 [Stage 4 Figure 2](../README.md#figure-2-basic-platform-services) shows the reference result with
 existing block CSI. Select and qualify storage before installing the remaining consumers.
@@ -36,8 +36,9 @@ Traefik enables its namespace-scoped CRD provider for the verified upstream TLS
 transports consumed by control applications; cross-namespace references stay disabled.
 Tier 1 and Tier 2 supply the same `ansible/playbooks/deployment/cluster-platform.yml`
 entry point and small tier-local examples. Run from that tier's repository root,
-with its own kubeconfig and inventory. Their examples omit
-Flux; Tier 1 selects its delivery controller in Stage 7. Existing CSI is valid in
+with its own kubeconfig and inventory. Tier 1 selects independent Flux ownership through the
+[Stage 7 bootstrap and platform procedure](../../stage-07-delivery/procedures/flux-platform.md).
+Tier 2's example selects Ansible-owned add-ons. Existing CSI is valid in
 every tier; `ceph_rbd` installs block CSI against the existing Proxmox/Ceph storage cluster.
 Select NFS separately for backup/shared-file claims.
 
@@ -203,6 +204,10 @@ image/mirror overrides through native values and retain artifacts for recovery.
 
 ## Step 3: Render, install CNI and complete the platform
 
+For **Tier 1 Flux ownership**, complete the [owning bootstrap/handover actions 7–9](../../stage-07-delivery/procedures/platform-cluster.md#7-select-the-basic-platform),
+then continue at action 10's acceptance checks. That branch installs minimum Cilium/Flux together.
+The Cilium-only commands below apply to Ansible-owned add-ons.
+
 ### 5. Render Cilium only
 
 Run from **`<prefix>-tier-0/`**, before expecting ordinary cluster pods to work:
@@ -247,10 +252,15 @@ do not reinstall an accepted collector or introduce another storage owner.
 
 ### 9a. Prepare Flux and managed bootstrap Secrets — main path
 
-This branch is for **Tier 0**. Tier 1/2 omit Flux: satisfy their own selected Secret prerequisites and
-use the render/apply commands in 9b without performing its Tier 0 Flux-source preparation.
+For **Tier 1**, continue with the owning [platform bootstrap and Flux handover](../../stage-07-delivery/procedures/platform-cluster.md#7-select-the-basic-platform).
+Its minimum Cilium/Flux installation and separately approved platform source own the selected add-ons.
 
-From **`<prefix>-tier-0/`**, complete [Flux Steps 1–3](flux-sops.md): publish the encrypted canary,
+For **Tier 2**, prepare the selected components' Secrets through their accepted owner, then use 9b's
+commands from Tier 2. For installer-managed credentials, create an encrypted
+`ansible/group_vars/cluster_platform_secrets.yml` using the selected component's Secret contract and
+pass `-e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass` to both commands.
+
+For **Tier 0**, complete [Flux Steps 1–3](flux-sops.md) from **`<prefix>-tier-0/`**. Publish the encrypted canary,
 provide read-only source credentials and age keys, then render/review/apply the remaining platform.
 Pass the private Secrets file explicitly to both commands as shown there. Return here for action 10.
 
@@ -259,9 +269,10 @@ Pass the private Secrets file explicitly to both commands as shown there. Return
 ### 9b. Use pre-existing bootstrap Secrets — alternative
 
 Use this branch instead of 9a's Secret creation when those Secrets already have a qualified owner.
-Complete [Flux source preparation](flux-sops.md#prepare-the-source) and verify the
-[required Secrets](flux-sops.md#provide-bootstrap-secrets) through that owner.
-Keep `cluster_platform_manage_secrets: false` in **`<prefix>-tier-0/ansible/group_vars/cluster_platform.yml`**.
+For Tier 0, complete [Flux source preparation](flux-sops.md#prepare-the-source) and verify the
+[required Secrets](flux-sops.md#provide-bootstrap-secrets) through that owner. Tier 2 verifies the
+Secrets for its selected components. Keep `cluster_platform_manage_secrets: false` in the owning
+tier's **`ansible/group_vars/cluster_platform.yml`**.
 
 Render from **`<prefix>-tier-0/`**:
 
@@ -276,15 +287,17 @@ from **the same Tier 0 root**:
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/cluster-platform.yml -e @ansible/group_vars/cluster_platform.yml -e cluster_platform_action=apply
 ```
 
-Continue at action 10. For Tier 1/2, use that tier's selections; its inputs omit Flux.
+Continue at action 10. Tier 2 uses these commands with its own inputs and Secret owner.
+Tier 1 follows its linked Flux bootstrap/handover procedure.
 
 <a id="9-verify-the-selected-platform"></a>
 
 ### 10. Verify the selected platform
 
 Complete the persistence, certificate/ingress and database checks below and
-[Flux acceptance](flux-sops.md#accept-reconciliation) for Tier 0. Return to
-[Stage 4, action 19](../README.md#step-19-accept-operation-and-recovery) for protected collection and recovery acceptance.
+[Flux acceptance](flux-sops.md#accept-reconciliation) for Tier 0. Complete protected collection and recovery
+acceptance in the owning stage. Tier 0 returns to
+[Stage 4, action 19](../README.md#step-19-accept-operation-and-recovery).
 
 For another selected subset, change `cluster_platform_components` explicitly.
 Prerequisites for omitted products must already be accepted.

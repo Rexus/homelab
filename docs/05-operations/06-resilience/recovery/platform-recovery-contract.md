@@ -12,6 +12,7 @@ flowchart LR
   Custody["Accepted custody<br/>Revisions / keys<br/>Artifact locks"] --> Clean["Clean IaC<br/>Templates / Talos<br/>Paused Flux"]
   Clean --> Restore["Native recovery<br/>Data / execution fences<br/>Content checks"]
   Restore --> Operate["Controlled resumption<br/>Git ownership<br/>Services / NICs"]
+  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef custody fill:#fff2d1,stroke:#926820,color:#584013
   classDef action fill:#fcebdc,stroke:#a16c43,color:#5b3921
   class Custody custody

@@ -1,4 +1,5 @@
 PyYAML>=6.0
 Jinja2>=3.1.0
+lxml>=5,<7
 jsonschema>=4.0.0
 python-hcl2>=8.1.4,<9

@@ -290,7 +290,11 @@ instead of `--ask-vault-pass`.
 
 Obtain the dedicated export, permissions and source marker through
 [NAS commissioning](../../05-operations/06-resilience/backups/postgresql.md#commission-the-nas),
-using `grafana-db` in the selected Tier 1 namespace and the system identifier from action 8.
+using `grafana-db` in the selected Tier 1 namespace. Read its live `status.systemID` with
+[the independent identity query in action 5](../../05-operations/06-resilience/backups/postgresql.md#prepare-the-database),
+using the accepted `observability_kubeconfig`, `observability_context` and `observability_namespace`.
+The direct Ansible preparation reports this value. Flux-owned preparation requires that live query
+after the approved database graph reconciles.
 
 In **`<prefix>-tier-1/`**, edit `ansible/group_vars/observability_platform.yml`:
 

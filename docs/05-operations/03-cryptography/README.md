@@ -49,7 +49,7 @@ and [Stage 6: Secrets](../../03-deployment/stage-06-secrets/README.md).
 | --- | --- |
 | Is the issuer healthy; how are certificates renewed or revoked? | [Certificate authority](certificate-authority.md) |
 | How is an issuer recovered? | [Issuer recovery](issuer-recovery.md) |
-| How are HSM replicas maintained or signing custody changed? | [USB HSM](usb-hsm.md), [hardware migration](hardware-migration.md) |
+| How are HSM replicas maintained or signing custody changed? | [USB HSM](usb-hsm.md), [Pico wrapped-key restore](picohsm-replica.md), [single-device expansion](usb-hsm.md#single-device-to-pool), [hardware migration](hardware-migration.md) |
 | How are signing clients, PIN rotation and independent recovery checked? | [Signing API acceptance](../../03-deployment/stage-06-secrets/step-11b-openbao.md#6-accept-operation-and-independent-recovery); keep original key identity and snapshots separate from hardware backups |
 | Which custody controls must remain in place? | [Security controls](security-controls.md) |
 | How is a password, token or encrypted input rotated? | [Credential handling](secret-handling.md), [Ansible Vault](ansible-vault.md) |

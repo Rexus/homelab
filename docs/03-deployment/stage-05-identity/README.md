@@ -105,14 +105,15 @@ Edit **Tier 0** without removing the issuer or any other managed guest:
 
 | File | Set |
 | --- | --- |
-| `terraform/deployments/foundation/terraform.tfvars` | Existing `vm_instances` plus `idm-1/2`, approved EL image, unused VMIDs, live storage and independent placement |
+| `terraform/deployments/foundation/terraform.tfvars` | Uncomment both `idm-1` / `idm-2` example objects in `vm_instances`; set approved EL image, unused VMIDs, live storage and independent placement; retain `ca-1` and other existing guests |
 | `ansible/inventory/hosts.yml` | One `identity_primary`, `identity_replicas`; `identity.vars.platform_domain_role: authority`; retain `issuing_ca`; keep connected `root_ca` empty |
 | `ansible/group_vars/all.yml` | Directory `platform_domain`, standalone/service `platform_internal_domain`, SSH account and hostname decoration |
 | `ansible/group_vars/foundation.yml` | Complete existing `platform_host_ips`, adding both directory IPs; realm/domain, DNS and selected CA mode |
 | `terraform/common.tfvars` | Applied `network_zones.identity` attachment or actual bridge/VLAN/subnet/gateway |
 
 Provide stable forward/reverse DNS and independent bootstrap DNS/time before realm installation.
-A Stage 2 guest allocation needs no replacement; the plan below should retain it.
+Fresh Stage 2 inputs allocate only the issuer. If an older local file already allocated the directory
+pair, keep those existing entries; the plan below should retain them without replacement.
 Fresh inventory declares the authority role. In retained inventory, add `platform_domain_role: authority`
 under the existing `identity` group's `vars`, preserving its children. Directory hosts receive their
 `platform_domain` FQDN while commissioning; other standalone hosts retain `platform_internal_domain`.

@@ -1,0 +1,100 @@
+---
+- name: Require an explicit PicoHSM preparation host and native tooling inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family in ['Debian', 'RedHat']
+      - ansible_service_mgr == 'systemd'
+      - hsm_provider == 'picohsm'
+      - hsm_provider_driver == 'opensc'
+      - hsm_provider_mode == 'usb'
+      - hsm_provider_packages | length > 0
+      - hsm_provider_library is match('^/[a-zA-Z0-9_./+-]+$')
+      - hsm_provider_tool is match('^/[a-zA-Z0-9_./+-]+$')
+    fail_msg: Select PicoHSM USB preparation on a supported systemd host, approved middleware packages and absolute library/tool paths.
+
+- name: Reuse native package proxy access before installing middleware
+  ansible.builtin.include_role:
+    name: baseline
+    tasks_from: repository_proxy
+  # Standalone local commissioning has no tier-wide extra-vars by default.
+  # Retain its accepted package proxy unless one is explicitly selected here.
+  when: repository_proxy_enabled | default(false) | bool
+
+- name: Reuse explicitly selected native RPM sources when needed
+  ansible.builtin.include_role:
+    name: baseline
+    tasks_from: package_sources
+  when: baseline_rpm_repositories | default([]) | length > 0
+
+- name: Reuse native package verification trust and repository preparation
+  ansible.builtin.include_role:
+    name: baseline
+    tasks_from: package_consumer
+
+- name: Install only middleware native transport and scoped CCID reader support
+  ansible.builtin.import_tasks: tools.yml
+
+- name: Apply native transport restarts before public reader discovery
+  ansible.builtin.meta: flush_handlers
+
+- name: Require the installed OpenSC middleware library before public discovery
+  ansible.builtin.stat:
+    path: "{{ hsm_provider_library }}"
+  register: hsm_prepare_library
+
+- name: Reject missing middleware before accessing the device
+  ansible.builtin.assert:
+    that: hsm_prepare_library.stat.isreg | default(false)
+    fail_msg: The approved middleware package must supply hsm_provider_library for this OS and CPU architecture.
+
+- name: Discover public PicoHSM token slots as root without logging in
+  ansible.builtin.command:
+    argv: ["{{ hsm_provider_tool }}", --module, "{{ hsm_provider_library }}", --list-token-slots]
+  become: true
+  become_user: root
+  vars:
+    ansible_become_user: root
+  changed_when: false
+  check_mode: false
+  register: hsm_prepare_tokens
+
+- name: Discover public PCSC reader names as root without logging in
+  ansible.builtin.command:
+    argv: [opensc-tool, --list-readers]
+  become: true
+  become_user: root
+  vars:
+    ansible_become_user: root
+  changed_when: false
+  check_mode: false
+  register: hsm_prepare_readers
+
+- name: Report the installed native OpenSC version without accessing private token data
+  ansible.builtin.command:
+    argv: [opensc-tool, --version]
+  become: true
+  become_user: root
+  vars:
+    ansible_become_user: root
+  changed_when: false
+  check_mode: false
+  register: hsm_prepare_opensc
+
+- name: Enforce a recorded token serial when preparation inputs already supply one
+  ansible.builtin.assert:
+    that: >-
+      (hsm_prepare_tokens.stdout ~ hsm_prepare_tokens.stderr) is search(
+        '(?im)^\s*serial num\s*:\s*' ~ (hsm_provider_expected_serial | string | regex_escape) ~ '\s*$')
+    fail_msg: The recorded token serial is absent. Check the physical device and USB mapping before accepting this reader.
+  when: hsm_provider_expected_serial | default('') | string | length > 0
+
+- name: Show public commissioning inventory and its acceptance status
+  ansible.builtin.debug:
+    msg:
+      library: "{{ hsm_provider_library }}"
+      opensc_version: "{{ (hsm_prepare_opensc.stdout ~ hsm_prepare_opensc.stderr) | trim }}"
+      status: >-
+        {{ 'Recorded token serial matched.' if hsm_provider_expected_serial | default('') | string | length > 0
+        else 'Unaccepted candidate. Record the public token serial and exact reader name before normal provider or issuer deployment.' }}
+      readers: "{{ hsm_prepare_readers.stdout_lines + hsm_prepare_readers.stderr_lines }}"
+      tokens: "{{ hsm_prepare_tokens.stdout_lines + hsm_prepare_tokens.stderr_lines }}"

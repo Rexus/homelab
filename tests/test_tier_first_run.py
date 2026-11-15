@@ -265,3 +265,75 @@ class LoggingInputInitialization(TierRepositoryTestCase):
             else:
                 self.assertEqual(catalog.read_text(), 'logging_producer_hosts: {existing-host: {}}\n')
         self.assertFalse((repo / 'ansible/inventory/host_vars/log-1.yml').exists())
+
+    def test_foundation_initialization_prepares_issuer_and_preserves_inputs_and_state(self):
+        import hcl2
+
+        self.generate()
+        repo = self.root / 'verify-tier-0'
+        variables = repo / 'ansible/group_vars'
+        issuer = variables / 'issuer.yml'
+        foundation = variables / 'foundation.yml'
+        overlay = variables / 'foundation.test.yml'
+        terraform = repo / 'terraform/deployments/foundation/terraform.tfvars'
+
+        def initialize(*options):
+            result = subprocess.run(['bash', 'scripts/init-local-files.sh', '--setup', 'foundation', *options],
+                                    cwd=repo, capture_output=True, text=True, timeout=45)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+        initialize('--env', 'test')
+        self.assertEqual(issuer.read_bytes(), issuer.with_suffix('.yml.example').read_bytes())
+        self.assertEqual(foundation.read_bytes(), foundation.with_suffix('.yml.example').read_bytes())
+        self.assertTrue(overlay.is_file())
+        self.assertFalse((variables / 'issuer.test.yml').exists())
+        values = hcl2.loads(terraform.read_text())
+        self.assertEqual({name.strip('"') for name in values['vm_instances']}, {'ca-1'})
+        self.assertEqual(values['lxc_instances'], {})
+        self.assertEqual({path.parent.name for path in repo.glob('terraform/deployments/*/terraform.tfvars')},
+                         {'foundation'})
+        for unrelated in ('syslog', 'cache', 'hsm', 'logging_producers'):
+            self.assertFalse((variables / f'{unrelated}.yml').exists())
+        self.assertEqual(issuer.stat().st_mode & 0o777, 0o600)
+
+        issuer.write_text('openxpki_realm: retained-issuer\n')
+        foundation.write_text('platform_host_ips: {ca-1: 192.0.2.30}\n')
+        overlay.write_text('platform_host_ips: {ca-1: 192.0.2.31}\n')
+        terraform.write_text(terraform.read_text() + '\n# Retained deployment choices.\n')
+        retained = {path: path.read_bytes() for path in (issuer, foundation, overlay, terraform)}
+        state = repo / '.terraform/state/foundation/test/terraform.tfstate'
+        state.parent.mkdir(parents=True)
+        state_bytes = b'{"version":4,"serial":23,"lineage":"retained-fixture","resources":[]}\n'
+        state.write_bytes(state_bytes)
+
+        initialize('--env', 'test')
+        for path, content in retained.items():
+            self.assertEqual(path.read_bytes(), content)
+        self.assertEqual(state.read_bytes(), state_bytes)
+        self.assertFalse(list(repo.rglob('*.bak.*')))
+
+        # A previously initialized foundation can gain its missing companion independently.
+        issuer.unlink()
+        initialize('--env', 'test')
+        self.assertEqual(issuer.read_bytes(), issuer.with_suffix('.yml.example').read_bytes())
+        self.assertEqual(foundation.read_bytes(), retained[foundation])
+        self.assertEqual(terraform.read_bytes(), retained[terraform])
+        self.assertEqual(state.read_bytes(), state_bytes)
+        issuer.write_bytes(retained[issuer])
+
+        initialize('--env', 'test', '--overwrite')
+        for path, content in retained.items():
+            backups = list(path.parent.glob(path.name + '.bak.*'))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(backups[0].read_bytes(), content)
+        self.assertEqual(issuer.read_bytes(), issuer.with_suffix('.yml.example').read_bytes())
+        self.assertEqual(state.read_bytes(), state_bytes)
+
+        # Older generated tiers can legitimately have foundation inputs without issuer examples.
+        issuer.with_suffix('.yml.example').unlink()
+        issuer.unlink()
+        initialize('--env', 'test')
+        self.assertFalse(issuer.exists())
+        self.assertEqual(state.read_bytes(), state_bytes)
+        self.assertEqual({path.parent.name for path in repo.glob('terraform/deployments/*/terraform.tfvars')},
+                         {'foundation'})

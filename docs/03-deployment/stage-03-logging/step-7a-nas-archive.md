@@ -107,8 +107,8 @@ Edit **`ansible/group_vars/logging_archive.yml`** before running the recipe:
 
 ## Step 3: Install checkpoint transfer
 
-Select one commissioned collector from `foundation_logging`. Reuse its inventory-adjacent
-host file and load global, setup/IP, archive and host inputs in that order:
+Select one commissioned collector from `foundation_logging`. Load its global, setup/IP and archive
+inputs in that order. The accepted main path already supplies its connection settings:
 
 Run from **`<prefix>-tier-0/`**.
 
@@ -118,7 +118,6 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
   -i ansible/inventory/hosts.yml --limit "${LOGGING_COLLECTOR:?Select one collector}" \
   -e @ansible/group_vars/all.yml -e @ansible/group_vars/syslog.yml \
   -e @ansible/group_vars/logging_archive.yml \
-  -e "@ansible/inventory/host_vars/$LOGGING_COLLECTOR.yml" \
   ansible/playbooks/deployment/logging-archive.yml
 ```
 
@@ -165,8 +164,10 @@ Edit in **`<prefix>-tier-0/`**.
 Set source/marker, independent repository, schedule and a separate external
 dead-man check. Keep password/recovery keys off the collector. Approve repository
 initialization only for a deliberately new destination; otherwise use the existing
-repository/password. Create `ansible/inventory/host_vars/<recovery-host>.yml` with its
-existing `ansible_host`, SSH account/key overrides and any per-host backup settings.
+repository/password. A managed `rec-1` uses its existing inventory entry and `platform_host_ips`
+from `syslog.yml`. For an independently commissioned host, retain its accepted inventory connection
+settings. Per-host overrides belong beside inventory in `ansible/inventory/host_vars/<recovery-host>.yml`
+when needed.
 
 Edit **`ansible/group_vars/logging_backup.yml`**:
 
@@ -205,11 +206,11 @@ invokes [Shared storage](../../../shared/ansible/roles/data_volume/tasks/main.ym
 Run from **`<prefix>-tier-0/`**.
 
 ```bash
-read -r -p 'Independent recovery inventory host: ' LOGGING_RECOVERY_HOST
+read -r -p 'Independent recovery inventory host (example rec-1): ' LOGGING_RECOVERY_HOST
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
   -i ansible/inventory/hosts.yml --limit "${LOGGING_RECOVERY_HOST:?Select one recovery host}" \
-  -e @ansible/group_vars/all.yml -e @ansible/group_vars/logging_backup.yml \
-  -e "@ansible/inventory/host_vars/$LOGGING_RECOVERY_HOST.yml" \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/syslog.yml \
+  -e @ansible/group_vars/logging_backup.yml \
   ansible/playbooks/deployment/logging-backup.yml
 ```
 
@@ -228,8 +229,8 @@ For a new local disk, inspect its mounted identity from **`<prefix>-tier-0/`**:
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible "$LOGGING_RECOVERY_HOST" --playbook-dir ansible \
-  -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/logging_backup.yml \
-  -e "@ansible/inventory/host_vars/$LOGGING_RECOVERY_HOST.yml" --become -m ansible.builtin.command \
+  -i ansible/inventory/hosts.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/syslog.yml \
+  -e @ansible/group_vars/logging_backup.yml --become -m ansible.builtin.command \
   -a 'findmnt --json --mountpoint /srv/security-log-backup --output TARGET,UUID,FSTYPE'
 ```
 
@@ -238,11 +239,11 @@ Use the actual repository mount if customized. Save a local-volume UUID as
 values for separate recovery hosts. Verify persistent mounting after a controlled reboot.
 
 For named environments, insert `all.<env>.yml` and the selected setup overlay after
-the base setup map and before archive/backup settings and host overrides. Keep the
-host file last and rerun separately for each collector or recovery host.
-The examples use `ansible/inventory/host_vars/`, beside `inventory/hosts.yml`.
-For an existing explicitly supplied `ansible/host_vars/<host>.yml`, replace the final `-e` path
-with that actual file; keep it last and limit the run to its one host.
+the base setup map and before archive/backup settings. Rerun separately for each collector or recovery host.
+Inventory-adjacent `ansible/inventory/host_vars/` files load automatically. For an existing explicit
+override under `ansible/host_vars/<host>.yml`, append `-e @/actual/path/to/<host>.yml` last and
+limit the run to that one host. Extra-vars override inventory values, so retain per-host backup/storage
+overrides in that final explicit file when they intentionally differ from the common archive/backup inputs.
 
 Record source-to-copy lag and the latest verified snapshot/backup checkpoint.
 An asynchronous copy/snapshot interval creates an exposed tail; it is not zero RPO.
@@ -260,7 +261,7 @@ commissioned/checked on the NAS, not inferred from a successful transfer heartbe
 Record **A: NAS-backed**, the trusted administrators, measured checkpoint/snapshot/backup lag,
 storage failure domains and independent recovery keys. UniFi snapshots remain administrator-deletable;
 this model does not protect against a custodian deleting every copy under that custodian's authority. [2]
-Use separate custody or [15b: retention locks](step-7b-retention-lock.md) for that threat.
+Use separate custody or [7b retention locks](step-7b-retention-lock.md) for that threat.
 
 Return to [Stage 3, Step 8](README.md#step-8-record-recovery-and-completion) for the
 single selected-topology acceptance drill: access denials, NAS/network outage, backlog/alerts,

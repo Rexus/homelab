@@ -26,7 +26,7 @@ to it, such as a deliberately scoped administration guest.
 ## Guest attachment
 
 The common `application` attachment is defined once in shared `config/platform.tfvars`.
-Example Tier 2 override in `terraform/common.tfvars` for the `lab` network
+Example Tier 2 override in `terraform/common.tfvars` for lab guests on the `application` network
 from the [example plan](../01-architecture/05-networking/README.md#example-network-plan):
 
 ```hcl

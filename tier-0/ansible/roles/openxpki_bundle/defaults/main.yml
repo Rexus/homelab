@@ -7,6 +7,11 @@ openxpki_bundle_portal_fqdn: ""
 openxpki_bundle_publication_url: ""
 openxpki_bundle_dns_suffixes: []
 openxpki_bundle_users: {}
+openxpki_bundle_signer_backend: software
 openxpki_bundle_signer_password: "{{ lookup('ansible.builtin.env', 'OPENXPKI_SIGNER_PASSWORD') }}"
+openxpki_bundle_pkcs11_key_uri: ""
+openxpki_bundle_pkcs11_library: ""
+openxpki_bundle_pkcs11_engine_library: ""
+openxpki_bundle_pkcs11_pin: "{{ lookup('ansible.builtin.env', 'HSM_ISSUER_PIN') }}"
 openxpki_bundle_datavault_secret: "{{ lookup('ansible.builtin.env', 'OPENXPKI_DATAVAULT_SECRET') }}"
 openxpki_bundle_data_mount: /srv/openxpki

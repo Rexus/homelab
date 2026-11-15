@@ -54,6 +54,8 @@ object endpoints and scoped credentials belong to the consuming service inputs.
 
 Configuration headers identify their variable definitions from the named repository root.
 Read those definitions for supported fields, types, defaults and validation; edit values in the configuration file.
+Generated comment pointers to the manual also start at that repository root and lead to the sibling
+`<prefix>-architecture/docs/auto-docs/` directory. Source-kit comment pointers start at the upstream root.
 
 | Configuration | Variable definitions |
 | --- | --- |

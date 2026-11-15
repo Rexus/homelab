@@ -31,6 +31,10 @@ class DocumentationMigration(TierRepositoryTestCase):
                            ("03-deployment/stage-02-logging", "stage-03-logging")):
             for current in (UPSTREAM / "docs/03-deployment" / stage).rglob("*.md"):
                 suffix = current.relative_to(UPSTREAM / "docs/03-deployment" / stage).as_posix()
+                # New procedures were never published under the retired stage number.
+                if stage == "stage-02-trust" and suffix == "procedures/picohsm.md":
+                    self.assertNotIn(f"{old}/{suffix}", MOVES)
+                    continue
                 # Logging options were renumbered with the combined eight-action workflow.
                 previous_suffix = {
                     "step-6b-redundant-intake.md": "step-14b-redundant-intake.md",
@@ -222,7 +226,7 @@ class DocumentationMigration(TierRepositoryTestCase):
         for repo in (UPSTREAM, generated):
             paths = [path.relative_to(repo).as_posix() for path in (repo / "docs").rglob("*.md")]
             result = subprocess.run(["git", "check-ignore", "--no-index", "--stdin"],
-                                    cwd=repo, input="\n".join(paths) + "\n", text=True,
+                                    cwd=repo, input=("\n".join(paths) + "\n").encode("utf-8"),
                                     capture_output=True)
             self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
 

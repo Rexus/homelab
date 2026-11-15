@@ -1,0 +1,35 @@
+---
+- name: Prepare native controller tooling for PicoHSM discovery
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: hsm
+    control_node_require_terraform: false
+
+- name: Require the selected commissioning hosts before connecting
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+  tasks:
+    - name: Require an existing preparation group or explicit local commissioning host
+      ansible.builtin.assert:
+        that: >-
+          groups.get(hsm_prepare_group | default('issuing_ca'), []) | length > 0
+          or hsm_prepare_group | default('issuing_ca') in hostvars
+        fail_msg: Select an existing issuing_ca or HSM pool group, or explicitly select localhost with its local inventory.
+
+- name: Wait for the selected commissioning hosts
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: "{{ hsm_prepare_group | default('issuing_ca') }}"
+
+- name: Prepare PicoHSM middleware and discover public device identities
+  hosts: "{{ hsm_prepare_group | default('issuing_ca') }}"
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Prepare native transport before normal service authorization and issuer binding
+      ansible.builtin.include_role:
+        name: hsm_provider
+        tasks_from: prepare

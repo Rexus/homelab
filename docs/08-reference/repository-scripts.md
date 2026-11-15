@@ -363,13 +363,16 @@ their `.deployment-setups`; see [setup ownership](../04-development/generated-re
 | `cache` | Tier 2 ordinary cache pair or larger set for controlled outbound access | [Software intake](../03-deployment/stage-01-software-intake/README.md) |
 | `intake` | Tier 1 verified RPM/APT and selected-artifact publication with managed VM/disks and UUID-mounted data volume; Stage 2 option 15b | [Verified intake](../03-deployment/stage-02-trust/step-15b-verified-intake.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../03-deployment/stage-09-development/step-1b-source-control-vm.md) |
+| `development-data` | Tier 1 dedicated PostgreSQL, Redis and Gitaly VMs for Kubernetes GitLab | [GitLab data services](../03-deployment/stage-09-development/procedures/data-services.md) |
 | `vault` | Stage 6 dedicated HashiCorp Vault; optional independent OpenBao signing uses a separate named environment/state, never the original Vault guests | [Vault VM deployment](../03-deployment/stage-06-secrets/step-1b-vault-vm.md), [signing option](../03-deployment/stage-06-secrets/step-11b-openbao.md) |
 | `observability` | Optional Tier 1 native gateway, metrics, search and query products with guarded data disks; separate from Kubernetes and Tier 0 evidence | [Observability VM alternative](../03-deployment/stage-08-observability/step-1b-dedicated-vms.md) |
 | `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../03-deployment/stage-09-development/step-14b-podman-runner.md) |
 | `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../03-deployment/stage-09-development/step-15b-image-based-linux.md) |
+| `infrastructure-runner` | Tier 0 dedicated trusted infrastructure CI VM | [Infrastructure runner](../03-deployment/stage-09-development/procedures/infrastructure-runner.md) |
+| `cluster-endpoint` | Tier 0 independent HAProxy/Keepalived VM pair for private Kubernetes API endpoints | [API endpoint](../03-deployment/stage-04-kubernetes/procedures/api-endpoint.md) |
 | `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../03-deployment/foundation/proxmox/templates.md) |
-| `hsm` | Tier 0 native USB/provider host pool, original-key issuer binding and optional native restricted PKCS#11 remoting; physical key custody and application HA remain separate | [USB HSM host-pool option](../03-deployment/stage-02-trust/step-1b-usb-hsm.md) |
-| `lab` | general-purpose lab guests | this reference and the local inventory |
+| `hsm` | Tier 0 native USB/provider hosts; original-key issuer binding and optional restricted PKCS#11 remoting use separate recipes; physical key custody and application HA require qualification | [USB HSM host-pool option](../03-deployment/stage-02-trust/step-1b-usb-hsm.md) |
+| `lab` | Tier 2 VM/LXC lab resources | [Lab environments](../03-deployment/stage-10-lab-environments/README.md#step-2a-linux-vmlxc-labs) |
 
 ## What the deployment wrapper does
 
@@ -378,8 +381,9 @@ For each setup, `scripts/deploy.sh`:
 1. checks that required local files exist
 2. loads `.env.local` when it exists, unless `--env-file` points elsewhere
 3. maps `PROXMOX_*` values to the Terraform provider variables
-4. runs the setup-aware local Ansible control-node precheck, preferring OS
-   packages for missing collections before falling back to Galaxy
+4. runs the setup-aware local Ansible control-node precheck, preparing missing/incompatible
+   collections from pinned Git sources by default; explicit Galaxy and dependency-check modes follow
+   the [tooling contract](control-node-tooling.md#collection-sources)
 5. runs Terraform with setup-specific local state under `.terraform/state/`
 6. loads the shared platform profile and image catalog, then tier common inputs,
    optional environment overlays, and setup tfvars in a predictable order

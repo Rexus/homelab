@@ -17,17 +17,28 @@
       - openxpki_activate_runtime | bool
       - openxpki_managed_cli | bool
 
-- name: Verify the backed-up software key still matches the signing identity
-  community.crypto.openssl_privatekey_info:
-    path: "{{ openxpki_data_mount }}/keys/issuer.pem"
-    passphrase: "{{ openxpki_signer_password }}"
-  register: openxpki_backup_key
-  no_log: true
+- name: Resolve the original signing backend before accepting a recovery set
+  ansible.builtin.import_tasks: recovery-signer.yml
 
-- name: Reject a different or unreadable recovery key
+- name: Verify the selected original key against the active signing identity
+  ansible.builtin.import_tasks: recovery-key.yml
+  vars:
+    openxpki_recovery_state_directory: "{{ openxpki_data_mount }}"
+    openxpki_recovery_certificate: "{{ openxpki_issuer_certificate }}"
+
+- name: Inspect the original configuration artifact needed to prepare a clean target
+  ansible.builtin.stat:
+    path: "{{ openxpki_data_mount }}/configuration.tar.gz"
+    follow: false
+    checksum_algorithm: sha256
+  register: openxpki_backup_configuration
+
+- name: Require the exact immutable installation artifact in the recovery set
   ansible.builtin.assert:
-    that: openxpki_backup_key.public_key == openxpki_issuer_certificate.public_key
-  no_log: true
+    that:
+      - openxpki_backup_configuration.stat.isreg | default(false)
+      - not openxpki_backup_configuration.stat.islnk | default(false)
+      - openxpki_backup_configuration.stat.checksum == openxpki_configuration_sha256
 
 - name: Inspect writers before the controlled pause
   ansible.builtin.service_facts:
@@ -74,13 +85,13 @@
         state: stopped
       loop: [openxpki-crl.timer, apache2, openxpki-clientd, openxpki-serverd]
 
-    - name: Copy the complete software custody and configuration set
+    - name: Copy the complete application custody and configuration set
       ansible.builtin.copy:
         src: "{{ openxpki_data_mount }}/{{ item }}"
         dest: "{{ openxpki_backup_workspace.path }}/"
         remote_src: true
         mode: preserve
-      loop: [configuration, keys, identity, public, deployment.json, schema-initialized]
+      loop: [configuration.tar.gz, configuration, keys, identity, public, deployment.json, schema-initialized]
       no_log: true
 
     - name: Dump the quiesced backend and session database through MariaDB
@@ -96,11 +107,14 @@
     - name: Record the independently expected signing identity
       ansible.builtin.copy:
         content: >-
-          {{ {'format': 1, 'deployment_id': openxpki_deployment_id,
+          {{ {'format': 2, 'deployment_id': openxpki_deployment_id,
               'configuration_sha256': openxpki_configuration_sha256,
               'issuer_fingerprint': openxpki_issuer_fingerprint,
               'package_versions': openxpki_package_versions,
-              'realm': openxpki_realm} | to_nice_json }}
+              'realm': openxpki_realm,
+              'signer_backend': openxpki_recovery_backend,
+              'pkcs11_key_uri': openxpki_recovery_signer.key if openxpki_recovery_backend == 'pkcs11' else ''}
+              | to_nice_json }}
         dest: "{{ openxpki_backup_workspace.path }}/recovery.json"
         owner: root
         group: root

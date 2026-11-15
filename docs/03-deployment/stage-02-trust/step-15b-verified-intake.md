@@ -73,8 +73,8 @@ use `external_edge`. These remain distinct networks across their tier boundaries
 The opening view shows placement; the request sequence below shows acquisition through the proxy and
 consumer access to Nginx. Within the VM, the arrows show gated publication and reads of public files. The job aggregates `intake-fetch`, `intake-scan` and root publication;
 OS storage holds policy, TLS and ClamAV definitions, with optional native FreshClam updating them.
-Proxmox, proxy, trust,
-firewall and protected logging are commissioned prerequisites, not additional resources from this setup.
+Proxmox, selected supply, trust and firewall policy are commissioned prerequisites. Retain local logs
+through commissioning; protected forwarding follows in Stage 3.
 
 <a id="figure-verified-intake-requests"></a>
 

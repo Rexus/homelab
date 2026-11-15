@@ -15,10 +15,10 @@ separately; this option adds no `hsm-1/2` VMs or appliance installer.
 CSR preparation, then action 11 signing.
 **Design:** [network HSM boundaries](../../01-architecture/08-cryptography/05-network-hsm.md).
 
-**First installation:** select custody at Stage 2 action 1; prepare the issuer through
-[actions 2-9](README.md#step-2-initialize-the-issuer-inputs), then execute this option
-from its first unfinished provider/key action at [10b](README.md#step-10-prepare-the-issuing-request).
-Retain the already installed inactive runtime and data mount; do not provision or initialize them again.
+**First installation:** commission the selected appliance and prepare its client inputs in actions 1–2
+before [Stage 2 policy creation](README.md#step-4-prepare-the-private-policy). Continue through
+Stage 2's Terraform-only provisioning and inactive issuer installation, then run this option's
+action 3 at [10b](README.md#step-10-prepare-the-issuing-request) using that retained runtime.
 
 ## Contents
 
@@ -46,9 +46,16 @@ explicit endpoints; it does not imply vendor-native cluster replication or appli
 
 ## 2. Configure the issuer client inputs
 
-Provision `ca-1` and install its inactive runtime through the
-[issuer procedure](procedures/issuer.md). Keep `openxpki_create_issuer_key` and
-`openxpki_activate_runtime` false. Continue with hardware binding before its software key step.
+Initialize the hardware input file from **`<prefix>-tier-0/`**:
+
+```bash
+bash scripts/init-local-files.sh --setup hsm
+```
+
+This creates hardware inputs and an unused pool starter. The selected appliance client belongs to
+the existing `ca-1` foundation deployment. Prepare its PKCS#11 policy through Stage 2 actions 4–6,
+then use actions 7–9 to provision/install the inactive issuer. Keep `openxpki_create_issuer_key`
+and `openxpki_activate_runtime` false through those actions.
 
 Prepare `ansible/group_vars/hsm.yml` using the
 [provider inputs](../../../tier-0/ansible/group_vars/hsm.yml.example):

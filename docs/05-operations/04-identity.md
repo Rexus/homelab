@@ -62,11 +62,17 @@ In **`<prefix>-tier-0/`**, the principal configuration locations are:
      ldaps://idm-2.lab.example.com:636
    ```
 
-2. Reapply the selected control applications and federation from **`<prefix>-tier-0/`** using the execution host.
+2. Select the existing Keycloak service explicitly for this federation update. Retain its accepted
+   database/backup phase and private inputs. Run from **`<prefix>-tier-0/`** using the execution host.
 
    ```bash
-   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e control_applications_action=apply
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/control-applications.yml -e @ansible/group_vars/control_applications_secrets.yml --ask-vault-pass -e '{"control_applications_components":["keycloak"]}' -e control_applications_action=apply
    ```
+
+   For an existing external Secret owner, replace the private-file argument with its encrypted
+   controller override containing `control_applications_ldap_bind_password` and
+   `control_applications_keycloak_auth`. Retain `control_applications_manage_secrets: false`.
+   Later installation stages may have left another product selected in the shared input file.
 
 3. During a planned test, make `idm-1` unreachable from Keycloak and verify a real application login
    through `idm-2`. Restore `idm-1` and verify replication and login again. Include both refused

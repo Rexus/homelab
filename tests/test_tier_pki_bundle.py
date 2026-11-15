@@ -1,5 +1,6 @@
 """Exercise production bundle construction and reject unsafe bootstrap inputs."""
 
+import json
 import os
 from pathlib import Path
 import re
@@ -104,6 +105,13 @@ class PkiBundle(TierRepositoryTestCase):
                 self.assertEqual(path.stat().st_mode & 0o077, 0, path)
             realm = bundle / 'config.d/realm/infrastructure'
             read = lambda path: yaml.safe_load(path.read_text())
+            signer = read(realm / 'crypto.yaml')['token']['ca-signer']
+            self.assertEqual(signer['engine'], 'OpenSSL')
+            self.assertEqual(signer['key_store'], 'OPENXPKI')
+            self.assertEqual(signer['key'], '/srv/openxpki/keys/issuer.pem')
+            system_secrets = read(bundle / 'config.d/system/crypto.yaml')['secret']
+            self.assertEqual(system_secrets['default']['value'], values['openxpki_bundle_signer_password'])
+            self.assertEqual(system_secrets['svault']['value'], values['openxpki_bundle_datavault_secret'])
             self.assertEqual(set(read(realm / 'auth/handler.yaml')), {'LocalPassword', 'System'})
             profile = read(realm / 'profile/default.yaml')
             self.assertEqual(profile['key']['generate'], 'client')
@@ -162,3 +170,165 @@ class PkiBundle(TierRepositoryTestCase):
                 rejected[key] = unsafe
                 self.assertNotEqual(run(rejected).returncode, 0, key)
                 self.assertFalse((root / 'rejected/configuration.tar.gz').exists())
+
+    @unittest.skipUnless(
+        shutil.which('ansible-playbook') and os.environ.get('PKI_CONFIG_REPOSITORY')
+        and os.environ.get('OPENXPKI_UPSTREAM_CACHE'),
+        'Requires native Linux Ansible and the pinned configuration/source fixtures')
+    def test_native_pkcs11_builder_uses_existing_key_uri_and_protected_pin(self):
+        from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
+
+        source = Path(os.environ['OPENXPKI_UPSTREAM_CACHE'])
+        revision = subprocess.run(['git', '-C', str(source), 'rev-parse', 'HEAD'],
+                                  capture_output=True, text=True, check=True).stdout.strip()
+        self.assertEqual(revision, '5c0389789c6275095aec7d6db2dbd85cd5869405')
+        native = source / 'core/server/OpenXPKI/Crypto'
+        engine_source = native / 'Backend/OpenSSL/Engine/PKCS11.pm'
+        self.assertTrue(engine_source.is_file())
+        toolkit = (native / 'Toolkit.pm').read_text()
+        self.assertIn('engine_section engine_usage key key_store', toolkit)
+        parent_engine = (native / 'Backend/OpenSSL/Engine.pm').read_text()
+        self.assertIn('ENGINE|OPENXPKI|DATAPOOL', parent_engine)
+        native_sign = (native / 'Backend/OpenSSL/Command/issue_cert.pm').read_text()
+        self.assertIn("if ($key_store ne 'ENGINE' && not -e $self->{KEYFILE})", native_sign)
+        config = (native / 'Backend/OpenSSL/Config.pm').read_text()
+        self.assertIn("$engine_name . ' = engine_config'", config)
+        self.assertIn("'[ engine_config ]'", config)
+        self.assertIn('$self->{ENGINE}->get_engine_section()', config)
+        native_secret = yaml.safe_load((Path(os.environ['PKI_CONFIG_REPOSITORY'])
+                                       / 'config.d/realm.tpl/crypto.yaml').read_text())['secret']
+        self.assertEqual(native_secret['default'], {'import': 1})
+
+        with tempfile.TemporaryDirectory(prefix='pki-hardware-bundle-') as temporary:
+            root = Path(temporary)
+            digest = Argon2id(salt=os.urandom(16), length=32, iterations=3, lanes=4,
+                              memory_cost=65536).derive_phc_encoded(b'disposable-test-password')
+            values = dict(
+                openxpki_bundle_directory=str(root / 'approved'),
+                openxpki_bundle_repository=os.environ['PKI_CONFIG_REPOSITORY'],
+                openxpki_bundle_portal_fqdn='ca.corp.test',
+                openxpki_bundle_publication_url='http://ca.corp.test/download/',
+                openxpki_bundle_dns_suffixes=['corp.test'],
+                openxpki_bundle_signer_backend='pkcs11',
+                openxpki_bundle_signer_password='',
+                openxpki_bundle_pkcs11_key_uri='pkcs11:serial=TESTSERIAL;id=%01;type=private',
+                openxpki_bundle_pkcs11_library='/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so',
+                openxpki_bundle_pkcs11_engine_library='/usr/lib/x86_64-linux-gnu/engines-3/pkcs11.so',
+                openxpki_bundle_datavault_secret='b6' * 32,
+                openxpki_bundle_users={
+                    'requester-test': dict(role='User', digest=digest),
+                    'approver-test': dict(role='RA Operator', digest=digest),
+                },
+            )
+            pin = '86427591'
+            environment = dict(os.environ, HSM_ISSUER_PIN=pin,
+                               ANSIBLE_CONFIG=str(UPSTREAM / 'tier-0/ansible/ansible.cfg'))
+            environment.pop('ANSIBLE_ROLES_PATH', None)
+
+            def run(inputs):
+                parameters = root / 'inputs.yml'
+                parameters.write_text(yaml.safe_dump(inputs))
+                return subprocess.run([
+                    'ansible-playbook', '-i', 'localhost,',
+                    str(UPSTREAM / 'tier-0/ansible/playbooks/deployment/openxpki-bundle.yml'),
+                    '-e', f'@{parameters}'], cwd=UPSTREAM, env=environment,
+                    capture_output=True, text=True, timeout=360)
+
+            result = run(values)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertNotIn(pin, result.stdout + result.stderr)
+            bundle = root / 'approved/bundle'
+            realm = bundle / 'config.d/realm/infrastructure'
+            crypto = yaml.safe_load((realm / 'crypto.yaml').read_text())
+            signer = crypto['token']['ca-signer']
+            self.assertEqual(signer['engine'], 'PKCS11')
+            self.assertEqual(signer['key_store'], 'ENGINE')
+            self.assertEqual(signer['key'], values['openxpki_bundle_pkcs11_key_uri'])
+            self.assertEqual(signer['engine_usage'], 'PRIV_KEY_OPS')
+            self.assertEqual(signer['wrapper'], '')
+            self.assertEqual(signer['secret'], 'default')
+            self.assertEqual(crypto['secret']['default'], {'import': 1})
+            self.assertEqual(crypto['token']['svault']['secret'], 'svault')
+            section = signer['engine_section']
+            self.assertEqual(section, '\n'.join([
+                'engine_id = pkcs11',
+                'dynamic_path = ' + values['openxpki_bundle_pkcs11_engine_library'],
+                'MODULE_PATH = ' + values['openxpki_bundle_pkcs11_library'],
+                'PIN = "__PIN__"', 'init = 0', '']))
+            self.assertNotIn(pin, section)
+            self.assertNotIn('/keys/issuer.pem', (realm / 'crypto.yaml').read_text())
+            self.assertFalse(list(bundle.rglob('issuer.pem')))
+            secrets = yaml.safe_load((bundle / 'config.d/system/crypto.yaml').read_text())['secret']
+            self.assertEqual(secrets['default'], {'method': 'literal', 'export': 0, 'value': pin})
+            self.assertEqual(secrets['svault']['value'], values['openxpki_bundle_datavault_secret'])
+            artifact = root / 'approved/configuration.tar.gz'
+            original = artifact.read_bytes()
+            self.assertEqual(artifact.stat().st_mode & 0o777, 0o600)
+            for path in bundle.rglob('*'):
+                self.assertFalse(path.is_symlink())
+                self.assertEqual(path.stat().st_mode & 0o077, 0)
+
+            # Execute the pinned engine's actual section substitution with a secret
+            # handle double. This exercises neither a physical token nor signing.
+            perl = r'''
+BEGIN {
+    $INC{'OpenXPKI.pm'} = 1;
+    $INC{'OpenXPKI/Crypto/Backend/OpenSSL/Engine.pm'} = 1;
+    $INC{'OpenXPKI/Server/Context.pm'} = 1;
+    package OpenXPKI::Server::Context;
+    sub import {}
+    package OpenXPKI::Crypto::Backend::OpenSSL::Engine;
+    sub key_usable { return 1 }
+    sub get_passwd { return $_[0]->{TEST_PIN} }
+}
+use JSON::PP;
+my $input = decode_json(do { local $/; <STDIN> });
+require $input->{source};
+my $engine = bless({ENGINE_SECTION => $input->{section}, TEST_PIN => $input->{pin}},
+    'OpenXPKI::Crypto::Backend::OpenSSL::Engine::PKCS11');
+print encode_json({engine => $engine->get_engine(), keyform => $engine->get_keyform(),
+    section => $engine->get_engine_section()});
+'''
+            execution = subprocess.run(['perl', '-e', perl], input=json.dumps({
+                'source': str(engine_source), 'section': section, 'pin': pin}),
+                capture_output=True, text=True, timeout=15)
+            self.assertEqual(execution.returncode, 0, execution.stderr)
+            emitted = json.loads(execution.stdout)
+            self.assertEqual(emitted['engine'], 'pkcs11')
+            self.assertEqual(emitted['keyform'], 'engine')
+            self.assertEqual(emitted['section'], section.replace('__PIN__', pin))
+
+            self.assertNotEqual(run(values).returncode, 0)
+            self.assertEqual(artifact.read_bytes(), original)
+            invalid = []
+            for index, (key, unsafe) in enumerate((
+                ('openxpki_bundle_pkcs11_pin', '12345'),
+                ('openxpki_bundle_pkcs11_pin', '648219'),
+                ('openxpki_bundle_pkcs11_pin', '0001password'),
+                ('openxpki_bundle_pkcs11_pin', 'quoted"pin'),
+                ('openxpki_bundle_pkcs11_pin', 'back\\slash'),
+                ('openxpki_bundle_pkcs11_pin', 'expand$pin'),
+                ('openxpki_bundle_pkcs11_pin', 'new\nline'),
+                ('openxpki_bundle_pkcs11_pin', values['openxpki_bundle_datavault_secret']),
+                ('openxpki_bundle_pkcs11_key_uri', values['openxpki_bundle_pkcs11_key_uri'] + ';pin-value=secret'),
+                ('openxpki_bundle_pkcs11_key_uri', values['openxpki_bundle_pkcs11_key_uri'] + ';%70in-value=secret'),
+                ('openxpki_bundle_pkcs11_library', ''),
+                ('openxpki_bundle_pkcs11_engine_library', 'relative/pkcs11.so'),
+            )):
+                rejected = dict(values, openxpki_bundle_directory=str(root / f'rejected-{index}'))
+                rejected[key] = unsafe
+                invalid.append({'name': 'Reject unsafe hardware input before creating its directory',
+                    'block': [
+                        {'ansible.builtin.include_role': {'name': 'openxpki_bundle'}, 'vars': rejected},
+                        {'ansible.builtin.fail': {'msg': 'An unsafe hardware input was accepted.'}}],
+                    'rescue': [
+                        {'ansible.builtin.stat': {'path': rejected['openxpki_bundle_directory']},
+                         'register': 'rejected_directory'},
+                        {'ansible.builtin.assert': {'that': 'not rejected_directory.stat.exists'}}]})
+            validation = root / 'reject-inputs.yml'
+            validation.write_text(yaml.safe_dump([{'hosts': 'localhost', 'connection': 'local',
+                'gather_facts': True, 'become': False, 'tasks': invalid}], sort_keys=False))
+            result = subprocess.run(['ansible-playbook', '-i', 'localhost,', str(validation)],
+                                    cwd=UPSTREAM, env=environment, capture_output=True, text=True, timeout=120)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertFalse(list(root.glob('rejected-*')))

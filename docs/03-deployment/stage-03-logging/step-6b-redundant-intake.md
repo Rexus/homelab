@@ -127,5 +127,5 @@ Continue at Step 4 after qualification.
 Use numbered events and source/receiver/archive counts. Record remaining source
 gaps separately from loss of accepted records; do not claim exactly-once delivery.
 Continue with [Stage 3, Step 7](README.md#step-7-protect-retained-records).
-Complete the selected **15a NAS** or **15b locked-retention** path for the resulting topology,
+Complete the selected **7a NAS** or **7b locked-retention** path for the resulting topology,
 then the fault/restore checks in Step 8. Adding a receiver does not complete archive protection.

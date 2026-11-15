@@ -139,6 +139,14 @@ class ReleasePayload(TierRepositoryTestCase):
                     expected = re.sub(r"(?<=\.\./)shared(?=[/\"'\s]|$)", "verify-shared",
                                       path.read_text(encoding="utf-8"))
                     expected = expected.replace("check out shared beside", "check out verify-shared beside")
+                    expected = re.sub(r"<prefix>-(?=tier-[012]\b|shared\b|architecture\b|iac\b)",
+                                      "verify-", expected)
+                    expected = re.sub(
+                        r"(?m)^[ \t]*#[^\n]*",
+                        lambda comment: re.sub(r"(?<![\w/.-])docs/(?=[0-9]{2}-)",
+                                               "../verify-architecture/docs/auto-docs/", comment[0]),
+                        expected,
+                    )
                     self.assertEqual(target.read_text(encoding="utf-8"), expected)
             # Runtime-file support belongs to roles, never to operational inventory or host vars.
             self.assertFalse((generated / "ansible/inventory/hosts.yml").exists())

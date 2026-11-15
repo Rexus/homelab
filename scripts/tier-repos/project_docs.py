@@ -57,7 +57,8 @@ def repository_guides(writer, repo, prefix, scope):
             "| Software supply | Select verified RPM/APT repositories, artifacts and DMZ build access | "
             "`intake` root and native installer; qualify source trust, scan policy and published content |\n"
             "| Hosting | Draft: independent three-control-plane cluster; optional worker pools | Kubernetes root and tier-local inventory |\n"
-            "| Delivery | Unselected: Argo CD application GitOps or Spinnaker release pipelines | Select sources, targets, RBAC, secrets and recovery before installation |"
+            "| Delivery | Reference: independent Tier 1 Flux reconciliation and Spinnaker application Git promotion | "
+            "Select scoped sources, RBAC, secrets and independent recovery through the Stage 7 installation/adoption path |"
         ),
         "tier-2": ("| Traffic | Draft: public edge and ordinary outbound cache in DMZ; separate client subnet | Edge/cache roots and deployment recipes |\n"
                    "| Hosting | Draft: independent workload cluster; development, testing and lab pools when needed | Kubernetes root and tier-local inventory |\n"

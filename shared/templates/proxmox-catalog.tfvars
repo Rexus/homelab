@@ -21,6 +21,8 @@ default_linux_vm_template_id = null
 # Linux consumers use this boot profile at creation; existing/imported boot hardware is preserved.
 # Earlier entries remain until deliberately retired; template creation stays Tier 0-owned.
 proxmox_template_catalog = {
+  # Stage 2's OpenXPKI issuer requires a clone-tested Debian 12 amd64 template.
+  # Keep the normal Linux default above for EL10 services; ca-1 selects this per VM.
   # "9103" = {
   #   title     = "debian-template-build-1"
   #   node_name = "pve01"

@@ -23,3 +23,8 @@
     name: yubihsm-connector.service
     daemon_reload: true
     state: restarted
+
+- name: Restart PCSC after native CCID registration
+  ansible.builtin.systemd_service:
+    name: pcscd.service
+    state: restarted

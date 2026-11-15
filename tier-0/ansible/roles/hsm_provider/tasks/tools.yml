@@ -1,0 +1,177 @@
+---
+- name: Install approved middleware and the native read-only inspection tool
+  ansible.builtin.package:
+    name: "{{ (hsm_provider_packages + ['opensc']) | unique | list }}"
+    state: present
+
+- name: Install local OpenSC smart-card transport
+  ansible.builtin.package:
+    name: "{{ ['pcscd', 'libccid'] if ansible_os_family == 'Debian' else ['pcsc-lite', 'pcsc-lite-ccid'] }}"
+    state: present
+  when: hsm_provider_driver == 'opensc'
+
+- name: Prepare the native XML dependency for PicoHSM CCID registration
+  ansible.builtin.package:
+    name: python3-lxml
+    state: present
+  when: hsm_provider == 'picohsm'
+
+# Stock older CCID packages lack the official PicoHSM USB ID 2e8a:10fd.
+# Only its aligned reader-table row is added. Authorization belongs to pcsc.yml.
+- name: Register the official PicoHSM reader when the installed CCID table lacks it
+  when: hsm_provider == 'picohsm'
+  block:
+    - name: Validate an optional explicit installed CCID plist path
+      ansible.builtin.assert:
+        that:
+          - hsm_provider_ccid_plist | default('') == '' or hsm_provider_ccid_plist is match('^/[A-Za-z0-9_./+-]+$')
+          - "'..' not in (hsm_provider_ccid_plist | default('')).split('/')"
+
+    - name: Locate the installed native CCID reader table
+      ansible.builtin.stat:
+        path: "{{ item }}"
+        follow: false
+        checksum_algorithm: sha256
+      loop: >-
+        {{ [hsm_provider_ccid_plist] if hsm_provider_ccid_plist | default('') | length > 0 else
+        ['/usr/lib/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist',
+         '/usr/lib64/pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist'] }}
+      register: hsm_ccid_candidates
+
+    - name: Require one unambiguous installed CCID reader table
+      ansible.builtin.assert:
+        that:
+          - hsm_ccid_candidates.results | selectattr('stat.isreg', 'defined') | selectattr('stat.isreg') | list | length == 1
+        fail_msg: Install the accepted CCID package or set hsm_provider_ccid_plist to its exact regular Info.plist file.
+
+    - name: Retain the original reader table identity and file attributes
+      ansible.builtin.set_fact:
+        hsm_ccid_original: "{{ hsm_ccid_candidates.results | selectattr('stat.isreg', 'defined') | selectattr('stat.isreg') | first }}"
+
+    - name: Require the three native reader-table arrays exactly once
+      community.general.xml:
+        path: "{{ hsm_ccid_original.item }}"
+        xpath: >-
+          /plist/dict[count(key[.='{{ item }}']) = 1]/key[.='{{ item }}']
+          /following-sibling::*[1][self::array][not(*[not(self::string)])]
+        count: true
+      loop: [ifdVendorID, ifdProductID, ifdFriendlyName]
+      register: hsm_ccid_arrays
+
+    - name: Reject a malformed native reader table before staging any change
+      ansible.builtin.assert:
+        quiet: true
+        that: item.count == 1
+        fail_msg: The installed CCID plist must contain one array of strings for each parallel reader-table key.
+      loop: "{{ hsm_ccid_arrays.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+
+    - name: Read native reader-table strings while accepting empty aligned arrays
+      community.general.xml:
+        path: "{{ hsm_ccid_original.item }}"
+        xpath: >-
+          /plist/dict/key[.='{{ item }}']/following-sibling::*[1][self::array]/string |
+          /plist/dict/key[.='{{ item }}']/following-sibling::*[1][self::array][not(string)]
+        content: text
+      loop: [ifdVendorID, ifdProductID, ifdFriendlyName]
+      register: hsm_ccid_contents
+      no_log: true
+
+    - name: Retain the original parallel reader mappings
+      ansible.builtin.set_fact:
+        hsm_ccid_vendors: "{{ hsm_ccid_contents.results[0].matches | default([]) | selectattr('string', 'defined') | map(attribute='string') | list }}"
+        hsm_ccid_products: "{{ hsm_ccid_contents.results[1].matches | default([]) | selectattr('string', 'defined') | map(attribute='string') | list }}"
+        hsm_ccid_names: "{{ hsm_ccid_contents.results[2].matches | default([]) | selectattr('string', 'defined') | map(attribute='string') | list }}"
+      no_log: true
+
+    - name: Require aligned reader mappings before checking the official USB pair
+      ansible.builtin.assert:
+        that:
+          - hsm_ccid_vendors | length == hsm_ccid_products | length
+          - hsm_ccid_vendors | length == hsm_ccid_names | length
+        fail_msg: CCID vendor, product and friendly-name arrays are misaligned. Preserve the original file and repair its package.
+
+    - name: Detect the official pair at the same reader-table index
+      ansible.builtin.set_fact:
+        hsm_ccid_registration_needed: >-
+          {{ hsm_ccid_vendors | map('trim') | map('lower') | zip(hsm_ccid_products | map('trim') | map('lower'))
+          | map('list') | select('equalto', ['0x2e8a', '0x10fd']) | list | length == 0 }}
+
+    - name: Stage and validate one native reader registration before atomic publication
+      when: hsm_ccid_registration_needed | bool
+      block:
+        - name: Allocate a private temporary reader table on the managed host
+          ansible.builtin.tempfile:
+            state: file
+            prefix: ansible-picohsm-
+            suffix: .plist
+          register: hsm_ccid_temporary
+
+        - name: Copy the complete installed plist for native scoped editing
+          ansible.builtin.copy:
+            remote_src: true
+            src: "{{ hsm_ccid_original.item }}"
+            dest: "{{ hsm_ccid_temporary.path }}"
+            mode: '0600'
+
+        - name: Append only the official vendor product and friendly name
+          community.general.xml:
+            path: "{{ hsm_ccid_temporary.path }}"
+            xpath: "/plist/dict/key[.='{{ item.key }}']/following-sibling::*[1][self::array]"
+            add_children:
+              - string: "{{ item.value }}"
+          loop:
+            - {key: ifdVendorID, value: '0x2e8a'}
+            - {key: ifdProductID, value: '0x10fd'}
+            - {key: ifdFriendlyName, value: PicoHSM}
+
+        - name: Read back every staged reader-table row before publication
+          community.general.xml:
+            path: "{{ hsm_ccid_temporary.path }}"
+            xpath: "/plist/dict/key[.='{{ item }}']/following-sibling::*[1][self::array]/string"
+            content: text
+          loop: [ifdVendorID, ifdProductID, ifdFriendlyName]
+          register: hsm_ccid_staged
+          no_log: true
+
+        - name: Require preservation of every original row and one aligned official row
+          ansible.builtin.assert:
+            that:
+              - hsm_ccid_staged.results[0].matches | map(attribute='string') | list == hsm_ccid_vendors + ['0x2e8a']
+              - hsm_ccid_staged.results[1].matches | map(attribute='string') | list == hsm_ccid_products + ['0x10fd']
+              - hsm_ccid_staged.results[2].matches | map(attribute='string') | list == hsm_ccid_names + ['PicoHSM']
+          no_log: true
+
+        - name: Reobserve the installed table before replacing it
+          ansible.builtin.stat:
+            path: "{{ hsm_ccid_original.item }}"
+            checksum_algorithm: sha256
+          register: hsm_ccid_before_publication
+
+        - name: Reject concurrent changes to the installed native reader table
+          ansible.builtin.assert:
+            that: hsm_ccid_before_publication.stat.checksum == hsm_ccid_original.stat.checksum
+
+        - name: Publish the fully validated reader table atomically with its original attributes
+          ansible.builtin.copy:
+            remote_src: true
+            src: "{{ hsm_ccid_temporary.path }}"
+            dest: "{{ hsm_ccid_original.item }}"
+            owner: "{{ hsm_ccid_original.stat.uid }}"
+            group: "{{ hsm_ccid_original.stat.gid }}"
+            mode: "{{ hsm_ccid_original.stat.mode }}"
+          notify: Restart PCSC after native CCID registration
+      always:
+        - name: Remove only this operation's temporary reader table
+          ansible.builtin.file:
+            path: "{{ hsm_ccid_temporary.path }}"
+            state: absent
+          when: hsm_ccid_temporary.path is defined
+
+- name: Enable local OpenSC socket activation
+  ansible.builtin.systemd_service:
+    name: pcscd.socket
+    enabled: true
+    state: started
+  when: hsm_provider_driver == 'opensc'

@@ -31,8 +31,6 @@ delivery_promotion_commit_email: delivery-bot@example.test
 delivery_promotion_owner_email: platform@example.test
 delivery_promotion_reader_role: tier1-delivery-readers
 # Match the native Spinnaker reader group; the authority's Gate identity receives READ only.
-delivery_promotion_reader_role: tier1-delivery-readers
-# Match the native Spinnaker reader group; the authority's Gate identity receives READ only.
 delivery_promotion_timeout_seconds: 900
 # Default pipeline IDs use Ansible to_uuid over application, target namespace/name and mode.
 # Keep those identities stable. Explicit delivery_promotion_pipeline_ids overrides support adoption.

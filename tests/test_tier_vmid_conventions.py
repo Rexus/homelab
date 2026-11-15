@@ -109,7 +109,7 @@ class VmidConventions(TierRepositoryTestCase):
         # Optional examples reserve space too; new starters must not consume boot-1's 601.
         allocations = {
             "kubernetes": ({"k8ctl-1": 101, "k8ctl-2": 102, "k8ctl-3": 103}, set()),
-            "foundation": ({"idm-1": 301, "idm-2": 302, "ca-1": 311}, {511}),
+            "foundation": ({"ca-1": 311}, {301, 302, 511}),
             "vault": ({"vault-1": 321}, set()),
             "hsm": ({"hsm-1": 331, "hsm-2": 332}, {333, 621}),
             "cluster-endpoint": ({"api-gw-1": 401, "api-gw-2": 402}, set()),

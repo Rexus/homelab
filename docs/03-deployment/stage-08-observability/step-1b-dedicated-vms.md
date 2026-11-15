@@ -20,23 +20,23 @@ TLS, authentication, scoped search policy, frontend integration and Tier 1 Netda
 flowchart TB
   subgraph T1["Tier 1"]
     subgraph ObservabilityNetwork["Observability Network / observability"]
-      subgraph PVE["Proxmox Cluster"]
+      subgraph PVE["Guest Placement"]
         direction LR
-        subgraph A["pve01"]
+        subgraph A["Guests on pve01"]
           direction TB
           O1["otel-1<br/>Netdata parent"]
           M1["metric-1<br/>Netdata child"]
           S1["search-1<br/>Netdata child"]
           O1 ~~~ M1 ~~~ S1
         end
-        subgraph B["pve02"]
+        subgraph B["Guests on pve02"]
           direction TB
           O2["otel-2<br/>Netdata parent"]
           M2["metric-2<br/>Netdata child"]
           S2["search-2<br/>Netdata child"]
           O2 ~~~ M2 ~~~ S2
         end
-        subgraph C["pve03"]
+        subgraph C["Guests on pve03"]
           S3["search-3<br/>Netdata child"]
         end
         A ~~~ B ~~~ C
@@ -47,7 +47,8 @@ flowchart TB
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
   class O1,O2,M1,M2,S1,S2,S3 services
-  class PVE,A,B,C boundary
+  classDef group fill:#f5f6f7,stroke:#89939e,color:#273340,stroke-dasharray:2 3
+  class PVE,A,B,C group
   classDef tier1 fill:#e0e0e0,stroke:#8c8c8c,color:#363636
   class T1 tier1
   classDef zoneServices fill:#e1eaf6,stroke:#4d719b,color:#203a5b
@@ -56,7 +57,8 @@ flowchart TB
 ```
 
 **IaC:** *Figure: Seven guests spread gateways, metric stores and search members across the configured Proxmox hosts.
-Netdata parents and children share these guests; this is initial placement, not live availability evidence.*
+Netdata parents and children share these guests. The dotted groups show initial VM placement on
+Tier 0-operated hosts; ongoing anti-affinity requires separate configuration and acceptance.*
 Tier 1's [VM inputs](../../../tier-1/terraform/deployments/observability/terraform.tfvars.example),
 [inventory](../../../tier-1/ansible/inventory/hosts.yml.example) and
 [service inputs](../../../tier-1/ansible/group_vars/observability.yml.example) own these guests.

@@ -121,9 +121,10 @@ Run from [Tier 1](../${repo_prefix}-tier-1/README.md); its Flux installation and
 
 - [ ] Platform cluster and add-ons deployed — [Step 1](docs/auto-docs/03-deployment/stage-07-delivery/README.md#step-1-create-or-accept-the-tier-1-runtime).
 - [ ] Independent Tier 1 Flux, scoped sources and retained recovery configuration accepted — [Flux platform](docs/auto-docs/03-deployment/stage-07-delivery/procedures/flux-platform.md).
-- [ ] Release orchestration path installed; select one:
-  - [ ] Argo CD — [Argo CD path](docs/auto-docs/03-deployment/stage-07-delivery/step-2a-argocd.md).
-  - [ ] Spinnaker with Flux application promotion — [Spinnaker path](docs/auto-docs/03-deployment/stage-07-delivery/step-2b-spinnaker.md).
+- [ ] Selected release orchestration installed and accepted — [Stage 7, Step 2](docs/auto-docs/03-deployment/stage-07-delivery/README.md#step-2-select-and-qualify-delivery).
+  - [ ] **Path 2b:** Spinnaker with Flux application promotion — [Spinnaker path](docs/auto-docs/03-deployment/stage-07-delivery/step-2b-spinnaker.md).
+  - [ ] **Alternative 2a:** Argo CD — [Argo CD path](docs/auto-docs/03-deployment/stage-07-delivery/step-2a-argocd.md).
+  - [ ] **Alternative:** direct Spinnaker with its separately approved scope — [Native installation](docs/auto-docs/03-deployment/stage-07-delivery/procedures/delivery-installer.md).
 - [ ] Approved artifact source accepted; select one:
   - [ ] **Path 8a:** Harbor deployed — [Registry](docs/auto-docs/03-deployment/stage-07-delivery/procedures/registry.md#install-harbor).
   - [ ] **Alternative 8b:** existing registry accepted — [Registry choices](docs/auto-docs/03-deployment/stage-07-delivery/procedures/registry.md#select-the-procedure).

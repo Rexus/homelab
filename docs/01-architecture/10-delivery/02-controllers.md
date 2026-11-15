@@ -76,7 +76,7 @@ These are responsibilities, not a requirement for five services. A product may i
 roles if their permissions and guarantees remain enforceable. The selected design uses accepted
 state as the handoff: the release workflow publishes intent, and the reconciler owns runtime writes.
 The [release sequence](README.md#application-delivery) shows that handoff;
-[approval controls](approval-controls.md) define which changes may cross it.
+[approval controls](04-approval-controls.md) define which changes may cross it.
 
 ## Dependency ordering
 

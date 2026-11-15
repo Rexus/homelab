@@ -138,9 +138,14 @@ kubectl get nodes -L node-pool
    kubectl get pods -A -o wide
    ```
 
-5. Require the new worker to become Ready with its expected pool label. Test placement
-   and persistence before admitting normal work. If it fails, keep it out of scheduling
-   and diagnose; do not remove other nodes or regenerate cluster secrets.
+5. Require the new worker to become Ready with its expected pool label. Add it to the owning tier's
+   `cluster_security_logging_nodes` with a unique stream, client certificate and TLS Secret. Extend
+   the existing receiver catalogue and complete [collector enrollment and installation](../../03-deployment/stage-04-kubernetes/procedures/security-logging.md#enroll-node-streams)
+   through its accepted Ansible or Tier 1 Flux owner. Verify real node/pod events at protected intake.
+6. Retain the inventory-derived `cluster_platform_expected_nodes` expression. If the accepted local
+   input uses a literal list, extend that list and reconcile the platform through its existing owner.
+   Test placement, CSI registration and persistence on the new worker before admitting normal work.
+   If it fails, keep it out of scheduling and diagnose through the original cluster owner.
 
 Tier 1 may use infrastructure, stateful and compute pools; Tier 2 may use development,
 testing and lab pools. Names describe scheduling intent, not a permission boundary.

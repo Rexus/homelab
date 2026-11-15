@@ -191,6 +191,9 @@ for the accepted proxy or existing mirror, then return here. Qualify required bo
 In **the same patch list**, append the [Cilium/KubePrism patch](basic-platform.md#prepare-talos)
 for the actual Talos schema. Preserve image-access and other existing patches.
 
+If selecting Ceph RBD CSI, append its [native RBD preparation](basic-platform.md#ceph-rbd-node-preparation-when-selected)
+to this same list before bootstrap. An existing CSI selection uses its accepted node requirements.
+
 ### 6. Render and add the security-logging patches
 
 From **the selected tier root**, complete [cluster logging Steps 1–3](security-logging.md#configure-and-render).
@@ -269,6 +272,10 @@ platform in order. Do not also run the cross-tier continuation below.
 
 **Other cluster owners:** use the following sequence only when the owning stage calls this reusable procedure.
 
+For **Tier 1 Flux ownership**, complete [platform bootstrap/handover actions 7–9](../../stage-07-delivery/procedures/platform-cluster.md#7-select-the-basic-platform),
+including protected collector publication, then continue at [Step 5](#verify-and-hand-over).
+For Ansible-owned add-ons, follow actions 10–13 below.
+
 ### 10. Select the exported client files
 
 Run from the selected cluster owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/`** or **`<prefix>-tier-2/`**.
@@ -298,8 +305,8 @@ install collectors and verify real events at protected Tier 0 intake. Return her
 
 Qualify the [live CSI/storage prerequisite](basic-platform.md#persistence), then complete
 [basic platform action 9](basic-platform.md#8a-prepare-flux-and-managed-bootstrap-secrets--main-path).
-Tier 0 prepares Flux/SOPS; Tier 1/2 use their own components and Secret owners, without Tier 0 Flux.
-Render/review/apply that selection once, then continue below.
+Tier 0 prepares Flux/SOPS. Tier 1 uses its [independent Flux bootstrap/handover](../../stage-07-delivery/procedures/platform-cluster.md#7-select-the-basic-platform).
+Tier 2 uses its own components and Secret owner. Complete the selected installation once, then continue below.
 
 <a id="verify-and-hand-over"></a>
 
@@ -326,10 +333,10 @@ CNI, and [failover checks](../../foundation/proxmox/step-1b-cluster-ha.md#prove-
 depend on this cluster. Terraform completion alone does not prove readiness.
 
 Continue with the [cluster-foundation checklist](kubernetes.md#cluster-foundation).
-Tier 0 uses Flux against `clusters/tier0/`. Tier 1 selects Argo CD or Spinnaker
-separately; Tier 2 consumes scoped application delivery or a local controller.
-The supplied manifest directories remain placeholders; Tier 0's Ansible platform
-installer is their separate installation path.
+Tier 0 uses Flux against `clusters/tier0/`. Tier 1 uses its independent Flux platform source with
+Spinnaker application promotion, or an explicitly selected alternative. Tier 2 consumes scoped
+application delivery or a local controller. Tier 1's native renderers export selected deployable
+payloads. Review and publish those payloads before enabling reconciliation.
 FreeIPA remains on the two dedicated Tier 0 Linux VMs; Keycloak is a later Tier 0 service.
 
 ## State and lifecycle

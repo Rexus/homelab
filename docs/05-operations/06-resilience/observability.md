@@ -51,9 +51,10 @@ In **`<prefix>-tier-1/`**, edit the inputs for the selected runtime:
 | Dedicated VMs | Protected file selected by `observability_vm_private_vars_file` | Credentials, SSO secrets and separate Netdata child/peer stream keys |
 | Dedicated VMs | [VM defaults](../../../tier-1/ansible/roles/observability_vm/defaults/main.yml) | Available settings, resource ceilings and history budgets |
 
-The [native Ansible installer](../../../tier-1/ansible/playbooks/deployment/observability-platform.yml)
-renders and applies the selected stack. The cluster directory is a separate integration
-starter. The [dedicated-VM installer](../../../tier-1/ansible/playbooks/deployment/telemetry-hosts.yml)
+The [native Ansible entry point](../../../tier-1/ansible/playbooks/deployment/observability-platform.yml)
+renders the selected stack and exports the Flux-owned payload into the approved platform checkout.
+The retained Ansible owner also supports direct apply.
+The [dedicated-VM installer](../../../tier-1/ansible/playbooks/deployment/telemetry-hosts.yml)
 owns the alternative Podman/systemd products and their guarded persistent disks.
 It also installs two Netdata parents on `otel-1/2` and children on the five metrics/search guests.
 
@@ -137,7 +138,7 @@ collection remain separately owned; the VM installer receives no Tier 0 collecto
 
 ## How is accepted configuration reapplied?
 
-For the **Kubernetes runtime**, use its render/review/apply workflow:
+For the **Kubernetes runtime**, retain its accepted `observability_owner` and private inputs.
 
 1. Review the existing context, source allowlists, access policy and recovery copies using
    the [configuration procedure](../../03-deployment/stage-08-observability/procedures/observability-platform.md).
@@ -152,7 +153,10 @@ For the **Kubernetes runtime**, use its render/review/apply workflow:
      -e observability_action=render
    ```
 
-3. Review the output, then apply from **`<prefix>-tier-1/`**:
+3. For **Flux ownership**, review the encrypted export and
+   [approve/reconcile the exact platform revision](../../03-deployment/stage-07-delivery/procedures/flux-platform.md#approve-a-platform-revision).
+   Require the selected component's native health gates before continuing.
+4. For the retained **Ansible owner** only, review the output, then apply from **`<prefix>-tier-1/`**:
 
    ```bash
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
@@ -162,7 +166,7 @@ For the **Kubernetes runtime**, use its render/review/apply workflow:
      -e observability_action=apply
    ```
 
-   Repeat Stage 8's readiness, source-to-query and scoped-access checks before recording completion.
+5. Repeat Stage 8's readiness, source-to-query and scoped-access checks before recording completion.
 
 ## Which maintenance or recovery task applies?
 

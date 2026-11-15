@@ -35,5 +35,9 @@ openxpki_root_fingerprint: ""
 openxpki_public_root_files: {}  # optional root.cer/root.crl -> absolute controller source paths
 openxpki_required_state_paths:
   - /srv/openxpki/identity/issuer.pem
-  - /srv/openxpki/keys/REPLACE_WITH_REQUIRED_SIGNER_OR_PROVIDER_STATE
-  - /srv/openxpki/keys/REPLACE_WITH_DATAVAULT_RECOVERY_STATE
+  - /srv/openxpki/keys/issuer.pem
+  - "{{ openxpki_release_dir }}/config.d/system/crypto.yaml"
+# PKCS#11 custody: replace the software-key path above with
+# "{{ openxpki_release_dir }}/config.d/realm/{{ openxpki_realm }}/crypto.yaml".
+# The original hardware key stays on its token; issuer certificate and immutable
+# signer/DataVault configuration remain in the independently backed-up data volume.

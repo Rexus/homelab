@@ -35,6 +35,7 @@ files are not automatically discovered by every inventory/playbook combination.
 | `openxpki_activate_runtime` | Explicit permission to enable the signing services after signer/custody preparation; token import follows |
 | `openxpki_issuer_fingerprint` | Independently recorded colon-separated SHA-256 fingerprint of the public issuer certificate |
 | `openxpki_required_state_paths` | Existing files/directories beneath the data mount required by the signer and DataVault |
+| `openxpki_restore_source_directory` | Optional protected controller directory containing the verified decrypted recovery set; empty retains an already staged guest set |
 
 | Controller environment variable | Purpose |
 | --- | --- |
@@ -46,6 +47,11 @@ files are not automatically discovered by every inventory/playbook combination.
 
 Secret-only encrypted overrides are supported during Ansible-only execution.
 Do not put these secrets, configuration archives, private keys or CA state in Git.
+
+The [application recovery guide](../05-operations/03-cryptography/issuer-recovery.md) covers software
+and original-provider PKCS#11 backups. New manifests record the backend and exact hardware key URI;
+legacy software manifests remain accepted. Device-key recovery stays separate. A different hardware
+serial/PIN requires a qualified configuration migration, not ordinary restore or reconciliation.
 
 ## Storage
 
@@ -85,13 +91,24 @@ necessary; copying a live data directory is not a qualified CA backup.
 
 ## Production configuration bundle
 
-The [software PKI builder](../03-deployment/stage-02-trust/procedures/software-pki.md)
-supplies a pinned native policy starting point. Its input example defines
+The [Stage 2 policy builder](../03-deployment/stage-02-trust/README.md#step-4-prepare-the-private-policy)
+supplies a pinned native policy starting point for a software signer or an explicitly selected
+original PKCS#11 key. Its input example defines
 suffixes, independent password-hash identities and publication URLs. Review and
 qualify the resulting artifact with the selected package/schema combination.
 Set `openxpki_managed_cli: true` for this bundle's private administrative key
 and CRL timer; keep it false for externally supplied bundles with their own
 qualified CLI/scheduling arrangements.
+
+| Builder signer input | Contract |
+| --- | --- |
+| `openxpki_bundle_signer_backend` | `software` by default; select `pkcs11` for the original hardware key |
+| `openxpki_bundle_pkcs11_key_uri` | Credential-free URI with exact token `serial`, original key `id` and `type=private` |
+| `openxpki_bundle_pkcs11_library`, `openxpki_bundle_pkcs11_engine_library` | Absolute module/engine paths on the Debian issuer, not the controller |
+| `HSM_ISSUER_PIN` | Changed runtime PIN for the PKCS#11 profile; the private artifact contains it and requires secret custody |
+
+The DataVault master secret remains independent in both profiles. Building an artifact neither creates
+nor imports a hardware key, activates the issuer or replaces an existing immutable deployment binding.
 
 Use a reviewed production configuration derived from the matched upstream
 [configuration repository][1], not its unmodified demonstration realm. The archive

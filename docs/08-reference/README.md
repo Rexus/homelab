@@ -8,6 +8,7 @@ Naming and allocation guides are grouped under [Conventions](../02-conventions/R
 
 | Contract | Reference |
 | --- | --- |
+| Supplied workflows, external commissioning and live acceptance boundaries | [Implementation support](implementation-support.md) |
 | CLI flags, defaults and manual equivalents | [Repository scripts](repository-scripts.md) |
 | Deployment-host tools, Ansible runtimes and prechecks | [Control-node tooling](control-node-tooling.md) |
 | Delivery roles mapped to selected Flux, Spinnaker and recovery components | [Tier 1 delivery implementation](tier-1-delivery.md) |

@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 import yaml
 
 from test_tier_diagrams import (BACKUP_SVG, INTAKE_SVG, K8S_PLATFORM_SVG, LAB_SVG, PKCS11_SVG, PLATFORM_SVG, RUNNER_SVG,
-                                RUNTIME_SVG, SECRETS_SVG, SIGNAL_SVG, SUPPLY_SVG, TELEMETRY_SVG,
+                                RUNTIME_SVG, SECRETS_SVG, SIGNAL_SVG, SUPPLY_SVG, TELEMETRY_SVG, TRUST_SVG, USB_SVG,
                                 diagrams, figure_sources)
 from tier_repo_test_support import UPSTREAM
 
@@ -17,6 +17,45 @@ DOCS = UPSTREAM / "docs"
 
 
 class DiagramDependencies(unittest.TestCase):
+    def test_usb_api_policy_and_direct_provider_access_have_distinct_paths(self):
+        namespace = {'svg': 'http://www.w3.org/2000/svg'}
+        svg = ET.parse(USB_SVG).getroot()
+        nodes = {node.get('id'): node for node in svg.iter() if node.get('id')}
+        parents = {child: parent for parent in svg.iter() for child in parent}
+        self.assertIs(parents[nodes['Clients']], svg)
+        for child, parent in (('Interface', 'API'), ('Policy', 'API'), ('State', 'API'),
+                              ('ProviderA', 'Pool'), ('ProviderB', 'Pool'), ('Custody', 'T0')):
+            self.assertIs(parents[nodes[child]], nodes[parent])
+        edges = {(edge.get('data-from'), edge.get('data-to'))
+                 for edge in svg.findall('.//svg:path[@data-from]', namespace)}
+        self.assertEqual(edges, {('Clients', 'Interface'), ('Clients', 'ProviderA'),
+                                 ('Interface', 'Policy'), ('Policy', 'State'), ('Policy', 'ProviderA')})
+        online = nodes['Online'].find('svg:rect', namespace)
+        custody = nodes['Custody'].find('svg:rect', namespace)
+        self.assertGreater(float(custody.get('y')), float(online.get('y')) + float(online.get('height')))
+
+    def test_stage2_issuer_selection_keeps_root_custody_outside_connected_runtime(self):
+        namespace = {'svg': 'http://www.w3.org/2000/svg'}
+        svg = ET.parse(TRUST_SVG).getroot()
+        nodes = {node.get('id'): node for node in svg.iter() if node.get('id')}
+        parents = {child: parent for parent in svg.iter() for child in parent}
+        inputs = (UPSTREAM / 'tier-0/terraform/deployments/foundation/terraform.tfvars.example').read_text()
+        guests = re.findall(r'^  "([^"]+)" = \{', inputs, re.M)
+        self.assertEqual(guests, ['ca-1'])
+        self.assertEqual(''.join(nodes['Issuer'].find('svg:text', namespace).itertext()), 'ca-1 / issuer VM')
+        self.assertNotRegex(''.join(svg.itertext()), r'\bidm-\d+\b')
+        for child, parent in (('Issuer', 'Crypto'), ('Engine', 'Issuer'), ('State', 'Issuer'),
+                              ('Root', 'Offline'), ('Recovery', 'Offline'), ('Offline', 'T0')):
+            self.assertIs(parents[nodes[child]], nodes[parent])
+        online = nodes['Online'].find('svg:rect', namespace)
+        offline = nodes['Offline'].find('svg:rect', namespace)
+        self.assertGreater(float(offline.get('y')), float(online.get('y')) + float(online.get('height')))
+        transfer = svg.find(".//svg:path[@data-from='Root'][@data-to='Issuer']", namespace)
+        self.assertIn('transfer', transfer.get('class').split())
+        self.assertEqual(svg.get('viewBox'), '0 0 960 720')
+        self.assertEqual(nodes['Portal'].get('class'), 'traffic')
+        self.assertEqual(nodes['Offline'].get('class'), 'custody')
+
     def test_access_and_publication_links_identify_the_actual_caller_and_listener(self):
         cases = (
             ('05-networking/README.md', {('Internet', 'Gateways'), ('Gateways', 'Services'),
@@ -213,9 +252,22 @@ class DiagramDependencies(unittest.TestCase):
         svg = ET.parse(PKCS11_SVG).getroot()
         nodes = {node.get('id'): node for node in svg.iter() if node.get('id')}
         parents = {child: parent for parent in svg.iter() for child in parent}
+        self.assertIs(parents[nodes['Client']], svg)
+        client = nodes['Client'].find('svg:rect', namespace)
+        owner = nodes['T0'].find('svg:rect', namespace)
+        self.assertLess(float(client.get('x')) + float(client.get('width')), float(owner.get('x')))
         for number in (1, 2):
-            self.assertIs(parents[nodes[f'H{number}']], nodes[f'Host{number}'])
+            self.assertIs(parents[nodes[f'H{number}']], nodes['Pool'])
             self.assertIs(parents[nodes[f'Token{number}']], nodes[f'Host{number}'])
+            self.assertIs(parents[nodes[f'Host{number}']], nodes['T0'])
+            network = nodes['Network'].find('svg:rect', namespace)
+            host = nodes[f'Host{number}'].find('svg:rect', namespace)
+            self.assertGreater(float(host.get('x')), float(network.get('x')) + float(network.get('width')))
+            inputs = (UPSTREAM / 'tier-0/terraform/deployments/hsm/terraform.tfvars.example').read_text()
+            member = re.search(rf'"hsm-{number}" = \{{(.*?)^  \}}', inputs, re.M | re.S)[1]
+            self.assertIn(f'proxmox_node_name = "pve0{number}"', member)
+            self.assertIn(f'mapping = "hsm-{number}-token"', member)
+            self.assertRegex(member, r'network_zone_key\s*=\s*"cryptography"')
         edges = {(edge.get('data-from'), edge.get('data-to')) for edge in svg.findall('.//svg:path[@data-from]', namespace)}
         self.assertEqual(edges, {('Client', 'H1'), ('Client', 'H2'), ('H1', 'Token1'), ('H2', 'Token2')})
         recovery = nodes['Recovery'].find('svg:rect', namespace)
@@ -274,9 +326,9 @@ class DiagramDependencies(unittest.TestCase):
 
     def test_long_workflows_wrap_rows_without_changing_chronology(self):
         cases = [
-            ("README.md", ("Base", "Intake", "Logs", "Identity", "Runtime", "Trust", "Control",
+            ("README.md", ("Base", "Intake", "Trust", "Identity", "Runtime", "Logs", "Control",
                            "Delivery", "Visibility", "Workloads", "Development"),
-             ("Base", "Intake", "Logs", "Trust", "Runtime", "Identity", "Control", "Delivery", "Visibility", "Development", "Workloads")),
+             ("Base", "Intake", "Trust", "Logs", "Runtime", "Identity", "Control", "Delivery", "Visibility", "Development", "Workloads")),
             ("stage-10-lab-environments/README.md", ("User", "Request", "Gate", "CI"),
              ("User", "Request", "CI", "Gate")),
         ]

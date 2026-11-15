@@ -36,11 +36,17 @@ class ArchitectureOrder(TierRepositoryTestCase):
     def test_proxy_sequence_distinguishes_cached_http_and_https_tunnels(self):
         page = UPSTREAM / "docs/01-architecture/07-software-intake/README.md"
         text = page.read_text(encoding="utf-8")
-        self.assertIn("sequenceDiagram", text)
-        self.assertIn("Fresh cache hit", text)
-        self.assertIn("cacheable HTTP", text)
-        self.assertIn("HTTPS CONNECT", text)
-        self.assertRegex(text, r"(?i)encrypted payload is not cached")
+        exchanges = re.findall(r"```mermaid\s*\n(sequenceDiagram.*?)\n```", text, re.S)
+        self.assertEqual(len(exchanges), 2)
+        tunnel, cache = exchanges
+        self.assertIn("CONNECT source:443", tunnel)
+        self.assertIn("No payload caching or scanning", tunnel)
+        self.assertNotIn("Return cached response", tunnel)
+        self.assertIn("Fresh cache hit", cache)
+        self.assertIn("Return cached response", cache)
+        for exchange in exchanges:
+            self.assertIn("Check client, destination and port", exchange)
+            self.assertIn("Verify trusted metadata / signatures", exchange)
 
     def test_figures_have_explanatory_captions_in_source_and_generated_manual(self):
         self.generate()
@@ -50,10 +56,12 @@ class ArchitectureOrder(TierRepositoryTestCase):
             for root in (source, generated):
                 current = root / page.relative_to(source)
                 text = current.read_text(encoding="utf-8")
-                figures = re.findall(r"```mermaid\s*\n.*?\n```\s*\n([^\n]+)", text, re.S)
+                figures = list(re.finditer(
+                    r"```mermaid\s*\n.*?\n```|!\[[^]]*\]\([^)]+\.(?:svg|png)\)", text, re.S))
                 self.assertTrue(figures, str(current))
-                for caption in figures:
-                    self.assertRegex(caption, r"^\*Figure(?: \d+ -|:) \S", f"{current}: {caption}")
+                for figure in figures:
+                    caption = text[figure.end():].lstrip().splitlines()[0]
+                    self.assertRegex(caption, r"^\*Figure(?: \d+(?: -|:)|:) \S", f"{current}: {caption}")
 
     def test_overview_shows_capability_map_before_navigation_tables(self):
         text = (UPSTREAM / "docs/01-architecture/README.md").read_text(encoding="utf-8")

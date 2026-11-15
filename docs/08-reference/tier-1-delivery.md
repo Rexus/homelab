@@ -8,7 +8,7 @@ separately in the [support map](./implementation-support.md#tier-1-flux-evidence
 
 The [logical controller design](../01-architecture/10-delivery/02-controllers.md) defines the
 responsibilities independently of these products. The
-[logical approval boundary](../01-architecture/10-delivery/approval-controls.md) defines the required
+[logical approval boundary](../01-architecture/10-delivery/04-approval-controls.md) defines the required
 authorization behavior; [Spinnaker approval implementation](spinnaker-approval.md) records how the
 selected composition enforces it.
 

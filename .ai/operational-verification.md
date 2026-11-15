@@ -171,6 +171,14 @@ ACME and public edge HTTPS are separate selections, not hidden bootstrap require
   CA, directory/DNS replication work and loss of either host is tolerated. Two healthy VMs
   or LDAP replication alone do not prove this. This extends trust in Stage 5; it is not
   a prerequisite for accepting the independent Stage 2 issuer.
+- [ ] **TRUST-6: Selected hardware custody.** Commission the actual YubiHSM/PicoHSM under the recorded
+  firmware, middleware and ceremony-host boundary. Native preparation must discover the correct reader
+  without accepting an unknown serial; service access must reject another device/key and unauthorized
+  identities. Restore the original wrapped key with independently retained wrapping material, match its
+  public identity and perform sign/verify. A one-board pre-production round trip does not qualify spare
+  availability or cross-board recovery. Restore CA application state separately and prove the original
+  issuer certificate/key and DataVault identity before allowing one writer to resume. Keep the offline
+  root outside online provider access and record any unperformed physical/failover qualification.
 
 ## 4. Development platform and CI handover
 

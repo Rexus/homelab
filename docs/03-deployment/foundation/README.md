@@ -177,7 +177,9 @@ in the bootstrap workflow: retain them. The registered hosts already exist; this
 If **1c** was selected, finish [SDN attachment inputs](proxmox/step-1c-sdn.md#step-4-authorize-and-connect-iac) now.
 Return here for **Step 4**. After Stage 1 establishes the selected software-supply route, use
 [Proxmox update access](../../05-operations/02-software-intake/host-updates.md) to configure and test host
-updates through it. Host-management tasks use SSH; `deploy.sh foundation` provisions CA/directory VMs.
+updates through it. Host-management tasks use SSH. The `foundation` Terraform root owns the selected
+CA/directory VMs. [Stage 2](../stage-02-trust/README.md#step-7-provision-the-issuer-and-attached-storage)
+uses Terraform-only provisioning followed by issuer-specific recipes; Stage 5 selects the identity recipe.
 
 <a id="step-3-publish-and-test-vm-templates"></a>
 <a id="step-4-publish-and-test-vm-templates"></a>
@@ -186,6 +188,12 @@ updates through it. Host-management tasks use SSH; `deploy.sh foundation` provis
 
 **Run on:** the bootstrap execution host, from generated **Tier 0**. An existing accepted
 privileged Linux workstation can perform the same role. No hosted runner is required.
+
+> **Stage 2 prerequisite:** publish and clone-test a **Debian 12 amd64** template for the supplied
+> OpenXPKI CA (`ca-1`). Keep the `debian-build-1` catalog entry when selecting that deployment.
+> Rocky/Alma remain valid for bootstrap and HSM provider hosts; Ubuntu is not qualified for this
+> CA installer. Follow the [Debian download and preparation](proxmox/templates.md#debian-ca-template)
+> before uploading its disk. The example CA selects template ID `9103`; use the actual published ID.
 
 Before adding a Talos build, select its [version contract](proxmox/templates.md#talos-version-contract).
 The complete reference through Stage 5 uses an approved exact **1.13.x** release; choosing the

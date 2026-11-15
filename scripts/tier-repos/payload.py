@@ -112,6 +112,15 @@ def copy_payload(writer, upstream, name, prefix):
         # The source and generated collections have the same sibling layout.
         content = re.sub(r"(?<=\.\./)shared(?=[/\"'\s]|$)", f"{repo_prefix}-shared", content)
         content = content.replace("check out shared beside", f"check out {repo_prefix}-shared beside")
+        content = re.sub(r"<prefix>-(?=tier-[012]\b|shared\b|architecture\b|iac\b)",
+                         f"{repo_prefix}-", content)
+        # Source comment pointers use the kit root; generated pointers use the owning repository root.
+        content = re.sub(
+            r"(?m)^[ \t]*#[^\n]*",
+            lambda comment: re.sub(r"(?<![\w/.-])docs/(?=[0-9]{2}-)",
+                                   f"../{repo_prefix}-architecture/docs/auto-docs/", comment[0]),
+            content,
+        )
         owned = (relative.parts[0] in OWNED_TREES
                  or relative.as_posix() == "templates/proxmox-catalog.tfvars"
                  or relative.as_posix() == "config/platform.tfvars"

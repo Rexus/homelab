@@ -5,7 +5,7 @@ approved operation and holds the application Git and signing credentials. Fiat, 
 and restricted Flux identities bound that path. The selected controls use self-hosted open-source
 components and GitLab CE. [D-041](../07-decisions/README.md#d-041) defines ownership.
 
-The [logical approval boundary](../01-architecture/10-delivery/approval-controls.md) defines the
+The [logical approval boundary](../01-architecture/10-delivery/04-approval-controls.md) defines the
 required behavior independently of products. This reference describes its selected realization
 within the [Tier 1 delivery implementation](tier-1-delivery.md), including version-specific bypasses,
 license evidence and qualification requirements.

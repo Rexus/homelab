@@ -62,7 +62,7 @@ class CapabilityNavigation(TierRepositoryTestCase):
             design = (area(root, "architecture") / "README.md").read_text(encoding="utf-8")
             operations = (area(root, "operations") / "README.md").read_text(encoding="utf-8")
             support = (root / "08-reference/implementation-support.md").read_text(encoding="utf-8")
-            names = ("Software intake", "Protected logging", "Cryptographic trust", "Kubernetes",
+            names = ("Software intake", "Cryptographic trust", "Protected logging", "Kubernetes",
                      "Identity", "Secrets", "Delivery", "Observability", "Development platform",
                      "Lab environments")
             for number, name in enumerate(names, start=1):

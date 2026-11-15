@@ -2,6 +2,7 @@
 
 import re
 
+from test_tier_deployment_navigation import anchors
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
@@ -166,6 +167,58 @@ class ReaderRoles(TierRepositoryTestCase):
         delivery = (root / "10-delivery/01-artifact-supply.md").read_text()
         for choice in ("GitLab", "Harbor", "Dragonfly"):
             self.assertIn(choice, delivery)
+
+    def test_generated_configuration_comments_link_to_the_sibling_manual(self):
+        self.generate()
+        checked = 0
+        for name in ("tier-0", "tier-1", "tier-2", "shared"):
+            repo = self.root / f"verify-{name}"
+            inputs = [*repo.rglob("*.example"), *repo.glob("config/*.tfvars"),
+                      *repo.glob("templates/*.tfvars")]
+            for path in inputs:
+                comments = "\n".join(re.findall(r"(?m)^[ \t]*#[^\n]*", path.read_text(encoding="utf-8")))
+                self.assertNotRegex(comments, r"(?<![\w/.-])docs/[0-9]{2}-", str(path))
+                self.assertNotRegex(comments, r"<prefix>-(?:tier-[012]|shared|architecture|iac)\b", str(path))
+                for reference in re.findall(r"\.\./verify-architecture/docs/auto-docs/[\w./#-]+", comments):
+                    relative, _, fragment = reference.rstrip(".").partition("#")
+                    target = (repo / relative).resolve()
+                    self.assertTrue(target.is_file(), f"{path}: {reference}")
+                    if fragment:
+                        self.assertIn(fragment, anchors(target.read_text(encoding="utf-8")),
+                                      f"{path}: {reference}")
+                    checked += 1
+            if name != "shared":
+                schema = "terraform/deployments/kubernetes/variables.tf"
+                example = repo / "terraform/deployments/kubernetes/terraform.tfvars.example"
+                self.assertIn(schema, example.read_text(encoding="utf-8"))
+                self.assertTrue((repo / schema).is_file())
+                consumer = repo / "ansible/group_vars/software_consumer.yml.example"
+                schema = "../verify-shared/ansible/roles/baseline/defaults/main.yml"
+                self.assertIn(schema, consumer.read_text(encoding="utf-8"))
+                self.assertTrue((repo / schema).is_file())
+        self.assertGreater(checked, 50)
+
+    def test_generated_delivery_records_follow_the_selected_stage_7_path(self):
+        self.generate()
+        design = (self.root / "verify-tier-1/docs/architecture/README.md").read_text(encoding="utf-8")
+        self.assertIn("independent Tier 1 Flux reconciliation and Spinnaker application Git promotion", design)
+        checklist = (self.root / "verify-architecture/deployments.md").read_text(encoding="utf-8")
+        delivery = checklist.split("## 7. Delivery\n", 1)[1].split("## 8. Observability\n", 1)[0]
+        self.assertIn("**Path 2b:** Spinnaker with Flux application promotion", delivery)
+        self.assertIn("**Alternative 2a:** Argo CD", delivery)
+        self.assertIn("direct Spinnaker", delivery)
+        self.assertIn("stage-07-delivery/README.md#step-2-select-and-qualify-delivery", delivery)
+
+    def test_script_setup_catalog_matches_tier_registrations(self):
+        self.generate()
+        expected = {setup for name in ("tier-0", "tier-1", "tier-2")
+                    for setup in (UPSTREAM / name / ".deployment-setups").read_text(encoding="utf-8").splitlines()}
+        for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
+            reference = (docs / "08-reference/repository-scripts.md").read_text(encoding="utf-8")
+            catalog = reference.split("## Available setups\n", 1)[1].split("## What the deployment wrapper does\n", 1)[0]
+            entries = re.findall(r"(?m)^\| `([^`]+)` \|", catalog)
+            self.assertEqual(set(entries), expected)
+            self.assertEqual(len(entries), len(expected))
 
     def test_generated_records_separate_static_design_from_progress(self):
         self.generate()

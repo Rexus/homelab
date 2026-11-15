@@ -422,7 +422,7 @@ Packer and later-stage tools such as Helm, kubectl and talosctl belong to their 
 
 <a id="2b-transfer-a-prepared-bundle--offline-alternative"></a>
 
-The [offline alternative](step-3e-bootstrap-offline.md) replaces Steps 6?12; it restores the kit,
+The [offline alternative](step-3e-bootstrap-offline.md) replaces Steps 6–12; it restores the kit,
 installs local wheels/collections and generates the collection without public package services.
 
 <a id="step-3-prepare-the-execution-accounts-ssh-key"></a>

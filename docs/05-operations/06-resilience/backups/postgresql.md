@@ -119,7 +119,12 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   -e control_applications_action=apply
 ```
 
-Tier 1:
+For **Tier 1 with Flux ownership**, review the database-only graph and encrypted Secrets, include
+its component in the authored platform root and
+[approve/reconcile the exact revision](../../../03-deployment/stage-07-delivery/procedures/flux-platform.md#approve-a-platform-revision).
+Wait for `grafana-db` readiness, then continue at action 5 below.
+
+For **Tier 1 with the retained Ansible owner**, use direct apply.
 
 Run from **`<prefix>-tier-1/`** on the protected execution host.
 
@@ -217,8 +222,10 @@ read -r -p "Database cluster name (example: keycloak-db): " CLUSTER
 
 1. In the same owning product file, set `*_backup_files_phase: backup` and
    `*_backup_files_accepted: true` after the NAS contract is commissioned.
-2. Render/apply that product workflow. Expect ConfigMap/CronJob `<cluster>-files` and initial
-   Job `<cluster>-files-first-<revision>`; apply waits for its verified success.
+2. Render that product workflow and reconcile through its accepted owner. Tier 1 Flux exports require
+   an approved platform revision. The Ansible owner uses direct apply. Expect ConfigMap/CronJob
+   `<cluster>-files` and initial Job `<cluster>-files-first-<revision>`, with verified Job success
+   before acceptance.
 3. For another run without configuration changes, use a new manually named Job below.
    Identical convergence reuses the original revision's success; it does not take a new backup.
 

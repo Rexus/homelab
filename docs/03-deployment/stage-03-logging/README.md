@@ -130,6 +130,12 @@ Leave `syslog_ng_data_uuid` empty for a new blank disk. The mount becomes persis
 For an optional identity guard, save the printed UUID under `logging_workflow_receiver_options`
 for that receiver; [storage adoption](procedures/receiver.md#2-prepare-the-persistent-mount) covers restored disks.
 
+Select an EL10 receiver template here even when Shared also holds the Debian issuer template.
+For a new approved RPM source, use the supplied `baseline_rpm_repositories` fields in `syslog.yml`
+with its real base URL, key URL and independently verified fingerprint. Baseline installs that repository
+before receiver packages. Admit its actual source/redirect hosts in Stage 1's cache policy before this run;
+a stock EPEL source alone does not establish the required syslog-ng version.
+
 
 <a id="2-integrate-protected-intake-and-storage"></a>
 <a id="step-2-enable-protected-collection"></a>
@@ -155,6 +161,10 @@ Each key must already exist in `ansible/inventory/hosts.yml`. `setup` reuses the
 `platform_host_ips` map in that setup's group-vars file; `{}` keeps the inventory connection.
 Remove hosts that are not ready. No duplicate IP, login or per-host YAML file is needed.
 An explicit `streams` list adds [file/application streams](procedures/sources.md).
+
+The catalog above selects OS journals. Add the actual CA audit files through that source guide after
+checking the installed OpenXPKI `log.conf`; retain both its OS and CA audit streams in the explicit list.
+Selecting `ca-1: {setup: foundation}` alone supplies its journal stream.
 
 **External heartbeat monitoring is optional.** A separate monitoring service supplies a unique HTTPS
 check-in URL for each host and alerts when check-ins stop. Add its `watchdog_url` only when that

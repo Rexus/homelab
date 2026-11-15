@@ -5,7 +5,8 @@
 
 Use a controlled issuer rollover when moving from software custody to hardware.
 The [custody design](../../01-architecture/08-cryptography/03-hsm-selection.md) explains the
-options. The supplied software installer does **not** implement HSM migration.
+options. The normal runtime installer preserves its existing immutable binding; it does **not**
+migrate a live issuer to another provider or signing identity.
 
 **Run from:** Tier 0 for project records/recovery inputs; hardware and root operations
 run only in their authorized provider or offline environments.
@@ -31,6 +32,7 @@ an exact vendor/application migration procedure qualified with disposable keys.
 | --- | --- |
 | New HSM-generated issuer key | Preferred new-key rollover; approve certificate/chain overlap first |
 | Import existing software key | Only when supported/approved; historical software exposure remains |
+| Same wrapped issuer key on a different device | Preserve the issuer certificate/history; qualify the new serial/PIN and a controlled immutable-configuration rebind. The normal restore requires the original provider identity |
 | Root custody change | Separate offline root/trust-anchor ceremony; not an issuer maintenance task |
 | DataVault protection change | Separate encrypted-data migration; an HSM PIN cannot replace its master secret |
 
@@ -74,9 +76,10 @@ not product labels. Hardware adoption alone establishes neither PQC nor regulato
    Verify new certificates use the intended issuer, publish both required chains/CRLs,
    test consumers and retain protected audit evidence before admitting traffic.
 
-There is no universal device CLI sequence or shipped hardware activation playbook.
-Use the exact vendor/product revision qualified above; do not substitute generic
-PKCS#11 object commands, overwrite the active key file or repoint an alias during routine CI.
+The [hardware issuer recipes](../../03-deployment/stage-02-trust/step-1d-single-usb.md#3-bind-the-inactive-issuer-to-its-original-key)
+supply binding, CSR and token activation for a prepared inactive runtime. They are not a live
+configuration/database migration or a universal device CLI sequence. Use the exact vendor/product
+revision qualified above; do not overwrite the active key file or repoint an alias during routine CI.
 
 <a id="retire-and-recover"></a>
 

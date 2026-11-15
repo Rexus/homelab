@@ -1,0 +1,44 @@
+---
+# Callers supply the certificate and custody directory being backed up or restored.
+- name: Verify the original encrypted software signing key
+  when: openxpki_recovery_backend == 'software'
+  block:
+    - name: Require the separately retained software key passphrase
+      ansible.builtin.assert:
+        that: openxpki_signer_password | length >= 32
+      no_log: true
+
+    - name: Read the recovered software key public component
+      community.crypto.openssl_privatekey_info:
+        path: "{{ openxpki_recovery_state_directory }}/keys/issuer.pem"
+        passphrase: "{{ openxpki_signer_password }}"
+      register: openxpki_recovery_key
+      no_log: true
+
+    - name: Require the software key to match the original issuer certificate
+      ansible.builtin.assert:
+        that: openxpki_recovery_key.public_key == openxpki_recovery_certificate.public_key
+      no_log: true
+
+- name: Verify the original hardware signing key through the installed native provider
+  when: openxpki_recovery_backend == 'pkcs11'
+  block:
+    - name: Require the issuer service identity for hardware recovery checks
+      ansible.builtin.assert:
+        that:
+          - hsm_provider_user | default('') == 'openxpki'
+          - hsm_provider_group | default('') == 'openxpki'
+
+    - name: Reuse provider guards and original serial URI and public-key inspection
+      ansible.builtin.include_role:
+        name: hsm_provider
+        tasks_from: "{{ openxpki_provider_check }}"
+      loop: [preflight, issuer-credentials, issuer-identity, inspect, issuer-public-key]
+      loop_control:
+        loop_var: openxpki_provider_check
+
+    - name: Require the selected hardware key to match the original issuer certificate
+      ansible.builtin.assert:
+        that: hsm_issuer_public_key.stdout | trim == openxpki_recovery_certificate.public_key | trim
+        fail_msg: Recover the original hardware key and device identity before restoring application state.
+      no_log: true

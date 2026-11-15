@@ -838,5 +838,6 @@
   "03-deployment/stage-03-trust/step-1d-single-usb.md": "03-deployment/stage-02-trust/step-1d-single-usb.md",
   "03-deployment/stage-03-logging/step-14b-redundant-intake.md": "03-deployment/stage-03-logging/step-6b-redundant-intake.md",
   "03-deployment/stage-03-logging/step-15a-nas-archive.md": "03-deployment/stage-03-logging/step-7a-nas-archive.md",
-  "03-deployment/stage-03-logging/step-15b-retention-lock.md": "03-deployment/stage-03-logging/step-7b-retention-lock.md"
+  "03-deployment/stage-03-logging/step-15b-retention-lock.md": "03-deployment/stage-03-logging/step-7b-retention-lock.md",
+  "01-architecture/10-delivery/approval-controls.md": "01-architecture/10-delivery/04-approval-controls.md"
 }

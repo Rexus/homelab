@@ -189,6 +189,8 @@ def copy_documentation(writer, prefix, upstream):
               "08-reference/diagrams/tier1-flux-ownership-1100-dark.png",
               "08-reference/diagrams/render-tier1-flux.cjs",
               "08-reference/diagrams/pkcs11-provider-placement.svg",
+              "08-reference/diagrams/stage2-trust.svg",
+              "08-reference/diagrams/usb-key-service-context.svg",
               "08-reference/diagrams/signal-pipelines.svg",
               "08-reference/diagrams/kubernetes-platform.svg",
               "08-reference/diagrams/vmid-cutover.svg")

@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720"
+     role="img" aria-labelledby="title description">
+  <title id="title">Stage 2 offline root and online infrastructure issuer</title>
+  <desc id="description">The issuer-only foundation selection contains ca-1 on the cryptography
+    network. Authorized operators use its HTTPS portal. OpenXPKI retains its database, software
+    issuer key and configuration on scsi1. The separately controlled offline root signs the issuer
+    certificate during a ceremony. Public signed objects transfer upward into the online runtime.
+    Original root and issuer recovery material remain in offline custody below connected services.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581"/>
+    </marker>
+    <style>
+      svg { font: 15px Arial, sans-serif; }
+      text { fill: currentColor; stroke: none; text-anchor: middle; }
+      .tier0 { fill: #c8c8c8; stroke: #707070; color: #262626; }
+      .group { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .network { fill: #f4eded; stroke: #9b7378; color: #50383d; }
+      .runtime { fill: #d9eeec; stroke: #4d7b77; color: #173f3e; }
+      .actor { fill: #edf0f3; stroke: #697682; color: #293642; }
+      .traffic { fill: #d8cbb9; stroke: #83715a; color: #352a1e; }
+      .control { fill: #e2f3ed; stroke: #397366; color: #173f36; }
+      .data { fill: #eeeafa; stroke: #78639b; color: #42325d; }
+      .custody { fill: #fff2d1; stroke: #926820; color: #584013; }
+      .tier0, .network, .runtime, .actor, .traffic, .control, .data, .custody { stroke-dasharray: none; }
+      .connection { fill: none; stroke: #627581; stroke-width: 1.5; stroke-dasharray: none; marker-end: url(#arrow); }
+      .transfer { stroke-dasharray: 4 4; }
+      .edge-label { fill: #1f2937; font-size: 13px; }
+    </style>
+  </defs>
+  <g id="T0" class="tier0">
+    <rect x="230" y="20" width="710" height="680"/>
+    <text x="585" y="45">Tier 0</text>
+    <g id="Online" class="group">
+      <rect x="250" y="65" width="670" height="385"/>
+      <text x="585" y="90">Infrastructure Issuer</text>
+      <g id="Crypto" class="network">
+        <rect x="270" y="105" width="630" height="325"/>
+        <text x="585" y="130">Cryptography Network / cryptography</text>
+        <g id="Issuer" class="runtime">
+          <rect x="290" y="150" width="590" height="260"/>
+          <text x="585" y="175">ca-1 / issuer VM</text>
+          <g id="Portal" class="traffic">
+            <polygon points="330,205 460,205 475,240 460,275 330,275 315,240"/>
+            <text x="395" y="235">Apache HTTPS</text>
+            <text x="395" y="257">portal</text>
+          </g>
+          <g id="Engine" class="control">
+            <rect x="600" y="205" width="260" height="75"/>
+            <text x="730" y="235">OpenXPKI</text>
+            <text x="730" y="258">Online issuing CA</text>
+          </g>
+          <g id="State" class="data">
+            <path d="M600 337 C600 320 860 320 860 337 L860 382 C860 399 600 399 600 382 Z"/>
+            <path d="M600 337 C600 354 860 354 860 337" fill="none"/>
+            <text x="730" y="363">scsi1 / /srv/openxpki</text>
+            <text x="730" y="385">DB / software key / configuration</text>
+          </g>
+          <path class="connection" data-from="Portal" data-to="Engine" d="M475 240 H600"/>
+          <text x="537" y="211" class="edge-label">Authorized</text>
+          <text x="537" y="229" class="edge-label">workflow</text>
+          <path class="connection" data-from="Engine" data-to="State" d="M730 280 V324"/>
+          <text x="780" y="307" class="edge-label">Persist</text>
+        </g>
+      </g>
+    </g>
+    <g id="Offline" class="custody">
+      <rect x="250" y="510" width="670" height="170"/>
+      <text x="585" y="535">Offline Custody</text>
+      <g id="Root" class="custody">
+        <rect x="270" y="555" width="250" height="105"/>
+        <text x="395" y="582">clca / offline root CA</text>
+        <text x="395" y="609">Root key / original state</text>
+        <text x="395" y="636">Controlled signing ceremony</text>
+      </g>
+      <g id="Recovery" class="custody">
+        <rect x="560" y="555" width="340" height="105"/>
+        <text x="730" y="582">Independent issuer recovery kit</text>
+        <text x="730" y="609">Original state / signer passphrase</text>
+        <text x="730" y="636">DataVault secret / backup binding</text>
+      </g>
+    </g>
+    <path class="connection transfer" data-from="Root" data-to="Issuer" d="M395 555 V480 H545 V410"/>
+    <rect x="552" y="457" width="270" height="37" fill="#f8fafc" stroke="none"/>
+    <text x="687" y="472" class="edge-label">Signed issuer certificate / chain</text>
+    <text x="687" y="489" class="edge-label">Controlled transfer</text>
+  </g>
+  <g id="Operator" class="actor">
+    <rect x="20" y="205" width="180" height="70"/>
+    <text x="110" y="233">Authorized</text>
+    <text x="110" y="255">operator</text>
+  </g>
+  <path class="connection" data-from="Operator" data-to="Portal" d="M200 240 H315"/>
+  <rect x="220" y="214" width="70" height="20" fill="#f8fafc" stroke="none"/>
+  <text x="255" y="229" class="edge-label">HTTPS</text>
+</svg>

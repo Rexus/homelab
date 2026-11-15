@@ -1,0 +1,100 @@
+---
+- name: Require an explicit controller recovery directory
+  ansible.builtin.assert:
+    that:
+      - openxpki_restore_source_directory is string
+      - openxpki_restore_source_directory is match('^/')
+      - openxpki_restore_source_directory != '/'
+      - "'..' not in openxpki_restore_source_directory.split('/')"
+
+- name: Inspect controller recovery custody and its independently authorized manifest
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+    checksum_algorithm: sha256
+  loop:
+    - "{{ openxpki_restore_source_directory }}"
+    - "{{ openxpki_restore_source_directory }}/recovery.json"
+  delegate_to: localhost
+  become: false
+  register: openxpki_restore_source
+
+- name: Verify the original manifest before transferring any recovery material
+  ansible.builtin.assert:
+    that:
+      - openxpki_restore_source.results[0].stat.isdir | default(false)
+      - not openxpki_restore_source.results[0].stat.islnk | default(false)
+      - openxpki_restore_source.results[1].stat.isreg | default(false)
+      - not openxpki_restore_source.results[1].stat.islnk | default(false)
+      - openxpki_restore_source.results[1].stat.checksum == openxpki_restore_manifest_sha256
+
+- name: Inspect the optional guest recovery destination without following links
+  ansible.builtin.stat:
+    path: "{{ openxpki_restore_directory }}"
+    follow: false
+  register: openxpki_restore_destination
+
+- name: Require a new guest destination for a controller-held recovery set
+  ansible.builtin.assert:
+    that: not openxpki_restore_destination.stat.exists
+    fail_msg: >-
+      Use a new restore directory for controller transfer, or leave the source empty
+      to verify an existing pre-staged set.
+
+- name: Prepare the protected guest recovery parent
+  ansible.builtin.file:
+    path: "{{ openxpki_restore_directory | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Allocate a private guest staging directory on the destination filesystem
+  ansible.builtin.tempfile:
+    state: directory
+    path: "{{ openxpki_restore_directory | dirname }}"
+    prefix: .recovery-stage-
+  register: openxpki_restore_staging
+
+- name: Transfer and publish the verified controller recovery set
+  block:
+    - name: Copy the decrypted set with root-only file and directory access
+      ansible.builtin.copy:
+        src: "{{ openxpki_restore_source_directory }}/"
+        dest: "{{ openxpki_restore_staging.path }}/"
+        owner: root
+        group: root
+        mode: u=rwX,go=
+        directory_mode: "0700"
+        local_follow: false
+      no_log: true
+
+    # Rename within one filesystem publishes the entire set after a successful copy.
+    - name: Publish the complete recovery directory without merging another set
+      ansible.builtin.command:
+        argv:
+          - mv
+          - --no-clobber
+          - --no-target-directory
+          - --
+          - "{{ openxpki_restore_staging.path }}"
+          - "{{ openxpki_restore_directory }}"
+        creates: "{{ openxpki_restore_directory }}"
+      register: openxpki_restore_publication
+
+    - name: Inspect whether the complete staging directory was actually published
+      ansible.builtin.stat:
+        path: "{{ openxpki_restore_staging.path }}"
+        follow: false
+      register: openxpki_restore_unpublished
+
+    - name: Reject concurrent publication of another recovery set
+      ansible.builtin.assert:
+        that:
+          - openxpki_restore_publication.changed
+          - not openxpki_restore_unpublished.stat.exists
+  always:
+    - name: Remove only this transfer's temporary guest staging directory
+      ansible.builtin.file:
+        path: "{{ openxpki_restore_staging.path }}"
+        state: absent

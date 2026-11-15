@@ -6,7 +6,7 @@ an image datastore with **Import** content, and live VM storage on the eligible 
 For the first manual Linux image, use the independent workstation and Proxmox GUI;
 the generated repositories and API publisher are not prerequisites for this guide.
 
-One GUI disk-import workflow covers AlmaLinux, Rocky Linux and Talos. Choose the
+One GUI disk-import workflow covers AlmaLinux, Rocky Linux, Debian and Talos. Choose the
 image below, then follow the numbered actions. Talos-specific differences are explicit;
 there is no separate ISO installation. For repeatable API publication instead,
 use the [template lifecycle](../../../05-operations/01-hosting/templates/template-lifecycle.md).
@@ -21,6 +21,7 @@ Never let two Terraform states manage the same VMID or image file.
 - [Step 1: Select the image](#step-1-select-the-image)
 - [Step 2: Verify the download](#step-2-verify-the-download)
 - [Step 3: Unpack and hash the image](#step-3-unpack-and-hash-the-image)
+- [Debian CA image preparation](#debian-ca-template)
 - [Step 4: Upload the prepared file](#step-4-upload-the-prepared-file)
 - [Step 5: Create the VM and import its disk](#step-5-create-the-vm-and-import-its-disk)
 - [Step 6: Add initialization media and boot order](#step-6-add-initialization-media-and-boot-order)
@@ -38,6 +39,7 @@ Never let two Terraform states manage the same VMID or image file.
 | --- | --- | --- |
 | AlmaLinux | Official [Generic Cloud](https://wiki.almalinux.org/cloud/Generic-cloud.html), x86_64 `.qcow2` | Review EL10's CPU baseline; use the explicitly selected x86_64_v2 variant only for older compatible hosts |
 | Rocky Linux | Official [GenericCloud Base or LVM](https://download.rockylinux.org/pub/rocky/10/images/x86_64/), x86_64 `.qcow2` | Select the guest disk layout; EL10 needs x86-64-v3-capable hosts [6] |
+| Debian 12 | Official [Bookworm cloud images](https://cloud.debian.org/images/cloud/bookworm/) · [download amd64 GenericCloud QCOW2](https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2) | Required for the supplied Stage 2 OpenXPKI issuer; prepare the guest agent below before import |
 | Talos | [Image Factory](https://factory.talos.dev/) disk image, not ISO | Follow the selections below; retain version and schematic ID |
 
 Base and LVM are valid Rocky GenericCloud variants. LVM describes storage inside
@@ -45,6 +47,14 @@ the guest; Proxmox clone support is determined by host storage and template disk
 conversion. Expanding a virtual disk still requires the guest's partition, volume
 and filesystem layers to consume the additional space. Verify the selected image's
 first-boot resize behavior on a disposable clone.
+
+> **CA prerequisite:** the current OpenXPKI installer checks for **Debian 12 amd64**. Ubuntu,
+> Debian 13 and EL10 are not qualified substitutes for `ca-1`. HSM provider VMs can use EL10.
+> Publish this image before reaching Stage 2; it need not replace the normal Linux default.
+
+> **Boot policy:** this baseline uses UEFI with Secure Boot disabled, including Talos and the CA.
+> Later stages do not enable it automatically. Signed boot media, guest key enrollment and firmware
+> recovery require a separately qualified path; checking **Pre-Enroll keys** alone is not that path.
 
 <a id="talos-version-contract"></a>
 
@@ -89,7 +99,8 @@ Retain the artifact, verification material and source/release record for the lat
 
 ## Step 3: Unpack and hash the image
 
-For Alma/Rocky, keep the verified `.qcow2` and calculate its SHA256. For Talos, unpack `.raw.xz`
+For Alma/Rocky, keep the verified `.qcow2` and calculate its SHA256. For Debian, complete the
+agent preparation below and hash that prepared output. For Talos, unpack `.raw.xz`
 with 7-Zip or the block below. The `.raw.xz` digest cannot verify the unpacked `.raw` bytes.
 
 For a Bash workstation, from the directory containing the verified Talos download:
@@ -105,6 +116,109 @@ sha256sum nocloud-amd64.raw
 `--keep` retains the approved compressed artifact. If the raw output already exists,
 inspect it rather than overwriting it blindly. The optional
 [approved cache](../../../05-operations/02-software-intake/host-updates.md) is not required for initial import.
+
+<a id="debian-ca-template"></a>
+
+### Debian CA image preparation
+
+Download **`debian-12-genericcloud-amd64.qcow2`** and its matching
+[SHA512SUMS](https://cloud.debian.org/images/cloud/bookworm/latest/SHA512SUMS) from the same accepted
+Debian build. The `latest` link is for acquisition; retain the exact build/date and source digest,
+then use that build as the catalog's `release`, not `latest`. [9]
+
+On **the acquisition workstation**, verify the downloaded image against the matching manifest:
+
+```bash
+sha512sum --check --ignore-missing SHA512SUMS
+```
+
+Require `debian-12-genericcloud-amd64.qcow2: OK`. Retain the approved HTTPS source and verification
+record; a checksum fetched alongside a file is not an independent publisher signature.
+
+Stock Debian cloud images do not include `qemu-guest-agent`. Prepare a derivative before
+enabling Proxmox's agent option. [9][10]
+
+**Execution machine for the commands below:** a Linux preparation host holding the downloaded qcow2
+as a file. An existing Rocky/Alma `boot-1`, a Linux workstation or a disposable Linux preparation VM
+can fill this role. `virt-customize -a` opens that file and installs the package into its Debian
+filesystem through libguestfs. The Debian target image stays powered off throughout preparation.
+When using a disposable preparation VM, first copy the verified original qcow2 and its checksum
+manifest into a private workspace on that VM. Its own installed OS can be Rocky/Alma or Debian/Ubuntu.
+
+Install the image tool on **that Linux preparation host**. For Rocky/Alma EL10:
+
+```bash
+sudo dnf install -y guestfs-tools qemu-img
+```
+
+For Debian/Ubuntu, use this block instead:
+
+```bash
+sudo apt-get install -y libguestfs-tools qemu-utils
+```
+
+On **the same Linux preparation host**, select the workspace containing the verified original file:
+
+```bash
+read -r -e -p 'Absolute image workspace (example /srv/tier0/artifacts/debian-12): ' DEBIAN_IMAGE_WORKSPACE
+ls -l "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64.qcow2"
+```
+
+Require the original qcow2 at that path. In **that same preparation-host shell**, create the derivative;
+stop if the output already exists:
+
+```bash
+(
+  set -e
+  test ! -e "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2" || {
+    printf '%s\n' 'Prepared output already exists; inspect or select a new output path.' >&2
+    exit 1
+  }
+  cp -- "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64.qcow2" \
+    "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2"
+  virt-customize -a "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2" \
+    --install qemu-guest-agent
+  sha256sum "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2"
+)
+```
+
+The image tool needs accepted Debian package access, or an independently prepared matching package
+supply; a partially populated proxy cache is not an offline repository. Keep the original downloaded
+file unchanged. Record this recipe plus source/output digests; the derivative is not the original
+vendor-signed artifact. Never run `virt-customize` against an image in use by a VM. [10]
+
+**Expected output on the preparation host:**
+`$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2` and its printed SHA256.
+Retain the original image, matching manifest, recipe and both digests in the artifact record.
+
+For GUI import, transfer that prepared output to the machine whose browser uploads it in Step 4.
+For Terraform publication, place it in the controller's artifact workspace and set that local absolute
+`image_path` plus the prepared output's SHA256 in `templates/proxmox.yml` under `debian-build-1`.
+
+When a disposable VM performed preparation, run this example on **the receiving Linux workstation
+or controller**, using its accepted SSH access to that preparation VM:
+
+```bash
+read -r -p 'Preparation VM SSH destination (example automation@10.10.10.60): ' DEBIAN_PREP_SSH
+read -r -e -p 'Absolute prepared file on that VM (example /srv/tier0/artifacts/debian-12/debian-12-genericcloud-amd64-agent.qcow2): ' DEBIAN_PREPARED_IMAGE
+read -r -e -p 'New absolute local output file (example /srv/tier0/artifacts/debian-12-genericcloud-amd64-agent.qcow2): ' DEBIAN_AGENT_LOCAL
+scp "$DEBIAN_PREP_SSH:$DEBIAN_PREPARED_IMAGE" "$DEBIAN_AGENT_LOCAL"
+sha256sum "$DEBIAN_AGENT_LOCAL"
+```
+
+Require a new local output path with an existing parent directory. Compare the received digest with
+the preparation host's recorded value before upload/publication. A Windows browser workstation can
+use its file-transfer client and `Get-FileHash -Algorithm SHA256` for the same public-image handoff.
+Retain the accepted output and verification record before retiring a disposable preparation VM.
+
+| Setting | Debian difference from the other images |
+| --- | --- |
+| Image | GenericCloud `.qcow2`, not the Talos raw image or an installation ISO |
+| SCSI / firmware | Use the common Linux `virtio-scsi-single`, q35 and OVMF settings below; Talos has its own controller selection |
+| Initialization | Normal Linux CloudInit user/SSH/IP settings on clones; Talos's drive supplies networking only |
+| Agent | Add the Debian package above; Talos needs its Factory extension; verify every clone's agent |
+| Guest storage | Do not assume Rocky's selected LVM layout; the CA's separate `scsi1` filesystem is created by Ansible |
+| Consumer | `ca-1.template_vm_id` selects this Debian template; retain the EL10 default for other services |
 
 ## Step 4: Upload the prepared file
 
@@ -131,7 +245,7 @@ The following values are a starting profile; clones receive their actual sizing/
 | OS | **Do not use any media**, guest OS Linux | Same; the raw image is the installed disk, not an installer ISO |
 | System | Machine **q35**, BIOS **OVMF (UEFI)**, EFI disk **4m** on approved live storage | Same |
 | System: EFI | **Pre-Enroll keys unchecked** for this non-Secure-Boot path; no TPM | Do not select a Secure Boot image accidentally |
-| System: controller | **VirtIO SCSI single** for Alma/Rocky | **VirtIO SCSI** (`virtio-scsi-pci`), not Single, per current Talos guidance [2] |
+| System: controller | **VirtIO SCSI single** for Alma/Rocky/Debian | **VirtIO SCSI** (`virtio-scsi-pci`), not Single, per current Talos guidance [2] |
 | System: QEMU Agent | Enable only if the image contains the agent | Enable: the selected schematic includes `siderolabs/qemu-guest-agent` |
 | Disks | Remove the default disk; click **Import**, choose the uploaded image, attach as **SCSI / scsi0** | Select the unpacked `.raw`; do not add another empty boot disk |
 | Disks: target | Approved Proxmox live storage; discard when supported; cache **None** for the clustered path | Same; leave IO thread off with the non-Single controller |
@@ -163,7 +277,7 @@ configured guest RAM and HA failover capacity. [3][5]
 
 ## Step 6: Add initialization media and boot order
 
-In **Proxmox > VM > Hardware**, remove any unused CD/DVD drive. For **all three images**,
+In **Proxmox > VM > Hardware**, remove any unused CD/DVD drive. For **all selected images**,
 retain/add a **CloudInit Drive**: **Hardware > Add > CloudInit Drive**, bus **IDE**, slot **2**,
 on the selected live VM storage. Retain IPv4 DHCP as the template network default;
 leave accounts/passwords unset. In **Options > Boot Order**, enable `scsi0` first;
@@ -251,7 +365,8 @@ systemctl status qemu-guest-agent --no-pager
 ```
 
 These package checks apply to RPM-based guests; use the guest distribution's package
-query elsewhere. To include a missing agent in an Enterprise Linux base image, use the existing
+query elsewhere. On the **disposable Debian clone**, use `dpkg-query -W qemu-guest-agent`
+and `systemctl status qemu-guest-agent --no-pager`. To include a missing agent in an Enterprise Linux base image, use the existing
 [template-refresh builder](../../../05-operations/01-hosting/templates/template-lifecycle.md#mutable-linux-refresh),
 which installs and starts the agent before publication. Do not boot or modify the
 published template directly. Do not repair a manually configured clone and assume the base image is fixed.
@@ -295,6 +410,9 @@ installer artifacts and recovery secrets independently of the cluster and hosted
 6. [Rocky Linux cloud image variants](https://docs.rockylinux.org/latest/teams/rel_eng/image/).
 7. [Proxmox clone validation and unused-disk handling](https://raw.githubusercontent.com/proxmox/qemu-server/master/src/PVE/API2/Qemu.pm).
 8. [Proxmox guest-agent setup and shutdown troubleshooting](https://raw.githubusercontent.com/proxmox/pve-docs/master/qm.adoc).
+9. [Debian cloud image selection and guest-agent policy](https://wiki.debian.org/Cloud/).
+10. [Native offline image customization](https://libguestfs.org/virt-customize.1.html).
 
 Sources 6–8 checked 2026-11-07; other sources reviewed 2026-10-27.
+Source 10 rechecked 2026-11-15 for file-based customization and host/guest execution scope.
 Match the selected image's release documentation.

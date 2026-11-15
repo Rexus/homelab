@@ -40,6 +40,9 @@ all:
   cloud_init_drive: true
 
 templates:
+  # Required by the supplied Stage 2 OpenXPKI CA: Debian 12 amd64, not Ubuntu or EL10.
+  # Download and QEMU-agent preparation: docs/03-deployment/foundation/proxmox/templates.md#debian-ca-template
+  # Use the prepared output's path/hash and the exact approved Debian build as release.
   debian-build-1:
     family: debian
     distribution: debian

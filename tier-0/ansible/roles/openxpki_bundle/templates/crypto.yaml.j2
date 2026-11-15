@@ -4,9 +4,23 @@ type:
 token:
     ca-signer:
         backend: OpenXPKI::Crypto::Backend::OpenSSL
+{% if openxpki_bundle_signer_backend == 'pkcs11' %}
+        key_store: ENGINE
+        key: {{ openxpki_bundle_pkcs11_key_uri | to_json }}
+        engine: PKCS11
+        engine_usage: PRIV_KEY_OPS
+        wrapper: ''
+        engine_section: |
+            engine_id = pkcs11
+            dynamic_path = {{ openxpki_bundle_pkcs11_engine_library }}
+            MODULE_PATH = {{ openxpki_bundle_pkcs11_library }}
+            PIN = "__PIN__"
+            init = 0
+{% else %}
         key_store: OPENXPKI
         key: {{ (openxpki_bundle_data_mount ~ '/keys/issuer.pem') | to_json }}
         engine: OpenSSL
+{% endif %}
         shell: /usr/bin/openssl
         randfile: /var/openxpki/rand
         secret: default

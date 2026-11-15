@@ -1,0 +1,38 @@
+---
+- name: Require an explicit serial-selected private key URI without credentials
+  ansible.builtin.assert:
+    that:
+      - openxpki_bundle_pkcs11_key_uri is match('^pkcs11:[a-z-]+=(?:[A-Za-z0-9._~-]|%[0-9A-Fa-f]{2})+(?:;[a-z-]+=(?:[A-Za-z0-9._~-]|%[0-9A-Fa-f]{2})+)*$')
+      - openxpki_bundle_pkcs11_attributes | difference(['token', 'manufacturer', 'serial', 'model', 'object', 'id', 'type']) | length == 0
+      - openxpki_bundle_pkcs11_attributes | unique | length == openxpki_bundle_pkcs11_attributes | length
+      - openxpki_bundle_pkcs11_key_uri is search('(^pkcs11:|;)serial=[^;]+(;|$)')
+      - openxpki_bundle_pkcs11_key_uri is search('(^pkcs11:|;)id=[^;]+(;|$)')
+      - openxpki_bundle_pkcs11_key_uri is search('(^pkcs11:|;)type=private(;|$)')
+    fail_msg: Select the original token serial and private-key id in a credential-free PKCS11 URI.
+  vars:
+    openxpki_bundle_pkcs11_attributes: >-
+      {{ openxpki_bundle_pkcs11_key_uri | regex_findall('(?:^pkcs11:|;)([a-z-]+)=') }}
+  no_log: true
+
+- name: Require explicit issuer-side module and OpenSSL engine library paths
+  ansible.builtin.assert:
+    that:
+      - item is match('^/[A-Za-z0-9_./+-]+$')
+      - "'..' not in item.split('/')"
+    fail_msg: Set the absolute PKCS11 module and OpenSSL engine library paths for the issuer host.
+  loop:
+    - "{{ openxpki_bundle_pkcs11_library }}"
+    - "{{ openxpki_bundle_pkcs11_engine_library }}"
+
+- name: Require a changed hardware PIN separate from the DataVault secret
+  ansible.builtin.assert:
+    that:
+      - openxpki_bundle_pkcs11_pin is string
+      - openxpki_bundle_pkcs11_pin | length >= 6
+      - openxpki_bundle_pkcs11_pin not in ['648219', '0001password', '123456', '12345678', '000000', '00000000']
+      - openxpki_bundle_pkcs11_pin is not search('[\x00-\x1f\x7f"\\\\$]')
+      - openxpki_bundle_pkcs11_pin != openxpki_bundle_datavault_secret
+    fail_msg: >-
+      Supply the changed HSM_ISSUER_PIN. The native engine substitution requires a single-line
+      PIN without double quotes, backslashes or dollar-sign expansion.
+  no_log: true

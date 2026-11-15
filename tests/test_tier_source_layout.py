@@ -50,6 +50,14 @@ class SourceLayout(TierRepositoryTestCase):
                 expected = (source / relative).read_text(encoding="utf-8")
                 expected = re.sub(r"(?<=\.\./)shared(?=[/\"'\s]|$)", "verify-shared", expected)
                 expected = expected.replace("check out shared beside", "check out verify-shared beside")
+                expected = re.sub(r"<prefix>-(?=tier-[012]\b|shared\b|architecture\b|iac\b)",
+                                  "verify-", expected)
+                expected = re.sub(
+                    r"(?m)^[ \t]*#[^\n]*",
+                    lambda comment: re.sub(r"(?<![\w/.-])docs/(?=[0-9]{2}-)",
+                                           "../verify-architecture/docs/auto-docs/", comment[0]),
+                    expected,
+                )
                 self.assertEqual((generated / relative).read_text(encoding="utf-8"), expected, relative)
             for path in source.rglob("*.tf"):
                 for module in re.findall(r'source\s*=\s*"(\.\./[^"]+)"', path.read_text()):

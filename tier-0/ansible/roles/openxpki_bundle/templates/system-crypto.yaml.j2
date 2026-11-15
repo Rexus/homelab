@@ -10,7 +10,7 @@ secret:
     default:
         method: literal
         export: 0
-        value: {{ openxpki_bundle_signer_password | to_json }}
+        value: {{ (openxpki_bundle_pkcs11_pin if openxpki_bundle_signer_backend == 'pkcs11' else openxpki_bundle_signer_password) | to_json }}
     svault:
         method: literal
         value: {{ openxpki_bundle_datavault_secret | to_json }}

@@ -296,11 +296,14 @@ Run from **`<prefix>-tier-2/`** after successful apply:
 
 ```bash
 bash scripts/kubernetes-cluster.sh credentials
+export TALOSCONFIG="$PWD/secrets/talos/talosconfig"
+export KUBECONFIG="$PWD/secrets/talos/kubeconfig"
+kubectl get --raw='/readyz'
 ```
 
 Keep `secrets/talos/` and the original state under independent recovery custody.
 
-#### 7. Configure and render the add-ons
+#### 7. Configure add-ons and install networking
 
 Run from **`<prefix>-tier-2/`**:
 
@@ -310,8 +313,35 @@ cp -n ansible/group_vars/cluster_platform.yml.example ansible/group_vars/cluster
 
 Edit `ansible/group_vars/cluster_platform.yml`: Tier 2's kubeconfig/context, selected components,
 exact pins, image access, storage and trust using the [basic-platform input contract](../stage-04-kubernetes/procedures/basic-platform.md).
-This new cluster needs its own add-ons; it does not reuse another tier's live resources.
-Render from **the same Tier 2 root**:
+Use this cluster's own add-on selections and credentials. First render Cilium from **the same Tier 2 root**:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/cluster-platform.yml \
+  -e @ansible/group_vars/cluster_platform.yml \
+  -e '{"cluster_platform_components":["cilium"]}' -e cluster_platform_action=render
+```
+
+Review the Cilium output, then apply from **Tier 2**:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/cluster-platform.yml \
+  -e @ansible/group_vars/cluster_platform.yml \
+  -e '{"cluster_platform_components":["cilium"]}' -e cluster_platform_action=apply
+```
+
+Require nodes/DNS Ready. Complete [node enrollment, collector installation and delivery checks](../stage-04-kubernetes/procedures/security-logging.md#enroll-node-streams)
+using Tier 2's prepared logging inputs and unique node identities. Then complete the selected
+[CSI/storage qualification](../stage-04-kubernetes/procedures/basic-platform.md#persistence) before consumers.
+
+Choose the remaining components' Secret owner. For an existing owner, retain
+`cluster_platform_manage_secrets: false` and verify every required Secret. For installer-managed
+credentials, create/encrypt `ansible/group_vars/cluster_platform_secrets.yml` using the selected
+component's Secret contract and add `-e @ansible/group_vars/cluster_platform_secrets.yml --ask-vault-pass`
+to both remaining render/apply commands. Storage-only runs use that same private input when required.
+
+Render the completed component selection from **Tier 2**:
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \

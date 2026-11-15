@@ -23,6 +23,8 @@ SUPPLY_SVG = UPSTREAM / "docs/08-reference/diagrams/software-intake-context.svg"
 SECRETS_SVG = UPSTREAM / "docs/08-reference/diagrams/secrets-context.svg"
 BACKUP_SVG = UPSTREAM / "docs/08-reference/diagrams/backup-recovery-context.svg"
 CRYPTO_SVG = UPSTREAM / "docs/08-reference/diagrams/cryptography-operations.svg"
+TRUST_SVG = UPSTREAM / "docs/08-reference/diagrams/stage2-trust.svg"
+USB_SVG = UPSTREAM / "docs/08-reference/diagrams/usb-key-service-context.svg"
 CA_SVG = UPSTREAM / "docs/08-reference/diagrams/certificate-authority-operations.svg"
 RUNNER_SVG = UPSTREAM / "docs/08-reference/diagrams/infrastructure-runner-placement.svg"
 TELEMETRY_SVG = UPSTREAM / "docs/08-reference/diagrams/workload-telemetry-placement.svg"
@@ -38,7 +40,7 @@ PKCS11_SVG = UPSTREAM / "docs/08-reference/diagrams/pkcs11-provider-placement.sv
 SIGNAL_SVG = UPSTREAM / "docs/08-reference/diagrams/signal-pipelines.svg"
 K8S_PLATFORM_SVG = UPSTREAM / "docs/08-reference/diagrams/kubernetes-platform.svg"
 PLACEMENT_SVGS = (IDENTITY_SVG, CACHE_SVG, LOGGING_SVG, LAB_SVG, INTAKE_SVG, SUPPLY_SVG, SECRETS_SVG,
-                  BACKUP_SVG, CRYPTO_SVG, CA_SVG, RUNNER_SVG, TELEMETRY_SVG, REFERENCE_SVG,
+                  BACKUP_SVG, CRYPTO_SVG, TRUST_SVG, USB_SVG, CA_SVG, RUNNER_SVG, TELEMETRY_SVG, REFERENCE_SVG,
                   RUNTIME_SVG, OBSERVABILITY_SVG, CONTROL_SVG, OBSERVABILITY_OPERATIONS_SVG, AVAILABILITY_SVG,
                   PLATFORM_SVG, FLUX_OWNERSHIP_SVG, PKCS11_SVG, SIGNAL_SVG, K8S_PLATFORM_SVG,
                   *LOGGING_ROUTING_SVGS)
@@ -358,6 +360,9 @@ class DiagramConventions(TierRepositoryTestCase):
         nodes = {node.get('id'): node for node in redundant.iter() if node.get('id')}
         self.assertIn('Proxmox host A', ''.join(nodes['PVE1'].itertext()))
         self.assertIn('Proxmox host B', ''.join(nodes['PVE2'].itertext()))
+        self.assertEqual(nodes['Placement'].get('class'), 'deploymentGroup')
+        for receiver in ('VM1', 'VM2'):
+            self.assertIn('management', ''.join(nodes[receiver].itertext()))
         self.assertIn(guest, ''.join(nodes['VM1'].itertext()))
         self.assertIn('log-2 / optional', ''.join(nodes['VM2'].itertext()))
         self.assertIn('# "log-2"', hardware)
@@ -377,9 +382,6 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn('Primary <-->|Replication| Replica', identity)
         self.assertIn('class Pair replicas', identity)
         self.assertIn('Ingress{{"HTTPS sign-in', identity)
-        trust = diagrams(root / "03-deployment/stage-02-trust/README.md")[0]
-        self.assertLess(trust.index('subgraph Identity['), trust.index('subgraph Crypto['))
-        self.assertIn('Identity ~~~ Crypto', trust)
         directory = diagrams(root / "03-deployment/stage-05-identity/README.md")[0]
         self.assertIn('subgraph Identity["Identity Network / identity"]', directory)
         self.assertIn('subgraph Crypto["Cryptography Network / cryptography"]', directory)

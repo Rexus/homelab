@@ -1,5 +1,5 @@
 # Optional extension after local provider/issuer acceptance; never required for PKI.
-# Schema: roles/hsm_remote/defaults/main.yml
+# Schema: ansible/roles/hsm_remote/defaults/main.yml
 # Guide: docs/03-deployment/stage-02-trust/procedures/pkcs11-remoting.md
 hsm_remote_enabled: true
 hsm_remote_pool_id: signing

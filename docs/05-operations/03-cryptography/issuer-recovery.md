@@ -7,9 +7,16 @@ Recover the same signing identity with its latest issuance, revocation, workflow
 and DataVault state. A VM snapshot or key copy alone is not a recovery set.
 
 **Run from:** generated Tier 0 on the independent execution host unless stated otherwise.
-**Before starting:** accepted software issuer, encrypted working storage, independent
+**Before starting:** accepted issuer, encrypted working storage, independent
 age recovery identity, original credentials/artifacts and authorized custodians.
-Hardware providers need their separate qualified device recovery procedure.
+Software and PKCS#11 application state use the same guarded recipes. Hardware keys require
+their separate device recovery; an application archive does not contain the token's private key.
+
+**Hardware scope:** the supplied application restore retains the original immutable bundle,
+PKCS#11 URI and accepted device serial. A replacement board has another serial and may have another
+PIN even when its wrapped key matches. It therefore needs a separately qualified
+[provider/configuration migration](hardware-migration.md), not a silent rewrite of this archive.
+This recipe covers application-host recovery with the original provider identity available.
 
 <a id="contents"></a>
 
@@ -46,7 +53,7 @@ Hardware providers need their separate qualified device recovery procedure.
    | `openxpki_backup_directory` | Dedicated encrypted working path matching `/srv/NAME`, distinct from the live data mount |
    | `openxpki_backup_recipient` | Independently verified public age recipient |
    | `openxpki_backup_id` | New unique 3-64 character letters/digits/underscore/hyphen ID; never overwrite/reuse |
-   | `openxpki_activate_runtime`, `openxpki_managed_cli` | `true` for the accepted running software issuer |
+   | `openxpki_activate_runtime`, `openxpki_managed_cli` | `true` for the accepted running issuer |
    | Existing binding/secrets | Original archive/hash, package set, realm, database/session/signer secrets and issuer fingerprint |
 
 3. Reserve a maintenance window, then capture the consistent encrypted set:
@@ -57,16 +64,29 @@ Hardware providers need their separate qualified device recovery procedure.
    bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki-backup.yml --ansible-vars ansible/group_vars/issuer.yml
    ```
 
+   For **PKCS#11 custody**, retain the original `ansible/group_vars/hsm.yml`, provider credentials and
+   `HSM_ISSUER_PIN` in the protected controller environment. Use this command instead, keeping the
+   foundation address map after the HSM inputs:
+
+   ```bash
+   bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki-backup.yml \
+     --ansible-vars ansible/group_vars/hsm.yml --ansible-vars ansible/group_vars/foundation.yml \
+     --ansible-vars ansible/group_vars/issuer.yml
+   ```
+
    Retain the original `--env NAME` when used. The role pauses portal/CA writers,
-   dumps MariaDB, encrypts the software custody/configuration set and removes
+   dumps MariaDB, encrypts the application custody/configuration set and removes
    plaintext staging before resuming services. It never overwrites a prior archive. [2]
+   Software custody verifies the encrypted file key; PKCS#11 verifies the accepted original token,
+   key URI and public key without exporting its private key.
 4. Check [issuer health](certificate-authority.md#routine-controls). Transfer the
    reported `.tar.gz.age` archive and SHA256 to independent off-host retention.
    Verify decryption below before accepting the backup.
 
 Record package artifacts, original binding/schema receipt, controller secrets,
 portal TLS and recipient custody separately. The archive includes the live
-configuration, software keys, identity/public state and database; it excludes
+configuration, its original installation artifact, software/CLI keys when present, identity/public
+state and database. It excludes device-internal keys,
 external controller TLS files, offline root and FreeIPA. The age recipient in this
 recipe is classical X25519, not a post-quantum protection claim. [1]
 
@@ -98,7 +118,9 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
 
 3. Before extraction, reject absolute/traversal paths, unexpected files and links
    escaping the set. Expected contents: `configuration`, `keys`, `identity`, `public`,
-   `deployment.json`, `schema-initialized`, `database.sql`, `recovery.json`.
+   `deployment.json`, `schema-initialized`, `database.sql`, `recovery.json`, and, for new sets,
+   the original `configuration.tar.gz`. A hardware set has no `keys/issuer.pem`; retain its original
+   device backup separately. Legacy software sets still require the separately retained installation artifact.
    After review, extract into a new subdirectory and record the manifest hash:
 
    Run on **the offline recovery system with encrypted working storage**.
@@ -127,9 +149,15 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
    Select the new isolated target's device and filesystem explicitly. Leave the optional UUID pin
    empty only when commissioning that genuinely new disk; retain it when recovering the original volume.
    Provide approved storage encryption separately; filesystem preparation does not encrypt the disk.
-3. Transfer the verified decrypted set to **`/srv/pki-restore/recovery` on the isolated
-   target**, outside its live data mount, with root-only `0700` parent directories.
-   Keep the verified source and independent encrypted archive intact.
+   For **hardware custody**, attach the accepted original device through the target's owning Terraform
+   inputs and [prepare its provider/binding](../../03-deployment/stage-02-trust/step-1d-single-usb.md#3-bind-the-inactive-issuer-to-its-original-key).
+   Keep CSR creation and activation false. A missing or different serial/key stops recovery.
+3. Make the verified decrypted set available in a protected directory on **the independent controller**.
+   In the recovery copy of `ansible/group_vars/issuer.yml`, set `openxpki_restore_source_directory` to that
+   absolute path, for example `/srv/recovery/issuer-set/recovery`. Keep the source and independent archive intact.
+   The restore recipe verifies its manifest hash, then copies it with native Ansible to the isolated
+   target's root-only `/srv/pki-restore/recovery` directory. No guest SSH/SCP staging is required.
+   For an already staged approved guest set, leave this optional source empty and retain its existing path.
 4. In that recovery copy's **`ansible/group_vars/issuer.yml`**, restore the original
    controller secrets/binding and set:
 
@@ -148,6 +176,14 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
 
    ```bash
    bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki-restore.yml --ansible-vars ansible/group_vars/issuer.yml
+   ```
+
+   For **PKCS#11 custody**, use the original provider inputs and `HSM_ISSUER_PIN`, from the same Tier 0 root:
+
+   ```bash
+   bash scripts/deploy.sh foundation --recipe maintenance --playbook maintenance/openxpki-restore.yml \
+     --ansible-vars ansible/group_vars/hsm.yml --ansible-vars ansible/group_vars/foundation.yml \
+     --ansible-vars ansible/group_vars/issuer.yml
    ```
 
    It rejects existing signing/history, prior attempts and mismatched secrets,
