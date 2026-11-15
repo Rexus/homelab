@@ -82,7 +82,8 @@ Equivalent verified existing services can satisfy these contracts.
 **Design:** [signals, placement, independent scaling and availability](../../01-architecture/11-operations/03-observability.md).
 **Automation:** the dedicated [Ansible deployment](../../../tier-1/ansible/playbooks/deployment/observability-platform.yml)
 renders or applies the [native chart values](../../../tier-1/ansible/roles/observability_platform).
-The cluster directory remains an empty integration starter, not a second executor.
+Rendering exports the selected component into `platform/observability`; the authored platform root
+selects it for Flux reconciliation.
 **Execution context:** `<prefix>-tier-1/`.
 
 The numbered actions below own first installation. The [configuration reference](procedures/observability-platform.md)
@@ -156,6 +157,8 @@ Preserve the reviewed native chart pins.
 
 | First edits | Required value |
 | --- | --- |
+| `observability_owner`, `observability_flux_migration` | `flux`, then `fresh` for this new installation |
+| `observability_flux_root`, `observability_flux_age_recipients` | Absolute private platform checkout's `clusters/tier1` directory and its retained age recipient list |
 | `observability_kubeconfig`, `observability_context` | Existing Tier 1 cluster and exact context |
 | `observability_storage_class`, `observability_database_storage_class` | Accepted live block classes, not NAS backup storage |
 | `observability_topology_key`, `observability_failure_domains` | Actual node label and three independently verified physical domains |
@@ -263,7 +266,7 @@ include its entry in the platform source, then [approve/reconcile that exact rev
 Require `grafana-db` readiness before obtaining its system identifier in Step 9. Skip the direct
 apply command below. The database-only phase does not enable signal/query consumers.
 
-For the retained **Ansible owner** only:
+For the retained **Ansible owner**, set `observability_owner: ansible` in the local inputs.
 
 In **`<prefix>-tier-1/`**, review the rendered `grafana-db` resources, live block class,
 TLS identities and physical placement. Then apply those same inputs:

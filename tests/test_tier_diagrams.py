@@ -31,13 +31,14 @@ CONTROL_SVG = UPSTREAM / "docs/08-reference/diagrams/control-applications-placem
 OBSERVABILITY_OPERATIONS_SVG = UPSTREAM / "docs/08-reference/diagrams/observability-operations.svg"
 AVAILABILITY_SVG = UPSTREAM / "docs/08-reference/diagrams/availability-cases.svg"
 PLATFORM_SVG = UPSTREAM / "docs/08-reference/diagrams/platform-cluster-runtime.svg"
+FLUX_OWNERSHIP_SVG = UPSTREAM / "docs/08-reference/diagrams/tier1-flux-ownership.svg"
 PKCS11_SVG = UPSTREAM / "docs/08-reference/diagrams/pkcs11-provider-placement.svg"
 SIGNAL_SVG = UPSTREAM / "docs/08-reference/diagrams/signal-pipelines.svg"
 K8S_PLATFORM_SVG = UPSTREAM / "docs/08-reference/diagrams/kubernetes-platform.svg"
 PLACEMENT_SVGS = (IDENTITY_SVG, CACHE_SVG, LOGGING_SVG, LAB_SVG, INTAKE_SVG, SUPPLY_SVG, SECRETS_SVG,
                   BACKUP_SVG, CRYPTO_SVG, CA_SVG, RUNNER_SVG, TELEMETRY_SVG, REFERENCE_SVG,
                   RUNTIME_SVG, OBSERVABILITY_SVG, CONTROL_SVG, OBSERVABILITY_OPERATIONS_SVG, AVAILABILITY_SVG,
-                  PLATFORM_SVG, PKCS11_SVG, SIGNAL_SVG, K8S_PLATFORM_SVG)
+                  PLATFORM_SVG, FLUX_OWNERSHIP_SVG, PKCS11_SVG, SIGNAL_SVG, K8S_PLATFORM_SVG)
 FIGURES = re.compile(r"```mermaid\n(.*?)```|!\[[^\]]+\]\(([^)#]+\.svg)\)", re.DOTALL)
 
 

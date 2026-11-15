@@ -114,7 +114,7 @@ source administrator removed before collection, and is not a synchronous lossles
 Preserve original instance identity, ledger and forwarding state during recovery; never silently
 reset the ledger against a different database.
 
-Return to [Stage 6](../README.md#step-2-add-operational-tools).
+Continue at [Stage 6 action 19](../README.md#step-19-install-headlamp-after-api-sso-acceptance).
 
 ## References
 

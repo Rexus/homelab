@@ -56,7 +56,14 @@ Keep decryption material independently. Both choices continue at Step 2; no seco
 
 ## Step 2: Configure the runner
 
-In Tier 1's local `development_platform.yml`, select:
+Initialize local inputs from **`<prefix>-tier-1/`**. This also covers the standalone GitLab branch,
+which skipped the Kubernetes GitLab configuration steps. Existing inputs are preserved.
+
+```bash
+bash scripts/init-local-files.sh --setup development-platform
+```
+
+In `ansible/group_vars/development_platform.yml`, select:
 
 ```yaml
 development_platform_components: [runners]
@@ -68,6 +75,10 @@ settings; `[runners]` reconciles the runner only, without reinstalling GitLab.
 
 | Field in the same file | Set |
 | --- | --- |
+| `development_platform_host` | Accepted GitLab hostname, including the standalone VM hostname when that branch was selected |
+| `development_platform_owner`, `development_platform_flux_migration` | `flux`, then `fresh` for this new runner installation |
+| `development_platform_flux_root`, `development_platform_flux_age_recipients` | Absolute private platform checkout's `clusters/tier1` directory and its retained recipient list |
+| `development_platform_flux_runner_depends_on` | `[{name: platform-source-control}]` for Flux-managed GitLab; `[{name: platform-base}]` for the accepted standalone/external GitLab alternative |
 | `development_platform_kubeconfig`, `development_platform_context` | Accepted Tier 1 kubeconfig and its exact context, used for Secrets, policies and Helm |
 | `development_platform_runner_version` | Exact qualified Runner chart version |
 | `development_platform_runner_image`, `development_platform_runner_helper_image` | Compatible approved non-root image digests |
@@ -78,6 +89,9 @@ Pin the runner chart and compatible build/helper image digests. Configure exact
 GitLab/artifact/proxy endpoint CIDRs and Tier 1 API service/backend CIDRs.
 The manager alone may reach that API; jobs use a tokenless `ci-job` identity.
 Do not allow broad LAN or Tier 0 ranges. Test actual service-DNAT behavior for the CNI.
+For standalone/external GitLab, verify that service's HTTPS, registration and recovery before
+exporting runners. Its service acceptance supplies the prerequisite otherwise tracked by
+`platform-source-control`.
 
 ## Step 3: Render the manager and job policy
 
@@ -108,6 +122,7 @@ and encrypted runner Secrets, then [approve/reconcile the platform revision](../
 Require the exact runner HelmRelease and support-policy health, then continue at Step 5.
 The manager's GitLab registration/token and allowed image digests retain their existing contract.
 Skip the direct apply blocks below; those are only for the retained **Ansible owner** alternative.
+For that alternative set `development_platform_owner: ansible` in the same local input file.
 
 Use the same accepted kubeconfig/context and Secret inputs as the render:
 

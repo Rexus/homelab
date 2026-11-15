@@ -11,5 +11,7 @@
   become: true
   become_user: root
   any_errors_fatal: true
-  roles:
-    - freeipa_ldap_reader
+  tasks:
+    - name: Converge the directory reader after controller preparation
+      ansible.builtin.include_role:
+        name: freeipa_ldap_reader

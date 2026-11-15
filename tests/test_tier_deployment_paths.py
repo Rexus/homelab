@@ -36,9 +36,10 @@ class DeploymentPaths(TierRepositoryTestCase):
                 5: 'control_applications_action=apply', 6: 'unseal', 9: 'maintenance/control-backup.yml',
                 12: 'mon-1', 18: 'deployment/netbox-audit.yml',
                 20: 'infrastructure_monitoring_action=render', 21: 'recovery'},
-            7: {2: 'delivery_platform.yml', 3: 'Secret', 4: 'delivery_platform_action=render',
-                6: 'delivery_platform_action=apply', 7: 'recovery', 8: 'Harbor',
-                9: 'delivery_platform_action=render', 10: 'delivery_platform_action=apply',
+            7: {2: 'delivery_platform.yml', 3: 'Secret',
+                4: 'flux-platform.md#render-services-into-the-platform-source',
+                6: 'flux-platform.md#approve-a-platform-revision', 7: 'recovery', 8: 'Harbor',
+                9: 'flux-platform.md#render-services-into-the-platform-source', 10: 'exact platform commit',
                 11: 'recovery', 12: 'edge-proxy.md'},
             8: {3: 'observability_platform.yml', 4: 'observability_platform_secrets.yml',
                 5: 'SSO', 6: 'backup', 7: 'observability_action=render',
@@ -65,6 +66,16 @@ class DeploymentPaths(TierRepositoryTestCase):
                     r'(?ms)^## Step (\d+):[^\n]*\n(.*?)(?=^## |\Z)', content)}
                 for step, marker in markers.items():
                     self.assertIn(marker.lower(), actions[step].lower(), f'{path.parent.name}, action {step}')
+                if stage == 7:
+                    procedure = (path.parent / 'procedures/flux-platform.md').read_text(encoding='utf-8')
+                    self.assertIn('delivery_platform_action=render', procedure)
+                    self.assertIn('delivery_promotion_action=import', procedure)
+                    self.assertNotIn('delivery_platform_action=apply', actions[6])
+                    for alternative in ('step-2a-argocd.md', 'step-2b-spinnaker.md'):
+                        branch = (path.parent / alternative).read_text(encoding='utf-8')
+                        self.assertIn('procedures/delivery-installer.md#3-choose-the-secret-owner', branch)
+                    installer = (path.parent / 'procedures/delivery-installer.md').read_text(encoding='utf-8')
+                    self.assertIn('delivery_platform_action=apply', installer)
 
     def test_capability_names_have_unique_numbers_and_federation_belongs_to_identity(self):
         self.generate()

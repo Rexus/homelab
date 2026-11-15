@@ -212,21 +212,93 @@ receipts must match the reviewed change before the maintenance operation.
 
 ## Promotion and acceptance
 
-Import the versioned representative pipeline using the promotion role's repeatable API import path.
-Set stable pipeline IDs, judgment roles, exact digest/config revision and approved application target.
-Present the exact proposed diff before judgment. The Run Job account is confined to
-`delivery-promotion`; remove old direct application RoleBindings/token Secrets during adoption.
-Do not enable normal delivery until both positive and denial checks pass.
+### 1. Configure and render promotion inputs
 
-Initialize `bash scripts/init-local-files.sh --setup delivery-promotions` from `<prefix>-tier-1/`
-and edit `ansible/group_vars/delivery_promotion.yml`. The
-[promotion inputs](../../../../tier-1/ansible/group_vars/delivery_promotion.yml.example) define image,
-separate project, signing key, target, judgment roles and accepted bypass limits. Build/retain the real
-digest-pinned worker image using its supplied Dockerfile, and render with
-`ansible/playbooks/deployment/delivery-promotions.yml`. Publish its reviewed resources through platform
-Flux, then use `delivery_promotion_action=import` with privately authenticated Gate headers to import
-stable pipeline IDs. [Operations](../../../05-operations/05-delivery.md#operate-promotions-and-pipeline-definitions)
-owns subsequent import/update and rollback.
+Run from **`<prefix>-tier-1/`**.
+
+```bash
+bash scripts/init-local-files.sh --setup delivery-promotions
+```
+
+Edit `ansible/group_vars/delivery_promotion.yml`. Match `delivery_promotion_application_namespaces`
+and `delivery_promotion_kustomization_path` to the cluster's approved application source. Set the
+separate application repository, exact target/chart/image pins, real digest-pinned worker image,
+judgment roles, egress and accepted bypass limits. Set `delivery_promotion_flux_output` to the absolute
+private platform checkout's `clusters/tier1` directory and fill its SOPS age recipients.
+Build and independently retain the worker using `scripts/promotion/Dockerfile` and its approved base.
+The input example describes the build context and required Git, OpenSSH, Python and CA contents.
+
+Run from **`<prefix>-tier-1/`** with those completed inputs.
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/delivery-promotions.yml \
+  -e @ansible/group_vars/delivery_promotion.yml -e delivery_promotion_action=render
+```
+
+Expect private `secrets/delivery-promotion/` containing `promote.json`, `rollback.json`,
+`promotion-resources.yml` and an `application-source/` tree. Git and SOPS are checked before export.
+
+### 2. Publish platform permissions and the initial application
+
+Review the exported `platform/delivery-promotion` component, add `delivery-promotion` to
+`clusters/tier1/platform/kustomization.yaml`, then approve/reconcile its platform revision above.
+Provision `delivery-promotion-git` (`username`, `password`) and `delivery-promotion-signing`
+(`key`, retained SSH Ed25519) through the selected encrypted Secret owner in `delivery-promotion`.
+Require worker policy and its platform-owned HelmRepository, when selected, before application use.
+
+In **the separate application Git project**, review and copy the files under
+`secrets/delivery-promotion/application-source/` into their matching repository-relative paths.
+The default seed creates `clusters/tier1/applications/kustomization.yaml` and
+`clusters/tier1/applications/example/helmrelease.json`. For an existing application index, merge its
+resource entry with the accepted entries. Publish the reviewed seed on the protected delivery branch
+through the existing signed-commit process and record its full commit SHA.
+
+Application reconciliation starts suspended. Use the independent maintenance input with
+`flux_maintenance_operation: resume`, `flux_maintenance_source: tier1-applications` and that exact
+SHA as `flux_maintenance_revision`. Complete its data and execution checks before setting the two
+acceptance flags `flux_maintenance_data_restored` and `flux_maintenance_executions_fenced` to `true`.
+Match `flux_maintenance_application_branch` to the actual protected branch, set
+`flux_maintenance_approved: true` for this reviewed resumption and select the application's actual
+workload in `flux_maintenance_health_checks`. For the fresh stateless reference, data acceptance
+records that there is no retained application state to restore. Existing applications require their
+actual recovery checks.
+Render/review and apply through the linked maintenance procedure before running a promotion.
+[Maintenance and resumption](../../../05-operations/05-delivery.md#suspend-and-recover-applications).
+
+### 3. Import and qualify the pipelines
+
+Retain stable pipeline IDs and supply authenticated Gate headers in an encrypted private
+`secrets/delivery-promotion.yml` input using `delivery_promotion_gate_headers`. Set the actual
+`delivery_promotion_gate_url` and trusted `delivery_promotion_gate_ca_path` in the local inputs.
+Create the encrypted file from **`<prefix>-tier-1/`**.
+
+```bash
+ansible-vault create secrets/delivery-promotion.yml
+```
+
+Enter the header map below using the operator's accepted Gate session cookie, then save the file.
+
+```yaml
+delivery_promotion_gate_headers:
+  Cookie: REPLACE_WITH_AUTHENTICATED_GATE_SESSION_COOKIE
+```
+
+Run from **`<prefix>-tier-1/`** after the application and worker resources are accepted.
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/delivery-promotions.yml \
+  -e @ansible/group_vars/delivery_promotion.yml \
+  -e @secrets/delivery-promotion.yml --ask-vault-pass -e delivery_promotion_action=import
+```
+
+Expect the representative application's permissions and stable promotion/rollback definitions in
+Gate. Present the exact digest/configuration diff before judgment and require the intended Flux
+revision and target health. The Run Job account is confined to `delivery-promotion`; adoption also
+revokes old direct application RoleBindings/token Secrets. Complete both positive and denial checks
+below before normal delivery. Subsequent import, update and rollback use the operating guide.
+[Promotion operations](../../../05-operations/05-delivery.md#operate-promotions-and-pipeline-definitions).
 
 | Live scenario | Required evidence |
 | --- | --- |

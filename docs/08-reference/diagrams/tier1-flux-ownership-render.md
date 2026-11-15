@@ -1,11 +1,35 @@
-# Tier 1 Flux figure render record
+# Flux diagram views and render record
 
-The [editable SVG](tier1-flux-ownership.svg) is the source for the selected
-[ownership view](../../01-architecture/10-delivery/flux-ownership.md#figure-tier1-flux-ownership).
-The [platform runtime SVG](platform-cluster-runtime.svg) is the focused node/runtime placement view.
-Neither figure establishes live deployment, authorization, data restoration or high availability.
+Start with the Tier 1 ownership view to understand bootstrap, reconciliation and application promotion.
+The other views explain the runtime or an independently owned Tier 0 capability.
+
+## Choose a view
+
+| Reader question | Editable source | Read it in context |
+| --- | --- | --- |
+| Who bootstraps, maintains and reconciles Tier 1, and who promotes applications? | [Tier 1 ownership](tier1-flux-ownership.svg) | [Delivery architecture](../../01-architecture/10-delivery/flux-ownership.md#figure-tier1-flux-ownership) |
+| Which Tier 1 node VMs host the selected delivery runtime? | [Tier 1 runtime placement](platform-cluster-runtime.svg) | [Stage 7 expected outcome](../../03-deployment/stage-07-delivery/README.md#figure-platform-runtime) |
+| Which platform services and Flux source belong to Tier 0 Kubernetes? | [Tier 0 platform placement](kubernetes-platform.svg) | [Stage 4 platform configuration](../../03-deployment/stage-04-kubernetes/README.md#figure-2-basic-platform-services) |
+| How do protected infrastructure execution and Tier 0 recovery fit beside Flux? | [Infrastructure execution](infrastructure-runner-placement.svg) | [Stage 9 runner handover](../../03-deployment/stage-09-development/README.md#figure-infrastructure-handover) |
+
+Each SVG has one current source at the linked path. Refresh copies it into
+`<prefix>-architecture/docs/auto-docs/08-reference/diagrams/`. Older `reference/diagrams/` aliases
+are retained while project-authored Markdown links use them and are removed when those links move.
+Use the numbered `08-reference/` path for new links.
+
+The controller comparison, approval sequence and operating map are editable Mermaid figures in their
+owning pages. Their labels and scope follow those pages.
+
+## Contents
+
+- [Previews](#previews)
+- [Reproduce](#reproduce)
+- [Review and source correspondence](#review-and-source-correspondence)
 
 ## Previews
+
+These four PNGs show the same Tier 1 ownership SVG at two reading widths and page backgrounds.
+The SVG remains the source displayed in the guide.
 
 | Reading width | Light page | Dark page |
 | --- | --- | --- |
@@ -19,9 +43,12 @@ Reviewed 2026-11-14 with Node.js 24.14.1, Playwright `1.66.0-alpha-2026-11-09` a
 no Mermaid dependency is used for the SVG figures. The inline controller/operating diagrams were rendered
 with Mermaid `11.17.2`. The page backgrounds are `#ffffff` and `#0d1117`.
 The approval-control sequence is included in the same renderer and final review.
-The final integration review on 2026-11-15 rendered 20 cases without SVG text overflow and inspected
-the ownership and approval views at normal/narrow light/dark widths. Long sequence labels are wrapped.
-Source dimensions are 1200×900; the responsive image has a 20 px page margin at each review width.
+The asset audit on 2026-11-15 rendered 28 cases in both upstream and a freshly generated architecture
+repository. All 28 preview images and geometry reports matched byte for byte across those runs, with
+no SVG text overflow. The four SVG views were visually reviewed at normal and narrow reading widths
+on light/dark pages. Long sequence labels are wrapped.
+The ownership source is 1200×900; the three placement sources are 960×720. Responsive images have
+a 20 px page margin at each review width.
 
 Prepare the same versioned renderer **from the upstream checkout**, using existing Microsoft Edge:
 
@@ -32,16 +59,26 @@ $env:DIAGRAM_MERMAID = (Resolve-Path .tmp/tier1-flux-render-tools/node_modules/m
 node docs/08-reference/diagrams/render-tier1-flux.cjs
 ```
 
+In a generated collection, run the same dependency setup from **`<prefix>-architecture/`** and use
+this renderer command instead.
+
+```powershell
+node docs/auto-docs/08-reference/diagrams/render-tier1-flux.cjs
+```
+
 [Rendering source](render-tier1-flux.cjs) exports the four previews and writes geometry, computed
-palette, font and browser information to `.tmp/tier1-flux-render/report.json`. The reviewed run reused
+palette, font and browser information to `.tmp/tier1-flux-render/report.json` beneath the working
+directory. It resolves SVG and Markdown sources beside its own copied location. The reviewed run reused
 an already installed copy of that exact Playwright version. Headless Edge required execution outside
 the restricted sandbox; the first restricted launch failed before rendering. Hosted Markdown/GitHub
 parity was not tested.
 
-The controller bundle SHA-256 was
+The Mermaid bundle SHA-256 was
 `581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8`.
-Platform-runtime, controller and operating previews are temporary outputs under `.tmp/tier1-flux-render/`;
-the retained four PNGs above are regenerated from the ownership SVG.
+All four SVG views and the three inline Mermaid figures are checked at both widths and backgrounds,
+giving 28 renders when `DIAGRAM_MERMAID` is set. Placement, controller, approval and operating previews
+are temporary outputs under `.tmp/tier1-flux-render/`; the retained four PNGs above are regenerated
+from the ownership SVG.
 
 ## Review and source correspondence
 

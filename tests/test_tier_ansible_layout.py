@@ -94,7 +94,8 @@ class AnsibleOwnership(TierRepositoryTestCase):
         self.assertEqual({p.name for p in (shared / "ansible/roles").iterdir()},
                          {"baseline", "shared", "log_forwarder", "helm_release", "kubernetes_applications",
                           "cluster_platform", "cluster_security_logging", "host_security",
-                          "postgresql_file_backup", "backup_repository_storage", "data_volume"})
+                          "postgresql_file_backup", "backup_repository_storage", "data_volume",
+                          "flux_payload", "flux_maintenance", "flux_recovery_git"})
         self.assertEqual({p.name for p in (shared / "ansible/playbooks").iterdir()},
                          {"control-node.yml", "site.yml", "reset-known-hosts.yml", "guest-ready.yml",
                           "software-consumer.yml", "tasks", "vars"})
@@ -114,7 +115,7 @@ class AnsibleOwnership(TierRepositoryTestCase):
                       {task.get("ansible.builtin.include_tasks") for task in common["tasks"]})
         catalog = common["vars"]["control_node_base_collection_catalog"]
         expected_roles = {
-            "tier-0": {"hsm_proxy_ingress", "immutable_template", "proxmox_host", "proxmox_template_replace",
+            "tier-0": {"hsm_proxy_ingress", "immutable_template", "proxmox_host", "proxmox_ha", "proxmox_template_replace",
                        "proxmox_template_disk", "proxmox_template_policy",
                        "template_refresh", "vault", "syslog_ng", "openxpki", "openxpki_bundle",
                        "logging_authority", "logging_archive", "logging_backup", "infrastructure_runner",
@@ -122,6 +123,7 @@ class AnsibleOwnership(TierRepositoryTestCase):
                        "control_backup", "logging_export", "netbox_audit", "netbox_audit_account",
                        "freeipa_ldap_reader", "hsm_provider", "hsm_remote"},
             "tier-1": {"gitlab_container", "podman_runner", "development_platform", "delivery_platform",
+                       "delivery_promotion",
                        "observability_platform", "development_data", "software_intake", "observability_vm"},
             "tier-2": {"cache_proxy", "edge_load_balancer", "public_certificates", "public_certificate_schedule",
                        "lab_environment", "workload_telemetry"},

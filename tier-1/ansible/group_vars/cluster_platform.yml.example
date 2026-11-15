@@ -1,5 +1,6 @@
 ---
-# Guide: docs/03-deployment/stage-04-kubernetes/procedures/basic-platform.md
+# Guide: docs/03-deployment/stage-07-delivery/procedures/flux-platform.md
+# Component reference: docs/03-deployment/stage-04-kubernetes/procedures/basic-platform.md
 # Shared role = execution; this tier owns these values and the actual cluster.
 cluster_platform_action: render
 cluster_platform_kubeconfig: ""

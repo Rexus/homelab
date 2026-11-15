@@ -75,19 +75,22 @@ Run from **`<prefix>-tier-0/`** after preparing both input files:
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
   -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml \
+  -e @ansible/group_vars/foundation.yml \
   -e @ansible/group_vars/issuer.yml ansible/playbooks/deployment/hsm-issuer.yml
 ```
 
 Expected result: the controller installs selected client packages, copies the supplied native client
 configuration, lists the expected partition without login, and validates the inactive issuer's
-approved PKCS#11 binding. No appliance partition or new key is created. The final `issuer.yml`
-argument preserves its complete IP map; provider host values belong in host vars when shared.
+approved PKCS#11 binding. `foundation.yml` follows `hsm.yml` to retain the issuer's existing
+`platform_host_ips` map. `issuer.yml` supplies runtime policy and storage settings. For a named
+environment, load `all.<env>.yml` and `foundation.<env>.yml` after the base inputs, before `issuer.yml`.
 
 Repeat read-only inspection from **`<prefix>-tier-0/`**:
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
   -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml \
+  -e @ansible/group_vars/foundation.yml \
   -e @ansible/group_vars/issuer.yml -e hsm_inspect_group=issuing_ca \
   ansible/playbooks/deployment/hsm-inspect.yml
 ```

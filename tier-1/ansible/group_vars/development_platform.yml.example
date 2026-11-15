@@ -10,6 +10,8 @@ development_platform_previous_writer_disabled: false
 development_platform_flux_root: ""  # Absolute private platform checkout /clusters/tier1.
 development_platform_flux_age_recipients: []  # Retain the matching age identity independently.
 development_platform_flux_depends_on: [{name: platform-base}]
+# For the accepted standalone/external GitLab alternative, depend on platform-base instead.
+# Verify that external service before exporting runners; it has no platform-source-control component.
 development_platform_flux_runner_depends_on: [{name: platform-source-control}]
 development_platform_components: [gitlab]
 development_platform_kubeconfig: "{{ lookup('ansible.builtin.env', 'KUBECONFIG') }}"

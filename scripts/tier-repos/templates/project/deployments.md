@@ -148,7 +148,7 @@ Applications: [Tier 1](../${repo_prefix}-tier-1/README.md). Infrastructure execu
 - [ ] GitLab and SSO deployed — [Stage 9 Development Platform](docs/auto-docs/03-deployment/stage-09-development/README.md).
   - [ ] **Path 1a:** Kubernetes GitLab, data VMs, tenant object access and joint recovery accepted — [Data services](docs/auto-docs/03-deployment/stage-09-development/procedures/data-services.md).
   - [ ] **Alternative 1b:** source-control VM with its bundled data and encrypted backups — [VM path](docs/auto-docs/03-deployment/stage-09-development/step-1b-source-control-vm.md).
-  - [ ] **Option 12b for 1a:** chart ownership transferred to the selected delivery controller — [Ownership](docs/auto-docs/03-deployment/stage-09-development/procedures/gitlab.md#delivery-ownership).
+  - [ ] **Path 12b for 1a:** Flux chart ownership accepted at first deployment or through adoption — [Ownership](docs/auto-docs/03-deployment/stage-09-development/procedures/gitlab.md#delivery-ownership).
 - [ ] General build execution accepted; select one:
   - [ ] **Path 14a:** Kubernetes runner and on-demand job pods configured — [Kubernetes runners](docs/auto-docs/03-deployment/stage-09-development/step-14a-kubernetes-runners.md).
   - [ ] **Alternative 14b:** Podman runner — [Podman path](docs/auto-docs/03-deployment/stage-09-development/step-14b-podman-runner.md).

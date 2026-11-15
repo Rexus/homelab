@@ -2,8 +2,10 @@
 
 **Working repository:** `<prefix>-tier-1`.
 **Branch from:** [Step 2](README.md#step-2-select-and-qualify-delivery).
-**Return:** after configuring this choice, [Action 3](README.md#step-3-choose-the-secret-owner);
-qualify the installed controller at [Action 7](README.md#step-7-accept-controller-authorization-and-recovery).
+**Return:** the selected Flux path rejoins at
+[Action 7](README.md#step-7-accept-controller-authorization-and-recovery) after reconciliation.
+The direct alternative completes its checks here, then rejoins at
+[Action 8](README.md#step-8-select-and-configure-artifact-supply).
 **Change:** Flux installs native Spinnaker; Spinnaker approves/promotes application Git.
 Explicit direct Spinnaker deployment remains an alternative with separate resource ownership.
 
@@ -171,7 +173,8 @@ Edit in **`<prefix>-tier-1/`**.
 
 Edit `ansible/group_vars/delivery_platform.yml` using the table below. Set the
 existing Tier 1 kubeconfig/context explicitly; keep `delivery_platform_install_harbor: false`
-for this controller-only pass. Both delivery branches return to Stage 7 Action 3 before installation.
+for this controller-only pass. The Flux branch continues through the Flux procedure.
+The direct branch uses the native installer linked in Step 3 below.
 
 Follow the [common installer prerequisites](procedures/delivery-installer.md#prerequisites)
 and populate the ignored local copy of
@@ -432,8 +435,11 @@ No automated restore, reverse migration or stale-execution cancellation is impli
 Check the selected workload, persistence and export scope against the
 [Spinnaker installation figure](#figure-spinnaker-installation) before running the staged installer.
 
-For first installation, use [Stage 7 Actions 3-6](README.md#step-3-choose-the-secret-owner) in order.
-The main page supplies Secret-owner, render, checksum and apply commands; this section explains their output.
+For this alternative, set `delivery_platform_owner: ansible` and
+`delivery_platform_spinnaker_delivery_mode: direct` in `ansible/group_vars/delivery_platform.yml`.
+Complete [native installer Steps 3–7](procedures/delivery-installer.md#3-choose-the-secret-owner)
+for Secret ownership, render, checksum review and staged apply. Then complete Step 4 below and
+rejoin Stage 7 at artifact supply, Step 8.
 Native rendering is offline: the supplied base, product configuration, dependencies
 and scoped target contracts are all included. The output directory contains:
 

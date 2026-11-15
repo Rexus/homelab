@@ -5,10 +5,10 @@
 For Flux ownership the native renderer preserves product contracts and exports encrypted resources;
 Flux performs installation/reconciliation. Never run both writers against the same resources.
 
-**First installation:** follow [Stage 7's numbered actions](../README.md#deployment-actions).
-This procedure supports reconciliation, adoption and later changes to an accepted installation.
-Use the existing selected inputs and Secret owner; do not repeat input creation or commission
-new state merely to reconcile the controller or registry.
+**First installation:** select the controller in [Stage 7](../README.md#deployment-actions).
+For its explicit Ansible alternative, continue here at Step 3 with the configured controller inputs.
+This procedure also supports reconciliation and later changes to an accepted installation.
+Reuse its selected inputs and Secret owner for those changes.
 
 **Working repository:** `<prefix>-tier-1` (source: `tier-1/`). The
 [delivery role](../../../../tier-1/ansible/roles/delivery_platform) owns product
@@ -81,7 +81,7 @@ For the controller-only installation, set `delivery_platform_install_harbor: fal
 | --- | --- |
 | `delivery_platform_controller` | Explicit `argocd`, `spinnaker` or `none`; an empty choice fails |
 | `delivery_platform_action` | `render` by default; `apply` changes the selected cluster |
-| `delivery_platform_owner` | `flux` for the selected fresh Tier 1 path; legacy default `ansible` changes only after explicit adoption |
+| `delivery_platform_owner` | `ansible` for this direct installer; use the Flux procedure for `flux` ownership |
 | `delivery_platform_spinnaker_delivery_mode` | `flux` runs promotion Jobs and observes applications; `direct` is a separate explicit alternative |
 | `delivery_platform_kubeconfig`, `delivery_platform_context` | Both explicit for apply |
 | `delivery_platform_oidc_issuer`, `delivery_platform_oidc_ca_pem` | Exact HTTPS issuer without trailing slash and public IdP CA chain |

@@ -123,6 +123,7 @@ Run from **`<prefix>-tier-0/`**:
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
   -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml \
+  -e @ansible/group_vars/foundation.yml \
   -e @ansible/group_vars/issuer.yml ansible/playbooks/deployment/hsm-issuer.yml
 ```
 
@@ -130,6 +131,10 @@ Expected result: approved packages/configuration installed, original token visib
 account, native signer configuration validated, and provider environment bound to the inactive
 service. No key is created/imported and issuance stays stopped. A missing token or mismatched bundle
 stops the operation. YubiHSM's local connector listens only on loopback; it is not a signing API. [3]
+
+Load `foundation.yml` after `hsm.yml` so the issuer uses its existing `platform_host_ips` map.
+For a named environment, also load `all.<env>.yml` and `foundation.<env>.yml` after these base
+inputs, before `issuer.yml`.
 
 The direct issuer, inspection and hardware-token recipes run the Tier 0 controller precheck for
 setup `hsm` first, including its cryptographic dependencies, without requiring Terraform. On a
@@ -169,6 +174,7 @@ Run each explicit operation from **`<prefix>-tier-0/`**, with the existing `HSM_
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
   -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml \
+  -e @ansible/group_vars/foundation.yml \
   -e @ansible/group_vars/issuer.yml -e openxpki_token_operation=inspect \
   ansible/playbooks/deployment/hsm-token.yml
 ```

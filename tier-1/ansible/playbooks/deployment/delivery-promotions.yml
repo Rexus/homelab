@@ -1,9 +1,17 @@
 ---
+- name: Prepare promotion rendering and import tooling
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: delivery-promotions
+    control_node_require_terraform: false
+
 - name: Render or reconcile Tier 1 Spinnaker promotion pipelines
   hosts: localhost
   connection: local
   gather_facts: false
   vars:
     ansible_python_interpreter: "{{ ansible_playbook_python }}"
-  roles:
-    - delivery_promotion
+  tasks:
+    - name: Run promotion rendering or import after tooling preparation
+      ansible.builtin.include_role:
+        name: delivery_promotion

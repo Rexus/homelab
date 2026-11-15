@@ -230,12 +230,19 @@ The role verifies the package before updating the source and waits for exact sou
 and explicit affected health. Bootstrap `platform` stays immutable unless separately approved;
 Flux's `flux2` HelmRelease upgrades through `platform-base` in the platform source.
 This route requires no Spinnaker. It still requires independently reachable approved Git/artifacts.
+For a separately approved bootstrap `platform` change, also set
+`flux_maintenance_canary_sha256` to the accepted `cluster_platform_flux_canary_sha256` value.
+The maintenance role checks the reconciled canary before accepting that revision.
 
 On failure, keep the affected source/consumers fenced and inspect the actual revision/conditions.
 Do not advance another revision to hide a failed migration. A Git revert cannot reverse database
 schema changes; follow [the upgrade gate](01-hosting/maintenance.md#upgrade-gate).
 
 ## Operate promotions and pipeline definitions
+
+For a first installation, complete the deployment procedure's worker publication, initial application
+source and suspension handoff before importing pipelines.
+[First-use promotion sequence](../03-deployment/stage-07-delivery/procedures/flux-platform.md#promotion-and-acceptance).
 
 From **`<prefix>-tier-1/`**, initialize `--setup delivery-promotions`; edit
 `ansible/group_vars/delivery_promotion.yml` using its exact schema. Retain a real digest-pinned
@@ -290,6 +297,8 @@ Operation `resume` requires the independently accepted application head revision
 to its protected branch while still suspended, waits for the exact approved head SHA, then unfences
 only after data and execution fencing are accepted. Reimport reviewed pipeline
 definitions before enabling new triggers; restoration must not replay stale promotions.
+Set `flux_maintenance_application_branch` to the original `cluster_platform_flux_application_branch`
+before resuming a site with a custom branch name.
 
 ## Choose another task
 

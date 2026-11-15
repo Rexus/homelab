@@ -293,6 +293,10 @@ class FluxOwnership(TierRepositoryTestCase):
         record.write_text('[Retained view](docs/auto-docs/reference/diagrams/tier1-flux-ownership.svg)\n')
         self.generate('--refresh')
         self.assertEqual(legacy.read_bytes(), canonical.read_bytes())
+        record.unlink()
+        self.generate('--refresh')
+        self.assertFalse(legacy.exists())
+        self.assertTrue(canonical.is_file())
 
     @unittest.skipUnless(os.name != 'nt', 'Requires native Bash')
     def test_generated_initializer_creates_ansible_only_inputs_and_preserves_private_files(self):

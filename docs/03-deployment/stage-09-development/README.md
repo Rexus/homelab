@@ -299,6 +299,11 @@ In **`<prefix>-tier-1/ansible/group_vars/development_platform.yml`**, set `[gitl
 private hostname/domain, ingress class and existing OIDC issuer. Load the data-service overlay last
 in each command below; it supplies the accepted endpoints, buckets and toolbox backup schedule.
 
+For the selected Flux path, set `development_platform_owner: flux` and
+`development_platform_flux_migration: fresh`. Fill `development_platform_flux_root` with the absolute
+private platform checkout's `clusters/tier1` directory and `development_platform_flux_age_recipients`
+with its retained public recipient list. Existing releases use the adoption path linked above.
+
 In **Keycloak**, register the confidential client with callback
 `https://<gitlab>/users/auth/openid_connect/callback`, stable `sub` and approved membership policy.
 The [GitLab input reference](procedures/gitlab.md#prepare-dependencies) defines the exact protocol and TLS contracts.

@@ -1,6 +1,6 @@
 # Operator walkthrough checklist
 
-Guide sequences rechecked 2026-11-13 against the current worktree, from the
+Guide sequences rechecked 2026-11-15 against the current worktree, from the
 perspective of a software engineer with newly installed servers and UniFi switches.
 This is the maintainer's working checklist, not generated
 project documentation or a claim of production readiness.
@@ -18,6 +18,43 @@ Validation: 75 distinct focused regression checks passed, with targeted navigati
 the final correction; 576 Bash blocks passed syntax checks. Original Markdown anchors were retained.
 
 ## Current source consistency review
+
+### Import usability and cross-repository correspondence, 2026-11-15
+
+Reviewed Foundation and all ten deployment stages against their actual setup owners, input files,
+controller preparation, branch/rejoin links and operations/design routes. The source and generated
+manuals share the same capability map; original local inputs, resource keys and state remain owned
+by their deployment. No live infrastructure was contacted or changed.
+
+- VM adoption and generic state tasks show example prompt answers, where to discover actual values,
+  and expected output. The import example retains one logical key while changing only the VMID.
+  Exact-address guards reject whole modules before state removal. Existing local `prod`/default
+  context remains explicit; custom backends and overlays must retain their recorded context.
+- Native import loads `.env.local` through the same non-evaluating provider parser as `deploy.sh`.
+  Malformed input errors identify file/line without echoing private contents. PTY fixtures exercise
+  bad paths, missing state/inputs, failed initialization, literal credentials, exact import and login survival.
+- Hardware issuer calls retain the foundation host/IP map after HSM inputs. Monitoring/recovery
+  scheduling, NetBox/LDAP reader provisioning and promotion export prepare controller dependencies
+  before dynamic role loading.
+- Selected Flux installation now has explicit Secret/canary, promotion rendering, initial application,
+  source resumption and pipeline import actions. Retained direct-owner alternatives rejoin correctly.
+  Later observability/development and external-GitLab runner choices name their export dependencies.
+- Four Flux-related SVGs answer different questions: Tier 1 ownership, Tier 1 node/runtime placement,
+  Tier 0 platform services and protected execution/recovery. The render record names those scopes.
+  The renderer resolves sources beside itself in generated repositories, and refresh removes a legacy
+  alias after its last project-owned link disappears. No independent SVG version was added.
+
+The 79-case audit baseline passed 78 checks and exposed a stale Stage 7 assertion for the superseded
+direct-apply journey. That assertion now checks the selected Flux render/approval route and retained
+direct-owner branch separately. The 53-case integration pass then exposed an outdated role-ownership
+inventory and eager parsing of the NetBox role. Updated the explicit ownership contract and deferred
+both account roles until dependency preparation. Seven focused follow-up checks passed, including all
+source/generated playbook syntax, account entry points, dependency refusal and documentation links.
+Seven terminal import scenarios also passed. No failure or skip remains in those follow-up runs.
+Repository syntax review parsed 180 Python files, 723 YAML inputs, 29 shell files and 790 Bash blocks.
+The diagram audit rendered 28 cases in both source and generated repositories with identical bytes
+and geometry; visual review and source correspondence are in the adjacent render record.
+These checks do not qualify live import, product deployment, hosted GitHub rendering or recovery.
 
 ### Independent Tier 1 Flux ownership, 2026-11-14
 

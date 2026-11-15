@@ -1,4 +1,10 @@
 ---
+- name: Prepare independent recovery controller dependencies
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: control-backup
+    control_node_require_terraform: false
+
 - name: Require an assigned independent recovery target
   hosts: localhost
   connection: local
@@ -14,5 +20,7 @@
   become: true
   serial: 1
   any_errors_fatal: true
-  roles:
-    - control_backup
+  tasks:
+    - name: Install the selected independent recovery schedule
+      ansible.builtin.include_role:
+        name: control_backup

@@ -388,14 +388,15 @@ Render from **`<prefix>-tier-0/`**:
 
 ```bash
 read -r -p 'Prepared monitoring inventory host: ' MONITOR_HOST
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml --limit "${MONITOR_HOST:?Select the prepared host}" ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/foundation.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass -e infrastructure_monitoring_action=render
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml --limit "localhost,${MONITOR_HOST:?Select the prepared host}" ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/foundation.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass -e infrastructure_monitoring_action=render
 ```
 
-Review the private rendered configuration. For **12b**, supply that accepted host override last on both
+The recipe prepares its controller collections before rendering. Keep `localhost` in `--limit`
+so that precheck runs. Review the private rendered configuration. For **12b**, supply that accepted host override last on both
 commands. Apply from **the same Tier 0 root**:
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml --limit "${MONITOR_HOST:?Select the prepared host}" ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/foundation.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass -e infrastructure_monitoring_action=apply
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml --limit "localhost,${MONITOR_HOST:?Select the prepared host}" ansible/playbooks/deployment/infrastructure-monitoring.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/foundation.yml -e @ansible/group_vars/infrastructure_monitoring.yml -e @ansible/group_vars/infrastructure_monitoring_secrets.yml --ask-vault-pass -e infrastructure_monitoring_action=apply
 ```
 
 **Expected:** native Netdata history/rules/source jobs, private notifications and detector heartbeat installed.

@@ -57,6 +57,18 @@ to **whichever repository owns the deployment**, not to the upstream checkout or
 Templates can override the state path through `TEMPLATE_STATE_PATH`.
 Check the owning wrapper before accepting any default. Do not invent a new state because the old one is missing.
 
+For example, an `infrastructure-runner` deployment run from **`homelab-tier-0/`** without `--env`
+has the following answers. This is one example; use the setup/environment that owns your object.
+
+| Prompt in Step 3 | Example answer | Where to find it |
+| --- | --- | --- |
+| `Original Terraform root directory:` | `terraform/deployments/infrastructure-runner` | Existing folder under this repository's `terraform/deployments/`; its name is the original setup |
+| `Original local state file:` | `.terraform/state/infrastructure-runner/prod/terraform.tfstate` | Existing file under `.terraform/state/`, using the recorded setup/environment |
+| `Original TF_DATA_DIR directory:` | `.terraform/data/infrastructure-runner/prod` | Same setup/environment under `.terraform/data/`; working files, separate from the state |
+
+Type only the answer after each prompt, then press Enter. Do not type `<setup>` literally.
+If the paths do not exist or the original run used another backend/workspace, recover that context first.
+
 ### 3. Select and initialize the existing local state
 
 For the recorded **local backend and Terraform `default` workspace**, enter the three paths from
@@ -90,6 +102,15 @@ test "$(terraform -chdir="$IAC_ROOT" workspace show)" = default || {
 }
 terraform -chdir="$IAC_ROOT" state list
 ```
+
+Example final output:
+
+```text
+module.vms["iac-1"].proxmox_virtual_environment_vm.this
+```
+
+This **resource address** is the whole line, including brackets and quotes. It identifies the object
+under the logical key `iac-1`; it is neither its VMID nor a filename. Keep it for the selected task.
 
 Stop on initialization/workspace errors. Providers must be available from the approved source/mirror.
 Initialization can rebuild missing working-data files; the original infrastructure state must already exist.
@@ -137,9 +158,17 @@ instead: its old-binding removal must be followed by import of the validated rep
 
    ```bash
    read -r -p 'Exact leaf resource address from state list: ' IAC_ADDRESS
+   terraform -chdir="$IAC_ROOT" state list | grep -Fx -- "$IAC_ADDRESS" >/dev/null || {
+     printf '%s\n' 'Copy one exact resource line from state list; do not select a whole module.' >&2
+     exit 1
+   }
    terraform -chdir="$IAC_ROOT" state show "$IAC_ADDRESS"
    terraform -chdir="$IAC_ROOT" state rm -dry-run "$IAC_ADDRESS"
    ```
+
+   Example answer: `module.vms["iac-1"].proxmox_virtual_environment_vm.this`.
+   Copy your object's whole line from the earlier listing. Expected preview:
+   `Would remove module.vms["iac-1"].proxmox_virtual_environment_vm.this`.
 
 3. Require exactly the intended match. The following command changes state immediately; it has
    no separate approval prompt and does not remove any host-side disk or VM. [1]
@@ -177,12 +206,17 @@ It needs matching credentials/inputs and must not commit apparent deletions whil
 
    ```bash
    test -s "$IAC_ARCHIVE/before.tfstate" || exit 1
+   printf 'Selected state file: %s\n' "$IAC_STATE"
    read -r -p 'Verified absolute state-file path to archive: ' IAC_CONFIRM_STATE
    test "$IAC_CONFIRM_STATE" = "$IAC_STATE" || exit 1
    test "$(terraform -chdir="$IAC_ROOT" workspace show)" = default || exit 1
    test -f "$IAC_STATE" && test ! -e "$IAC_ARCHIVE/terraform.tfstate" || exit 1
    mv -- "$IAC_STATE" "$IAC_ARCHIVE/terraform.tfstate"
    ```
+
+   At the prompt, copy the **full absolute path** printed by `Selected state file:`, for example
+   `/home/operator/src/homelab-iac/homelab-tier-0/.terraform/state/infrastructure-runner/prod/terraform.tfstate`.
+   Do not enter the archive directory or another setup's state.
 
 3. Quarantine associated saved plans, exported plan JSON and retry receipts for this deployment,
    including matching `.context`/`.applied.context` files under `.terraform/plans/`. Never apply them

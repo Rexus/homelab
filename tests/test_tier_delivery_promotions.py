@@ -430,13 +430,34 @@ class PromotionPipelineImport(TierRepositoryTestCase):
         inputs["delivery_promotion_controls_accepted"] = dict.fromkeys(inputs["delivery_promotion_controls_accepted"], True)
         return inputs
 
-    def run_role(self, inputs):
+    def run_role(self, inputs, tier=None, environment=None):
+        tier = tier or UPSTREAM / "tier-1"
         variables = Path(self.temp.name) / "inputs.json"
         variables.write_text(json.dumps(inputs))
         return subprocess.run(["ansible-playbook", "-i", "localhost,",
                                "ansible/playbooks/deployment/delivery-promotions.yml", "-e", "@" + str(variables)],
-                              cwd=UPSTREAM / "tier-1", capture_output=True, text=True, timeout=300,
-                              env=dict(os.environ, ANSIBLE_CONFIG=str(UPSTREAM / "tier-1/ansible/ansible.cfg")))
+                              cwd=tier, capture_output=True, text=True, timeout=300,
+                              env=dict(environment or os.environ, ANSIBLE_CONFIG=str(tier / "ansible/ansible.cfg")))
+
+    @unittest.skipUnless(NATIVE, "Requires native Ansible")
+    def test_export_tool_failure_stops_source_and_generated_entrypoints_before_output(self):
+        self.generate()
+        tools = Path(self.temp.name) / "unavailable-tools"
+        tools.mkdir()
+        sops = tools / "sops"
+        sops.write_text("#!/bin/sh\nprintf 'Fixture unavailable SOPS\\n' >&2\nexit 1\n")
+        sops.chmod(0o755)
+        environment = dict(os.environ, PATH=str(tools) + os.pathsep + os.environ["PATH"],
+                           CONTROL_NODE_COLLECTIONS_MODE="check")
+        for index, tier in enumerate((UPSTREAM / "tier-1", self.root / "verify-tier-1")):
+            with self.subTest(tier=tier):
+                output = Path(self.temp.name) / f"missing-tool-{index}"
+                inputs = self.inputs(output)
+                inputs["delivery_promotion_flux_output"] = str(Path(self.temp.name) / "platform")
+                result = self.run_role(inputs, tier=tier, environment=environment)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("Setup delivery-promotions cannot run sops --version", result.stdout)
+                self.assertFalse(output.exists(), result.stdout + result.stderr)
 
     @unittest.skipUnless(NATIVE, "Requires native Ansible and OpenSSL")
     def test_native_gate_import_is_repeatable_and_preserves_stable_ids(self):

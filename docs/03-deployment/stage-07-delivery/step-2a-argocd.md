@@ -7,8 +7,8 @@ over Flux-owned resources. Existing sites are preserved until deliberate adoptio
 
 **Working repository:** `<prefix>-tier-1`.
 **Branch from:** [Step 2](README.md#step-2-select-and-qualify-delivery).
-**Return:** after configuring this choice, [Action 3](README.md#step-3-choose-the-secret-owner);
-accept the installed controller at [Action 7](README.md#step-7-accept-controller-authorization-and-recovery).
+**Return:** after installation and the acceptance checks below, continue at
+[Action 8](README.md#step-8-select-and-configure-artifact-supply).
 **Change:** select application GitOps instead of Spinnaker release pipelines.
 
 Install one Argo CD release in the accepted Tier 1 cluster, with explicit repository and namespace policy.
@@ -77,6 +77,7 @@ Edit the existing `ansible/group_vars/delivery_platform.yml` created in
 [Stage 7 Action 2](README.md#step-2-create-and-configure-the-selected-controller):
 
 ```yaml
+delivery_platform_owner: ansible
 delivery_platform_controller: argocd
 delivery_platform_install_harbor: false
 ```
@@ -122,11 +123,12 @@ Test denied sources/destinations and an ordinary user before enabling sync.
 
 ## Step 3: Install and verify
 
-Return to [Stage 7 Action 3](README.md#step-3-choose-the-secret-owner) to choose the Secret owner,
-then follow Actions 4-6 for render, review and apply. Do not run another installer from this page.
+Complete [native installer Steps 3–7](procedures/delivery-installer.md#3-choose-the-secret-owner)
+using the Argo CD inputs above. Choose the Secret owner, render, review and apply the same inputs.
+That procedure supplies the direct-owner commands for this alternative.
 ### Acceptance
 
-After the main guide's Step 6 apply succeeds, test SSO with allowed and denied users, rejected
+After the native installer's apply succeeds, test SSO with allowed and denied users, rejected
 sources/destinations, one bounded application, rollback and independent recovery. Health alone
 is insufficient. Do not repeat input creation or installation to run these checks.
 Continue with [Action 8 artifact supply](README.md#step-8-select-and-configure-artifact-supply) after acceptance.

@@ -259,6 +259,9 @@ The existing receiver and cluster recipes do not install these services.
 
 Render the complete selected configuration before changing the host:
 
+The recipe prepares its controller collections first. Keep `localhost` in `--limit` so that
+precheck runs before the selected monitor.
+
 For **1b: existing host**, append `-e "@ansible/inventory/host_vars/$MONITOR_HOST.yml"` to this render command
 and the Step 3 apply command. Managed `mon-1` needs no connection override file.
 
@@ -267,7 +270,7 @@ Run from **`<prefix>-tier-0/`**.
 ```bash
 read -r -p 'Monitoring inventory host: ' MONITOR_HOST
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
-  --limit "${MONITOR_HOST:?Select the prepared host}" \
+  --limit "localhost,${MONITOR_HOST:?Select the prepared host}" \
   ansible/playbooks/deployment/infrastructure-monitoring.yml \
   -e @ansible/group_vars/all.yml -e @ansible/group_vars/foundation.yml \
   -e @ansible/group_vars/infrastructure_monitoring.yml \
@@ -348,7 +351,7 @@ Run from **`<prefix>-tier-0/`**.
 ```bash
 read -r -p 'Monitoring inventory host: ' MONITOR_HOST
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
-  --limit "${MONITOR_HOST:?Select the prepared host}" \
+  --limit "localhost,${MONITOR_HOST:?Select the prepared host}" \
   ansible/playbooks/deployment/infrastructure-monitoring.yml \
   -e @ansible/group_vars/all.yml -e @ansible/group_vars/foundation.yml \
   -e @ansible/group_vars/infrastructure_monitoring.yml \

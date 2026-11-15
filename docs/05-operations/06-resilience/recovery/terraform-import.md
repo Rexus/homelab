@@ -1,4 +1,4 @@
-# Rebind a Linux VM after a full clone or restore
+# Import a replacement Linux VM into Terraform
 
 Bind a validated replacement VMID to the existing logical Terraform resource address.
 Use this after a full clone or an accepted restore, with the old VM fenced and all writers paused.
@@ -21,6 +21,26 @@ This procedure follows the [Linux deployment wrapper](../../../../shared/scripts
 and [VM resource](../../../../tier-0/terraform/modules/vm/main.tf).
 Templates, LXC and Kubernetes use their own state/input contracts.
 
+## What will I enter?
+
+The examples below move **`iac-1` from VMID `611` to `612` on `pve01`**, in a collection
+whose prefix is `homelab`. They illustrate the answers; use your own existing deployment.
+Run every command in this guide from **the tier repository that originally created the VM**,
+for example **`homelab-tier-0/`**, not Shared or the Proxmox host.
+
+| Asked value | Example answer | Find your value |
+| --- | --- | --- |
+| Deployment setup | `infrastructure-runner` | The first argument in the original `bash scripts/deploy.sh <setup>` command; Step 2 prints this repository's `.deployment-setups` |
+| Setup group-vars filename | `infrastructure_runner.yml` | File under `ansible/group_vars/` used by that deployment; press Enter for the displayed default |
+| Shared directory | `../homelab-shared` | Sibling checkout used by this tier's `scripts/deploy.sh`; press Enter for the displayed default |
+| VM resource address | `module.vms["iac-1"].proxmox_virtual_environment_vm.this` | Copy the **whole line** for your VM from Step 3's `terraform state list`; Step 4 verifies it |
+| Replacement import ID | `pve01/612` | New VM's **Proxmox node name** and **VMID**, shown in the Proxmox tree/Summary; not its DNS name or IP |
+
+Type answers **at the prompt that ends in `:`**, then press Enter. Do not type the prompt itself,
+shell quotes or the variable name. Blocks marked `text` show example output; only `bash` blocks run.
+`IAC_*` variables hold your answers for later commands. Keep the same maintenance shell open;
+never paste a later command into a new terminal with those variables unset.
+
 ## Steps
 
 1. [Open the maintenance shell](#1-open-the-maintenance-shell).
@@ -28,8 +48,8 @@ Templates, LXC and Kubernetes use their own state/input contracts.
 3. [Initialize and back up the original state](#3-initialize-and-back-up-the-original-state).
 4. [Select and inspect the old VM binding](#4-select-and-inspect-the-old-vm-binding).
 5. [Edit the replacement VMID](#5-edit-the-replacement-vmid).
-6. [Export the original credentials](#6-export-the-original-credentials).
-7. [Prepare the original input layers](#7-prepare-the-original-input-layers).
+6. [Load the deployment's `.env.local`](#6-load-the-deployments-envlocal).
+7. [Prepare the Terraform input files](#7-prepare-the-terraform-input-files).
 8. [Enter the new identity and preview removal](#8-enter-the-new-identity-and-preview-removal).
 9. [Remove the old state binding](#9-remove-the-old-state-binding).
 10. [Import the existing replacement](#10-import-the-existing-replacement).
@@ -67,6 +87,8 @@ Run from **the same owning tier root, at the `state-maintenance>` prompt**:
 ```bash
 umask 077
 test -f .deployment-setups || { printf '%s\n' 'Run from the original tier repository root.' >&2; exit 1; }
+printf '%s\n' 'Available deployment setups:'
+cat .deployment-setups
 read -r -p 'Original deployment setup: ' IAC_SETUP
 grep -Fxq -- "$IAC_SETUP" .deployment-setups || {
   printf 'Unknown setup: %s. Available setups:\n' "$IAC_SETUP" >&2
@@ -96,6 +118,19 @@ while true; do
     "$IAC_SHARED" "$IAC_SHARED_DEFAULT" >&2
 done
 ```
+
+Example terminal answers (the two empty answers accept the defaults):
+
+```text
+Original deployment setup: infrastructure-runner
+Setup group-vars filename [infrastructure_runner.yml]:
+Shared repository directory [../homelab-shared]:
+```
+
+This selects `terraform/deployments/infrastructure-runner/terraform.tfvars` and
+`ansible/group_vars/infrastructure_runner.yml`. A setup is a deployment name, **not** a VM hostname,
+VMID, tier number or environment name. If you do not know its owner, look for the VM's logical key
+in the tier's `terraform/deployments/*/terraform.tfvars` before continuing.
 
 **Expected:** a valid original setup, group-vars file and Shared checkout. A mistyped Shared path
 prints the expected file and asks again; Terraform has not run yet.
@@ -139,24 +174,50 @@ printf 'Private state archive: %s\n' "$IAC_ARCHIVE"
 terraform -chdir="$IAC_ROOT" state list
 ```
 
+Example of the VM line to select from the final output:
+
+```text
+Private state archive: /home/operator/src/homelab-iac/homelab-tier-0/.local-archive/infrastructure-runner-prod-20261115T120000Z
+module.vms["iac-1"].proxmox_virtual_environment_vm.this
+```
+
+Other lines may describe other VMs, containers or lookup data. Choose only the VM being replaced;
+the key `iac-1` matches its entry in `vm_instances` in the deployment's `terraform.tfvars`.
+
 Stop on a missing state, initialization error or unexpected workspace. Providers must be available
 from the approved source/mirror. State contains secrets, so retain the private archive and independent backup.
 Preserve all unrelated bindings and the complete state. Reserve `state mv` for logical-address changes.
 
 ## 4. Select and inspect the old VM binding
 
-Select the exact existing **leaf VM resource address** from that listing. Retain its original
-module and host key; do not invent an address or select the whole module.
+A **resource address** is Terraform's name for one managed object. For example,
+`module.vms["iac-1"].proxmox_virtual_environment_vm.this` identifies the VM under the logical key
+`iac-1`; it is not its VMID. Copy that entire line from Step 3, including brackets and double quotes.
+Do not enter only `iac-1`, `611`, `vm_instances` or `module.vms`.
 
 Run from **the same owning tier root**.
 
 ```bash
 read -r -p 'Exact existing VM resource address from state list: ' IAC_ADDRESS
+[[ "$IAC_ADDRESS" =~ (^|\.)proxmox_virtual_environment_vm\. ]] &&
+  terraform -chdir="$IAC_ROOT" state list | grep -Fx -- "$IAC_ADDRESS" >/dev/null || {
+    printf '%s\n' 'Copy one exact VM resource line from the state listing, then restart at Step 1.' >&2
+    exit 1
+  }
 terraform -chdir="$IAC_ROOT" state show "$IAC_ADDRESS"
 ```
 
-Record the displayed old `id`, `vm_id`, `node_name`, disks and NIC/MAC. Compare them with the
-original guest and the independently validated replacement before proceeding.
+Example prompt and relevant parts of its output:
+
+```text
+Exact existing VM resource address from state list: module.vms["iac-1"].proxmox_virtual_environment_vm.this
+id        = "611"
+node_name = "pve01"
+vm_id     = 611
+```
+
+**Expected:** the old VM's identity, not the replacement yet. Record its displayed disks and NIC/MAC.
+Compare them with the original guest and the independently validated replacement before proceeding.
 
 <a id="1-record-the-new-identity-in-the-owning-inputs"></a>
 <a id="2-record-the-replacement-vmid"></a>
@@ -165,7 +226,9 @@ original guest and the independently validated replacement before proceeding.
 
 Edit **the owning tier's `terraform/deployments/<setup>/terraform.tfvars`**, using the selected
 deployment's `variables.tf` as its schema. Set that guest's `vm_instances` entry's `vm_id`
-to the accepted replacement VMID. Retain its logical host key, disks, storage, network and addresses.
+to the accepted replacement VMID. In the running example, edit **only `vm_instances["iac-1"].vm_id`
+from `611` to `612`**. Keep the key `iac-1`. Do not run the deployment yet.
+Retain its logical host key, disks, storage, network and addresses.
 For renumbering, preserve the original NIC/MAC through the [full-clone procedure](../../01-hosting/change-vmid.md).
 
 Retain the original template selection for future recreation. Current Linux VM modules preserve the
@@ -183,42 +246,59 @@ does not reattach or reset its disks. Complete the [data-disk cutover](../../01-
 <a id="2-prepare-the-same-credentials-and-inputs-as-the-wrapper"></a>
 <a id="3-match-credentials-and-inputs"></a>
 
-## 6. Export the original credentials
+<a id="6-export-the-original-credentials"></a>
 
-Native Terraform commands require exported credentials. `.env.local` is loaded by the wrapper
-in its own process. Retain an existing approved environment that provides matching `TF_VAR_proxmox_api_*`
-and `PROXMOX_API_*` values, or enter the original values below with the secret hidden.
-Use the Proxmox web/API root, such as `https://pve.example.com:8006/`.
-The selected identity must already have the required access to the replacement VMID;
-an ACL scoped only to the old ID does not follow a clone.
+## 6. Load the deployment's .env.local
 
-Run from **the same owning tier root**, when credentials need to be exported.
+Load **the owning tier's `.env.local`**, the same file used for the original deployment.
+The shared parser exports literal values without executing the file as shell code. It also maps
+`PROXMOX_API_*` to the Terraform variables, exactly as `deploy.sh` does. No token is requested or printed.
+Keep any original `TF_VAR_ssh_public_key_files` and other overrides unchanged.
+
+Run from **the same owning tier root, at `state-maintenance>`**:
 
 ```bash
-read -r -p 'Verified Proxmox API URL: ' PROXMOX_API_URL
-read -r -p 'Scoped API token ID: ' PROXMOX_API_TOKEN_ID
-read -r -s -p 'API token secret: ' PROXMOX_API_TOKEN_SECRET
-printf '\n'
-export PROXMOX_API_URL PROXMOX_API_TOKEN_ID PROXMOX_API_TOKEN_SECRET
-export TF_VAR_proxmox_api_url="$PROXMOX_API_URL"
-export TF_VAR_proxmox_api_token_id="$PROXMOX_API_TOKEN_ID"
-export TF_VAR_proxmox_api_token_secret="$PROXMOX_API_TOKEN_SECRET"
+source "$IAC_SHARED/scripts/lib/provider-environment.sh"
+env_file_path="$PWD/.env.local"
+load_env_file
+map_provider_env
+check_provider_env
 ```
 
-Retain `TF_VAR_ssh_public_key_files` and every other original environment override.
-For SDN lookup, align endpoint/token aliases with the
+**Expected:** `==> Loading environment file .../.env.local`, with no missing-credential error.
+If the original run used another `--env-file`, set `env_file_path` to that existing file instead.
+For approved runner-injected credentials, set `env_file_path=''` to keep them and run the same calls.
+If the library is missing, refresh the generated Shared checkout from the current kit first.
+
+The token must be able to inspect the replacement VMID. An ACL scoped only to the old ID does not
+follow a clone. For conflicting endpoint/token aliases, follow the
 [provider environment contract](../../../08-reference/environment-variables.md#when-to-use-environment-variables).
 
-## 7. Prepare the original input layers
+<a id="7-prepare-the-original-input-layers"></a>
+
+## 7. Prepare the Terraform input files
 
 Build the wrapper's base input layers in order. Its Shared platform/catalog and tier common files
 are loaded when present, followed by deployment inputs, inventory and `all.yml` plus the actual setup vars.
 For an original deployment with overlays or custom flags, reproduce its exact layers and order
 from [the wrapper](../../../../shared/scripts/deploy.sh) before continuing.
 
+There are no questions in this block. It prepares the same file arguments for the import.
+For the example, the last file is `terraform/deployments/infrastructure-runner/terraform.tfvars`.
+
 Run from **the same owning tier root**, for default production with `--env` omitted.
 
 ```bash
+for IAC_REQUIRED in \
+  "$PWD/ansible/inventory/hosts.yml" \
+  "$PWD/ansible/group_vars/all.yml" \
+  "$PWD/ansible/group_vars/$IAC_GROUP_VARS"
+do
+  test -s "$IAC_REQUIRED" || {
+    printf 'Missing original input: %s\nRecover it before changing state.\n' "$IAC_REQUIRED" >&2
+    exit 1
+  }
+done
 IAC_VARS=()
 for IAC_FILE in \
   "$IAC_SHARED/config/platform.tfvars" \
@@ -256,6 +336,15 @@ printf '%s\n' "$IAC_ADDRESS" "$IAC_IMPORT_ID" > "$IAC_ARCHIVE/rebinding.txt"
 terraform -chdir="$IAC_ROOT" state rm -dry-run "$IAC_ADDRESS"
 ```
 
+Example answer and preview:
+
+```text
+Replacement import ID, node/VMID: pve01/612
+Would remove module.vms["iac-1"].proxmox_virtual_environment_vm.this
+```
+
+Use the Proxmox node name `pve01`, **not** `pve01.example.com` or the guest hostname `iac-1`.
+The new VM's Summary/tree supplies both pieces; its address is also saved in the full-clone record.
 **Expected:** the preview names only the old VM's exact resource address. Nothing has been removed yet.
 Confirm the new `node/VMID` belongs to the validated replacement, then continue to Step 9.
 
@@ -272,12 +361,19 @@ test "${#IAC_VARS[@]}" -gt 0
 terraform -chdir="$IAC_ROOT" state rm -lock-timeout=60s "$IAC_ADDRESS"
 ```
 
+Example output:
+
+```text
+Removed module.vms["iac-1"].proxmox_virtual_environment_vm.this
+Successfully removed 1 resource instance(s).
+```
+
 **Expected:** exactly one resource instance is removed from state. Both VMs still exist.
 The resource is temporarily unbound. Continue immediately to Step 10; do not run plan or apply yet.
 
 ## 10. Import the existing replacement
 
-This records the already created new VM at the **same logical address**. It does not create another VM. [2]
+This records the already created new VM at the **same logical address**. It does not create another VM. [2][5]
 
 Run from **the same owning tier root, in the same maintenance shell**:
 
@@ -288,6 +384,15 @@ if ! terraform -chdir="$IAC_ROOT" import -input=false -lock-timeout=60s \
   exit 1
 fi
 terraform -chdir="$IAC_ROOT" state show "$IAC_ADDRESS"
+```
+
+Example output (other attributes are omitted here):
+
+```text
+Import successful!
+id        = "612"
+node_name = "pve01"
+vm_id     = 612
 ```
 
 **Expected:** import succeeds and `state show` reports the replacement's new `id` and `vm_id`.
@@ -310,6 +415,14 @@ Run from **the same owning tier root**, for default production with `--env` omit
 
 ```bash
 bash scripts/deploy.sh "$IAC_SETUP" --plan-only --env-file .env.local
+```
+
+For the running example, this executes `bash scripts/deploy.sh infrastructure-runner --plan-only --env-file .env.local`.
+The selected VM should refresh as:
+
+```text
+module.vms["iac-1"].proxmox_virtual_environment_vm.this: Refreshing state... [id=612]
+No changes. Your infrastructure matches the configuration.
 ```
 
 Require no unexpected creation, destruction, disk replacement, NIC/MAC, address or credential changes.
@@ -357,3 +470,4 @@ This closes only the maintenance shell and returns to the normal SSH prompt.
 2. [Pinned VM import identifier](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/docs/resources/virtual_environment_vm.md#import).
 3. [Bash invocation: child shells and startup-file options](https://tiswww.case.edu/php/chet/bash/bashref.html#Invoking-Bash).
 4. [Terraform creation/update semantics of ignored attributes](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle#ignore_changes).
+5. [Terraform import arguments and variable files](https://developer.hashicorp.com/terraform/cli/commands/import), accessed 2026-11-15.

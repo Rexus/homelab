@@ -95,6 +95,8 @@ Follow it through service export and reconciliation, then rejoin at Step 7 below
 
 **Alternatives:** **2a** [Argo CD](step-2a-argocd.md) and explicitly selected **direct** Spinnaker
 deployment retain the [native installation procedure](procedures/delivery-installer.md).
+Complete that alternative's Secret, render, review, apply and acceptance steps there, then rejoin
+at Step 8 below. Steps 3–7 describe the selected Flux installation.
 Legacy role defaults remain Ansible. Record a separate approved scope and one writer per object;
 refresh never migrates an existing installation or enables alternative controllers over Flux objects.
 Tier 2 destinations require separate approved integration.

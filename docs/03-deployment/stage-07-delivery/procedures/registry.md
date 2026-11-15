@@ -137,7 +137,9 @@ For first installation, select **8a** in [Stage 7 Step 8](../README.md#step-8-se
 Fill the fields, Secrets and Keycloak client below, then return to Step 9's render/review and Step 10's
 apply. The main guide owns those commands; this page is the registry's configuration/acceptance contract.
 
-For later reconciliation, retain one release owner and use the [native installer](delivery-installer.md).
+For later Flux reconciliation, render with the same retained inputs and approve the platform revision.
+For the retained Ansible alternative, set `delivery_platform_owner: ansible` and use
+the [native installer](delivery-installer.md#3-choose-the-secret-owner).
 Select `delivery_platform_controller: none` for Harbor-only work; it neither uninstalls nor reconfigures
 the accepted controller. Keep `delivery_platform_install_harbor: true` for that registry run.
 The [Harbor figure](#figure-harbor-installation) defines its selected scope.

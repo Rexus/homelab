@@ -7,6 +7,8 @@ flux_maintenance_kubeconfig: REPLACE_WITH_INDEPENDENT_TIER1_KUBECONFIG
 flux_maintenance_context: REPLACE_WITH_TIER1_CONTEXT
 flux_maintenance_source: tier1-platform
 flux_maintenance_revision: REPLACE_WITH_APPROVED_FULL_COMMIT
+# Match cluster_platform_flux_application_branch before resuming applications.
+flux_maintenance_application_branch: delivery
 flux_maintenance_approved: false
 flux_maintenance_recovery_directory: REPLACE_WITH_VERIFIED_INDEPENDENT_PACKAGE_DIRECTORY
 flux_maintenance_custody_accepted: false
@@ -17,3 +19,6 @@ flux_maintenance_health_checks: []
 # Applications stay fenced during recovery; accept both only after actual product recovery/cancellation.
 flux_maintenance_data_restored: false
 flux_maintenance_executions_fenced: false
+# Required only for an approved bootstrap `platform` advance/resume.
+# Retain the accepted cluster_platform_flux_canary_sha256 value from bootstrap inputs.
+flux_maintenance_canary_sha256: ""
