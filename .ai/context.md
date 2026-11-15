@@ -613,7 +613,9 @@ This file keeps durable context for AI-assisted work across sessions.
 - tutorials follow the historical May-era manual Rocky/Alma template guide's action-by-action style,
   not a fixed three-step program. Use as many numbered actions as required in their real execution
   order, with one copyable block per concrete action, short expected results, exact local files/fields
-  and explicit working repository/machine. Preserve user-supplied sequences and meaning while editing.
+  and explicit working repository/machine. Commands use paths relative to that context; absolute
+  paths remain only where required by a tool/configuration input. Preserve user-supplied sequences
+  and meaning while editing.
   Keep OS packages separate from Python environments; put EL10/Debian/Ubuntu differences beside
   the affected action and retain Talos only where it is the actual implementation.
   Re-derive guide workflows from actual prerequisites, installer order, operator state and completion

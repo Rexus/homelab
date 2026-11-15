@@ -28,6 +28,8 @@ Generated auto-docs resolve repository markers to the selected collection prefix
 replace remaining `<...>` inputs before executing an example.
 
 The text above a command or configuration block names its working repository or machine in **bold**.
+Commands use paths relative to that context; absolute repository prefixes and `git -C` are unnecessary.
+Keep absolute paths where a tool or configuration input requires them.
 File paths and variables use inline code, such as `config/platform.tfvars` and
 `default_platform_node_name`. Edit instructions stay above the block or in a short file list;
 command blocks contain the commands to copy. Fences name the actual language: `bash`, `yaml`,

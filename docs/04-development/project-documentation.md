@@ -170,6 +170,7 @@ See [bootstrap LVM expansion](../03-deployment/foundation/bootstrap/step-3b-boot
 ## Writing command examples
 
 Put the **working repository or machine** immediately above each command/configuration example.
+Use paths relative to that context in copyable commands; retain absolute paths only for required inputs.
 Use inline code for file paths and exact variable names; state the edits in a short paragraph or
 file list above the example. Avoid commented path lists and repeated `# Edit:` instructions.
 
