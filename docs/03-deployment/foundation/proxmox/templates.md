@@ -165,9 +165,13 @@ sudo apt-get install -y libguestfs-tools qemu-utils
 On **the same Linux preparation host**, select the workspace containing the verified original file:
 
 ```bash
-read -r -e -p 'Absolute image workspace (example /srv/tier0/artifacts/debian-12): ' DEBIAN_IMAGE_WORKSPACE
+read -r -e -p 'Image workspace (example . when already in artifacts): ' DEBIAN_IMAGE_WORKSPACE
 ls -l "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64.qcow2"
 ```
+
+**Behind the cache:** `virt-customize` inherits the current shell's exported `http_proxy` and
+`https_proxy`. When bootstrap's shell proxy is already loaded, reuse those settings. The command
+below selects the `direct` appliance backend for this build; no additional proxy input is needed. [11][12]
 
 Require the original qcow2 at that path. In **that same preparation-host shell**, create the derivative;
 stop if the output already exists:
@@ -181,7 +185,8 @@ stop if the output already exists:
   }
   cp -- "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64.qcow2" \
     "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2"
-  virt-customize -a "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2" \
+  LIBGUESTFS_BACKEND=direct virt-customize \
+    -a "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2" \
     --install qemu-guest-agent
   sha256sum "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2"
 )
@@ -195,6 +200,16 @@ vendor-signed artifact. Never run `virt-customize` against an image in use by a 
 **Expected output on the preparation host:**
 `$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2` and its printed SHA256.
 Retain the original image, matching manifest, recipe and both digests in the artifact record.
+
+**If customization failed:** resolve the reported error. On **the preparation host**, preserve the
+incomplete output under a new filename, then repeat the derivative block:
+
+```bash
+mv -n -- "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2" \
+  "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.failed-$(date -u +%Y%m%dT%H%M%SZ).qcow2"
+```
+
+Continue only after package installation succeeds and SHA256 is printed; do not publish the failed copy.
 
 For GUI import, transfer that prepared output to the machine whose browser uploads it in Step 4.
 For Terraform publication, place it in the controller's artifact workspace and set that local absolute
@@ -417,7 +432,9 @@ installer artifacts and recovery secrets independently of the cluster and hosted
 8. [Proxmox guest-agent setup and shutdown troubleshooting](https://raw.githubusercontent.com/proxmox/pve-docs/master/qm.adoc).
 9. [Debian cloud image selection and guest-agent policy](https://wiki.debian.org/Cloud/).
 10. [Native offline image customization](https://libguestfs.org/virt-customize.1.html).
+11. [Libguestfs package installation and proxy environment](https://libguestfs.org/virt-builder.1.html).
+12. [Libguestfs backend selection and EL defaults](https://libguestfs.org/guestfs-faq.1.html).
 
 Sources 6–8 checked 2026-11-07; other sources reviewed 2026-10-27.
-Source 10 rechecked 2026-11-15 for file-based customization and host/guest execution scope.
+Sources 10–12 checked 2026-11-15 for file-based customization, appliance networking and build proxy scope.
 Match the selected image's release documentation.

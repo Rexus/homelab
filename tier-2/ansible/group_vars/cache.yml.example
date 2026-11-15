@@ -112,6 +112,9 @@ cache_squid_allowed_domains:
   - .github.com
   - .githubusercontent.com
   - galaxy.ansible.com
+  # Public pip index and package files for the controller/template runtime.
+  - pypi.org
+  - files.pythonhosted.org
 
 # For public Galaxy downloads, add only reviewed artifact redirect hosts for the selected route.
 # Prepared collection archives/internal supply avoid making regional CDN hosts a default dependency.

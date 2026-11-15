@@ -285,6 +285,12 @@ Python module requirements and the declared Proxmox collection. Disk maintenance
 also installs `qemu-img` when missing. Collection downloads stay under `.venv/collections/`.
 Later runs reuse compatible packages without forcing upgrades.
 
+The pip bootstrap uses the process's existing proxy and pip source settings. With public PyPI,
+the cache policy must allow `pypi.org` and `files.pythonhosted.org`; Git collection access alone
+does not provide Python packages. For a proxy 403, follow the
+[cache policy repair](../05-operations/02-software-intake/README.md#python-runtime-installation-reports-a-proxy-403).
+Keep the declared package bounds; an index denied by the proxy can leave pip reporting no matching version.
+
 The template runtime also defaults to pinned Git collection acquisition and honors
 `CONTROL_NODE_COLLECTIONS_SOURCE=galaxy` for explicit Galaxy acquisition. Its standalone
 [Proxmox pin](../../tier-0/ansible/playbooks/vars/template-collection-source.yml) lives in Tier 0's

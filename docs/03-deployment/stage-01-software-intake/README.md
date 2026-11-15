@@ -177,6 +177,9 @@ The bootstrap's default collection precheck uses approved pinned Git sources. Pe
 explicit Galaxy acquisition instead needs its API and approved artifact destinations. Use prepared
 archives for disconnected execution; see [collection source choices](../../08-reference/control-node-tooling.md#collection-sources)
 and [existing-cache recovery](../../08-reference/control-node-tooling.md#recover-an-existing-cache-that-blocks-galaxy).
+Connected Python tooling also needs `pypi.org` for its package index and `files.pythonhosted.org`
+for package files; the example includes both exact hosts. An approved internal pip index or
+prepared wheels can replace that supply. See [repairing blocked pip downloads](../../05-operations/02-software-intake/README.md#python-runtime-installation-reports-a-proxy-403).
 Terraform's connected path also needs `registry.terraform.io` for the locked provider registries,
 plus the selected providers' package hosts. The example includes HashiCorp and GitHub source domains.
 Disconnected execution uses the [prepared provider mirror](../foundation/bootstrap/step-3e-bootstrap-offline.md#9-select-local-sources-and-verify).

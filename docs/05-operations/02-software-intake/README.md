@@ -105,6 +105,37 @@ and the `cache_validation_failover_enabled` option; disabling it skips the takeo
 
 For repeated mirror timeouts or proxy denials, select the [fixed OS source profile](../../08-reference/platform-inputs.md#fixed-package-source-profile), then rerun the owning bootstrap/guest recipe.
 
+### Python runtime installation reports a proxy 403
+
+`Tunnel connection failed: 403 Forbidden` means the proxy rejected the request. Pip may then report
+`No matching distribution found` because it could not read the index. Keep the declared version bounds.
+
+1. In **`<prefix>-tier-2/ansible/group_vars/cache.yml`**, append these entries to the existing
+   `cache_squid_allowed_domains` list when using public PyPI:
+
+   ```yaml
+   - pypi.org
+   - files.pythonhosted.org
+   ```
+
+   If using an approved internal Python index instead, allow its actual index and package-file hosts.
+
+2. Reconcile the policy from **`<prefix>-tier-2/`**:
+
+   ```bash
+   bash scripts/deploy.sh cache --recipe maintenance
+   ```
+
+3. Retry the interrupted template deployment from **`<prefix>-tier-0/`**:
+
+   ```bash
+   bash scripts/proxmox-templates.sh apply --env-file .env.local
+   ```
+
+   **Expected:** runtime requirements install successfully and the command proceeds to the Terraform plan.
+   A failure during initial runtime preparation has not run Terraform or changed the template state.
+   For disconnected execution, use the [prepared wheels](../../03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md#11-install-python-tooling-from-local-wheels).
+
 ### Terraform initialization reports registry access forbidden
 
 1. In **`<prefix>-tier-2/ansible/group_vars/cache.yml`**, add this entry to the existing

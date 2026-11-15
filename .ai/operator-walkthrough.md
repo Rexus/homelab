@@ -19,6 +19,29 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Template runtime PyPI policy gap, 2026-11-15
+
+The operator's template apply failed during pip runtime preparation, before Terraform. Bounded
+requests to the public index and package-file hosts both returned Squid `ERR_ACCESS_DENIED`.
+The cache starter omitted those hosts; it now includes exact `pypi.org` and `files.pythonhosted.org`
+entries. Stage 1 and the tooling reference lead to the operations repair: edit the existing local
+policy, run cache maintenance, then retry apply without changing package bounds or state.
+Three focused controller-dependency, provider-registry and source/generated-documentation checks
+passed; the source link sweep also found no broken paths or anchors.
+The operator's policy reconciliation and subsequent runtime installation remain unverified.
+
+### Debian image preparation behind the cache, 2026-11-15
+
+The original command already inherited bootstrap's exported shell proxy. Its default `libvirt`
+backend failed on proxy DNS and then routing despite a successful host-side repository check.
+The operator reported a successful agent-image build using `direct` and a numeric proxy; a later
+`direct` dry run also confirmed hostname resolution and TCP connectivity to the named cache.
+The guide therefore adds only the command-scoped backend selection to customization, preserving
+the existing proxy environment without another input or IP override. The hostname-based full
+package installation was not separately repeated, and the underlying libvirt fault is not established.
+Successful appliance command output may be captured in its build log; print diagnostic success on
+the host after checking the tool's exit status. Failed derivative outputs must not be published.
+
 ### Predictable package sources, 2026-11-15
 
 Added an opt-in Shared baseline profile for fixed official Rocky/AlmaLinux, enabled EPEL,
