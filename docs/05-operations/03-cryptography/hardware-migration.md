@@ -65,7 +65,7 @@ not product labels. Hardware adoption alone establishes neither PQC nor regulato
 2. In the authorized hardware ceremony, generate the new key using the selected
    vendor procedure. Record public identity and permitted operations; keep PINs,
    wrapping keys and authentication secrets off command lines and out of Git. [1]
-3. Transfer only the approved CSR to the [offline root ceremony](../../03-deployment/stage-03-trust/procedures/offline-root.md).
+3. Transfer only the approved CSR to the [offline root ceremony](../../03-deployment/stage-02-trust/procedures/offline-root.md).
    Return the signed subordinate certificate/public chain, never the root key.
 4. Rehearse the native provider configuration and token lifecycle against the
    restored current database/history. Approve package/schema/configuration migration

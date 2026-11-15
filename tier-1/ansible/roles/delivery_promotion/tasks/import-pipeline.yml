@@ -10,6 +10,7 @@
     headers: "{{ delivery_promotion_gate_headers }}"
     ca_path: "{{ delivery_promotion_gate_ca_path }}"
     validate_certs: true
+    follow_redirects: none
     return_content: true
   register: delivery_promotion_pipeline_catalog
   no_log: true
@@ -33,6 +34,7 @@
     headers: "{{ delivery_promotion_gate_headers }}"
     ca_path: "{{ delivery_promotion_gate_ca_path }}"
     validate_certs: true
+    follow_redirects: none
     return_content: true
     status_code: [200, 404]
   register: delivery_promotion_existing_pipeline
@@ -58,6 +60,7 @@
     headers: "{{ delivery_promotion_gate_headers }}"
     ca_path: "{{ delivery_promotion_gate_ca_path }}"
     validate_certs: true
+    follow_redirects: none
     body_format: json
     body: >-
       {{ delivery_promotion_pipeline | combine(
@@ -76,6 +79,7 @@
     headers: "{{ delivery_promotion_gate_headers }}"
     ca_path: "{{ delivery_promotion_gate_ca_path }}"
     validate_certs: true
+    follow_redirects: none
     return_content: true
   register: delivery_promotion_saved_pipeline
   no_log: true

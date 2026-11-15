@@ -99,7 +99,7 @@ check the selected endpoint/SAN and installed CA rather than restoring an insecu
 ## Step 2: Adopt the platform PKI
 
 Skip this step when the verified Proxmox CA remains the selected API trust.
-Otherwise, after Stage 3 issuance is accepted:
+Otherwise, after Stage 2 issuance is accepted:
 
 1. Approve node/API names, renewal ownership and a rollback certificate. Distribute
    the verified platform root to callers **before** changing the server certificate,

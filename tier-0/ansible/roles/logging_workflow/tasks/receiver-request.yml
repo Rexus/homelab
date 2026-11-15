@@ -1,0 +1,23 @@
+---
+- name: Reuse the retained receiver key and derive the public request
+  ansible.builtin.include_role:
+    name: logging_authority
+    tasks_from: receiver-request
+  vars:
+    logging_receiver_directory: "{{ logging_run.workspace }}/receivers/{{ receiver }}"
+    logging_receiver_name: "{{ receiver }}"
+    logging_receiver_dns: "{{ logging_run.receiver_options.get(receiver, {}).get('dns', logging_run.peer) }}"
+  when: logging_run.action != 'verify'
+
+- name: Inspect the public receiver request
+  community.crypto.openssl_csr_info:
+    path: "{{ logging_run.workspace }}/receivers/{{ receiver }}/server.csr"
+  register: logging_workflow_receiver_csr
+
+- name: Retain the authenticated receiver identity without manual fingerprint entry
+  ansible.builtin.set_fact:
+    logging_workflow_requests: >-
+      {{ logging_workflow_requests + [{'name': receiver, 'profile': 'server',
+      'csr': logging_run.workspace ~ '/receivers/' ~ receiver ~ '/server.csr',
+      'key_sha256': logging_workflow_receiver_csr.public_key_fingerprints.sha256,
+      'san': logging_workflow_receiver_csr.subject_alt_name}] }}

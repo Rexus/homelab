@@ -208,6 +208,11 @@ create_setup_files() {
   create_from_example \
     "$repo_root/ansible/group_vars/$stem.yml.example" \
     "$repo_root/ansible/group_vars/$stem.yml"
+  if [[ "$setup_name" == syslog ]]; then
+    create_from_example \
+      "$repo_root/ansible/group_vars/logging_producers.yml.example" \
+      "$repo_root/ansible/group_vars/logging_producers.yml"
+  fi
   if [[ -f "$repo_root/ansible/group_vars/${stem}_secrets.yml.example" ]]; then
     create_from_example \
       "$repo_root/ansible/group_vars/${stem}_secrets.yml.example" \

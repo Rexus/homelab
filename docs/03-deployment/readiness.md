@@ -63,8 +63,8 @@ Hardware expense, node count and successful VM creation do not establish a level
 | --- | --- | --- |
 | Foundation | Hosts, networks, storage, bootstrap and templates | Approved guests and APIs work; selected node/storage failures and independent restore are tested |
 | Software intake | Stage 1; later retained repositories and OCI extension | Approved pulls, denied bypass/destinations, actual cache behavior, retained content and independent recovery |
-| Protected logging | Stage 2; sources added with each tier | Numbered-event accounting, declared durable checkpoint, receiver/host loss, selected NAS-custody or retention-lock checks, segmented reads and independent restore |
-| Cryptographic trust | Stage 3 and selected key custody | Authorized and denied signing, state/session correctness, selected host/device loss and partition behavior, tier independence and offline restore |
+| Cryptographic trust | Stage 2 and selected key custody | Authorized and denied signing, state/session correctness, selected host/device loss and partition behavior, tier independence and offline restore |
+| Protected logging | Stage 3; sources added with each tier | Numbered-event accounting, declared durable checkpoint, receiver/host loss, selected NAS-custody or retention-lock checks, segmented reads and independent restore |
 | Kubernetes | Stage 4; later tier-local cluster deployments | Expected nodes, endpoint, add-on/audit gates and independent original-state recovery are accepted before applications |
 | Identity | Stage 5 and service-specific access integration | Replication, scoped federation, denied access, replica/IdP loss and lost-credential recovery |
 | Secrets | Stage 6: secret custody, control tools and independent monitoring | Authorized and denied access, audit and recovery; required failures produce alerts without the observed cluster, Tier 1 or normal SSO |

@@ -1,0 +1,258 @@
+---
+- name: Select the completed product's owning cluster
+  ansible.builtin.set_fact:
+    recovery_product_cluster: "{{ platform_recovery.clusters | selectattr('tier', 'equalto', recovery_product.tier | default(1)) | first }}"
+
+- name: Use retained Kubernetes credentials without opening product custody
+  ansible.builtin.set_fact:
+    recovery_kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_product_cluster.kubeconfig }}"
+    recovery_context: "{{ recovery_product_cluster.context }}"
+    recovery_product_record: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-restore.json') | from_json }}"
+    recovery_product_namespace_record: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-namespace.json') | from_json }}"
+    recovery_product_expected_claims: >-
+      {{ [recovery_product.mysql.claim, recovery_product.redis.claim] if recovery_product.kind == 'spinnaker' else
+         [recovery_product.claim] if recovery_product.kind == 'victoriametrics' else
+         recovery_product.data_claims if recovery_product.kind in ['vault-raft', 'netbox-media', 'harbor', 'argocd', 'netdata', 'opensearch'] else [] }}
+
+- name: Require this recovery's independently recorded completed product
+  ansible.builtin.assert:
+    that:
+      - recovery_product_record.version in [1, 2]
+      - recovery_product_record.version == 1 or ('claims' in recovery_product_record and 'namespace' in recovery_product_record and 'kind' in recovery_product_record and 'tier' in recovery_product_record)
+      - recovery_product_record.version == 1 or recovery_product_record.namespace_uid != 'new'
+      - recovery_product_record.plan_sha256 == platform_recovery.plan_sha256
+      - recovery_product_record.recovery_id == platform_recovery.recovery_id
+      - recovery_product_record.product == recovery_product.name
+      - recovery_product_record.backup_id == recovery_product.backup_id
+      - recovery_product_record.kind | default(recovery_product.kind) == recovery_product.kind
+      - recovery_product_record.tier | default(recovery_product.tier | default(1)) | int == recovery_product.tier | default(1) | int
+      - recovery_product_record.namespace | default(recovery_product.namespace) == recovery_product.namespace
+      - recovery_product_namespace_record.plan_sha256 == platform_recovery.plan_sha256
+      - recovery_product_record.namespace_uid == 'new' or recovery_product_record.namespace_uid == recovery_product_namespace_record.uid
+
+- name: Read the actual product namespace without recreating a missing target
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Namespace
+    name: "{{ recovery_product.namespace }}"
+  register: recovery_audit_namespace
+
+- name: Require the original recovered namespace generation
+  ansible.builtin.assert:
+    that:
+      - recovery_audit_namespace.resources | length == 1
+      - recovery_audit_namespace.resources[0].metadata.uid == recovery_product_namespace_record.uid
+
+- name: Resolve the fixed native operation recorded by its adapter
+  ansible.builtin.set_fact:
+    recovery_audit_operation: >-
+      {{ recovery_product_record.restore | combine({
+          'api_version': {'Job': 'batch/v1', 'Restore': 'velero.io/v1', 'Cluster': 'postgresql.cnpg.io/v1',
+                          'OpenSearchSnapshot': 'opensearch'}[recovery_product_record.restore.kind],
+          'namespace': recovery_product_record.restore.namespace | default(
+            recovery_product.velero_namespace | default('velero') if recovery_product_record.restore.kind == 'Restore' else recovery_product.namespace),
+          'name': recovery_product_record.restore.name | default(
+            recovery_product.cnpg_cluster if recovery_product_record.restore.kind == 'Cluster' else
+            recovery_product.name ~ '-' ~ platform_recovery.recovery_id if recovery_product_record.restore.kind == 'Restore' else
+            recovery_product.backup_id)}) }}
+
+- name: Require the native operation type implemented by this product
+  ansible.builtin.assert:
+    that:
+      - >-
+        recovery_audit_operation.kind == ('Restore' if recovery_product.kind in ['harbor', 'argocd', 'netdata'] else
+          'Cluster' if recovery_product.kind == 'cnpg-files' else
+          'OpenSearchSnapshot' if recovery_product.kind == 'opensearch' else 'Job')
+      - recovery_audit_operation.namespace == (recovery_product.velero_namespace | default('velero') if recovery_audit_operation.kind == 'Restore' else recovery_product.namespace)
+
+- name: Read the retained native operation without submitting or modifying it
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: "{{ recovery_audit_operation.api_version }}"
+    kind: "{{ recovery_audit_operation.kind }}"
+    namespace: "{{ recovery_audit_operation.namespace }}"
+    name: "{{ recovery_audit_operation.name }}"
+  register: recovery_audit_native
+  when: recovery_audit_operation.kind != 'OpenSearchSnapshot'
+
+- name: Reject a missing or replaced native operation
+  ansible.builtin.assert:
+    that:
+      - recovery_audit_native.resources | length == 1
+      - recovery_audit_native.resources[0].metadata.uid == recovery_audit_operation.uid
+  when: recovery_audit_operation.kind != 'OpenSearchSnapshot'
+
+- name: Require the original Job to remain successfully complete
+  ansible.builtin.assert:
+    that:
+      - recovery_audit_native.resources[0].status.succeeded | default(0) | int == 1
+      - recovery_audit_native.resources[0].status.failed | default(0) | int == 0
+      - recovery_audit_native.resources[0].status.conditions | default([]) | selectattr('type', 'equalto', 'Complete') | selectattr('status', 'equalto', 'True') | list | length == 1
+      - recovery_audit_native.resources[0].metadata.annotations.get('recovery.homelab/plan-sha256', '') == platform_recovery.plan_sha256
+  when: recovery_audit_operation.kind == 'Job'
+
+- name: Require the original Velero operation and backup to remain complete
+  ansible.builtin.assert:
+    that:
+      - recovery_audit_native.resources[0].status.phase == 'Completed'
+      - recovery_audit_native.resources[0].status.errors | default(0) | int == 0
+      - recovery_audit_native.resources[0].spec.backupName == recovery_product.backup_id
+      - recovery_audit_native.resources[0].metadata.annotations.get('recovery.homelab/plan-sha256', '') == platform_recovery.plan_sha256
+  when: recovery_audit_operation.kind == 'Restore'
+
+- name: Read the original Velero backup identity
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: velero.io/v1
+    kind: Backup
+    namespace: "{{ recovery_product.velero_namespace | default('velero') }}"
+    name: "{{ recovery_product.backup_id }}"
+  register: recovery_audit_backup
+  when: recovery_audit_operation.kind == 'Restore'
+
+- name: Reject a replaced or incomplete native backup catalog entry
+  ansible.builtin.assert:
+    that:
+      - recovery_audit_backup.resources | length == 1
+      - recovery_audit_backup.resources[0].metadata.uid == recovery_audit_operation.backup_uid
+      - recovery_audit_backup.resources[0].status.phase == 'Completed'
+      - recovery_audit_backup.resources[0].status.errors | default(0) | int == 0
+      - recovery_audit_backup.resources[0].spec | to_json(sort_keys=True) | hash('sha256') == recovery_product.backup_spec_sha256
+  when: recovery_audit_operation.kind == 'Restore'
+
+- name: Require the original native PostgreSQL identity and a ready recovered instance
+  ansible.builtin.assert:
+    that:
+      - recovery_audit_operation.name == recovery_product.cnpg_cluster
+      - recovery_audit_native.resources[0].status.systemID | default('') | string == recovery_audit_operation.system_identifier | string
+      - recovery_audit_operation.system_identifier | string == recovery_product.system_identifier | string
+      - recovery_audit_native.resources[0].status.readyInstances | default(0) | int > 0
+  when: recovery_audit_operation.kind == 'Cluster'
+
+- name: Read the original native search snapshot without submitting restoration
+  ansible.builtin.uri:
+    url: "{{ recovery_product.url }}/_snapshot/{{ recovery_product.repository }}/{{ recovery_product.backup_id }}"
+    method: GET
+    client_cert: "{{ platform_recovery.workspace }}/{{ recovery_product.client_cert }}"
+    client_key: "{{ platform_recovery.workspace }}/{{ recovery_product.client_key }}"
+    ca_path: "{{ platform_recovery.workspace }}/{{ recovery_product.ca_path }}"
+    validate_certs: true
+    use_proxy: false
+    follow_redirects: none
+    return_content: true
+  register: recovery_audit_search_snapshot
+  no_log: true
+  when: recovery_audit_operation.kind == 'OpenSearchSnapshot'
+
+- name: Read the actual recovered native search index generations
+  ansible.builtin.uri:
+    url: "{{ recovery_product.url }}/_cat/indices/{{ recovery_product.indices | join(',') }}?format=json&h=index,uuid"
+    method: GET
+    client_cert: "{{ platform_recovery.workspace }}/{{ recovery_product.client_cert }}"
+    client_key: "{{ platform_recovery.workspace }}/{{ recovery_product.client_key }}"
+    ca_path: "{{ platform_recovery.workspace }}/{{ recovery_product.ca_path }}"
+    validate_certs: true
+    use_proxy: false
+    follow_redirects: none
+    return_content: true
+  register: recovery_audit_search_indices
+  no_log: true
+  when: recovery_audit_operation.kind == 'OpenSearchSnapshot'
+
+- name: Require the original complete search snapshot and recovered index UUIDs
+  ansible.builtin.assert:
+    that:
+      - recovery_audit_search_snapshot.json.snapshots | length == 1
+      - recovery_audit_search_snapshot.json.snapshots[0].uuid == recovery_audit_operation.uuid
+      - recovery_audit_search_snapshot.json.snapshots[0].uuid == recovery_product.backup_uid
+      - recovery_audit_search_snapshot.json.snapshots[0].state == 'SUCCESS'
+      - recovery_audit_search_snapshot.json.snapshots[0].shards.failed == 0
+      - recovery_product.indices | difference(recovery_audit_search_snapshot.json.snapshots[0].indices) | length == 0
+      - recovery_audit_search_indices.json | sort(attribute='index') == recovery_audit_operation.indices
+  when: recovery_audit_operation.kind == 'OpenSearchSnapshot'
+
+- name: Resolve actual claim UIDs from current or original adapter receipts
+  ansible.builtin.set_fact:
+    recovery_audit_claim_uids: >-
+      {% set claims = namespace(items={}) -%}
+      {% if recovery_product_record.claims is defined -%}
+      {% set claims.items = recovery_product_record.claims -%}
+      {% elif recovery_product.kind == 'spinnaker' -%}
+      {% for database in ['mysql', 'redis'] -%}
+      {% set saved = lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-' ~ database ~ '-claim.json') | from_json -%}
+      {% if saved.plan_sha256 != platform_recovery.plan_sha256 or saved.namespace_uid != recovery_product_namespace_record.uid -%}
+      {{ undef('Original Spinnaker claim receipt does not belong to this target') }}
+      {% endif -%}
+      {% set claims.items = claims.items | combine({recovery_product[database].claim: saved.uid}) -%}
+      {% endfor -%}
+      {% elif recovery_product.kind in ['vault-raft', 'netbox-media'] -%}
+      {% for claim in recovery_product.data_claims -%}
+      {% set saved = lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-' ~ claim ~ '-claim.json') | from_json -%}
+      {% if saved.plan_sha256 != platform_recovery.plan_sha256 or saved.namespace_uid != recovery_product_namespace_record.uid -%}
+      {{ undef('Original control claim receipt does not belong to this target') }}
+      {% endif -%}
+      {% set claims.items = claims.items | combine({claim: saved.uid}) -%}
+      {% endfor -%}
+      {% elif recovery_product.kind in ['harbor', 'argocd', 'netdata'] -%}
+      {% set saved = lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-velero.json') | from_json -%}
+      {% if saved.plan_sha256 != platform_recovery.plan_sha256 or saved.restore_uid != recovery_audit_operation.uid or saved.backup_uid != recovery_audit_operation.backup_uid -%}
+      {{ undef('Original Velero claim receipt does not belong to this operation') }}
+      {% endif -%}
+      {% set claims.items = saved.claims -%}
+      {% elif recovery_product.kind == 'opensearch' -%}
+      {% set saved = lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-search-snapshot.json') | from_json -%}
+      {% if saved.plan_sha256 != platform_recovery.plan_sha256 or saved.backup_uid != recovery_audit_operation.uuid -%}
+      {{ undef('Original search claim receipt does not belong to this snapshot') }}
+      {% endif -%}
+      {% for claim in saved.claims -%}
+      {% set claims.items = claims.items | combine({claim.name: claim.uid}) -%}
+      {% endfor -%}
+      {% elif recovery_product.kind == 'victoriametrics' -%}
+      {% set values = recovery_audit_native.resources[0].spec.template.spec.containers | map(attribute='env') | flatten | selectattr('name', 'equalto', 'RECOVERY_PVC_UID') | map(attribute='value') | list -%}
+      {% if values | length != 1 -%}
+      {{ undef('Original metrics Job lacks a unique bound data claim UID') }}
+      {% endif -%}
+      {% set claims.items = {recovery_product.claim: values[0]} -%}
+      {% endif -%}
+      {{ claims.items }}
+
+- name: Require the exact typed claim inventory and actual generations
+  ansible.builtin.assert:
+    that:
+      - recovery_audit_claim_uids is mapping
+      - recovery_audit_claim_uids.keys() | list | sort == recovery_product_expected_claims | sort
+      - recovery_audit_claim_uids.values() | select('equalto', 'new') | list | length == 0
+      - recovery_audit_claim_uids.values() | select('equalto', '') | list | length == 0
+
+- name: Read the exact previously recovered data claims without recreating them
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ item.key }}"
+  loop: "{{ recovery_audit_claim_uids | dict2items }}"
+  register: recovery_audit_claims
+
+- name: Reject missing replaced or unbound recovered data volumes
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+      - item.resources[0].metadata.uid == item.item.value
+      - item.resources[0].status.phase == 'Bound'
+  loop: "{{ recovery_audit_claims.results }}"
+
+- name: Reobserve GitLab trigger and execution fences without changing restored data
+  ansible.builtin.include_tasks: gitlab-fence.yml
+  vars:
+    recovery_gitlab_fence_operation: verify
+  when: recovery_product.kind == 'gitlab'

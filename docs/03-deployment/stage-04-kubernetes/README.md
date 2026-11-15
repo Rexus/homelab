@@ -367,12 +367,12 @@ flowchart LR
 **IaC:** **Figure 3: Protected cluster collection.** The Tier 0 [collection playbook](../../../tier-0/ansible/playbooks/deployment/cluster-security-logging.yml)
 and [node inputs](../../../tier-0/ansible/group_vars/cluster_security_logging.yml.example)
 select these three releases from the [Shared role](../../../shared/ansible/roles/cluster_security_logging).
-Scope: cluster sources and bounded local queues; the receiver and its archive are existing Stage 2 services.
+Scope: cluster sources and bounded local queues; the receiver and its archive are existing Stage 3 services.
 Each collector owns its node-local queue; collectors do not replicate queue contents.
 
 For [Figure 3](#figure-3-protected-cluster-collection), merge the rendered `receiver-sources.yml` entries
 into **Tier 0 `ansible/group_vars/syslog.yml`** under `syslog_ng_sources`, preserving the complete existing catalogue. Update the
-receiver through the [existing-receiver recipe](../stage-02-logging/procedures/receiver.md); do not repeat
+receiver through the [existing-receiver recipe](../stage-03-logging/procedures/receiver.md); do not repeat
 storage preparation. Issue each unique node's client-auth leaf through the accepted producer authority.
 
 Run from **`<prefix>-tier-0/`** to prepare installer-owned node Secrets:

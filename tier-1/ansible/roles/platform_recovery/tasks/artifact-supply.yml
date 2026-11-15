@@ -1,0 +1,33 @@
+---
+- name: Publish locked OCI archives through native digest-preserving registry transport
+  ansible.builtin.command:
+    argv: [skopeo, copy, --all, --preserve-digests, --dest-authfile,
+           "{{ platform_recovery.workspace }}/{{ item.auth_file }}",
+           "oci-archive:{{ (platform_recovery.clusters | selectattr('tier', 'equalto', item.tier | default(1)) | first).package.directory | default(platform_recovery.package_directory) }}/artifacts/{{ item.path }}",
+           "docker://{{ item.destination }}{{ ':' ~ item.tag if item.tag is defined else '@sha256:' ~ item.digest }}"]
+  loop: "{{ platform_recovery.artifact_supply | selectattr('kind', 'equalto', 'oci') | list }}"
+  changed_when: true
+  no_log: true
+
+- name: Verify every independently published image manifest before provisioning
+  ansible.builtin.command:
+    argv: [skopeo, inspect, --authfile, "{{ platform_recovery.workspace }}/{{ item.auth_file }}",
+           --format, '{% raw %}{{.Digest}}{% endraw %}', "docker://{{ item.destination }}{{ ':' ~ item.tag if item.tag is defined else '@sha256:' ~ item.digest }}"]
+  loop: "{{ platform_recovery.artifact_supply | selectattr('kind', 'equalto', 'oci') | list }}"
+  register: recovery_published_image
+  changed_when: false
+  failed_when: recovery_published_image.stdout | trim != 'sha256:' ~ item.digest
+  no_log: true
+
+- name: Publish independently retained native Helm packages to their accepted OCI supply
+  ansible.builtin.command:
+    argv: [helm, push, "{{ (platform_recovery.clusters | selectattr('tier', 'equalto', item.tier | default(1)) | first).package.directory | default(platform_recovery.package_directory) }}/artifacts/{{ item.path }}", "oci://{{ item.destination }}"]
+  environment:
+    HELM_REGISTRY_CONFIG: "{{ platform_recovery.workspace }}/{{ item.auth_file }}"
+  loop: "{{ platform_recovery.artifact_supply | selectattr('kind', 'equalto', 'helm') | list }}"
+  register: recovery_published_chart
+  changed_when: true
+  failed_when: >-
+    recovery_published_chart.rc != 0 or
+    ('sha256:' ~ item.digest) not in (recovery_published_chart.stdout ~ recovery_published_chart.stderr)
+  no_log: true

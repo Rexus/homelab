@@ -74,8 +74,16 @@ class StageContracts(TierRepositoryTestCase):
             for stage in stages:
                 content = stage.read_text()
                 opening = re.split(r"(?m)^## Step \d+:", content, maxsplit=1)[0]
-                self.assertIn("**Automation:**", opening, str(stage))
-                self.assertIn("implementation-support.md#stage-coverage", opening, str(stage))
+                if stage.parent.name == 'stage-03-logging':
+                    opening = ' '.join(opening.split())
+                    self.assertIn('**IaC / Integration:**', opening, str(stage))
+                    self.assertIn('normal path requires no guest SSH session or manual certificate handoff',
+                                  opening, str(stage))
+                    self.assertIn('separate from local intake', opening, str(stage))
+                    self.assertIn('Complete the selected retention recipe separately', content, str(stage))
+                else:
+                    self.assertIn("**Automation:**", opening, str(stage))
+                    self.assertIn("implementation-support.md#stage-coverage", opening, str(stage))
             support = (docs / "08-reference/implementation-support.md").read_text()
             summary = support.split("## Stage coverage", 1)[1].split("## Detailed coverage", 1)[0]
             self.assertIn("not a zero-touch appliance", summary)
@@ -88,15 +96,17 @@ class StageContracts(TierRepositoryTestCase):
     def test_software_issuer_path_hands_off_later_work_without_backwards_dependencies(self):
         self.generate()
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
-            software = (docs / "03-deployment/stage-03-trust/procedures/software-pki.md").read_text()
+            software = (docs / "03-deployment/stage-02-trust/procedures/software-pki.md").read_text()
             self.assertIn('id="complete-identity-and-acceptance"', software)
             self.assertIn("(../README.md)", software)
-            issuer = (docs / "03-deployment/stage-03-trust/README.md").read_text()
+            issuer = (docs / "03-deployment/stage-02-trust/README.md").read_text()
             self.assertIn("## Step 14: Accept issuance and recovery", issuer)
             self.assertIn("sibling FreeIPA CA ceremony in Stage 5", issuer)
             prerequisites = issuer.split("**Prerequisites:**", 1)[1].split("**Working repository:**", 1)[0]
             self.assertNotIn("stage-05-identity", prerequisites)
-            self.assertIn("../stage-04-kubernetes/README.md", issuer)
+            self.assertNotIn('stage-03-logging', prerequisites)
+            self.assertIn('persistent local journal/audit records', prerequisites)
+            self.assertIn("../stage-03-logging/README.md", issuer)
             migration = docs / "05-operations/03-cryptography/hardware-migration.md"
             self.assertTrue(migration.is_file())
             self.assertFalse((docs / "01-architecture/cryptography/hardware-migration.md").exists())

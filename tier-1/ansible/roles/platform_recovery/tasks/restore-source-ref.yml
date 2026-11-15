@@ -1,0 +1,31 @@
+---
+- name: Require the exact retained old ref before an administrative recovery update
+  ansible.builtin.assert:
+    that:
+      - recovery_source_handoff.value.expected_remote_head is defined
+      - recovery_restored_git_ref.stdout.split() | first | default('') == recovery_source_handoff.value.expected_remote_head
+    fail_msg: Restored Git ref differs from the selected backup head. Keep reconciliation paused and review the concurrent writer.
+
+- name: Prepare a native verified bare repository from the independent bundles
+  ansible.builtin.command:
+    argv: ["{{ ansible_playbook_python }}", "{{ platform_recovery.workspace }}/tier-1/scripts/flux-recovery.py",
+           restore, --directory, "{{ recovery_scope_package.directory }}", --output,
+           "{{ platform_recovery.workspace }}/source-publication-{{ recovery_cutover_cluster.tier }}", --expect-lock,
+           "{{ recovery_scope_package.artifact_lock_sha256 }}"]
+  changed_when: true
+
+- name: Publish only the accepted recovery commit using native Git lease protection
+  ansible.builtin.command:
+    argv: [git, -C, "{{ platform_recovery.workspace }}/source-publication-{{ recovery_cutover_cluster.tier }}/{{ recovery_source_handoff.key }}.git",
+           push, --atomic,
+           "--force-with-lease={{ recovery_source_handoff.value.ref }}:{{ recovery_source_handoff.value.expected_remote_head }}",
+           "{{ recovery_source_handoff.value.url }}",
+           "{{ recovery_scope_package.sources[recovery_source_handoff.key] }}:{{ recovery_source_handoff.value.ref }}"]
+  environment:
+    GIT_TERMINAL_PROMPT: '0'
+    GIT_SSH_COMMAND: >-
+      ssh -o BatchMode=yes -o StrictHostKeyChecking=yes
+      -o UserKnownHostsFile={{ (platform_recovery.workspace ~ '/' ~ recovery_source_handoff.value.known_hosts_file) | quote }}
+      -i {{ (platform_recovery.workspace ~ '/' ~ recovery_source_handoff.value.identity_file) | quote }}
+  changed_when: true
+  no_log: true

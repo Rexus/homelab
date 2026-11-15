@@ -1,0 +1,3 @@
+---
+- name: Restore Harbor through its native Velero recovery contract
+  ansible.builtin.include_tasks: velero.yml

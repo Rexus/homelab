@@ -1,45 +1,45 @@
-# Delivery controller patterns
+# Release orchestration and reconciliation
 
-Tier 0 uses Flux for its independently recoverable control-service deployment.
-Tier 1 selects independent Flux for Kubernetes services/application reconciliation and Spinnaker
-for approved application Git promotion. [D-041](../../07-decisions/README.md#d-041) retains Tier 0's
-boundary. Tier 2 integration remains a separate explicit scope.
+Delivery must answer two questions: which release may advance, and how the running system stays
+aligned with that accepted choice. Separate these responsibilities and their authority.
 
-## Authority and ownership
+<a id="authority-and-ownership"></a>
 
 ```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":18,"rankSpacing":24,"padding":10,"wrappingWidth":300,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+%%{init: {"theme":"base","fontFamily":"Arial, sans-serif","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"flowchart":{"nodeSpacing":16,"rankSpacing":24,"padding":10,"subGraphTitleMargin":{"top":4,"bottom":12}}}}%%
 flowchart BT
   subgraph T2["Tier 2"]
-    Workload["Application runtimes<br/>Separate integration scope"]
+    Workload["Application runtimes"]
   end
   subgraph T1["Tier 1"]
     direction LR
-    Platform["Platform services<br/>Approved app namespaces"]
-    D["Spinnaker<br/>Release promotion"]
-    PF["Tier 1 Flux<br/>Separate reconcile identities"]
-    Release["Separate platform / app Git<br/>Approved release intent"]
+    Platform["Managed<br/>services"]
+    D["Release<br/>orchestration"]
+    PF["Reconciliation"]
+    Release["Accepted state<br/>Platform / apps"]
     Platform ~~~ PF
-    PF -- "Scoped reconciliation" --> Platform
-    PF -- "Read separate sources" --> Release
-    D -- "Approved app Git change" --> Release
+    PF -- "Apply state" --> Platform
+    PF -- "Read state" --> Release
+    D -- "Promote app" --> Release
   end
   subgraph T0["Tier 0"]
     direction LR
-    Control["Control<br/>services"]
-    F["Flux"]
-    Approved["Retained approved<br/>sources"]
+    Control["Control services"]
+    F["Control<br/>reconciliation"]
+    Approved["Independent<br/>accepted state"]
     Control ~~~ F
-    F -- "Scoped<br/>changes" --> Control
-    F -- "Read approved<br/>inputs" --> Approved
+    F -- "Apply state" --> Control
+    F -- "Read state" --> Approved
   end
   T0 ~~~ T1
   T1 -. "Optional approved integration" .-> T2
   classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
   classDef services fill:#e7f0fc,stroke:#4d719b,color:#203a5b
   classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
+  classDef action fill:#fcebdc,stroke:#a16c43,color:#5b3921
   classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  class Workload,Platform,D,PF services
+  class Workload,Platform,PF services
+  class D action
   class F,Control control
   class Release,Approved data
   classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
@@ -50,79 +50,99 @@ flowchart BT
   class T2 tier2
 ```
 
-*Figure: Tier 1 Flux reads separate platform/application sources and reconciles authorized targets;
-Spinnaker promotes application Git. Tier 0 Flux remains independent. The dashed Tier 2 integration
-is separately approved. There is no Tier 1 release path into Tier 0.*
+*Figure: Release orchestration advances application intent. Reconciliation reads that intent and
+controls its authorized resources. Platform and application state have separate write permissions;
+Tier 0 retains independent reconciliation and recovery. The boxes are logical roles, not products.*
 
-Flux reads the selected source revision and reconciles with its scoped identity; Spinnaker's
-application approval/promotion is the separate Git change. Targets sit left of the reconciler; authoritative
-source inputs sit to its right. Runtime image retrieval uses the separate artifact-supply
-interface shown in the [delivery sequence](README.md#application-delivery).
+## Contents
 
-Tier 1 delivery has no Tier 0 Kubernetes credentials, Proxmox credentials or
-authority over infrastructure state. Infrastructure requests use the separate
-[protected execution contract](../04-hosting/02-provisioning.md). Read-only source
-retrieval by Tier 0 Flux does not transfer that authority to the source service.
-
-Each Kubernetes object has one reconciler or pipeline owner. Multiple tools must
-not independently control the same application resources. Tier 2 cluster lifecycle
-remains distinct from scoped application deployment to that cluster.
-
-## Table of contents
-
-- [Authority and ownership](#authority-and-ownership)
-- [Choices](#choices)
+- [Responsibilities](#responsibilities)
+- [Dependency ordering](#dependency-ordering)
+- [Failure and recovery](#failure-and-recovery)
 - [Selection criteria](#selection-criteria)
 - [Realization](#realization)
-- [References](#references)
 
-## Choices
+## Responsibilities
 
-Tier 0 retains focused independent reconciliation. The selected Tier 1 pattern combines release
-orchestration and reconciliation with separate authorities; alternatives remain explicit choices.
-
-| Scope or option | Design role | Consequence |
+| Capability | Responsibility | Authority boundary |
 | --- | --- | --- |
-| Tier 0: Flux | Reconcile approved control-service definitions | Independent source credentials, decryption keys and recovery copies |
-| Selected Tier 1: Flux plus Spinnaker | Flux owns platform/application resources; Spinnaker promotes application Git | [Separate sources, identities, lifecycle and recovery](flux-ownership.md); no direct application writes from Spinnaker |
-| Tier 1 alternative A: Argo CD | Application-centric Kubernetes GitOps | Projects scope sources, destinations, resource kinds and application roles [1] |
-| Tier 1 alternative B: direct Spinnaker | Release orchestration and direct deployment pipelines | Pipeline stages express promotion, approval and deployment actions [2] |
-| Tier 2 | Application target with scoped delivery access | May consume Tier 1 delivery or a separately selected local controller |
+| Release orchestration | Coordinate a release request, policy/evidence checks, required approval, promotion and outcome verification | Submit only the accepted application change; no infrastructure or platform administration |
+| Desired-state reconciliation | Observe accepted state, compare it with runtime state, apply scoped changes and correct drift continuously | One active owner per resource; separate platform and application identities |
+| Dependency ordering | Hold a component until declared prerequisites and lifecycle checks are ready | Operates within the reconciliation scope; readiness does not authorize a release |
+| Change authorization | Bind an authenticated decision to the exact artifact, configuration, destination and proposed change | The credential holder rejects unapproved or changed operations, including direct API calls |
+| Infrastructure lifecycle and bootstrap | Provision hosts/clusters and establish the minimum reconciliation runtime | Independent protected execution and recovery authority |
 
-Argo CD projects bound the approved sources, Kubernetes destinations and application roles.
-Spinnaker expresses promotion, approval and deployment as pipeline stages. [1][2]
-A separately selected Tier 2 controller is an alternative release writer for its objects;
-it must not compete with the Tier 1 controller pictured above.
+These are responsibilities, not a requirement for five services. A product may implement several
+roles if their permissions and guarantees remain enforceable. The selected design uses accepted
+state as the handoff: the release workflow publishes intent, and the reconciler owns runtime writes.
+The [release sequence](README.md#application-delivery) shows that handoff;
+[approval controls](approval-controls.md) define which changes may cross it.
+
+## Dependency ordering
+
+Continuous reconciliation includes dependency coordination: controllers must exist before their
+custom resources, storage before databases, and restored compatible data before application writers.
+File order alone establishes none of those conditions.
+
+```mermaid
+%%{init: {"fontFamily":"Arial, sans-serif","themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px"}}}%%
+sequenceDiagram
+  participant Reconcile as Reconciliation
+  participant State as Accepted state
+  participant Data as Data service
+  participant App as Application
+  Reconcile->>State: Read selected revision<br/>Dependencies / checks
+  Reconcile->>Data: Apply accepted data-service configuration
+  Data-->>Reconcile: Not ready<br/>Restore incomplete
+  Note over Reconcile,App: Dependent application remains held
+  Reconcile->>Data: Reobserve readiness<br/>and restore evidence
+  Data-->>Reconcile: Accepted generation<br/>Data checks passed
+  Reconcile->>App: Apply accepted consumer configuration
+  App-->>Reconcile: Observed revision / health
+  loop While accepted state remains active
+    Reconcile->>App: Compare desired / observed state<br/>Correct drift
+  end
+```
+
+*Figure: Dependency gates delay consumers until their prerequisites satisfy the declared checks.
+The loop maintains accepted state; it does not choose a new release or substitute for native data recovery.*
+
+This is **desired-state reconciliation with dependency ordering**. Release orchestration coordinates
+the wider release workflow, which may include human decisions, tests and promotion between targets.
+Neither function's successful status alone proves end-to-end service availability.
+
+## Failure and recovery
+
+- A rejected or changed proposal must not advance accepted state. An unavailable approval service
+  cannot grant access to the publication or target credentials.
+- An unavailable source or release portal must not authorize destruction of running workloads.
+  Reconciliation reports a blocked condition and retains the last accepted intent.
+- Maintenance pauses the actual reconciliation graph, drains in-flight work and controls application
+  writers. It preserves unrelated scopes and intentional pauses before controlled resumption.
+- Recovery uses independently retained state, artifacts, keys and native data backups. Restore
+  prerequisites before consumers, fence stale executions, verify data, then resume accepted state.
+
+Tier 1 delivery holds no Tier 0 runtime credentials or infrastructure state authority.
+[Infrastructure execution](../04-hosting/02-provisioning.md) and
+[recovery](../11-operations/04-backup-recovery.md) retain their own protected paths.
+
+<a id="choices"></a>
 
 ## Selection criteria
 
-Record the selected controller, application ownership, source/revision policy,
-destination credentials, RBAC/OIDC, secret handling, promotion/rollback and recovery
-in the generated project's architecture record before enabling delivery.
+Select products against the responsibilities above: scoped identities, authenticated approval,
+immutable artifact/configuration identity, exact revision reporting, dependency/health gates,
+controlled pause/resume, drift correction and independent recovery. Record administrative bypasses
+and edition/version limits. A product name or pipeline diagram proves none of those controls.
 
-For Argo CD, restrict projects instead of using permissive default destinations;
-protect the controller namespace and privileged projects. For Spinnaker, define
-account permissions and approved pipeline actions; pipeline approval is not a
-replacement for target authorization. [1][2]
+For another deployment model, a pipeline can own runtime writes directly. That changes the ownership
+contract: another reconciler must not compete for the same objects. A local controller in another
+tier is likewise an explicit scope selection, not an inherited permission grant.
 
 ## Realization
 
-[Stage 7](../../03-deployment/stage-07-delivery/README.md) provisions the platform runtime
-and selects [Flux ownership](flux-ownership.md) with
-[Spinnaker promotion](../../03-deployment/stage-07-delivery/step-2b-spinnaker.md).
-[Argo CD](../../03-deployment/stage-07-delivery/step-2a-argocd.md) and direct Spinnaker remain
-alternatives; existing installations require explicit adoption and one writer per resource.
-[Cluster foundation](../../03-deployment/stage-04-kubernetes/procedures/kubernetes.md#cluster-foundation)
-defines shared readiness gates. Native installation does not replace controller
-commissioning, scoped destination approval or recovery qualification.
-The supplied [Argo CD projects](../../../tier-1/ansible/roles/delivery_platform/templates/argocd-projects.yml.j2)
-permit selected local Tier 1 namespaces; Tier 2 destinations require separately approved integration.
-The [Flux configuration](../../../shared/ansible/roles/cluster_platform/templates/flux.yml.j2)
-uses its own selected source revision and decryption credentials.
-[Development platform](03-development-platform.md) separates these application controllers
-from the later GitLab/runner installation and opt-in trusted infrastructure CI.
-
-## References
-
-1. [Argo CD projects](https://argo-cd.readthedocs.io/en/stable/user-guide/projects/).
-2. [Spinnaker pipelines](https://spinnaker.io/docs/concepts/pipelines/).
+[D-041](../../07-decisions/README.md#d-041) records the selected product composition.
+The [Tier 1 implementation](../../08-reference/tier-1-delivery.md) maps each product to these roles;
+its [approval profile](../../08-reference/spinnaker-approval.md) records exact native behavior and enforcement.
+Follow [Stage 7](../../03-deployment/stage-07-delivery/README.md) to deploy it and
+[delivery operations](../../05-operations/05-delivery.md) to maintain it.

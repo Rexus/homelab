@@ -24,8 +24,8 @@ bootstrap software access. New cache VMs need an approved initial package source
 and Shared for common platform references.
 **Automation:** the Squid/keepalived installer and existing-host proxy configuration are supplied.
 This stage is complete without PKI or a hosted registry. Verified publication is selected at
-[Stage 3, option 15b](../stage-03-trust/README.md#15b-verified-repository-and-artifact-publication-optional),
-after its trust/logging prerequisites exist. Harbor belongs to Stage 7.
+[Stage 2, option 15b](../stage-02-trust/README.md#15b-verified-repository-and-artifact-publication-optional),
+after its issuance prerequisites exist. Harbor belongs to Stage 7.
 See [coverage](../../08-reference/implementation-support.md#stage-coverage).
 **Design:** [controlled software intake](../../01-architecture/07-software-intake/README.md).
 
@@ -476,7 +476,8 @@ Native verification/failure defaults still require review of repository-specific
 ## Capability available
 
 **Result:** the selected supply and consumers work with unapproved bypass denied. Continue from **Tier 0**
-at [Stage 2: Protected logging](../stage-02-logging/README.md).
+at [Stage 2: Cryptographic trust](../stage-02-trust/README.md), then
+[Stage 3: Protected logging](../stage-03-logging/README.md).
 
 <a id="3c-configure-later-linux-deployments"></a>
 
@@ -504,7 +505,7 @@ See the [policy and sizing reference](../../08-reference/proxy-cache.md) when ex
 
 | Extension | When and ownership | Relation to the early path |
 | --- | --- | --- |
-| Retained RPM/APT repositories and selected files | [Stage 3, option 15b](../stage-03-trust/README.md#15b-verified-repository-and-artifact-publication-optional) | Install after trust/logging, then accept consumer cutover before leaving Stage 3 |
+| Retained RPM/APT repositories and selected files | [Stage 2, option 15b](../stage-02-trust/README.md#15b-verified-repository-and-artifact-publication-optional) | Install after issuance, retain local audit records, then accept consumer cutover before leaving Stage 2 |
 | Wider vulnerability policy | [Design extension](../../01-architecture/07-software-intake/01-verification.md); OCI/Trivy integration remains separate | Add target-specific gates; ordinary proxy tunnels remain unscanned |
 | OCI registry | [Stage 7 artifact supply](../stage-07-delivery/procedures/registry.md); Tier 1, Harbor is an example | Store/promote container images and compatible OCI artifacts; does not replace RPM/APT repositories |
 | Patch rollout | Tier-owned maintenance automation; not supplied end to end | Use approved content with test/reboot/health gates; content availability alone is not patch compliance |

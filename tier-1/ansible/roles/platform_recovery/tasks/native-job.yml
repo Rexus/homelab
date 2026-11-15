@@ -1,0 +1,146 @@
+---
+- name: Bind the native restore Job body to this accepted plan
+  ansible.builtin.set_fact:
+    recovery_job: >-
+      {{ recovery_job | combine({'metadata': recovery_job.metadata | combine({'annotations': {
+        'recovery.homelab/id': platform_recovery.recovery_id,
+        'recovery.homelab/plan-sha256': platform_recovery.plan_sha256,
+        'recovery.homelab/spec-sha256': recovery_job.spec | to_json | hash('sha256')}})}) }}
+
+- name: Select the bounded cluster and namespace specific native Job journal
+  ansible.builtin.set_fact:
+    recovery_job_journal: >-
+      {{ platform_recovery.workspace }}/receipts/job-{{
+        (recovery_kubeconfig ~ '/' ~ recovery_context ~ '/' ~ recovery_job.metadata.namespace ~ '/' ~ recovery_job.metadata.name)
+        | hash('sha256') }}.json
+
+- name: Inspect the original native Job identity checkpoint
+  ansible.builtin.stat:
+    path: "{{ recovery_job_journal }}"
+  register: recovery_job_checkpoint
+
+- name: Inspect the exact retained native Job before retrying
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ recovery_job.metadata.namespace }}"
+    name: "{{ recovery_job.metadata.name }}"
+  register: recovery_job_observed
+
+- name: Keep completed recovery verification read only on the target
+  ansible.builtin.assert:
+    that:
+      - recovery_job_checkpoint.stat.exists
+      - recovery_job_observed.resources | length == 1
+    fail_msg: Completed recovery verification cannot recreate a missing native operation or checkpoint.
+  when: platform_recovery.phase | default('restore') == 'verify'
+
+- name: Refuse missing or unjournaled Jobs before any destructive retry
+  ansible.builtin.assert:
+    that:
+      - recovery_job_checkpoint.stat.exists or recovery_job_observed.resources | length == 0
+    fail_msg: A preexisting native Job requires the original planned intent. Preserve partial data after an unjournaled operation.
+
+- name: Load or prepare the exact plan-bound native Job intent
+  ansible.builtin.set_fact:
+    recovery_job_record: >-
+      {{ lookup('ansible.builtin.file', recovery_job_journal) | from_json if recovery_job_checkpoint.stat.exists else
+         {'plan_sha256': platform_recovery.plan_sha256, 'spec_sha256': recovery_job.spec | to_json | hash('sha256'),
+          'namespace': recovery_job.metadata.namespace, 'name': recovery_job.metadata.name, 'phase': 'planned'} }}
+
+- name: Require the retained native operation before creating or binding its UID
+  ansible.builtin.assert:
+    that:
+      - recovery_job_record.plan_sha256 == platform_recovery.plan_sha256
+      - recovery_job_record.spec_sha256 == recovery_job.spec | to_json | hash('sha256')
+      - recovery_job_record.namespace == recovery_job.metadata.namespace
+      - recovery_job_record.name == recovery_job.metadata.name
+
+- name: Persist planned native Job intent before sending its create request
+  ansible.builtin.copy:
+    dest: "{{ recovery_job_journal }}"
+    force: false
+    mode: '0600'
+    content: "{{ recovery_job_record | to_nice_json }}"
+
+- name: Require the original native Job UID and accepted body on every retry
+  ansible.builtin.assert:
+    that:
+      - recovery_job_observed.resources | length == 1
+      - recovery_job_record.uid == recovery_job_observed.resources[0].metadata.uid
+  when: recovery_job_record.uid is defined
+
+- name: Reject a different or failed restore before touching a partial dataset
+  ansible.builtin.assert:
+    that:
+      - >-
+        recovery_job_observed.resources | length == 0 or
+        (recovery_job_observed.resources[0].metadata.annotations['recovery.homelab/id'] == platform_recovery.recovery_id and
+         recovery_job_observed.resources[0].metadata.annotations['recovery.homelab/plan-sha256'] == platform_recovery.plan_sha256 and
+         recovery_job_observed.resources[0].metadata.annotations['recovery.homelab/spec-sha256'] == recovery_job.spec | to_json | hash('sha256'))
+      - >-
+        recovery_job_observed.resources | length == 0 or
+        recovery_job_observed.resources[0].status.failed | default(0) | int == 0
+      - >-
+        recovery_job_observed.resources | length == 0 or
+        recovery_job_observed.resources[0].spec | recovery_spec_contains(recovery_job.spec)
+    fail_msg: >-
+      Restore Job failed or belongs to different accepted inputs. Preserve the Job and partial volumes.
+      Diagnose its logs and select new empty claims with a new accepted recovery plan.
+
+- name: Start the exact native restore once
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    state: present
+    definition: "{{ recovery_job }}"
+  when: recovery_job_observed.resources | length == 0
+  register: recovery_job_created
+
+- name: Journal the native Job UID before waiting for completion
+  ansible.builtin.copy:
+    dest: "{{ recovery_job_journal }}"
+    mode: '0600'
+    content: >-
+      {{ recovery_job_record | combine({'phase': 'uid-bound', 'uid':
+          recovery_job_created.result.metadata.uid if recovery_job_observed.resources | length == 0 else
+          recovery_job_observed.resources[0].metadata.uid}) | to_nice_json }}
+  when: recovery_job_record.uid is not defined
+
+- name: Reobserve native completion even when the journal already records success
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ recovery_job.metadata.namespace }}"
+    name: "{{ recovery_job.metadata.name }}"
+  register: recovery_job_result
+  until: >-
+    recovery_job_result.resources | length == 1 and
+    (recovery_job_result.resources[0].status.succeeded | default(0) | int == 1 or
+     recovery_job_result.resources[0].status.failed | default(0) | int > 0)
+  retries: 720
+  delay: 5
+
+- name: Require successful native restoration before recording completion
+  ansible.builtin.assert:
+    that:
+      - recovery_job_result.resources[0].status.succeeded | default(0) | int == 1
+      - recovery_job_result.resources[0].metadata.uid == (lookup('ansible.builtin.file', recovery_job_journal) | from_json).uid
+      - recovery_job_result.resources[0].metadata.annotations['recovery.homelab/plan-sha256'] == platform_recovery.plan_sha256
+      - recovery_job_result.resources[0].metadata.annotations['recovery.homelab/spec-sha256'] == recovery_job.spec | to_json | hash('sha256')
+
+- name: Retain the native result UID and actual status
+  ansible.builtin.set_fact:
+    recovery_native_receipt:
+      kind: Job
+      namespace: "{{ recovery_job.metadata.namespace }}"
+      name: "{{ recovery_job.metadata.name }}"
+      uid: "{{ recovery_job_result.resources[0].metadata.uid }}"
+      status: "{{ recovery_job_result.resources[0].status }}"

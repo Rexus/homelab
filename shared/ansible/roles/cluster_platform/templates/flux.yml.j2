@@ -66,6 +66,7 @@ after:
       name: platform
       namespace: flux-system
     spec:
+      suspend: {{ cluster_platform_flux_recovery | bool | lower }}
       interval: 5m
       retryInterval: 1m
       timeout: 5m

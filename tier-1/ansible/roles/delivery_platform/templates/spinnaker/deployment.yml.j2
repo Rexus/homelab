@@ -8,6 +8,11 @@ spec:
     metadata:
       annotations:
         delivery.homelab/secret-revision: {{ delivery_platform_spinnaker_secret_revision | to_json }}
+        delivery.homelab/config-sha256: {{ ((lookup('ansible.builtin.template', 'spinnaker/common.yml.j2') ~
+          lookup('ansible.builtin.template', 'spinnaker/service.yml.j2')) | hash('sha256')) | to_json }}
+{% if spinnaker_native_service == 'orca' and delivery_platform_spinnaker_delivery_mode == 'flux' %}
+        delivery.homelab/request-http-profile: deny-user-http-v1
+{% endif %}
     spec:
       automountServiceAccountToken: {{ (spinnaker_native_service == 'clouddriver' and
                                         delivery_platform_spinnaker_delivery_mode == 'flux') | to_json }}

@@ -19,6 +19,8 @@ class VmidConventions(TierRepositoryTestCase):
                 "podman-runner": 6, "observability": 5},
             2: {"edge": 4, "cache": 4, "lab": 3},
         }
+        # Classify individual guests when one setup includes another functional role.
+        role_categories = {(0, "foundation", "mon-1"): 5, (0, "hsm", "cadm-1"): 6}
         allocated = {}
 
         def reserve(vmid, location):
@@ -31,13 +33,15 @@ class VmidConventions(TierRepositoryTestCase):
         reserve(601, "tier-0/manual/boot-1")
 
         for tier in range(3):
-            inventory = yaml.safe_load((UPSTREAM / f"tier-{tier}/ansible/inventory/hosts.yml.example").read_text())
+            inventory_source = (UPSTREAM / f"tier-{tier}/ansible/inventory/hosts.yml.example").read_text()
+            inventory = yaml.safe_load(inventory_source)
             groups = inventory["all"]["children"]
             inventory_hosts = {host for group in groups.values()
                                for host in ((group or {}).get("hosts") or {})}
             builders = {host for group in ("immutable_template_builders", "template_refresh_builders")
                         for host in (groups.get(group, {}).get("hosts") or {})}
-            for name in inventory_hosts - builders:
+            hypervisors = set((groups.get("hypervisors") or {}).get("hosts") or {})
+            for name in inventory_hosts - builders - hypervisors:
                 self.assertTrue(3 <= len(name) <= 8, f"tier-{tier}: {name}")
                 self.assertRegex(name, r"^[a-z][a-z0-9-]*-[0-9]+$")
             control_planes = set(groups["talos_control_plane"]["hosts"] or {})
@@ -46,29 +50,51 @@ class VmidConventions(TierRepositoryTestCase):
                 with path.open(encoding="utf-8") as stream:
                     values = hcl2.load(stream)
                 setup = path.parent.name
-                for name, guest in {**values.get("vm_instances", {}), **values.get("lxc_instances", {}),
-                                    **values.get("nodes", {})}.items():
-                    name = name.strip('"')  # python-hcl2 may retain quoted object-key delimiters.
-                    vmid = guest["vm_id"]
+                source = path.read_text(encoding="utf-8")
+
+                def check_allocation(name, vmid):
                     location = f"tier-{tier}/{setup}/{name}"
-                    self.assertIn(name, inventory_hosts, location)
                     reserve(vmid, location)
                     if setup in ("template-refresh", "immutable-template"):
                         self.assertTrue(9000 <= vmid <= 9999, location)
-                        continue
+                        return
                     if setup == "kubernetes":
                         self.assertIn(name, control_planes | workers, location)
                         category = 1 if name in control_planes else 2
                     else:
-                        category = linux_categories[tier][setup]
+                        category = role_categories.get((tier, setup, name), linux_categories[tier][setup])
                     group = 3 if tier == 2 and setup in ("lab", "kubernetes") else tier
                     self.assertNotEqual((vmid // 100) % 10, 0, location)
                     start = group * 1000 + category * 100
                     stop = start + 100
                     self.assertTrue(start <= vmid < stop, f"{location}: {vmid} outside {start}-{stop-1}")
+
+                guests = {**values.get("vm_instances", {}), **values.get("lxc_instances", {}),
+                          **values.get("nodes", {})}
+                for name, guest in guests.items():
+                    name = name.strip('"')  # python-hcl2 may retain quoted object-key delimiters.
+                    self.assertIn(name, inventory_hosts, f"tier-{tier}/{setup}/{name}")
+                    check_allocation(name, guest["vm_id"])
+
                 # Commented optional guest examples also reserve IDs, not source-template references.
-                for match in re.finditer(r"(?m)^\s*#\s+vm_id\s*=\s*(\d+)", path.read_text(encoding="utf-8")):
-                    reserve(int(match[1]), f"tier-{tier}/{setup}/optional")
+                optional_name = None
+                optional_count = 0
+                for line in source.splitlines():
+                    heading = re.match(r'^\s*#\s+(?:"([a-z][a-z0-9-]+)"|([a-z][a-z0-9-]+))\s*=\s*\{\s*$', line)
+                    if heading:
+                        optional_name = heading[1] or heading[2]
+                    vmid = re.match(r"^\s*#\s+vm_id\s*=\s*(\d+)", line)
+                    if vmid:
+                        self.assertIsNotNone(optional_name, f"{path}: optional VMID needs a named guest")
+                        self.assertRegex(inventory_source, rf"(?m)^\s*(?:#\s*)?{re.escape(optional_name)}:\s*",
+                                         f"{path}: missing optional inventory host {optional_name}")
+                        check_allocation(optional_name, int(vmid[1]))
+                        optional_count += 1
+                    if re.match(r"^\s*#\s*}\s*$", line):
+                        optional_name = None
+                self.assertEqual(len(guests) + optional_count,
+                                 len(re.findall(r"\bvm_id\s*=\s*\d+", source)),
+                                 f"{path}: every active and optional guest allocation must be checked")
         catalog = yaml.safe_load((UPSTREAM / "tier-0/templates/proxmox.yml.example").read_text())
         for key, image in catalog["templates"].items():
             self.assertTrue(9000 <= image["vm_id"] <= 9999, key)
@@ -108,6 +134,7 @@ class VmidConventions(TierRepositoryTestCase):
         manual = repo / "docs/auto-docs"
         relative = "02-conventions/vmid-convention.md"
         image = "02-conventions/vmid-convention.svg"
+        renderer = "08-reference/diagrams/render-vmid.cjs"
         reference = (manual / relative).read_text(encoding="utf-8")
         self.assertIn("AUTO-DOCS - DO NOT EDIT", reference)
         self.assertIn("**`2203` = Tier 2, Kubernetes worker, instance 03**", reference)
@@ -119,14 +146,18 @@ class VmidConventions(TierRepositoryTestCase):
         for row in ("| `0` | Reserved | `000-099` |",
                     "| `1` | Kubernetes control plane | `100-199` |",
                     "| `2` | Kubernetes workers | `200-299` |",
-                    "| `6` | Bootstrap / Automation | `600-699` |",
+                    "| `3` | Identity, trust and core services | `300-399` |",
+                    "| `6` | Administration and automation | `600-699` |",
                     "| `601` | Reserved for the manually created Tier 0 bootstrap host, `boot-1` |"):
             self.assertIn(row, reference)
         self.assertIn("three security tiers", reference)
+        self.assertIn("category describes the guest's primary function", reference)
+        self.assertIn("Category numbers do not rank importance or prescribe deployment order", reference)
         self.assertIn("retain its local VMIDs and state", reference)
         self.assertEqual((manual / image).read_bytes(), (UPSTREAM / "docs" / image).read_bytes())
         manifest = json.loads((repo / ".generated-files.json").read_text())
-        for asset in (relative, image):
+        self.assertEqual((manual / renderer).read_bytes(), (UPSTREAM / "docs" / renderer).read_bytes())
+        for asset in (relative, image, renderer):
             self.assertIn(f"docs/auto-docs/{asset}", manifest["files"])
         for name in ("README.md", "docs/04-development/code-layout.md", "docs/03-deployment/foundation/README.md"):
             self.assertIn("vmid-convention.md", (UPSTREAM / name).read_text(), name)
@@ -144,8 +175,8 @@ class VmidConventions(TierRepositoryTestCase):
         self.assertAlmostEqual(float(diagram.attrib["width"]) / float(diagram.attrib["height"]), 4 / 3)
         text = " ".join(diagram.itertext())
         for label in ("T C NN", "Tier (T)", "Category (C)", "Kubernetes control plane",
-                      "Kubernetes workers", "Infrastructure services", "Network / Edge",
-                      "Observability / protected logging", "Bootstrap / Automation", "Other / Reserved", "2203",
+                      "Kubernetes workers", "Identity, trust and core services", "Network / Edge",
+                      "Observability / protected logging", "Administration and automation", "Other / Reserved", "2203",
                       "control planes 100–199", "workers 200–299", "601"):
             self.assertIn(label, text)
         self.assertIn("Reserved", text)

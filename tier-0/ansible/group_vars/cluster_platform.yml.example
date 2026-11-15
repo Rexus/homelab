@@ -80,7 +80,7 @@ cluster_platform_ingress_http_port: 30080
 cluster_platform_ingress_https_port: 30443
 
 # Optional native issuer integration; secrets live in cert-manager namespace.
-# ACME example after qualifying the existing Stage 3 adapter and its trust:
+# ACME example after qualifying the existing Stage 2 adapter and its trust:
 # cluster_platform_issuer_spec:
 #   acme:
 #     server: https://qualified-acme.internal/directory

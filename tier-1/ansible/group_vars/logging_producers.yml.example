@@ -1,12 +1,26 @@
-# Local inputs; reusable implementation: Shared ansible/roles/log_forwarder.
-# Defaults and optional settings: Shared ansible/roles/log_forwarder/defaults/main.yml.
-# Add approved existing hosts to logging_producers in this tier's inventory.
-# Set the stable service DNS name under platform_internal_domain once below.
-# Older inputs use platform_domain until migrated; keep the peer equal to the issued certificate SAN.
-# Override target with an IP only if DNS is unavailable.
+# Local inputs; implementation and optional settings are in Shared ansible/roles/log_forwarder/.
+# Reuse existing inventory names, addresses and login settings. No per-host files are required.
+# Optional setup names an existing group_vars/<setup>.yml for the combined logging workflow.
+# The peer must match the receiver certificate DNS SAN. Override target only for a fixed IP.
+log_forwarder_peer: "logs.{{ platform_internal_domain | default(platform_domain) }}"
 log_forwarder_target: "{{ log_forwarder_peer }}"
-log_forwarder_peer: ""
-# Add streams to ansible/inventory/host_vars/<host>.yml; preserve existing host settings.
-# log_forwarder_watchdog_url: <unique-host-external-dead-man-url>
-# log_forwarder_streams:
-#   - {name: platform-host-os, kind: security, input: journal}
+
+# Each {} selects the native security journal stream <inventory-host>-os.
+# Add only existing Linux inventory hosts. An empty mapping selects no producers.
+logging_producer_hosts: {}
+# logging_producer_hosts:
+#   git-1: {}
+#   db-1:
+#     streams:
+#       - {name: db-1-os, kind: security, input: journal}
+#       - {name: db-1-audit, kind: security, input: files, files: [/var/log/audit/audit.log]}
+
+# An independent monitoring service can supply a unique HTTPS heartbeat URL per selected host.
+# Add watchdog_url to that host entry; store capability URLs privately. Local health checks
+# run without it. Independent missed-heartbeat alerting is commissioned only with a URL.
+log_forwarder_watchdog_required: false
+# Set true with an empty/omitted URL only to deliberately retire an existing external check.
+log_forwarder_watchdog_disable: false
+
+# Omit logging_producer_hosts to retain legacy inventory-group selection and explicit host_vars
+# streams/watchdog inputs. Keep issued stream identities when adding existing producers here.

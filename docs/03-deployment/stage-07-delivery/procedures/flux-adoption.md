@@ -3,7 +3,9 @@
 Use this procedure for an existing installation changing owner. Fresh installations use
 [Flux platform installation](flux-platform.md) directly. Refresh preserves authored `clusters/`, CI,
 live inputs and deployment records; it performs no adoption. Review the
-[selected ownership model](../../../01-architecture/10-delivery/flux-ownership.md) first.
+[selected ownership model](../../../08-reference/tier-1-delivery.md) first.
+
+**Working repository:** `<prefix>-tier-1/`, from the authorized independent execution host.
 
 ## Contents
 

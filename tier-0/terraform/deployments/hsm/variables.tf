@@ -53,7 +53,7 @@ variable "hsm_variant" {
 
   validation {
     condition     = var.hsm_variant == "hardware"
-    error_message = "The HSM deployment requires hardware. Use the Stage 3 software issuer path for software custody."
+    error_message = "The HSM deployment requires hardware. Use the Stage 2 software issuer path for software custody."
   }
 }
 

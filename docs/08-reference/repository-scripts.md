@@ -357,18 +357,18 @@ their `.deployment-setups`; see [setup ownership](../04-development/generated-re
 
 | Setup | What it targets | Start with |
 | --- | --- | --- |
-| `foundation` | Tier 0 online issuer, directory and optional independent monitoring VM resources share the original state; select Stage 6 monitor provisioning with `--terraform-only`; root custody stays offline | [Issuer](../03-deployment/stage-03-trust/procedures/issuer.md), [directory](../03-deployment/stage-05-identity/procedures/freeipa.md), [monitor](../03-deployment/stage-06-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
-| `syslog` | Tier 0 VMs/disks, guarded filesystem/UUID mount and isolated TLS receiver; accepted certificate files are inputs, with HA/WORM outside this installer | [Protected logging](../03-deployment/stage-02-logging/README.md) |
+| `foundation` | Tier 0 online issuer, directory and optional independent monitoring VM resources share the original state; select Stage 6 monitor provisioning with `--terraform-only`; root custody stays offline | [Issuer](../03-deployment/stage-02-trust/procedures/issuer.md), [directory](../03-deployment/stage-05-identity/procedures/freeipa.md), [monitor](../03-deployment/stage-06-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
+| `syslog` | Tier 0 VMs/disks, guarded filesystem/UUID mount and isolated TLS receiver; accepted certificate files are inputs, with HA/WORM outside this installer | [Protected logging](../03-deployment/stage-03-logging/README.md) |
 | `edge` | Tier 2 public edge load-balancer set with rotated VIP ownership | [Edge proxy path](../03-deployment/stage-07-delivery/procedures/edge-proxy.md) |
 | `cache` | Tier 2 ordinary cache pair or larger set for controlled outbound access | [Software intake](../03-deployment/stage-01-software-intake/README.md) |
-| `intake` | Tier 1 verified RPM/APT and selected-artifact publication with managed VM/disks and UUID-mounted data volume; Stage 3 option 15b | [Verified intake](../03-deployment/stage-03-trust/step-15b-verified-intake.md) |
+| `intake` | Tier 1 verified RPM/APT and selected-artifact publication with managed VM/disks and UUID-mounted data volume; Stage 2 option 15b | [Verified intake](../03-deployment/stage-02-trust/step-15b-verified-intake.md) |
 | `development` | GitLab on a dedicated Podman VM | [Development platform path](../03-deployment/stage-09-development/step-1b-source-control-vm.md) |
 | `vault` | Stage 6 dedicated HashiCorp Vault; optional independent OpenBao signing uses a separate named environment/state, never the original Vault guests | [Vault VM deployment](../03-deployment/stage-06-secrets/step-1b-vault-vm.md), [signing option](../03-deployment/stage-06-secrets/step-11b-openbao.md) |
 | `observability` | Optional Tier 1 native gateway, metrics, search and query products with guarded data disks; separate from Kubernetes and Tier 0 evidence | [Observability VM alternative](../03-deployment/stage-08-observability/step-1b-dedicated-vms.md) |
 | `podman-runner` | application-platform runner hosts for Podman and bootc image builds | [Podman image runner guide](../03-deployment/stage-09-development/step-14b-podman-runner.md) |
 | `immutable-template` | image-based Linux template builder hosts | [Image-based Linux path](../03-deployment/stage-09-development/step-15b-image-based-linux.md) |
 | `template-refresh` | staged refresh of mutable Enterprise Linux templates | [Enterprise Linux template](../03-deployment/foundation/proxmox/templates.md) |
-| `hsm` | Tier 0 native USB/provider host pool, original-key issuer binding and optional native restricted PKCS#11 remoting; physical key custody and application HA remain separate | [USB HSM host-pool option](../03-deployment/stage-03-trust/step-1b-usb-hsm.md) |
+| `hsm` | Tier 0 native USB/provider host pool, original-key issuer binding and optional native restricted PKCS#11 remoting; physical key custody and application HA remain separate | [USB HSM host-pool option](../03-deployment/stage-02-trust/step-1b-usb-hsm.md) |
 | `lab` | general-purpose lab guests | this reference and the local inventory |
 
 ## What the deployment wrapper does

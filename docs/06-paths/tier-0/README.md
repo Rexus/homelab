@@ -27,8 +27,8 @@ options branch from the relevant decision and return to the main path.
 | Stage | Tier 0 responsibility | Walkthrough |
 | --- | --- | --- |
 | **1: Software intake** | Configure approved consumers; Tier 2 owns the ordinary proxy/cache | [Software intake](../../03-deployment/stage-01-software-intake/README.md) |
-| **2: Protected logging** | Independent collector, protected evidence and offline inspection | [Logging, Steps 1–16](../../03-deployment/stage-02-logging/README.md) |
-| **3: Cryptographic trust** | Offline root and online issuer; optional hardware protection and approved Tier 0 consumers of verified intake | [Trust](../../03-deployment/stage-03-trust/README.md) |
+| **2: Cryptographic trust** | Offline root and online issuer; optional hardware protection and approved Tier 0 consumers of verified intake | [Trust](../../03-deployment/stage-02-trust/README.md) |
+| **3: Protected logging** | Independent collector, protected evidence and offline inspection | [Logging, Steps 1–8](../../03-deployment/stage-03-logging/README.md) |
 | **4: Kubernetes** | Control-cluster lifecycle, basic platform, node/API logging and recovery | [Kubernetes, Steps 1–19](../../03-deployment/stage-04-kubernetes/README.md) |
 | **5: Identity** | Dedicated FreeIPA pair and Keycloak/OIDC on the accepted cluster | [Identity](../../03-deployment/stage-05-identity/README.md) |
 | **6: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../03-deployment/stage-06-secrets/README.md), [monitoring](../../03-deployment/stage-06-secrets/procedures/independent-monitoring.md) |
@@ -61,11 +61,12 @@ Verified existing templates are valid. No hosted CI or cluster is required.
 Later changes use [template maintenance](../../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow).
 
 After templates, accept [software intake](../../03-deployment/stage-01-software-intake/README.md),
-then establish [foundational syslog](../../03-deployment/stage-02-logging/README.md)
+then establish [cryptographic trust](../../03-deployment/stage-02-trust/README.md), retaining local journal/audit
+records and independent recovery custody. Next deploy [foundational syslog](../../03-deployment/stage-03-logging/README.md)
 with the Tier 0 `syslog` setup. Prepare storage/TLS before installing its isolated
 receiver, then follow its producer, NAS checkpoint and independent-backup recipes.
 NAS snapshots/access custody and live acceptance remain commissioning gates; HA is a separate selection.
-After the trust stage, initialize the Kubernetes control cluster:
+After protected logging is accepted, initialize the Kubernetes control cluster:
 
 Run from **`<prefix>-tier-0/`**.
 

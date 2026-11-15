@@ -3,7 +3,7 @@
 Tier 0 owns `ansible/roles/syslog_ng/`, the `foundation_logging` inventory and
 receiver inputs. Shared supplies reusable baseline/data-volume/execution code,
 with no inventory or resource ownership. Deployment is in
-[Stage 2 installation](../03-deployment/stage-02-logging/README.md); the
+[Stage 3 installation](../03-deployment/stage-03-logging/README.md); the
 [evidence design](../01-architecture/11-operations/01-protected-logging.md) owns retention and trust boundaries.
 
 ## Contents
@@ -46,12 +46,14 @@ overrides stay in ignored Tier 0 group/host vars, never Shared.
 | `syslog_ng_data_fstype`, `syslog_ng_data_uuid` | `xfs`, empty; new blank disk may be initialized, while existing/restored storage retains its explicit UUID pin; `ext4` also supported |
 | `syslog_ng_data_environment` | `{}`; optional approved package-download environment for Shared's filesystem prerequisites; baseline configures native repository access |
 | `syslog_ng_min_free_mb` | 2048; startup/deployment gate, not continuous quota or alarm |
-| `syslog_ng_sources` | Empty, blocks deployment; entries: `name`, observed IPv4 `address`, numeric `tier` 0/1/2, exact `tls_dn` with matching CN |
+| `syslog_ng_sources` | Empty for derived enrollment; the direct receiver recipe requires entries: `name`, observed IPv4 `address`, numeric `tier` 0/1/2, exact `tls_dn` with matching CN |
+| `syslog_ng_enrolled_sources` | Workflow-derived source catalog; takes precedence without overwriting user configuration; exact binding conflicts block enrollment |
+| `logging_workflow_receiver_options` | Per-receiver optional `data_uuid`/DNS overrides in one file; global defaults apply otherwise |
 | `syslog_ng_legacy_sources` | Empty, no UDP; explicit accepted entries: `name`, `address`, `tier`; names unique across both lists |
 | `syslog_ng_listen_address` | Inventory host address; explicit non-wildcard IPv4 only |
 | `syslog_ng_tls_port`, `syslog_ng_udp_port` | 6514 / 514; UDP exists only with legacy sources |
 | `syslog_ng_tls_ca_src`, `syslog_ng_tls_cert_src`, `syslog_ng_tls_key_src` | Execution-host files from `SYSLOG_NG_TLS_CA_FILE`, `SYSLOG_NG_TLS_CERT_FILE`, `SYSLOG_NG_TLS_KEY_FILE` |
-| `syslog_ng_tls_crl_src` | Optional externally supplied signed CRL from `SYSLOG_NG_TLS_CRL_FILE`; required by the supplied independent-authority main path; native hashed CRL directory, receiver restart on change |
+| `syslog_ng_tls_crl_src` | Optional externally supplied signed CRL from `SYSLOG_NG_TLS_CRL_FILE`; required by the supplied enrollment workflow; native hashed CRL directory, receiver restart on change |
 | `syslog_ng_manage_firewall`, `syslog_ng_firewall_zone` | `true`, `public`; IaC installs/enables firewalld and retains the deployment SSH port before first startup; select the interface's actual zone |
 | `syslog_ng_queue_bytes` | 268435456 per destination; budget for every active source/date writer and backlog, not total archive capacity |
 | `syslog_ng_max_message_bytes`, `syslog_ng_max_connections` | 65536 / 100; oversize behavior must be tested against the selected producer/framing |

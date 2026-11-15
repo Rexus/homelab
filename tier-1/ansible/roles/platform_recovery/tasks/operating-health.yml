@@ -1,0 +1,65 @@
+---
+- name: Require the rendered operating contract to belong to this accepted plan
+  ansible.builtin.assert:
+    that:
+      - recovery_operating_payload.plan_sha256 == platform_recovery.plan_sha256
+
+- name: Wait for every native Spinnaker consumer's accepted running generation
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cutover_cluster.kubeconfig }}"
+    context: "{{ recovery_cutover_cluster.context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ item.namespace }}"
+    name: "{{ item.name }}"
+  loop: "{{ recovery_operating_payload.resources | selectattr('tier', 'equalto', recovery_cutover_cluster.tier) | selectattr('kind', 'equalto', 'Deployment') | list }}"
+  register: recovery_operating_consumer
+  until: >-
+    recovery_operating_consumer.resources | length == 1 and
+    recovery_operating_consumer.resources[0].spec.replicas | int == item.spec.replicas | default(1) | int and
+    recovery_operating_consumer.resources[0].status.observedGeneration | default(0) | int >=
+      recovery_operating_consumer.resources[0].metadata.generation | int and
+    recovery_operating_consumer.resources[0].status.updatedReplicas | default(0) | int == item.spec.replicas | default(1) | int and
+    recovery_operating_consumer.resources[0].status.replicas | default(0) | int == item.spec.replicas | default(1) | int and
+    recovery_operating_consumer.resources[0].status.readyReplicas | default(0) | int == item.spec.replicas | default(1) | int and
+    recovery_operating_consumer.resources[0].status.availableReplicas | default(0) | int == item.spec.replicas | default(1) | int and
+    recovery_operating_consumer.resources[0].spec.template.spec.containers | map(attribute='image') | list ==
+      item.spec.template.spec.containers | map(attribute='image') | list
+  retries: "{{ recovery_health_retries | default(120) }}"
+  delay: "{{ recovery_health_delay | default(5) }}"
+
+- name: Require the normal published ingress from the accepted operating revision
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cutover_cluster.kubeconfig }}"
+    context: "{{ recovery_cutover_cluster.context }}"
+    validate_certs: true
+    api_version: networking.k8s.io/v1
+    kind: Ingress
+    namespace: "{{ item.namespace }}"
+    name: "{{ item.name }}"
+  loop: "{{ recovery_operating_payload.resources | selectattr('tier', 'equalto', recovery_cutover_cluster.tier) | selectattr('kind', 'equalto', 'Ingress') | list }}"
+  register: recovery_operating_ingress
+  failed_when: >-
+    recovery_operating_ingress.resources | length != 1 or recovery_operating_ingress.resources[0].spec != item.spec
+
+- name: Reobserve the normal native Git owner and exact accepted source artifact
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cutover_cluster.kubeconfig }}"
+    context: "{{ recovery_cutover_cluster.context }}"
+    validate_certs: true
+    api_version: source.toolkit.fluxcd.io/v1
+    kind: GitRepository
+    namespace: flux-system
+    name: "{{ item.key }}"
+  loop: "{{ recovery_scope_cutover.sources | dict2items }}"
+  register: recovery_operating_source
+  until: >-
+    recovery_operating_source.resources | length == 1 and
+    recovery_operating_source.resources[0].spec.url == item.value.url and
+    recovery_operating_source.resources[0].spec.secretRef.name == item.value.secret_name and
+    recovery_operating_source.resources[0].status.artifact.revision is search(recovery_scope_package.sources[item.key] ~ '$') and
+    recovery_operating_source.resources[0].status.conditions | default([])
+      | selectattr('type', 'equalto', 'Ready') | selectattr('status', 'equalto', 'True') | list | length == 1
+  retries: "{{ recovery_health_retries | default(120) }}"
+  delay: "{{ recovery_health_delay | default(5) }}"

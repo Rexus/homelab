@@ -1,0 +1,217 @@
+---
+- name: Resolve the selected product's actual cluster
+  ansible.builtin.set_fact:
+    recovery_product_cluster: "{{ platform_recovery.clusters | selectattr('tier', 'equalto', recovery_product.tier | default(1)) | first }}"
+
+- name: Use only retained credentials for that cluster
+  ansible.builtin.set_fact:
+    recovery_kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_product_cluster.kubeconfig }}"
+    recovery_context: "{{ recovery_product_cluster.context }}"
+
+- name: Recheck target namespace identity before stopping a writer
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Namespace
+    name: "{{ recovery_product.namespace }}"
+  register: recovery_namespace
+
+- name: Reject restored data directed at an unrelated namespace
+  ansible.builtin.assert:
+    that:
+      - recovery_namespace.resources | length == 1
+      - recovery_product.namespace_uid == 'new' or recovery_namespace.resources[0].metadata.uid == recovery_product.namespace_uid
+      - recovery_namespace.resources[0].metadata.annotations.get('recovery.homelab/plan-sha256', '') == platform_recovery.plan_sha256
+
+- name: Inspect the recovery namespace checkpoint before accepting a retried target
+  ansible.builtin.stat:
+    path: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-namespace.json"
+  register: recovery_namespace_receipt
+
+- name: Require the same newly created target namespace on every retry
+  ansible.builtin.assert:
+    that:
+      - recorded.uid == recovery_namespace.resources[0].metadata.uid
+      - recorded.plan_sha256 == platform_recovery.plan_sha256
+  vars:
+    recorded: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-namespace.json') | from_json }}"
+  when: recovery_namespace_receipt.stat.exists
+
+- name: Retain the actual newly observed target namespace UID
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-namespace.json"
+    force: false
+    mode: '0600'
+    content: "{{ {'plan_sha256': platform_recovery.plan_sha256, 'uid': recovery_namespace.resources[0].metadata.uid} | to_nice_json }}"
+
+- name: Stop every selected writer and retain its original state
+  ansible.builtin.include_tasks: writer.yml
+  loop: "{{ recovery_product.writers }}"
+  loop_control:
+    loop_var: recovery_writer
+
+- name: Restore retained credentials without generating a new product identity
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    state: present
+    src: "{{ platform_recovery.workspace }}/{{ recovery_product.secrets_file }}"
+  no_log: true
+  when: recovery_product.secrets_file is defined
+
+- name: Apply the accepted native recovery-pod network policy where the service requires one
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    state: present
+    src: "{{ platform_recovery.workspace }}/{{ recovery_product.network_policy_file }}"
+  when: recovery_product.network_policy_file is defined
+
+- name: Clear the previous product's native operation evidence
+  ansible.builtin.set_fact:
+    recovery_native_receipt: {}
+
+- name: Execute the fixed native product restore adapter
+  ansible.builtin.include_tasks: "{{ recovery_product.kind }}.yml"
+
+- name: Start the explicitly selected isolated verification consumers
+  kubernetes.core.k8s_scale:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: "{{ item.kind }}"
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ item.name }}"
+    replicas: "{{ item.replicas }}"
+    wait: true
+    wait_timeout: 900
+  loop: "{{ recovery_product.verification_workloads | default([]) }}"
+
+- name: Fence restored GitLab native triggers and drain canceled execution state in isolation
+  ansible.builtin.include_tasks: gitlab-executions.yml
+  when: recovery_product.kind == 'gitlab'
+
+- name: Select only data claims actually owned by the native product adapter
+  ansible.builtin.set_fact:
+    recovery_product_claim_names: >-
+      {{ [recovery_product.mysql.claim, recovery_product.redis.claim] if recovery_product.kind == 'spinnaker' else
+         [recovery_product.claim] if recovery_product.kind == 'victoriametrics' else
+         recovery_product.data_claims if recovery_product.kind in ['vault-raft', 'netbox-media', 'harbor', 'argocd', 'netdata', 'opensearch'] else [] }}
+    recovery_product_claim_uids: {}
+
+- name: Reobserve the namespace generation after the native restore
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Namespace
+    name: "{{ recovery_product.namespace }}"
+  register: recovery_product_actual_namespace
+
+- name: Reject a namespace replacement during native restoration
+  ansible.builtin.assert:
+    that:
+      - recovery_product_actual_namespace.resources | length == 1
+      - recovery_product_actual_namespace.resources[0].metadata.uid == recovery_namespace.resources[0].metadata.uid
+
+- name: Observe every restored native data claim before recording completion
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ item }}"
+  loop: "{{ recovery_product_claim_names }}"
+  register: recovery_product_actual_claims
+
+- name: Require a bound native data claim with an actual observed UID
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+      - item.resources[0].status.phase == 'Bound'
+      - item.resources[0].metadata.uid | length > 0
+  loop: "{{ recovery_product_actual_claims.results }}"
+
+- name: Retain the actual restored PVC generations
+  ansible.builtin.set_fact:
+    recovery_product_claim_uids: "{{ recovery_product_claim_uids | combine({item.item: item.resources[0].metadata.uid}) }}"
+  loop: "{{ recovery_product_actual_claims.results }}"
+
+- name: Bind the completed PVC observations to the native adapter's original targets
+  ansible.builtin.assert:
+    that: recovery_product_claim_uids == recovery_adapter_claim_uids
+  vars:
+    recovery_adapter_claim_uids: >-
+      {% set claims = namespace(items={}) -%}
+      {% if recovery_product.kind == 'spinnaker' -%}
+      {% for database in ['mysql', 'redis'] -%}
+      {% set saved = lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-' ~ database ~ '-claim.json') | from_json -%}
+      {% set claims.items = claims.items | combine({recovery_product[database].claim: saved.uid}) -%}
+      {% endfor -%}
+      {% elif recovery_product.kind == 'victoriametrics' -%}
+      {% set claims.items = {recovery_product.claim: recovery_metrics_claim.resources[0].metadata.uid} -%}
+      {% elif recovery_product.kind in ['vault-raft', 'netbox-media'] -%}
+      {% set claims.items = recovery_control_claim_uids -%}
+      {% elif recovery_product.kind in ['harbor', 'argocd', 'netdata'] -%}
+      {% set claims.items = recovery_velero_claim_uids -%}
+      {% elif recovery_product.kind == 'opensearch' -%}
+      {% for claim in recovery_search_claim_identities -%}
+      {% set claims.items = claims.items | combine({claim.name: claim.uid}) -%}
+      {% endfor -%}
+      {% endif -%}
+      {{ claims.items }}
+
+- name: Complete the native operation identity without changing adapter evidence
+  ansible.builtin.set_fact:
+    recovery_product_operation: >-
+      {{ recovery_native_receipt | combine({
+          'api_version': {'Job': 'batch/v1', 'Restore': 'velero.io/v1', 'Cluster': 'postgresql.cnpg.io/v1',
+                          'OpenSearchSnapshot': 'opensearch'}[recovery_native_receipt.kind],
+          'namespace': recovery_native_receipt.namespace | default(
+            recovery_product.velero_namespace | default('velero') if recovery_native_receipt.kind == 'Restore' else recovery_product.namespace),
+          'name': recovery_native_receipt.name | default(
+            recovery_product.cnpg_cluster if recovery_native_receipt.kind == 'Cluster' else
+            recovery_product.name ~ '-' ~ platform_recovery.recovery_id if recovery_native_receipt.kind == 'Restore' else
+            recovery_product.backup_id)}) }}
+
+- name: Inspect any original completed restore receipt before updating its observations
+  ansible.builtin.stat:
+    path: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-restore.json"
+  register: recovery_product_previous_receipt
+
+- name: Preserve the original completed operation and target identities on a retry
+  ansible.builtin.assert:
+    that:
+      - previous.plan_sha256 == platform_recovery.plan_sha256
+      - previous.recovery_id == platform_recovery.recovery_id
+      - previous.backup_id == recovery_product.backup_id
+      - previous.product == recovery_product.name
+      - previous.namespace_uid == 'new' or previous.namespace_uid == recovery_namespace.resources[0].metadata.uid
+      - previous.claims | default(recovery_product_claim_uids) == recovery_product_claim_uids
+      - previous.restore.kind == recovery_product_operation.kind
+      - previous.restore.uid | default('') == recovery_product_operation.uid | default('')
+      - previous.restore.uuid | default('') == recovery_product_operation.uuid | default('')
+      - previous.restore.system_identifier | default('') | string == recovery_product_operation.system_identifier | default('') | string
+      - previous.restore.indices | default([]) == recovery_product_operation.indices | default([])
+  vars:
+    previous: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-restore.json') | from_json }}"
+  when: recovery_product_previous_receipt.stat.exists
+
+- name: Record actual namespace data-claim and native operation identities
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-restore.json"
+    mode: '0600'
+    content: >-
+      {{ {'version': 2, 'recovery_id': platform_recovery.recovery_id,
+          'plan_sha256': platform_recovery.plan_sha256, 'backup_id': recovery_product.backup_id,
+          'namespace': recovery_product.namespace, 'namespace_uid': recovery_namespace.resources[0].metadata.uid,
+          'product': recovery_product.name, 'kind': recovery_product.kind, 'tier': recovery_product.tier | default(1),
+          'claims': recovery_product_claim_uids, 'restore': recovery_product_operation} | to_nice_json }}

@@ -2,7 +2,7 @@
 
 # Copy to: terraform/deployments/hsm/terraform.tfvars
 # Replace every value before use.
-# Setup guide: docs/03-deployment/stage-03-trust/step-1b-usb-hsm.md
+# Setup guide: docs/03-deployment/stage-02-trust/step-1b-usb-hsm.md
 # VMID allocation: docs/02-conventions/vmid-convention.md
 # Shared values live in ../../common.tfvars.
 

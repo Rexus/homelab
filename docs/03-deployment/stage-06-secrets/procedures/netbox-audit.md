@@ -55,7 +55,7 @@ The implementation is the [Tier 0 recipe](../../../../tier-0/ansible/playbooks/d
 
 1. Retain the existing host in `infrastructure_monitoring`. Add a `netbox-changes`
    **security** file stream for `/var/lib/netbox-audit/events/*.jsonl` to its existing
-   [producer settings](../../stage-02-logging/procedures/sources.md). Prepare its reviewed client certificate
+   [producer settings](../../stage-03-logging/procedures/sources.md). Prepare its reviewed client certificate
    and register it in the receiver catalogue; never replace the host's OS/audit streams.
 2. From the Tier 0 root, create local inputs:
 

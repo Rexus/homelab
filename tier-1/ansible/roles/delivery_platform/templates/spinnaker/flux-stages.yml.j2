@@ -14,13 +14,23 @@
    'spec': claim.spec}] %}
 {% endfor %}
 {% endfor %}
+{% set prerequisites_parent = delivery_platform_flux_component | replace('/', '-') ~ '-inputs' %}
+{% if delivery_platform_spinnaker_lifecycle == 'upgrade' %}
+{% set upgrade_gate = lookup('ansible.builtin.template', 'spinnaker/flux-upgrade-gate.yml.j2') | from_yaml %}
+- name: {{ prefix }}-preupgrade-backup
+  depends_on: [{name: {{ prerequisites_parent }}}]
+  resources: {{ [upgrade_gate] | to_json }}
+  health: [{apiVersion: batch/v1, kind: Job, name: {{ upgrade_gate.metadata.name }}, namespace: {{ target_namespace }}}]
+{% set prerequisites_parent = prefix ~ '-preupgrade-backup' %}
+{% endif %}
 - name: {{ prefix }}-prerequisites
-  depends_on: [{name: {{ delivery_platform_flux_component | replace('/', '-') }}-inputs}]
+  depends_on: [{name: {{ prerequisites_parent }}}]
   resources: {{ (foundation + secrets + storage + claims.items) | to_json }}
   health:
     - {apiVersion: storage.k8s.io/v1, kind: StorageClass, name: {{ delivery_platform_spinnaker_storage_class }}}
     - {apiVersion: networking.k8s.io/v1, kind: IngressClass, name: {{ delivery_platform_ingress_class }}}
     - {apiVersion: apiextensions.k8s.io/v1, kind: CustomResourceDefinition, name: serverstransports.traefik.io}
+    - {apiVersion: apiextensions.k8s.io/v1, kind: CustomResourceDefinition, name: middlewares.traefik.io}
 {% if delivery_platform_spinnaker_certificate_mode == 'issuer' %}
     - {apiVersion: apiextensions.k8s.io/v1, kind: CustomResourceDefinition, name: certificates.cert-manager.io}
     - apiVersion: cert-manager.io/v1
@@ -38,11 +48,14 @@
     - {apiVersion: v1, kind: Secret, name: {{ secret.metadata.name }}, namespace: {{ target_namespace }}}
 {% endfor %}
 {% endif %}
-{% set guard = lookup('ansible.builtin.template', 'spinnaker/flux-data-guard.yml.j2') | from_yaml %}
+{% set guards = lookup('ansible.builtin.template', 'spinnaker/flux-data-guard.yml.j2') | from_yaml_all | select('mapping') | list %}
 - name: {{ prefix }}-data-guard
   depends_on: [{name: {{ prefix }}-prerequisites}]
-  resources: {{ [guard] | to_json }}
-  health: [{apiVersion: batch/v1, kind: Job, name: {{ guard.metadata.name }}, namespace: {{ target_namespace }}}]
+  resources: {{ guards | to_json }}
+  health:
+{% for guard in guards %}
+    - {apiVersion: batch/v1, kind: Job, name: {{ guard.metadata.name }}, namespace: {{ target_namespace }}}
+{% endfor %}
 {% set persistence_parent = prefix ~ '-data-guard' %}
 {% if delivery_platform_spinnaker_backup_backend == 'filesystem' %}
 {% set repository = documents | selectattr('kind', 'equalto', 'Job')
@@ -80,18 +93,9 @@
    | selectattr('metadata.name', 'equalto', 'spinnaker-backup-verify') | first %}
 {% set backup_spec = backup.spec | dict2items | rejectattr('key', 'equalto', 'ttlSecondsAfterFinished') | items2dict %}
 {% set workloads_parent = prefix ~ '-databases' %}
-{% if delivery_platform_spinnaker_lifecycle == 'upgrade' %}
-{% set backup_name = 'spinnaker-preupgrade-' ~ spinnaker_flux_job_suffix %}
-- name: {{ prefix }}-preupgrade-backup
-  depends_on: [{name: {{ workloads_parent }}}]
-  timeout: 75m
-  resources: {{ [backup | combine({'metadata': backup.metadata | combine({'name': backup_name}), 'spec': backup_spec})] | to_json }}
-  health: [{apiVersion: batch/v1, kind: Job, name: {{ backup_name }}, namespace: {{ target_namespace }}}]
-{% set workloads_parent = prefix ~ '-preupgrade-backup' %}
-{% endif %}
 {% set workloads = namespace(items=[]) %}
 {% for deployment in documents | selectattr('kind', 'equalto', 'Deployment') %}
-{% if delivery_platform_spinnaker_lifecycle == 'recover' and deployment.metadata.name in ['echo', 'orca', 'gate'] %}
+{% if delivery_platform_spinnaker_lifecycle == 'recover' %}
 {% set deployment = deployment | combine({'spec': deployment.spec | combine({'replicas': 0})}) %}
 {% endif %}
 {% set workloads.items = workloads.items + [deployment] %}
@@ -100,7 +104,7 @@
   depends_on: [{name: {{ workloads_parent }}}]
   resources: {{ workloads.items | to_json }}
   health:
-{% for deployment in workloads.items if deployment.spec.get('replicas', 1) > 0 %}
+{% for deployment in workloads.items %}
     - {apiVersion: apps/v1, kind: Deployment, name: {{ deployment.metadata.name }}, namespace: {{ target_namespace }}}
 {% endfor %}
 {% set backup_name = 'spinnaker-backup-verify-' ~ spinnaker_flux_job_suffix %}

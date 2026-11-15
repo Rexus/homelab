@@ -1,0 +1,71 @@
+---
+- name: Derive a unique acceptance record without prompting for paths
+  ansible.builtin.set_fact:
+    logging_workflow_token: "logging-acceptance-{{ stream.name }}-{{ now(utc=true, fmt='%Y%m%d%H%M%S%f') }}"
+
+# openssl is used only as an mTLS test client; the native forwarding service remains the sender.
+- name: Submit a unique syslog record using the selected stream's retained client key
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - s_client
+      - -connect
+      - "{{ hostvars.localhost.logging_run.target }}:{{ log_forwarder_port | default(6514) }}"
+      - -servername
+      - "{{ hostvars.localhost.logging_run.peer }}"
+      - -verify_hostname
+      - "{{ hostvars.localhost.logging_run.peer }}"
+      - -verify_return_error
+      - -CAfile
+      - "{{ log_forwarder_config | default('/etc/log-forwarder') }}/{{ stream.name }}/ca.pem"
+      - -cert
+      - "{{ log_forwarder_config | default('/etc/log-forwarder') }}/{{ stream.name }}/client.pem"
+      - -key
+      - "{{ log_forwarder_config | default('/etc/log-forwarder') }}/{{ stream.name }}/key.pem"
+      - -quiet
+      - -no_ign_eof
+    stdin: "<134>1 {{ now(utc=true, fmt='%Y-%m-%dT%H:%M:%SZ') }} {{ inventory_hostname }} logging-acceptance - - - {{ logging_workflow_token }}"
+  register: logging_workflow_probe
+  changed_when: false
+  async: 20
+  poll: 1
+  when: stream.input != 'journal'
+
+- name: Exercise journal capture and native queued forwarding without touching application files
+  ansible.builtin.command:
+    argv: [logger, -t, logging-acceptance, --, "{{ logging_workflow_token }}"]
+  changed_when: false
+  when: stream.input == 'journal'
+
+- name: Require the authenticated record in every configured receiver store
+  ansible.builtin.command:
+    argv:
+      - grep
+      - -h
+      - -F
+      - --max-count=1
+      - --
+      - "{{ logging_workflow_token }}"
+      - "{{ syslog_ng_data_mount | default('/srv/security-logging') }}/records/{{ stream.name }}/{{ now(utc=true, fmt='%Y-%m-%d') }}.jsonl"
+  delegate_to: "{{ receiver }}"
+  register: logging_workflow_record
+  changed_when: false
+  retries: 10
+  delay: 2
+  until: logging_workflow_record.rc == 0
+  loop: "{{ logging_workflow_test_receivers }}"
+  loop_control:
+    loop_var: receiver
+
+- name: Require the expected certificate and server-owned namespace in retained evidence
+  ansible.builtin.assert:
+    that:
+      - (item.stdout_lines | first | from_json).source == stream.name
+      - (item.stdout_lines | first | from_json).peer_cn == stream.name
+      - (item.stdout_lines | first | from_json).peer_ip == logging_workflow_source_address
+      - (item.stdout_lines | first | from_json).transport == 'tls'
+      - (item.stdout_lines | first | from_json).source_tier | int == 0
+      - logging_workflow_token in (item.stdout_lines | first | from_json).raw
+  loop: "{{ logging_workflow_record.results }}"
+  loop_control:
+    label: "{{ item.receiver }} / {{ stream.name }}"

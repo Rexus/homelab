@@ -1,0 +1,123 @@
+---
+- name: Require the explicit verified Vault KVv2 destination and external scoped token
+  ansible.builtin.assert:
+    that:
+      - logging_credentials_vault_address is match('^https://[^/@?#]+(?::[0-9]+)?/?$')
+      - logging_credentials_vault_ca_file is match('^/.+')
+      - logging_credentials_vault_mount is match('^[A-Za-z0-9_-]+$')
+      - logging_credentials_vault_path is match('^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$')
+      - logging_credentials_vault_token | length > 0
+    fail_msg: Select a verified HTTPS Vault address, trusted CA file, KVv2 mount/path and externally supplied scoped token.
+  no_log: true
+
+- name: Inspect the explicitly selected trusted Vault CA file
+  ansible.builtin.stat:
+    path: "{{ logging_credentials_vault_ca_file }}"
+    follow: false
+  register: logging_credentials_ca
+
+- name: Refuse missing or linked Vault trust inputs
+  ansible.builtin.assert:
+    that:
+      - logging_credentials_ca.stat.isreg | default(false)
+      - not (logging_credentials_ca.stat.islnk | default(false))
+    fail_msg: Supply the accepted Vault CA file before accessing the selected KVv2 backend.
+
+- name: Read exactly the selected native Vault KVv2 path without falling back to local custody
+  community.hashi_vault.vault_kv2_get:
+    url: "{{ logging_credentials_vault_address }}"
+    ca_cert: "{{ logging_credentials_vault_ca_file }}"
+    validate_certs: true
+    auth_method: token
+    token: "{{ logging_credentials_vault_token }}"
+    token_validate: false
+    engine_mount_point: "{{ logging_credentials_vault_mount }}"
+    path: "{{ logging_credentials_vault_path }}"
+    timeout: 15
+    retries: 0
+  register: logging_credentials_kv_original
+  failed_when: >-
+    logging_credentials_kv_original is failed and not
+    (logging_credentials_operation == 'migrate' and logging_credentials_kv_original.msg | default('') ==
+    "Invalid or missing path ['" ~ logging_credentials_vault_path ~
+    "'] with secret version 'latest'. Check the path or secret version.")
+  no_log: true
+
+- name: Refuse overwriting any different credential already at the migration destination
+  ansible.builtin.assert:
+    that:
+      - >-
+        logging_credentials_kv_original.secret is not defined
+        or logging_credentials_kv_original.secret == logging_credentials_document
+    fail_msg: The selected KVv2 path holds a different secret; use the correct original recovery input or an empty dedicated path.
+  when: logging_credentials_operation == 'migrate'
+  no_log: true
+
+- name: Migrate only into a new KVv2 path using native create-only compare-and-set
+  community.hashi_vault.vault_kv2_write:
+    url: "{{ logging_credentials_vault_address }}"
+    ca_cert: "{{ logging_credentials_vault_ca_file }}"
+    validate_certs: true
+    auth_method: token
+    token: "{{ logging_credentials_vault_token }}"
+    token_validate: false
+    engine_mount_point: "{{ logging_credentials_vault_mount }}"
+    path: "{{ logging_credentials_vault_path }}"
+    data: "{{ logging_credentials_document }}"
+    cas: 0
+    timeout: 15
+    retries: 0
+  when:
+    - logging_credentials_operation == 'migrate'
+    - logging_credentials_kv_original.secret is not defined
+  no_log: true
+  diff: false
+
+- name: Read back the actual native KVv2 value before accepting migration
+  community.hashi_vault.vault_kv2_get:
+    url: "{{ logging_credentials_vault_address }}"
+    ca_cert: "{{ logging_credentials_vault_ca_file }}"
+    validate_certs: true
+    auth_method: token
+    token: "{{ logging_credentials_vault_token }}"
+    token_validate: false
+    engine_mount_point: "{{ logging_credentials_vault_mount }}"
+    path: "{{ logging_credentials_vault_path }}"
+    timeout: 15
+    retries: 0
+  register: logging_credentials_kv_verified
+  when: logging_credentials_operation == 'migrate'
+  no_log: true
+
+- name: Require exact independent recovery-copy equality after migration
+  ansible.builtin.assert:
+    that:
+      - logging_credentials_kv_verified.secret == logging_credentials_document
+      - logging_credentials_kv_verified.metadata.version | int > 0
+  when: logging_credentials_operation == 'migrate'
+  no_log: true
+
+- name: Load the explicit Vault backend's result without reading the independent local recovery copy
+  ansible.builtin.set_fact:
+    logging_credentials_document: "{{ logging_credentials_kv_original.secret }}"
+  when: logging_credentials_operation == 'read'
+  no_log: true
+
+- name: Validate the selected native KVv2 logging credential schema
+  ansible.builtin.include_tasks: validate.yml
+
+- name: Record only verified destination metadata while retaining the original ciphertext and unlock file
+  ansible.builtin.copy:
+    dest: "{{ logging_credentials_directory }}/kv-migration.json"
+    content: >-
+      {{ {'version': 1, 'backend': 'hashicorp_vault', 'address': logging_credentials_vault_address,
+      'mount': logging_credentials_vault_mount, 'path': logging_credentials_vault_path,
+      'secret_version': logging_credentials_kv_verified.metadata.version} | to_nice_json }}
+    mode: '0600'
+  when: logging_credentials_operation == 'migrate'
+  diff: false
+
+- name: Mark this migration verified only after exact native KVv2 readback
+  ansible.builtin.set_fact:
+    logging_credentials_migration_verified: true
+  when: logging_credentials_operation == 'migrate'

@@ -9,15 +9,15 @@ external storage custody and offline signing approvals retain their stated owner
 <a id="figure-deployment-sequence"></a>
 
 ```mermaid
-%%{init: {"theme":"base","themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
+%%{init: {"theme":"base","block":{"padding":24},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
 block-beta
   columns 3
   Base["Foundation<br/>Hosts, access<br/>and templates"]
   Intake["1. Software intake<br/>Controlled<br/>update access"]
-  Logs["2. Protected logging<br/>Independent<br/>Tier 0 evidence"]
+  Trust["2. Cryptographic trust<br/>Offline custody<br/>and issuance"]
   Identity["5. Identity<br/>Directory<br/>and federation"]
   Runtime["4. Kubernetes<br/>Control cluster<br/>and basic platform"]
-  Trust["3. Cryptographic trust<br/>Offline custody<br/>and issuance"]
+  Logs["3. Protected logging<br/>Independent<br/>Tier 0 evidence"]
   Control["6. Secrets<br/>Secret service<br/>and recovery"]
   Delivery["7. Delivery<br/>Controller<br/>and artifact supply"]
   Visibility["8. Observability<br/>Logs, metrics, traces<br/>and queries"]
@@ -25,9 +25,9 @@ block-beta
   Workloads["10. Lab environments<br/>Scoped runtimes<br/>and requests"]
   Development["9. Development<br/>platform<br/>GitLab, CI<br/>and handover"]
   Base --> Intake
-  Intake --> Logs
-  Logs --> Trust
-  Trust --> Runtime
+  Intake --> Trust
+  Trust --> Logs
+  Logs --> Runtime
   Runtime --> Identity
   Identity --> Control
   Control --> Delivery
@@ -82,8 +82,8 @@ Find each stage's corresponding design and operating guides in the
 | Stage | Capability available | Working repository | Walkthrough |
 | --- | --- | --- | --- |
 | 1: Software intake | Controlled repository access and accepted bootstrap/host consumers | Tier 2 proxy/cache; tier-local consumers | [Software intake](stage-01-software-intake/README.md) |
-| 2: Protected logging | Independent collection, protected evidence and offline investigation | Tier 0 | [Protected logging](stage-02-logging/README.md) |
-| 3: Cryptographic trust | Offline root and online issuer; optional verified publication after issuance | Tier 0 trust; optional Tier 1 worker | [Trust](stage-03-trust/README.md) |
+| 2: Cryptographic trust | Offline root and online issuer; optional verified publication after issuance | Tier 0 trust; optional Tier 1 worker | [Trust](stage-02-trust/README.md) |
+| 3: Protected logging | Independent collection, protected evidence and offline investigation | Tier 0 | [Protected logging](stage-03-logging/README.md) |
 | 4: Kubernetes | Independently bootstrapped Tier 0 cluster and basic platform | Tier 0 | [Kubernetes](stage-04-kubernetes/README.md) |
 | 5: Identity | Directory authority and federated OIDC access | Tier 0 | [Identity](stage-05-identity/README.md) |
 | 6: Secrets | Secret storage, scoped access, audit and independent unseal/recovery; supporting control tools | Tier 0 | [Secrets](stage-06-secrets/README.md), [monitoring](stage-06-secrets/procedures/independent-monitoring.md) |
@@ -96,8 +96,9 @@ For a new installation, follow [the capability sequence](#figure-deployment-sequ
 Existing infrastructure can satisfy a
 stage's verified prerequisites; a stage number is not a tier, network or state boundary.
 Stage 1 supplies controlled update access. Verified RPM/APT/artifact publication is
-[Stage 3 option 15b](stage-03-trust/README.md#15b-verified-repository-and-artifact-publication-optional),
-after logging and issuance. OCI supply belongs to Stage 7; bootstrap supply stays independent.
+[Stage 2 option 15b](stage-02-trust/README.md#15b-verified-repository-and-artifact-publication-optional),
+after issuance. Retain persistent local journal/audit records during trust bootstrap; Stage 3 adds protected
+forwarding for the existing hosts. OCI supply belongs to Stage 7; bootstrap supply stays independent.
 
 ## IaC capability map
 
@@ -109,9 +110,9 @@ use their dedicated scripts. Every command runs from the named repository root.
 | --- | --- | --- | --- |
 | Tier 0 | `templates` | Foundation: approved source images | [Publication](../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow) |
 | Tier 0 | `template-refresh` | Maintenance: staged Linux image refresh after source-template acceptance | [Staged Linux refresh](../05-operations/01-hosting/templates/template-refresh.md) |
-| Tier 0 | `syslog` | Stage 2: independent log hosts | [Protected logging, Steps 1–16](stage-02-logging/README.md) |
-| Tier 0 | `foundation` | Stages 3/5/6: issuer/directory resources and optional independent monitor | [Trust](stage-03-trust/README.md), [directory deployment](stage-05-identity/procedures/freeipa.md), [monitor provisioning](stage-06-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
-| Tier 0 | `hsm` | Stage 3 option: native USB/provider hosts; issuer binding and PKCS#11 remoting use their explicit recipes | [USB HSM option](stage-03-trust/step-1b-usb-hsm.md), [remoting](stage-03-trust/procedures/pkcs11-remoting.md) |
+| Tier 0 | `syslog` | Stage 3: independent log hosts | [Protected logging, Steps 1–8](stage-03-logging/README.md) |
+| Tier 0 | `foundation` | Stages 2/5/6: issuer/directory resources and optional independent monitor | [Trust](stage-02-trust/README.md), [directory deployment](stage-05-identity/procedures/freeipa.md), [monitor provisioning](stage-06-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
+| Tier 0 | `hsm` | Stage 2 option: native USB/provider hosts; issuer binding and PKCS#11 remoting use their explicit recipes | [USB HSM option](stage-02-trust/step-1b-usb-hsm.md), [remoting](stage-02-trust/procedures/pkcs11-remoting.md) |
 | Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes, Steps 1–19](stage-04-kubernetes/README.md) |
 | Tier 0 | `cluster-endpoint` | Before Stage 4/7/10: private independent API gateways | [API endpoint](stage-04-kubernetes/procedures/api-endpoint.md) |
 | Tier 0 | `vault` | Stage 6 option: dedicated secrets VM | [Vault VM option](stage-06-secrets/step-1b-vault-vm.md) |
@@ -120,7 +121,7 @@ use their dedicated scripts. Every command runs from the named repository root.
 | Tier 0 | `infrastructure-runner` | Stage 9: dedicated trusted infrastructure CI VM | [Runner](stage-09-development/procedures/infrastructure-runner.md) |
 | Tier 0 | `ci-auth` | Stage 9: Vault JWT backend, bounded claims and policies; native Vault root | [Vault CI](stage-09-development/procedures/vault-ci.md) |
 | Tier 1 | `kubernetes` | Stage 7: shared platform cluster | [Platform runtime](stage-07-delivery/procedures/platform-cluster.md) |
-| Tier 1 | `intake` | Stage 3 option 15b: verified repository and artifact intake VM | [Verified intake](stage-03-trust/step-15b-verified-intake.md) |
+| Tier 1 | `intake` | Stage 2 option 15b: verified repository and artifact intake VM | [Verified intake](stage-02-trust/step-15b-verified-intake.md) |
 | Tier 1 | `development` | Stage 9 option: source-control VM | [Source-control VM](stage-09-development/step-1b-source-control-vm.md) |
 | Tier 1 | `development-data` | Stage 9: dedicated PostgreSQL, Redis and Gitaly VMs | [GitLab data services](stage-09-development/procedures/data-services.md) |
 | Tier 1 | `podman-runner` | Stage 9 option: general build runner | [Build runner](stage-09-development/step-14b-podman-runner.md) |

@@ -1,11 +1,83 @@
+{% for name, material in delivery_promotion_credentials.items() %}
+apiVersion: v1
+kind: Secret
+metadata: {name: {{ name }}, namespace: delivery-promotion-authority}
+type: Opaque
+stringData: {{ material | to_json }}
+---
+{% endfor %}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: delivery-promotion-authority
+  labels: {pod-security.kubernetes.io/enforce: restricted, pod-security.kubernetes.io/enforce-version: v1.33}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: delivery-promotion-authority, namespace: delivery-promotion-authority}
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: {name: delivery-promotion-token-review}
+rules:
+  - apiGroups: [authentication.k8s.io]
+    resources: [tokenreviews]
+    verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: {name: delivery-promotion-token-review}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: delivery-promotion-token-review}
+subjects: [{kind: ServiceAccount, name: delivery-promotion-authority, namespace: delivery-promotion-authority}]
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata: {name: delivery-promoter, namespace: delivery-promotion}
 automountServiceAccountToken: false
 ---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata: {name: delivery-promotion-secretless-clients}
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ['']
+        apiVersions: [v1]
+        operations: [CREATE, UPDATE]
+        resources: [pods]
+  matchConditions:
+    - {name: client-namespace, expression: "request.namespace == 'delivery-promotion'"}
+  validations:
+    - expression: "object.spec.serviceAccountName == 'delivery-promoter'"
+      message: Promotion clients must use their unprivileged service account.
+    - expression: >-
+        !has(object.spec.volumes) || object.spec.volumes.all(v,
+          !has(v.secret) && (!has(v.projected) || v.projected.sources.all(s, !has(s.secret))))
+      message: Promotion clients cannot mount Secrets.
+    - expression: >-
+        object.spec.containers.all(c,
+          (!has(c.env) || c.env.all(e, !has(e.valueFrom) || !has(e.valueFrom.secretKeyRef))) &&
+          (!has(c.envFrom) || c.envFrom.all(e, !has(e.secretRef)))) &&
+        (!has(object.spec.initContainers) || object.spec.initContainers.all(c,
+          (!has(c.env) || c.env.all(e, !has(e.valueFrom) || !has(e.valueFrom.secretKeyRef))) &&
+          (!has(c.envFrom) || c.envFrom.all(e, !has(e.secretRef))))) &&
+        (!has(object.spec.ephemeralContainers) || object.spec.ephemeralContainers.all(c,
+          (!has(c.env) || c.env.all(e, !has(e.valueFrom) || !has(e.valueFrom.secretKeyRef))) &&
+          (!has(c.envFrom) || c.envFrom.all(e, !has(e.secretRef)))))
+      message: Promotion clients cannot import Secret environment values.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata: {name: delivery-promotion-secretless-clients}
+spec:
+  policyName: delivery-promotion-secretless-clients
+  validationActions: [Deny, Audit]
+---
 apiVersion: v1
 kind: ConfigMap
-metadata: {name: delivery-promotion-policy, namespace: delivery-promotion}
+metadata: {name: delivery-promotion-policy, namespace: delivery-promotion-authority}
 data:
   policy.json: {{ delivery_promotion_policy | to_json | to_json }}
 ---
@@ -26,7 +98,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: delivery-promotion-observer, namespace: flux-system}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: delivery-promotion-observer}
-subjects: [{kind: ServiceAccount, name: delivery-promoter, namespace: delivery-promotion}]
+subjects: [{kind: ServiceAccount, name: delivery-promotion-authority, namespace: delivery-promotion-authority}]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -41,16 +113,105 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata: {name: delivery-promotion-observer, namespace: {{ delivery_promotion_target.namespace }}}
 roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: delivery-promotion-observer}
-subjects: [{kind: ServiceAccount, name: delivery-promoter, namespace: delivery-promotion}]
+subjects: [{kind: ServiceAccount, name: delivery-promotion-authority, namespace: delivery-promotion-authority}]
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata: {name: delivery-promotion-worker, namespace: delivery-promotion}
 spec:
-  podSelector: {matchLabels: {app.kubernetes.io/name: delivery-promotion-worker}}
+  podSelector: {}
   policyTypes: [Ingress, Egress]
   ingress: []
-  egress: {{ delivery_promotion_egress | to_json }}
+  egress:
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: delivery-promotion-authority}}
+          podSelector: {matchLabels: {app.kubernetes.io/name: delivery-promotion-authority}}
+      ports: [{protocol: TCP, port: 8443}]
+{% for rule in delivery_promotion_egress %}
+    - {{ rule | to_json }}
+{% endfor %}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: delivery-promotion-authority-ca, namespace: delivery-promotion}
+data:
+  ca.pem: {{ lookup('ansible.builtin.file', delivery_promotion_authority_ca_file) | to_json }}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: delivery-promotion-authority, namespace: delivery-promotion-authority}
+spec:
+  selector: {app.kubernetes.io/name: delivery-promotion-authority}
+  ports: [{name: https, port: 8443, targetPort: https}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: delivery-promotion-authority, namespace: delivery-promotion-authority}
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: delivery-promotion}}
+      ports: [{protocol: TCP, port: 8443}]
+  egress: {{ delivery_promotion_authority_egress | to_json }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: promotion-authority-fiat-read, namespace: {{ delivery_promotion_spinnaker_namespace }}}
+spec:
+  podSelector: {matchLabels: {app.kubernetes.io/name: fiat}}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: delivery-promotion-authority}}
+          podSelector: {matchLabels: {app.kubernetes.io/name: delivery-promotion-authority}}
+      ports: [{protocol: TCP, port: 7003}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: delivery-promotion-authority, namespace: delivery-promotion-authority}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector: {matchLabels: {app.kubernetes.io/name: delivery-promotion-authority}}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: delivery-promotion-authority}
+      annotations:
+        delivery.homelab/credential-sha256: {{ (delivery_promotion_credentials | to_json | hash('sha256')) | to_json }}
+        delivery.homelab/policy-sha256: {{ (delivery_promotion_policy | to_json | hash('sha256')) | to_json }}
+    spec:
+      serviceAccountName: delivery-promotion-authority
+      automountServiceAccountToken: true
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, fsGroup: 65532,
+                        seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: authority
+          image: {{ delivery_promotion_worker_image | to_json }}
+          command: [python3, /worker/promote.py, authority]
+          ports: [{name: https, containerPort: 8443}]
+          readinessProbe: {httpGet: {path: /healthz, port: https, scheme: HTTPS}}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          resources: {requests: {cpu: 50m, memory: 128Mi}, limits: {cpu: '1', memory: 512Mi}}
+          env: [{name: HOME, value: /tmp}, {name: PYTHONDONTWRITEBYTECODE, value: '1'}]
+          volumeMounts:
+            - {name: policy, mountPath: /policy, readOnly: true}
+            - {name: authority, mountPath: /authority, readOnly: true}
+            - {name: git, mountPath: /git-credential, readOnly: true}
+            - {name: signing, mountPath: /signing, readOnly: true}
+            - {name: scratch, mountPath: /tmp}
+      volumes:
+        - name: policy
+          configMap: {name: delivery-promotion-policy}
+        - name: authority
+          secret: {secretName: {{ delivery_promotion_authority_secret }}, defaultMode: 288}
+        - name: git
+          secret: {secretName: {{ delivery_promotion_git_secret }}, defaultMode: 288}
+        - name: signing
+          secret: {secretName: {{ delivery_promotion_signing_secret }}, defaultMode: 288}
+        - name: scratch
+          emptyDir: {sizeLimit: 512Mi}
 {% if delivery_promotion_target.kind == 'HelmRelease' %}
 ---
 apiVersion: source.toolkit.fluxcd.io/v1

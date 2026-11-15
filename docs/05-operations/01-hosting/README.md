@@ -182,7 +182,7 @@ Stop on an unexpected target, changed host key or failed login. Correct registra
 | Configure approved update access | [Proxmox proxy configuration, action 2](../02-software-intake/host-updates.md#2-register-the-existing-hosts-and-proxy) | Existing `proxmox-hosts.yml` manages the Datacenter/APT proxy only |
 | Restrict management access | [Proxmox access and hardening](proxmox-hardening.md) | Reviewed host/gateway policy and manual acceptance |
 | Enroll existing guests in HA and maintain affinity | [Proxmox HA setup](proxmox-ha.md#configure-through-iac) | Tier 0 native HA playbook and local HA inputs |
-| Collect host security events | [Protected log sources](../../03-deployment/stage-02-logging/procedures/sources.md) | Enroll each host's source identity before forwarding |
+| Collect host security events | [Protected log sources](../../03-deployment/stage-03-logging/procedures/sources.md) | Enroll each host's source identity before forwarding |
 | Trust the provisioning API | [Proxmox API trust](proxmox-tls.md#step-1-trust-the-bootstrap-ca) | Separate verified HTTPS trust for API callers |
 
 Registration alone changes no host configuration. Retain the inventory and approved SSH identity

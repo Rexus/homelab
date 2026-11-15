@@ -1,0 +1,124 @@
+---
+- name: Read the exact native backup configuration on its owning hypervisor
+  ansible.builtin.command:
+    argv: [pvesm, extractconfig, "{{ recovery_vm.backup }}"]
+    strip_empty_ends: false
+  delegate_to: "{{ recovery_vm.node }}"
+  become: true
+  register: recovery_backup_config
+  changed_when: false
+
+- name: Verify the retained backup identity and isolated network mapping before restore
+  ansible.builtin.assert:
+    that:
+      - recovery_backup_config.stdout | hash('sha256') == recovery_vm.backup_config_sha256
+      - recovery_vm.network | length > 0
+      - >-
+        (recovery_backup_config.stdout_lines | select('match', '^net[0-9]+:') | list | length) ==
+        (recovery_vm.network | length)
+    fail_msg: Backup configuration or complete NIC inventory differs from the independently selected recovery set.
+
+- name: Inspect the selected target without overwriting an existing guest
+  ansible.builtin.command:
+    argv: [pvesh, get, "/nodes/{{ recovery_vm.node }}/qemu/{{ recovery_vm.vmid }}/config", --output-format, json]
+  delegate_to: "{{ recovery_vm.node }}"
+  become: true
+  register: recovery_vm_config
+  failed_when: >-
+    recovery_vm_config.rc != 0 and
+    'does not exist' not in recovery_vm_config.stderr and
+    'no such' not in recovery_vm_config.stderr | lower
+  changed_when: false
+
+- name: Reject an existing guest outside this exact recovery attempt
+  ansible.builtin.assert:
+    that:
+      - >-
+        recovery_vm_config.rc != 0 or
+        ('recovery=' ~ platform_recovery.recovery_id ~ ';plan=' ~ platform_recovery.plan_sha256)
+        in (recovery_vm_config.stdout | from_json).get('description', '')
+    fail_msg: >-
+      The VMID exists without this recovery identity. Preserve it and its partial restore.
+      Inspect the native task and use a new accepted target after a failed restore.
+
+- name: Restore the selected native archive with its original NIC identities and stopped execution
+  ansible.builtin.command:
+    argv: [qmrestore, "{{ recovery_vm.backup }}", "{{ recovery_vm.vmid | string }}",
+           --storage, "{{ recovery_vm.storage }}", --unique, '0', --start, '0']
+  delegate_to: "{{ recovery_vm.node }}"
+  become: true
+  changed_when: true
+  when: recovery_vm_config.rc != 0
+
+- name: Bind the restored VM to this immutable recovery plan
+  ansible.builtin.command:
+    argv: [qm, set, "{{ recovery_vm.vmid | string }}", --description,
+           "recovery={{ platform_recovery.recovery_id }};plan={{ platform_recovery.plan_sha256 }}"]
+  delegate_to: "{{ recovery_vm.node }}"
+  become: true
+  changed_when: recovery_vm_config.rc != 0
+
+- name: Move every restored NIC onto the explicit isolated recovery bridge before starting it
+  ansible.builtin.command:
+    argv: [qm, set, "{{ recovery_vm.vmid | string }}", "--{{ recovery_nic.key }}", "{{ recovery_nic.value }}"]
+  delegate_to: "{{ recovery_vm.node }}"
+  become: true
+  loop: "{{ recovery_vm.network | dict2items }}"
+  loop_control:
+    loop_var: recovery_nic
+  changed_when: true
+
+- name: Start the selected isolated prerequisite service VM
+  ansible.builtin.command:
+    argv: [qm, start, "{{ recovery_vm.vmid | string }}"]
+  delegate_to: "{{ recovery_vm.node }}"
+  become: true
+  register: recovery_vm_start
+  failed_when: recovery_vm_start.rc != 0 and 'already running' not in recovery_vm_start.stderr
+  changed_when: recovery_vm_start.rc == 0
+
+- name: Verify the restored VM is running with the selected bridge and retained recovery identity
+  ansible.builtin.command:
+    argv: [pvesh, get, "/nodes/{{ recovery_vm.node }}/qemu/{{ recovery_vm.vmid }}/config", --output-format, json]
+  delegate_to: "{{ recovery_vm.node }}"
+  become: true
+  register: recovery_vm_verified
+  changed_when: false
+
+- name: Verify every restored interface rather than trusting a completion file
+  ansible.builtin.assert:
+    that:
+      - recovery_nic.value in (recovery_vm_verified.stdout | from_json)[recovery_nic.key]
+  loop: "{{ recovery_vm.network | dict2items }}"
+  loop_control:
+    loop_var: recovery_nic
+
+- name: Wait for each selected prerequisite's native TCP listener before reconstructing clusters
+  ansible.builtin.wait_for:
+    host: "{{ item.host }}"
+    port: "{{ item.port }}"
+    state: started
+    timeout: "{{ item.timeout | default(300) }}"
+    connect_timeout: 5
+  loop: "{{ recovery_vm.health_checks | selectattr('kind', 'equalto', 'tcp') | list }}"
+
+- name: Require actual verified HTTPS readiness from restored prerequisite services
+  ansible.builtin.uri:
+    url: "{{ item.url }}"
+    method: GET
+    validate_certs: true
+    use_proxy: false
+    ca_path: "{{ platform_recovery.workspace ~ '/' ~ item.ca_path if item.ca_path is defined else omit }}"
+    headers: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/' ~ item.headers_file) | from_json if item.headers_file is defined else {} }}"
+    status_code: 200
+    return_content: true
+    timeout: 10
+  loop: "{{ recovery_vm.health_checks | selectattr('kind', 'equalto', 'https') | list }}"
+  register: recovery_prerequisite_ready
+  until: >-
+    recovery_prerequisite_ready.status | default(0) == item.status and
+    (item.content_sha256 is not defined or recovery_prerequisite_ready.content | default('') | hash('sha256') == item.content_sha256)
+  retries: "{{ ((item.timeout | default(300) | int) / 5) | round(0, 'ceil') | int }}"
+  delay: 5
+  no_log: true
+  changed_when: false

@@ -51,8 +51,13 @@ class ManagedGuestSetup(TierRepositoryTestCase):
         self.assertEqual(storage[1]['tasks'][0]['ansible.builtin.include_role'],
                          {'name': 'syslog_ng', 'tasks_from': 'storage'})
         self.assertTrue((repo / 'ansible/playbooks/deployment/logging-verify.yml').is_file())
-        guide = (self.root / 'verify-architecture/docs/auto-docs/03-deployment/stage-02-logging/README.md').read_text()
-        self.assertIn('--ansible-only --playbook deployment/logging-storage.yml', guide)
+        guide = (self.root / 'verify-architecture/docs/auto-docs/03-deployment/stage-03-logging/README.md').read_text()
+        self.assertIn('bash scripts/deploy.sh syslog\n', guide)
+        self.assertIn('--ansible-only --playbook deployment/logging-verify.yml', guide)
+        workflow = yaml.safe_load((repo / 'ansible/playbooks/deployment/logging-workflow.yml').read_text())
+        self.assertTrue(any(task.get('ansible.builtin.include_role') ==
+                            {'name': 'syslog_ng', 'tasks_from': 'storage'}
+                            for play in workflow for task in play.get('tasks', [])))
         self.assertNotRegex(guide, r'(?m)^\s*ssh\s')
 
     def test_normal_stage_guides_do_not_require_interactive_guest_ssh(self):

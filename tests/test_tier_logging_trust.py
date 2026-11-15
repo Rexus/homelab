@@ -62,6 +62,9 @@ class ProducerAuthority(unittest.TestCase):
 
             original = x509.load_pem_x509_certificate(first)
             ca = x509.load_pem_x509_certificate((root / 'authority/ca.pem').read_bytes())
+            crl_path = root / 'authority/public/revoked.pem'
+            self.assertEqual(crl_path.stat().st_mode & 0o777, 0o644)
+            self.assertTrue(x509.load_pem_x509_crl(crl_path.read_bytes()).is_signature_valid(ca.public_key()))
             signing_key = serialization.load_pem_private_key((root / 'authority/key.pem').read_bytes(),
                                                              b'disposable-test-signing-passphrase')
             now = datetime.now(timezone.utc)
@@ -112,5 +115,10 @@ class ProducerAuthority(unittest.TestCase):
                 str(leaf)], capture_output=True, text=True, timeout=10)
             self.assertNotEqual(verification.returncode, 0)
             self.assertIn('revoked', verification.stderr)
+            variables['logging_authority_revocations'] = []
+            run()
+            retained_crl = x509.load_pem_x509_crl(crl_path.read_bytes())
+            self.assertTrue(retained_crl.is_signature_valid(ca.public_key()))
+            self.assertIsNotNone(retained_crl.get_revoked_certificate_by_serial_number(certificate.serial_number))
             variables['logging_authority_requests'][0]['key_sha256'] = ':'.join(['00'] * 32)
             run(False)

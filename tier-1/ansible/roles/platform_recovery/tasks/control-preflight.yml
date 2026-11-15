@@ -1,0 +1,21 @@
+---
+- name: Prepare a controller-only native control backup verification contract
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/{{ recovery_control_product.name }}-preflight.json"
+    mode: '0600'
+    content: "{{ {'workspace': platform_recovery.workspace, 'plan_sha256': platform_recovery.plan_sha256, 'product': recovery_control_product} | to_nice_json }}"
+  no_log: true
+
+- name: Verify original Vault tooling custody and native backup before infrastructure mutation
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_playbook_python }}"
+      - "{{ role_path }}/files/vault_recovery.py"
+      - --config
+      - "{{ platform_recovery.workspace }}/receipts/{{ recovery_control_product.name }}-preflight.json"
+      - --control-tools
+      - "{{ platform_recovery.workspace }}/tier-0/ansible/roles/control_backup/files"
+      - --operation
+      - prepare
+  changed_when: false
+  no_log: true

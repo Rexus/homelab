@@ -35,7 +35,7 @@
     that:
       - >-
         item.kind in ['Namespace', 'ConfigMap', 'ServiceAccount', 'Role', 'RoleBinding', 'Secret',
-          'Service', 'Ingress', 'Certificate', 'ServersTransport', 'NetworkPolicy',
+          'Service', 'Ingress', 'Certificate', 'ServersTransport', 'Middleware', 'NetworkPolicy',
           'PersistentVolumeClaim', 'Deployment', 'StatefulSet', 'Job', 'CronJob']
       - >-
         (item.kind == 'Namespace' and item.metadata.name in allowed_namespaces) or

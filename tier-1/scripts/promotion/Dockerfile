@@ -6,7 +6,7 @@ ARG BASE_IMAGE
 FROM ${BASE_IMAGE}
 USER 0
 RUN python3 --version && git --version && command -v ssh-keygen
-COPY promote.py promotion_git.py promotion_flux.py /worker/
+COPY promote.py promotion_git.py promotion_flux.py promotion_authority.py promotion_client.py /worker/
 COPY promotion/git-askpass.py /worker/promotion/git-askpass.py
 RUN chmod 0555 /worker/promote.py /worker/promotion/git-askpass.py
 ENV PYTHONDONTWRITEBYTECODE=1 HOME=/tmp

@@ -202,7 +202,7 @@ the single-receiver NAS main path.
 | Capacity | Spool/archive sizing for peak rate and tolerated outage; alarms before exhaustion; per-source isolation |
 | Detection | Missing-source/heartbeat, queue depth, write/replication failure, clock skew and restore checks; independent alert path |
 
-A single receiver VM is the Stage 2 main-path choice with declared failure limits;
+A single receiver VM is the Stage 3 main-path choice with declared failure limits;
 it is **not the HA acceptance state**.
 Two receivers alone are also insufficient: a VIP changes routing, not acknowledgement,
 replication or storage durability. Supported source failover or dual submission needs
@@ -230,7 +230,7 @@ required under either choice. Failure and privilege limits must be recorded expl
 
 ## Realization
 
-[Foundational syslog](../../03-deployment/stage-02-logging/README.md) owns
+[Foundational syslog](../../03-deployment/stage-03-logging/README.md) owns
 bootstrap, receiver integration and acceptance. The initial implementation is a
 dedicated syslog-ng OSE network receiver, alongside the untouched OS logger, with
 independent trust, raw messages and portable local JSON records. rsyslog is a valid
@@ -242,6 +242,18 @@ adds critical health and alerts; [Observability](../../03-deployment/stage-08-ob
 adds approved search copies. [Logging administration](../../05-operations/06-resilience/protected-logging.md)
 owns recurring access, gap, capacity and restore checks. The receiver does not
 claim a lossless or immutable archive.
+
+## Establish trust before network collection
+
+Initial host activity remains in persistent local journal/audit records while the infrastructure
+issuer is established. Network logging then enrolls each stream with that issuer and installs the
+public trust chain, revocation material and a service identity. An accepted existing authority can
+satisfy the same interface. A separate logging CA is an explicit independent-custody alternative.
+
+The issuer is needed for enrollment, renewal and fresh revocation material; it is not in the event
+transport path. An outage does not remove already retained evidence. Certificate/CRL validity,
+clock correctness and queued-record limits still bound continued authenticated intake.
+[Deployment order and authority choices](../../03-deployment/stage-03-logging/README.md).
 
 ## References
 

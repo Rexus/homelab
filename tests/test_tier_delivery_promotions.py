@@ -3,6 +3,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, redirect_stdout
 import copy
+import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import io
@@ -22,13 +23,15 @@ import jinja2
 import yaml
 
 from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
+from backup_storage_api_support import BackupStorageAPI
 
 SCRIPTS = UPSTREAM / "tier-1/scripts"
 sys.path.insert(0, str(SCRIPTS))
-from promotion_git import (PromotionError, Repository, canonical, decode_plan, encode_plan,
+from promotion_git import (PromotionError, Repository, canonical,
                            validate_policy, validate_signing_key)
 from promotion_flux import KubernetesReader, ready, target_healthy, wait_for_release
 import promote
+from promotion_authority import Authority, approval_instructions, json_request, verify_client
 
 DIGEST = "sha256:" + "a" * 64
 OTHER_DIGEST = "sha256:" + "b" * 64
@@ -88,7 +91,8 @@ def gate_fixture(directory):
     subprocess.run(["openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", str(key),
                     "-out", str(certificate), "-days", "1", "-subj", "/CN=localhost", "-addext",
                     "subjectAltName=IP:127.0.0.1"], capture_output=True, check=True, timeout=30)
-    state = {"application": None, "pipelines": {}, "writes": []}
+    state = {"application": None, "pipelines": {}, "writes": [], 'executions': {}, 'permissions': {},
+             'retired_token': {'id': 17, 'revoked': False}, 'fail_revoke': False}
 
     class Handler(BaseHTTPRequestHandler):
         def reply(self, value, status=200):
@@ -99,6 +103,17 @@ def gate_fixture(directory):
 
         def do_GET(self):
             path = unquote(urlsplit(self.path).path)
+            if path == '/api/v4/personal_access_tokens/17':
+                return self.reply(state['retired_token'])
+            if path == '/redirect':
+                self.send_response(302)
+                self.send_header('Location', 'https://credential-sink.invalid/')
+                self.end_headers()
+                return
+            if path.startswith('/pipelines/'):
+                return self.reply(state['executions'].get(path.rsplit('/', 1)[1], {}))
+            if path.startswith('/authorize/'):
+                return self.reply(state['permissions'].get(path.rsplit('/', 1)[1], {}))
             if path == "/pipelineConfigs":
                 return self.reply(list(state["pipelines"].values()))
             if path.startswith("/tasks/"):
@@ -122,6 +137,15 @@ def gate_fixture(directory):
                 state["pipelines"][body["name"]] = dict(body, updateTs="revision-" + str(len(state["writes"])))
                 return self.reply({})
             return self.reply({}, 404)
+
+        def do_DELETE(self):
+            if self.path != '/api/v4/personal_access_tokens/17':
+                return self.reply({}, 404)
+            if state['fail_revoke']:
+                return self.reply({'error': 'fixture unavailable'}, 503)
+            state['retired_token']['revoked'] = True
+            self.send_response(204)
+            self.end_headers()
 
         def log_message(self, *arguments):
             pass
@@ -204,7 +228,6 @@ class DeliveryPromotions(TierRepositoryTestCase):
         plan = self.plan(repository)
         other = self.plan(self.repository("retry"))
         self.assertEqual(plan, other)
-        self.assertEqual(decode_plan(encode_plan(plan)), plan)
         self.assertEqual(repository.head("delivery"), self.base)
         self.assertEqual(repository.git("diff", "--name-only", self.base, plan["candidate"]),
                          "apps/example/helmrelease.json")
@@ -256,14 +279,14 @@ class DeliveryPromotions(TierRepositoryTestCase):
         plan = self.plan(repository, mode="rollback", config_revision=self.base)
         self.assertEqual(plan["desired"]["metadata"]["annotations"]["delivery.homelab/mode"], "rollback")
 
-    def test_execute_rejects_a_changed_preview_before_push(self):
-        repository = self.repository()
-        plan = self.plan(repository)
-        plan["diff"] += "tampered"
-        with patch.dict(os.environ, PROMOTION_PLAN_B64=encode_plan(plan)):
-            with self.assertRaisesRegex(PromotionError, "Approved preview changed"):
-                promote.run("execute", self.policy, repository, None)
-        self.assertEqual(repository.head("delivery"), self.base)
+    def test_cli_cannot_execute_a_legacy_unsigned_plan_locally(self):
+        with patch.dict(os.environ, PROMOTION_PLAN_B64='untrusted-legacy-plan'), patch.object(
+                sys, 'argv', ['promote.py', 'execute']), patch('promotion_client.request',
+                side_effect=PromotionError('Authority denied')) as client, redirect_stdout(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                promote.main()
+        client.assert_called_once_with('execute')
+        self.assertFalse(hasattr(promote, 'run'))
 
     @unittest.skipUnless(shutil.which("ssh-keygen"), "Requires OpenSSH for real SSH-signature verification")
     def test_worker_creates_repeatable_signed_commits(self):
@@ -298,9 +321,8 @@ class DeliveryPromotions(TierRepositoryTestCase):
         signing_key.write_text("fixture key validated by the candidate signing tests")
         output = {"candidate": "a" * 40, "plan_b64": "fixture==", "diff": "first\nsecond\n"}
         captured = io.StringIO()
-        with patch.object(sys, "argv", ["promote.py", "preview", "--policy", str(policy)]), patch.dict(
-                os.environ, PROMOTION_SIGNING_KEY=str(signing_key)), patch.object(
-                promote, "Repository"), patch.object(promote, "run", return_value=output), redirect_stdout(captured):
+        with patch.object(sys, "argv", ["promote.py", "preview", "--policy", str(policy)]), patch(
+                'promotion_client.request', return_value=output), redirect_stdout(captured):
             promote.main()
         lines = captured.getvalue().splitlines()
         self.assertEqual(len(lines), 1)
@@ -379,6 +401,8 @@ class DeliveryPromotions(TierRepositoryTestCase):
                       delivery_promotion_policy=self.policy, delivery_promotion_egress=[{"to": [{"ipBlock": {"cidr": "192.0.2.1/32"}}]}])
         environment = jinja2.Environment(undefined=jinja2.StrictUndefined)
         environment.filters["to_json"] = json.dumps
+        environment.filters['hash'] = lambda value, algorithm: hashlib.new(algorithm, value.encode()).hexdigest()
+        environment.globals['lookup'] = lambda plugin, path: 'PUBLIC CA FIXTURE'
         template = environment.from_string((UPSTREAM / "tier-1/pipelines/flux-promotion.yml.j2").read_text())
         pipeline = yaml.safe_load(template.render(values))
         self.assertEqual([stage["type"] for stage in pipeline["stages"]],
@@ -391,6 +415,10 @@ class DeliveryPromotions(TierRepositoryTestCase):
             self.assertEqual(job["metadata"]["namespace"], "delivery-promotion")
             pod = job["spec"]["template"]["spec"]
             self.assertEqual(pod["serviceAccountName"], "delivery-promoter")
+            self.assertFalse(pod['automountServiceAccountToken'])
+            self.assertTrue(all('secret' not in volume for volume in pod['volumes']))
+            self.assertEqual(pod['volumes'][0]['projected']['sources'][0]['serviceAccountToken']['audience'],
+                             'delivery-promotion-authority')
             self.assertEqual(pod["containers"][0]["securityContext"]["capabilities"]["drop"], ["ALL"])
         resources = list(yaml.safe_load_all(environment.from_string((UPSTREAM /
             "tier-1/ansible/roles/delivery_promotion/templates/resources.yml.j2").read_text()).render(values)))
@@ -399,13 +427,189 @@ class DeliveryPromotions(TierRepositoryTestCase):
                 self.assertEqual(rule["verbs"], ["get"])
                 self.assertTrue(rule["resourceNames"])
                 self.assertNotIn("secrets", rule["resources"])
+        authority = next(item for item in resources if item['kind'] == 'Deployment')
+        self.assertEqual(authority['metadata']['namespace'], 'delivery-promotion-authority')
+        self.assertEqual({volume['secret']['secretName'] for volume in authority['spec']['template']['spec']['volumes']
+                          if 'secret' in volume}, {values['delivery_promotion_authority_secret'],
+                              values['delivery_promotion_git_secret'], values['delivery_promotion_signing_secret']})
+        review = next(item for item in resources if item['kind'] == 'ClusterRole')
+        self.assertEqual(review['rules'], [{'apiGroups': ['authentication.k8s.io'],
+            'resources': ['tokenreviews'], 'verbs': ['create']}])
+        admission = next(item for item in resources if item['kind'] == 'ValidatingAdmissionPolicy')
+        self.assertEqual(admission['spec']['failurePolicy'], 'Fail')
+        client_network = next(item for item in resources if item['kind'] == 'NetworkPolicy' and
+                              item['metadata']['namespace'] == 'delivery-promotion')
+        self.assertEqual(client_network['spec']['podSelector'], {},
+                         'An arbitrary requester Job cannot escape network isolation by omitting labels')
+        deployment = next(item for item in resources if item['kind'] == 'Deployment')
+        previous = deployment['spec']['template']['metadata']['annotations']['delivery.homelab/policy-sha256']
+        values['delivery_promotion_policy'] = dict(values['delivery_promotion_policy'], approver_role='new-approvers')
+        changed = list(yaml.safe_load_all(environment.from_string((UPSTREAM /
+            'tier-1/ansible/roles/delivery_promotion/templates/resources.yml.j2').read_text()).render(values)))
+        current = next(item for item in changed if item['kind'] == 'Deployment')
+        self.assertNotEqual(previous, current['spec']['template']['metadata']['annotations'][
+            'delivery.homelab/policy-sha256'], 'Policy changes must roll the startup-loaded authority')
+
+    def test_authority_requires_native_actor_and_immutable_approval_before_real_git_write(self):
+        policy = dict(self.policy, application='tier1promotions', pipeline_ids={'promote': 'promote-id',
+            'rollback': 'rollback-id'}, approver_role='approvers', ticket_ttl_seconds=3600)
+        execution = {'id': 'execution-1', 'application': 'tier1promotions', 'pipelineConfigId': 'promote-id',
+                     'status': 'RUNNING', 'stages': [{'refId': 'approval', 'type': 'manualJudgment',
+                        'status': 'RUNNING', 'context': {}}]}
+        @contextmanager
+        def repository():
+            with tempfile.TemporaryDirectory(dir=self.temp.name) as directory:
+                yield Repository(directory, str(self.remote))
+        permissions = {'requester': {'name': 'requester', 'roles': [{'name': 'requesters'}]},
+                       'approver': {'name': 'approver', 'roles': [{'name': 'approvers'}]}}
+        clock = [1000]
+        authority = Authority(policy, b'x' * 32, lambda identifier: copy.deepcopy(execution),
+            lambda actor: permissions.get(actor, {}), repository, None, observer=lambda *args: None,
+            clock=lambda: clock[0])
+        request = {key: value for key, value in self.request.items() if key != 'base'}
+        preview = authority.preview(dict(request, execution_id='execution-1'))
+        execute = {'execution_id': 'execution-1', 'approval_ticket': preview['approval_ticket']}
+        for field, replacement in (('application', 'privileged-application'), ('pipelineConfigId', 'another-pipeline')):
+            original = execution[field]
+            execution[field] = replacement
+            with self.subTest(field=field), self.assertRaisesRegex(PromotionError, 'outside'):
+                authority.execute(execute)
+            execution[field] = original
+        with self.assertRaises(PromotionError):
+            authority.execute(execute)
+        judgment = execution['stages'][0]
+        judgment.update(status='SUCCEEDED', lastModified={'user': 'requester', 'lastModifiedTime': 1000000})
+        judgment['context'] = {'judgmentStatus': 'continue', 'lastModifiedBy': 'approver',
+            'requiredJudgmentRoles': [], 'approvalTicket': preview['approval_ticket'],
+            'instructions': preview['approval_instructions']}
+        with self.assertRaisesRegex(PromotionError, 'Actual judgment actor'):
+            authority.execute(execute)
+        judgment['lastModified']['user'] = 'approver'
+        permissions['approver']['name'] = 'another-user'
+        with self.assertRaisesRegex(PromotionError, 'Actual judgment actor'):
+            authority.execute(execute)
+        permissions['approver']['name'] = 'approver'
+        retired = Authority(dict(policy, approver_role='new-approvers'), b'x' * 32,
+            lambda identifier: copy.deepcopy(execution), lambda actor: permissions.get(actor, {}),
+            repository, None, observer=lambda *args: None, clock=lambda: clock[0])
+        with self.assertRaisesRegex(PromotionError, 'policy changed'):
+            retired.execute(execute)
+        for change in ({'execution_id': 'execution-2'}, {'image_digest': OTHER_DIGEST},
+                       {'approval_ticket': preview['approval_ticket'][:-1] +
+                        ('0' if preview['approval_ticket'][-1] != '0' else '1')}):
+            with self.subTest(changed_field=next(iter(change))), self.assertRaises((PromotionError, ValueError)):
+                authority.execute(dict(execute, **change))
+        judgment['context']['instructions'] = 'Approve something else'
+        with self.assertRaisesRegex(PromotionError, 'Judgment payload'):
+            authority.execute(execute)
+        judgment['context']['instructions'] = preview['approval_instructions']
+        with repository() as inspection:
+            self.assertEqual(inspection.head('delivery'), self.base)
+        result = authority.execute(execute)
+        self.assertEqual(result['git_result'], 'published')
+        self.assertEqual(authority.execute(execute)['git_result'], 'already-published')
+        # Another release/head cannot reuse this approval, even with the same execution and actor.
+        with repository() as other:
+            changed = other.candidate(policy, dict(self.request, base=preview['candidate'], release_id='other'), None)
+            other.publish(policy, changed)
+        with self.assertRaisesRegex(PromotionError, 'Superseded'):
+            authority.execute(execute)
+        clock[0] = 5000
+        with self.assertRaisesRegex(PromotionError, 'expired'):
+            authority.execute(execute)
+
+    @unittest.skipUnless(NATIVE, 'Requires native OpenSSL for a verified HTTPS authority fixture')
+    def test_authority_reads_execution_and_fiat_over_verified_https(self):
+        with gate_fixture(Path(self.temp.name)) as (url, certificate, state):
+            state['executions']['run-1'] = {'id': 'run-1', 'pipelineConfigId': 'saved-1'}
+            state['permissions']['reviewer@example.test'] = {'name': 'reviewer@example.test',
+                'roles': [{'name': 'approvers'}]}
+            execution = json_request(url + '/pipelines/run-1', ca=str(certificate),
+                                     headers={'Cookie': 'fixture-gate-session'})
+            permission = json_request(url + '/authorize/reviewer%40example.test', ca=str(certificate))
+            self.assertEqual(execution['pipelineConfigId'], 'saved-1')
+            self.assertEqual(permission['roles'], [{'name': 'approvers'}])
+            with self.assertRaises(Exception):
+                json_request(url + '/pipelines/run-1')
+            with self.assertRaisesRegex(PromotionError, 'must not follow'):
+                json_request(url + '/redirect', ca=str(certificate),
+                             headers={'Authorization': 'Bearer fixture-private-reader'})
+
+    def test_authority_client_identity_requires_native_token_review_subject_and_audience(self):
+        import promotion_authority
+        accepted = {'authenticated': True, 'audiences': ['delivery-promotion-authority'],
+                    'user': {'username': 'system:serviceaccount:delivery-promotion:delivery-promoter'}}
+        with patch.dict(os.environ, KUBERNETES_SERVICE_HOST='api.example.test'), patch.object(
+                Path, 'read_text', return_value='fixture-token'):
+            for changes in ({'authenticated': False}, {'audiences': ['kubernetes']},
+                            {'user': {'username': 'system:serviceaccount:default:default'}}):
+                with patch.object(promotion_authority, 'json_request', return_value={'status': dict(accepted, **changes)}):
+                    with self.assertRaises(PromotionError):
+                        verify_client('fixture-client-token', self.policy)
+            with patch.object(promotion_authority, 'json_request', return_value={'status': accepted}) as call:
+                verify_client('fixture-client-token', self.policy)
+                self.assertEqual(call.call_args.kwargs['body']['spec']['audiences'], ['delivery-promotion-authority'])
 
 
 class PromotionPipelineImport(TierRepositoryTestCase):
+    @unittest.skipUnless(NATIVE, 'Requires native Ansible and Kubernetes client modules')
+    def test_native_adoption_remains_fenced_on_revocation_failure_and_retries_safely(self):
+        class API(BackupStorageAPI):
+            resources = dict(BackupStorageAPI.resources, secrets=('Secret', True, 'v1'),
+                pods=('Pod', True, 'v1'), jobs=('Job', True, 'batch/v1'),
+                deployments=('Deployment', True, 'apps/v1'))
+        api = API()
+        self.addCleanup(api.close)
+        inputs = self.inputs(Path(self.temp.name) / 'adopt')
+        kubeconfig = Path(self.temp.name) / 'kubeconfig.yml'
+        kubeconfig.write_text(yaml.safe_dump(api.kubeconfig()))
+        for name in inputs['delivery_promotion_credentials']:
+            api.put({'apiVersion': 'v1', 'kind': 'Secret',
+                     'metadata': {'name': name, 'namespace': 'delivery-promotion-authority'}})
+        for kind, version, name in [('Secret', 'v1', 'delivery-promotion-git'),
+                                    ('Secret', 'v1', 'delivery-promotion-signing'),
+                                    ('Job', 'batch/v1', 'old-client'), ('Pod', 'v1', 'orphan-client')]:
+            api.put({'apiVersion': version, 'kind': kind,
+                     'metadata': {'name': name, 'namespace': 'delivery-promotion'}})
+        api.put({'apiVersion': 'apps/v1', 'kind': 'Deployment',
+                 'metadata': {'name': 'delivery-promotion-authority', 'namespace': 'delivery-promotion-authority',
+                              'generation': 2}, 'status': {'observedGeneration': 2, 'replicas': 1,
+                                                         'updatedReplicas': 1, 'availableReplicas': 1}})
+        api.put({'apiVersion': 'apps/v1', 'kind': 'Deployment',
+                 'metadata': {'name': 'orca', 'namespace': 'spinnaker', 'generation': 2},
+                 'spec': {'replicas': 1, 'template': {'metadata': {'annotations': {
+                     'delivery.homelab/request-http-profile': 'deny-user-http-v1'}}}},
+                 'status': {'observedGeneration': 2, 'replicas': 1,
+                            'updatedReplicas': 1, 'availableReplicas': 1}})
+        with gate_fixture(Path(self.temp.name)) as (url, certificate, state):
+            inputs.update(delivery_promotion_action='adopt', delivery_promotion_kubeconfig=str(kubeconfig),
+                delivery_promotion_context='offline', delivery_promotion_gate_url=url,
+                delivery_promotion_gate_headers={'Cookie': 'fixture-authenticated-session'},
+                delivery_promotion_gate_ca_path=str(certificate), delivery_promotion_gitlab_url=url,
+                delivery_promotion_retired_token_id=17, delivery_promotion_gitlab_ca_path=str(certificate),
+                delivery_promotion_gitlab_headers={'PRIVATE-TOKEN': 'fixture-placeholder'})
+            state['fail_revoke'] = True
+            result = self.run_role(inputs)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(state['application']['permissions']['EXECUTE'], ['tier1-delivery-admins'])
+            self.assertFalse(state['retired_token']['revoked'])
+            self.assertFalse(api.mutations, 'No legacy credentials/clients removed before native revocation')
+            state['fail_revoke'] = False
+            result = self.run_role(inputs)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue(state['retired_token']['revoked'])
+            self.assertIn('tier1-promotion-requesters', state['application']['permissions']['EXECUTE'])
+            self.assertIn('tier1-delivery-readers', state['application']['permissions']['READ'])
+            self.assertNotIn('tier1-delivery-readers', state['application']['permissions']['EXECUTE'])
+            self.assertNotIn('tier1-delivery-readers', state['application']['permissions']['WRITE'])
+            self.assertFalse([key for key in api.objects if key[1] == 'delivery-promotion'])
+            self.assertEqual(len([key for key in api.objects if key[1] == 'delivery-promotion-authority']), 4)
+
     def test_generated_payload_contains_worker_and_preserves_project_pipeline(self):
         self.generate()
         generated = self.root / "verify-tier-1"
         for relative in ("scripts/promote.py", "scripts/promotion_git.py", "scripts/promotion_flux.py",
+                         "scripts/promotion_authority.py", "scripts/promotion_client.py",
                          "scripts/promotion/Dockerfile", "scripts/promotion/git-askpass.py",
                          "pipelines/flux-promotion.yml.j2", "ansible/playbooks/deployment/delivery-promotions.yml",
                          "ansible/group_vars/delivery_promotion.yml.example",
@@ -427,6 +631,17 @@ class PromotionPipelineImport(TierRepositoryTestCase):
                       delivery_promotion_chart_repository="https://charts.fixture.test/application",
                       delivery_promotion_chart="example", delivery_promotion_chart_version="1.2.3",
                       delivery_promotion_egress=[{"to": [{"ipBlock": {"cidr": "192.0.2.1/32"}}]}])
+        authority_ca = Path(self.temp.name) / 'authority-ca.pem'
+        authority_ca.write_text('PUBLIC CA FIXTURE')
+        inputs.update(delivery_promotion_authority_ca_file=str(authority_ca),
+                      delivery_promotion_authority_gate_url='https://spinnaker.fixture.test/api/v1',
+                      delivery_promotion_authority_egress=[{'to': [{'ipBlock': {'cidr': '192.0.2.1/32'}}]}])
+        inputs['delivery_promotion_credentials'] = {
+            'delivery-promotion-git': {'username': 'fixture-user', 'password': 'fixture-placeholder'},
+            'delivery-promotion-signing': {'key': 'fixture-signing-placeholder'},
+            'delivery-promotion-authority': dict.fromkeys(
+                ['ticket-key', 'gate-headers.json', 'gate-ca.pem', 'fiat-ca.pem', 'tls.crt', 'tls.key'],
+                'fixture-placeholder')}
         inputs["delivery_promotion_controls_accepted"] = dict.fromkeys(inputs["delivery_promotion_controls_accepted"], True)
         return inputs
 
@@ -536,7 +751,7 @@ class PromotionPipelineImport(TierRepositoryTestCase):
     def test_native_admission_rejects_missing_acceptance_before_output(self):
         output = Path(self.temp.name) / "rejected"
         inputs = self.inputs(output)
-        inputs["delivery_promotion_controls_accepted"]["executor_api_job_and_credential_bypass"] = False
+        inputs['delivery_promotion_authority_gate_url'] = ''
         result = self.run_role(inputs)
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(output.exists())

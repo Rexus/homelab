@@ -1,0 +1,79 @@
+---
+- name: Validate the approved logging request descriptor
+  ansible.builtin.assert:
+    that:
+      - request.name is match('^[a-z][a-z0-9_-]{0,62}$')
+      - request.profile in ['client', 'server']
+      - request.csr is match('^/')
+      - request.key_sha256 is match('^([0-9a-f]{2}:){31}[0-9a-f]{2}$')
+      - request.profile != 'server' or request.san | default([]) | length > 0
+      - request.profile != 'client' or request.san | default([]) | length == 0
+
+- name: Require exact DNS names in the server request
+  ansible.builtin.assert:
+    that:
+      - item is match('^DNS:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$')
+      - item | length <= 257
+  loop: "{{ request.san | default([]) }}"
+
+- name: Read the approved public CSR once for inspection and submission
+  ansible.builtin.slurp:
+    src: "{{ request.csr }}"
+  delegate_to: localhost
+  become: false
+  register: logging_pki_csr_file
+
+- name: Inspect the exact submitted CSR bytes using native crypto metadata
+  community.crypto.openssl_csr_info:
+    content: "{{ logging_pki_csr_file.content | b64decode }}"
+  delegate_to: localhost
+  become: false
+  register: logging_pki_csr
+
+- name: Match the authenticated request key subject SAN and leaf powers
+  ansible.builtin.assert:
+    that:
+      - logging_pki_csr.signature_valid
+      - "logging_pki_csr.subject == {'commonName': request.name}"
+      - logging_pki_csr.public_key_fingerprints.sha256 == request.key_sha256
+      - logging_pki_csr.basic_constraints == ['CA:FALSE']
+      - logging_pki_csr.basic_constraints_critical
+      - logging_pki_csr.key_usage == ['Digital Signature']
+      - logging_pki_csr.extended_key_usage == [logging_pki_expected_eku]
+      - logging_pki_csr.subject_alt_name | default([], true) | sort == request.san | default([]) | sort
+    fail_msg: The approved logging descriptor must match the signed CSR exactly.
+  vars:
+    logging_pki_expected_eku: "{{ 'TLS Web Client Authentication' if request.profile == 'client' else 'TLS Web Server Authentication' }}"
+
+- name: Submit or resume the native request without approving it
+  ansible.builtin.command:
+    argv: [python3, "{{ logging_pki_workspace }}/enroll.py"]
+    stdin: >-
+      {{ {'cli': logging_pki_cli, 'cli_version': logging_pki_cli_version,
+          'auth_key': logging_pki_cli_auth_key, 'realm': logging_pki_realm,
+          'workspace': logging_pki_workspace, 'generation': logging_pki_generation,
+          'request': request | combine({'csr_pem': logging_pki_csr_file.content | b64decode}),
+          'issuer_sha256': openxpki_issuer_fingerprint,
+          'root_sha256': openxpki_root_fingerprint,
+          'attempts': logging_pki_wait_attempts | int,
+          'interval': logging_pki_wait_seconds | int} | to_json }}
+  become: true
+  become_user: "{{ logging_pki_user }}"
+  no_log: true
+  register: logging_pki_result
+  failed_when: false
+  changed_when: logging_pki_result.rc == 0 and (logging_pki_result.stdout | from_json).changed
+
+- name: Require a successful native submission or resumable pending result
+  ansible.builtin.assert:
+    that: logging_pki_result.rc == 0
+    fail_msg: "{{ logging_pki_result.stderr | default('Logging enrollment failed before a public handoff.') }}"
+
+- name: Retain only public enrollment status for the final summary
+  ansible.builtin.set_fact:
+    logging_pki_status: "{{ logging_pki_result.stdout | from_json }}"
+    logging_pki_enrollments: "{{ logging_pki_enrollments | default([]) + [logging_pki_result.stdout | from_json] }}"
+
+- name: Verify issued public material before releasing it
+  ansible.builtin.include_tasks: verify.yml
+  when: logging_pki_status.state == 'SUCCESS'

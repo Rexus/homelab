@@ -27,6 +27,7 @@ delivery_promotion_requester_role: tier1-promotion-requesters
 delivery_promotion_approver_role: tier1-promotion-approvers
 delivery_promotion_executor_role: tier1-promotion-executors
 delivery_promotion_admin_role: tier1-delivery-admins
+delivery_promotion_reader_role: tier1-delivery-readers
 delivery_promotion_pipeline_ids:
   promote: >-
     {{ (delivery_promotion_application ~ ':' ~ delivery_promotion_target.namespace ~ '/' ~
@@ -37,7 +38,6 @@ delivery_promotion_pipeline_ids:
 # Record approval trust-limit acceptance. Live API/Git commissioning supplies separate evidence.
 delivery_promotion_controls_accepted:
   single_judgment_and_possible_self_approval: false
-  executor_api_job_and_credential_bypass: false
   pipeline_fiat_gitlab_and_cluster_admin_bypass: false
   gitlab_ce_separate_project_bot_maintainer: false
 delivery_promotion_gate_url: ""
@@ -48,6 +48,21 @@ delivery_promotion_git_secret: delivery-promotion-git
 delivery_promotion_signing_secret: delivery-promotion-signing
 # Default-deny egress requires the site to provide API, Git and DNS destinations explicitly.
 delivery_promotion_egress: []
+delivery_promotion_authority_url: https://delivery-promotion-authority.delivery-promotion-authority.svc:8443
+delivery_promotion_authority_secret: delivery-promotion-authority
+delivery_promotion_authority_ca_file: ""
+delivery_promotion_authority_gate_url: ""
+delivery_promotion_authority_fiat_url: https://fiat.spinnaker.svc.cluster.local:7003
+delivery_promotion_authority_egress: []
+delivery_promotion_ticket_ttl_seconds: 86400
+delivery_promotion_spinnaker_namespace: spinnaker
+delivery_promotion_credentials: {}
+delivery_promotion_kubeconfig: ""
+delivery_promotion_context: ""
+delivery_promotion_gitlab_url: ""
+delivery_promotion_gitlab_headers: {}
+delivery_promotion_gitlab_ca_path: ""
+delivery_promotion_retired_token_id: ""
 # Optional publication through the shared renderer into an existing private platform checkout.
 delivery_promotion_flux_output: ""
 delivery_promotion_flux_component: platform/delivery-promotion

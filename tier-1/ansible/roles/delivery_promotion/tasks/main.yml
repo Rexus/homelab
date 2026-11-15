@@ -2,7 +2,7 @@
 - name: Validate promotion boundary before writing artifacts or contacting Gate
   ansible.builtin.assert:
     that:
-      - delivery_promotion_action in ['render', 'import']
+      - delivery_promotion_action in ['render', 'import', 'adopt']
       - delivery_promotion_worker_image is match('^[^\s]+@sha256:[0-9a-f]{64}$')
       - delivery_promotion_repository is match('^https://[^/@\s]+/[^\s]+$')
       - delivery_promotion_platform_repositories | length > 0
@@ -16,20 +16,26 @@
       - delivery_promotion_target.kind in ['HelmRelease', 'Deployment']
       - delivery_promotion_target.namespace is match('^[a-z][a-z0-9-]*$')
       - delivery_promotion_target.name is match('^[a-z][a-z0-9-]*$')
-      - delivery_promotion_target.namespace not in ['flux-system', 'spinnaker', 'delivery-promotion', 'kube-system', 'default']
+      - delivery_promotion_target.namespace not in ['flux-system', 'spinnaker', 'delivery-promotion', 'delivery-promotion-authority', 'kube-system', 'default']
       - delivery_promotion_target.namespace in delivery_promotion_application_namespaces
       - delivery_promotion_image_repository is match('^[a-zA-Z0-9][a-zA-Z0-9./:_-]+$')
       - delivery_promotion_initial_image_digest is match('^sha256:[0-9a-f]{64}$')
       - delivery_promotion_commit_email | length > 3
       - delivery_promotion_owner_email | length > 3
       - delivery_promotion_application is match('^[a-z][a-z0-9]*$')
+      - delivery_promotion_reader_role not in [delivery_promotion_requester_role, delivery_promotion_approver_role, delivery_promotion_executor_role, delivery_promotion_admin_role]
       - delivery_promotion_pipeline_ids.promote != delivery_promotion_pipeline_ids.rollback
       - delivery_promotion_timeout_seconds | int > 0
       - delivery_promotion_egress | length > 0
       - delivery_promotion_controls_accepted.single_judgment_and_possible_self_approval | bool
-      - delivery_promotion_controls_accepted.executor_api_job_and_credential_bypass | bool
       - delivery_promotion_controls_accepted.pipeline_fiat_gitlab_and_cluster_admin_bypass | bool
       - delivery_promotion_controls_accepted.gitlab_ce_separate_project_bot_maintainer | bool
+      - delivery_promotion_authority_url == 'https://delivery-promotion-authority.delivery-promotion-authority.svc:8443'
+      - delivery_promotion_authority_gate_url is match('^https://')
+      - delivery_promotion_authority_ca_file | length > 0
+      - delivery_promotion_authority_egress | length > 0
+      - delivery_promotion_ticket_ttl_seconds | int > 0
+      - delivery_promotion_ticket_ttl_seconds | int <= 259200
     fail_msg: >-
       Supply the separate application GitLab CE project, real worker image digest, bounded application
       target, private endpoint egress and explicit approval/bypass acceptance. See delivery_promotion.yml.example.
@@ -46,11 +52,26 @@
       - delivery_promotion_chart_values is mapping
   when: delivery_promotion_target.kind == 'HelmRelease'
 
+- name: Require retained authority credentials in the private input
+  ansible.builtin.assert:
+    that:
+      - item.name in delivery_promotion_credentials
+      - item['keys'] | difference(delivery_promotion_credentials[item.name].keys()) | length == 0
+      - delivery_promotion_credentials[item.name].values() | select('equalto', '') | list | length == 0
+  loop:
+    - name: "{{ delivery_promotion_git_secret }}"
+      keys: [username, password]
+    - name: "{{ delivery_promotion_signing_secret }}"
+      keys: [key]
+    - name: "{{ delivery_promotion_authority_secret }}"
+      keys: [ticket-key, gate-headers.json, gate-ca.pem, fiat-ca.pem, tls.crt, tls.key]
+  no_log: true
+
 - name: Validate the configured promotion roles
   ansible.builtin.assert:
     that:
       - item is match('^[a-zA-Z0-9][a-zA-Z0-9._-]+$')
-  loop: "{{ [delivery_promotion_requester_role, delivery_promotion_approver_role,
+  loop: "{{ [delivery_promotion_reader_role, delivery_promotion_requester_role, delivery_promotion_approver_role,
              delivery_promotion_executor_role, delivery_promotion_admin_role] }}"
 
 - name: Create a private review artifact directory
@@ -73,12 +94,18 @@
       chart_source: "{{ delivery_promotion_chart_source }}"
       commit_email: "{{ delivery_promotion_commit_email }}"
       timeout_seconds: "{{ delivery_promotion_timeout_seconds | int }}"
+      application: "{{ delivery_promotion_application }}"
+      pipeline_ids: "{{ delivery_promotion_pipeline_ids }}"
+      approver_role: "{{ delivery_promotion_approver_role }}"
+      gate_url: "{{ delivery_promotion_authority_gate_url }}"
+      fiat_url: "{{ delivery_promotion_authority_fiat_url }}"
+      ticket_ttl_seconds: "{{ delivery_promotion_ticket_ttl_seconds | int }}"
     delivery_promotion_application_definition:
       name: "{{ delivery_promotion_application }}"
       email: "{{ delivery_promotion_owner_email }}"
       cloudProviders: kubernetes
       permissions:
-        READ: "{{ [delivery_promotion_requester_role, delivery_promotion_approver_role,
+        READ: "{{ [delivery_promotion_reader_role, delivery_promotion_requester_role, delivery_promotion_approver_role,
                    delivery_promotion_executor_role, delivery_promotion_admin_role] | unique | list }}"
         WRITE: "{{ [delivery_promotion_admin_role] }}"
         EXECUTE: "{{ [delivery_promotion_requester_role, delivery_promotion_approver_role,
@@ -89,6 +116,7 @@
     src: resources.yml.j2
     dest: "{{ delivery_promotion_output }}/promotion-resources.yml"
     mode: '0600'
+  no_log: true
 
 - name: Prepare the representative application source artifact
   ansible.builtin.file:
@@ -146,9 +174,11 @@
              from_yaml_all | select('mapping') | list }}
         depends_on: "{{ delivery_promotion_flux_dependencies }}"
         health: >-
-          {{ [{'apiVersion': 'source.toolkit.fluxcd.io/v1', 'kind': 'HelmRepository',
+          {{ [{'apiVersion': 'apps/v1', 'kind': 'Deployment', 'namespace': 'delivery-promotion-authority',
+               'name': 'delivery-promotion-authority'}] +
+             ([{'apiVersion': 'source.toolkit.fluxcd.io/v1', 'kind': 'HelmRepository',
                'namespace': delivery_promotion_target.namespace, 'name': delivery_promotion_chart_source.name}]
-             if delivery_promotion_target.kind == 'HelmRelease' else [] }}
+             if delivery_promotion_target.kind == 'HelmRelease' else []) }}
     flux_payload_source_name: tier1-platform
     flux_payload_namespace: flux-system
     flux_payload_service_account: platform-reconciler
@@ -157,3 +187,7 @@
 - name: Import the reviewed application permissions and pipeline definitions through Gate
   ansible.builtin.include_tasks: import.yml
   when: delivery_promotion_action == 'import'
+
+- name: Adopt the isolated authority and retire legacy Job credentials
+  ansible.builtin.include_tasks: adopt.yml
+  when: delivery_promotion_action == 'adopt'

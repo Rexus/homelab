@@ -1,0 +1,78 @@
+---
+- name: Force the native Orca queue activator off before starting recovery administration
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: {name: orca, namespace: "{{ recovery_product.namespace }}"}
+      spec:
+        replicas: 1
+        template:
+          spec:
+            containers:
+              - name: orca
+                env: [{name: KEIKO_QUEUE_ENABLED, value: 'false'}]
+
+- name: Start the accepted isolated database and permission prerequisites for native cancellation
+  kubernetes.core.k8s_scale:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: "{{ item.kind }}"
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ item.name }}"
+    replicas: 1
+    wait: true
+    wait_timeout: 900
+  loop:
+    - {kind: StatefulSet, name: spinnaker-mysql}
+    - {kind: StatefulSet, name: spinnaker-redis}
+    - {kind: Deployment, name: fiat}
+
+- name: Wait for the native Orca admin instance with queue processing disabled
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Pod
+    namespace: "{{ recovery_product.namespace }}"
+    label_selectors: [app.kubernetes.io/name=orca, '!batch.kubernetes.io/job-name']
+  register: recovery_orca_pods
+  until: >-
+    recovery_orca_pods.resources | length == 1 and
+    recovery_orca_pods.resources[0].status.conditions | default([])
+      | selectattr('type', 'equalto', 'Ready') | selectattr('status', 'equalto', 'True') | list | length == 1 and
+    (recovery_orca_pods.resources[0].spec.containers | selectattr('name', 'equalto', 'orca') | first).env
+      | selectattr('name', 'equalto', 'KEIKO_QUEUE_ENABLED') | selectattr('value', 'equalto', 'false') | list | length == 1
+  retries: 180
+  delay: 5
+
+- name: Install the narrow native cancellation worker without API credentials in its body
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata: {name: spinnaker-recovery-fence, namespace: "{{ recovery_product.namespace }}"}
+      data:
+        spinnaker_fence.py: "{{ lookup('ansible.builtin.file', role_path ~ '/files/spinnaker_fence.py') }}"
+
+- name: Render the fixed native execution cancellation operation
+  ansible.builtin.set_fact:
+    recovery_job: "{{ lookup('ansible.builtin.template', 'spinnaker-fence.yml.j2') | from_yaml }}"
+
+- name: Require completed native cancellation and rechecked terminal execution status
+  ansible.builtin.include_tasks: native-job.yml
+
+- name: Preserve the UID-bound execution fencing proof
+  ansible.builtin.set_fact:
+    recovery_execution_fence: "{{ recovery_native_receipt }}"

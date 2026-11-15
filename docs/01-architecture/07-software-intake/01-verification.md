@@ -20,7 +20,7 @@ recovery supply below its connected consumer.*
 [Editable figure](../../08-reference/diagrams/verified-intake-placement.svg).
 
 **Architecture:** the optional worker and publication interface have a separate
-[deployment path](../../03-deployment/stage-03-trust/step-15b-verified-intake.md).
+[deployment path](../../03-deployment/stage-02-trust/step-15b-verified-intake.md).
 Publication is a scoped write; recovery custody is independent of this connected
 supplier path. No online route to offline material is implied. Other tiers can also
 consume approved publication.
@@ -116,7 +116,7 @@ restricted mount and growth through IaC. Only a verified new blank device is ini
 recognized existing data keeps its filesystem identity and is mounted by UUID. A missing declared
 volume or conflicting identity requires recovery rather than automatic replacement formatting.
 Publisher keys and HTTPS trust remain external inputs. See the
-[deployment inputs](../../03-deployment/stage-03-trust/step-15b-verified-intake.md#1-initialize-inputs).
+[deployment inputs](../../03-deployment/stage-02-trust/step-15b-verified-intake.md#1-initialize-inputs).
 
 Recheck content identity immediately before promotion and prevent modification between verification
 and publication. Consumers must never resolve a partially published snapshot. Quarantine full,
@@ -144,7 +144,7 @@ need severity-based alerts. A proxy denial alone is not a confirmed malicious ar
 
 ## Implementation boundary
 
-The optional [verified intake installer](../../03-deployment/stage-03-trust/step-15b-verified-intake.md)
+The optional [verified intake installer](../../03-deployment/stage-02-trust/step-15b-verified-intake.md)
 adds one Tier 1 Linux worker outside Kubernetes. DNF reposync and debmirror retain native repository
 layout/metadata; curl acquires bounded selected files. Vendor GPG tooling authenticates signing
 material, and a narrow format verifier binds copied indexes/packages to their metadata before

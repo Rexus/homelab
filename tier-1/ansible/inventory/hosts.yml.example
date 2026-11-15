@@ -38,6 +38,8 @@ all:
     podman_runner:
       hosts:
         runner-1: {}
+        # Optional runner from the podman-runner setup.
+        # runner-2: {}
     software_intake:
       hosts:
         intake-1: {}

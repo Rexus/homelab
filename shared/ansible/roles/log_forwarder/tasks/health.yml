@@ -1,4 +1,20 @@
 ---
+- name: Inspect whether an independent watchdog was previously commissioned
+  ansible.builtin.stat:
+    path: "{{ log_forwarder_config }}/watchdog.curl"
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  register: log_forwarder_existing_watchdog
+
+- name: Require an explicit choice before retiring an existing external watchdog
+  ansible.builtin.assert:
+    that:
+      - log_forwarder_watchdog_url | length > 0 or not log_forwarder_existing_watchdog.stat.exists or log_forwarder_watchdog_disable
+    fail_msg: >-
+      An external watchdog is already commissioned. Restore its URL or set
+      log_forwarder_watchdog_disable=true to retire it deliberately.
+
 - name: Keep the health capability URL out of process arguments and public units
   ansible.builtin.copy:
     dest: "{{ log_forwarder_config }}/watchdog.curl"
@@ -8,6 +24,23 @@
     mode: "0600"
   no_log: true
   diff: false
+  when: log_forwarder_watchdog_url | length > 0
+
+- name: Remove a deliberately retired external watchdog capability
+  ansible.builtin.file:
+    path: "{{ log_forwarder_config }}/watchdog.curl"
+    state: absent
+  when:
+    - log_forwarder_watchdog_disable
+    - log_forwarder_watchdog_url | length == 0
+
+- name: Explain local-only producer health coverage
+  ansible.builtin.debug:
+    msg: >-
+      Local queue, certificate and sender-service checks are enabled. Independent missed-heartbeat
+      alerting is not commissioned for this host. An independent monitoring service can supply a
+      unique HTTPS heartbeat URL through this host's catalog watchdog_url when available.
+  when: log_forwarder_watchdog_url | length == 0
 
 - name: Install the guarded sender health probe
   ansible.builtin.template:
@@ -46,7 +79,7 @@
         [Install]
         WantedBy=timers.target
 
-- name: Verify initial source health and external connectivity
+- name: Verify initial local health and any configured independent watchdog
   ansible.builtin.systemd_service:
     name: log-forwarder-health.service
     daemon_reload: true

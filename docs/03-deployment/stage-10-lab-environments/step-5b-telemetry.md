@@ -68,7 +68,7 @@ Application SDK instrumentation and its receiver configuration are application-o
 
 ## Step 1: Prepare the selected sources
 
-For Linux VMs such as `lab-1`, use the [Linux source recipe](../stage-02-logging/procedures/sources.md).
+For Linux VMs such as `lab-1`, use the [Linux source recipe](../stage-03-logging/procedures/sources.md).
 It installs Shared's native sender using Tier 2-owned inventory and source selections.
 Cluster OS/API evidence uses the [cluster security-event gate](../stage-04-kubernetes/procedures/kubernetes.md#cluster-foundation),
 not the application analytics path below. Register missing sources explicitly.

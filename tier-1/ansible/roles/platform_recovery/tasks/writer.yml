@@ -1,0 +1,112 @@
+---
+- name: Inspect the actual selected application writer
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: "{{ 'batch/v1' if recovery_writer.kind == 'CronJob' else 'apps/v1' }}"
+    kind: "{{ recovery_writer.kind }}"
+    name: "{{ recovery_writer.name }}"
+    namespace: "{{ recovery_product.namespace }}"
+  register: recovery_writer_observed
+
+- name: Require the selected writer to exist
+  ansible.builtin.assert:
+    that: recovery_writer_observed.resources | length == 1
+
+- name: Preserve the writer's original state once for this recovery
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-{{ recovery_writer.name }}-writer.json"
+    mode: '0600'
+    force: false
+    content: >-
+      {{ {'plan_sha256': platform_recovery.plan_sha256,
+          'resource': recovery_writer_observed.resources[0]} | to_nice_json }}
+
+- name: Suspend schedules or scale application consumers to zero
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    state: present
+    definition:
+      apiVersion: "{{ 'batch/v1' if recovery_writer.kind == 'CronJob' else 'apps/v1' }}"
+      kind: "{{ recovery_writer.kind }}"
+      metadata: {name: "{{ recovery_writer.name }}", namespace: "{{ recovery_product.namespace }}"}
+      spec: "{{ {'suspend': true} if recovery_writer.kind == 'CronJob' else {'replicas': 0} }}"
+
+- name: Wait until native workload status confirms consumers have stopped
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: "{{ 'batch/v1' if recovery_writer.kind == 'CronJob' else 'apps/v1' }}"
+    kind: "{{ recovery_writer.kind }}"
+    name: "{{ recovery_writer.name }}"
+    namespace: "{{ recovery_product.namespace }}"
+  register: recovery_writer_stopped
+  until: >-
+    recovery_writer_stopped.resources | length == 1 and
+    (recovery_writer_stopped.resources[0].spec.suspend | default(false)
+      if recovery_writer.kind == 'CronJob' else
+      (recovery_writer_stopped.resources[0].status.replicas | default(0) | int == 0 and
+       recovery_writer_stopped.resources[0].status.observedGeneration | default(0) | int >=
+       recovery_writer_stopped.resources[0].metadata.generation | int))
+  retries: 120
+  delay: 5
+
+- name: Observe jobs that were already launched by the selected schedule
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ recovery_product.namespace }}"
+  register: recovery_schedule_jobs
+  when: recovery_writer.kind == 'CronJob'
+
+- name: Drain native pending and terminating Jobs owned by the selected schedule
+  ansible.builtin.include_tasks: scheduled-job.yml
+  loop: "{{ recovery_schedule_jobs.resources | default([]) }}"
+  loop_control:
+    loop_var: recovery_schedule_job
+  when:
+    - recovery_writer.kind == 'CronJob'
+    - recovery_schedule_job.metadata.ownerReferences | default([]) | selectattr('uid', 'equalto', recovery_writer_observed.resources[0].metadata.uid) | list | length == 1
+
+- name: Start the exact native selector for this stopped workload
+  ansible.builtin.set_fact:
+    recovery_writer_selectors: []
+
+- name: Preserve all native matchLabels when selecting writer Pods
+  ansible.builtin.set_fact:
+    recovery_writer_selectors: "{{ recovery_writer_selectors + [item.key ~ '=' ~ item.value] }}"
+  loop: "{{ recovery_writer_observed.resources[0].spec.get('selector', {}).get('matchLabels', {}) | dict2items }}"
+
+- name: Preserve native matchExpressions when selecting writer Pods
+  ansible.builtin.set_fact:
+    recovery_writer_selectors: >-
+      {{ recovery_writer_selectors + [item.key ~ (' in (' if item.operator == 'In' else ' notin (') ~
+          (item.get('values', []) | join(',')) ~ ')' if item.operator in ['In', 'NotIn'] else
+          ('!' if item.operator == 'DoesNotExist' else '') ~ item.key] }}
+  loop: "{{ recovery_writer_observed.resources[0].spec.get('selector', {}).get('matchExpressions', []) }}"
+
+- name: Require a usable native selector before destructive data restoration
+  ansible.builtin.assert:
+    that: recovery_writer.kind == 'CronJob' or recovery_writer_selectors | length > 0
+
+- name: Wait for every writer Pod including terminating Pods to leave before restoring data
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Pod
+    namespace: "{{ recovery_product.namespace }}"
+    label_selectors: "{{ recovery_writer_selectors }}"
+  register: recovery_writer_pods
+  until: recovery_writer_pods.resources | length == 0
+  retries: "{{ recovery_health_retries | default(120) }}"
+  delay: "{{ recovery_health_delay | default(5) }}"
+  when: recovery_writer.kind != 'CronJob'

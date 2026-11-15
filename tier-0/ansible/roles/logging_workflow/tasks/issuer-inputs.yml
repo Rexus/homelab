@@ -1,0 +1,67 @@
+---
+# Read only enrollment inputs; unrelated setup fields can contain guest-only Jinja/secrets.
+- name: Select the existing issuer's non-secret enrollment settings
+  ansible.builtin.set_fact:
+    logging_workflow_issuer_inputs: >-
+      {{ lookup('ansible.builtin.file', logging_workflow_repository ~ '/ansible/group_vars/' ~
+         logging_workflow_issuer_setup ~ '.yml') | from_yaml | dict2items |
+         selectattr('key', 'in', logging_workflow_issuer_keys) | items2dict }}
+  vars:
+    logging_workflow_issuer_keys: &issuer_keys
+      - openxpki_activate_runtime
+      - openxpki_managed_cli
+      - openxpki_configuration_sha256
+      - openxpki_package_versions
+      - openxpki_data_mount
+      - openxpki_root_fingerprint
+      - openxpki_issuer_fingerprint
+      - openxpki_realm
+  no_log: true
+
+- name: Read only existing authority guest placement
+  ansible.builtin.set_fact:
+    logging_workflow_authority_placement:
+      platform_host_ips: >-
+        {{ (lookup('ansible.builtin.file', logging_workflow_repository ~
+           '/ansible/group_vars/foundation.yml') | from_yaml).get('platform_host_ips', {}) }}
+
+- name: Merge the selected issuer environment's enrollment settings
+  ansible.builtin.set_fact:
+    logging_workflow_issuer_inputs: >-
+      {{ logging_workflow_issuer_inputs | combine(lookup('ansible.builtin.file', item) |
+         from_yaml | dict2items | selectattr('key', 'in', logging_workflow_issuer_keys) | items2dict, recursive=true) }}
+  vars:
+    logging_workflow_issuer_keys: *issuer_keys
+  loop: >-
+    {{ query('ansible.builtin.first_found', {'files': [logging_workflow_repository ~ '/ansible/group_vars/' ~
+       logging_workflow_issuer_setup ~ '.' ~ (platform_environment | default('prod')) ~ '.yml'], 'skip': true}) }}
+  no_log: true
+
+- name: Merge only the selected authority placement environment
+  ansible.builtin.set_fact:
+    logging_workflow_authority_placement:
+      platform_host_ips: >-
+        {{ logging_workflow_authority_placement.platform_host_ips | combine((lookup('ansible.builtin.file', item)
+           | from_yaml).get('platform_host_ips', {})) }}
+  loop: >-
+    {{ query('ansible.builtin.first_found', {'files': [logging_workflow_repository ~ '/ansible/group_vars/foundation.' ~
+       (platform_environment | default('prod')) ~ '.yml'], 'skip': true}) }}
+
+- name: Select the established issuer inventory identity
+  ansible.builtin.set_fact:
+    logging_workflow_issuer_host: "{{ logging_pki_issuer_host | default(groups.get('issuing_ca', []) | first | default('')) }}"
+
+- name: Require an activated infrastructure authority before preparing network logging
+  ansible.builtin.assert:
+    that:
+      - logging_workflow_issuer_host in groups.get('issuing_ca', [])
+      - logging_workflow_issuer_inputs.openxpki_activate_runtime | default(false) | bool
+    fail_msg: Complete Stage 2 trust and its issuer activation first, or explicitly select an independent/provided authority.
+
+- name: Reuse the issuer's configured address and accepted native PKI settings
+  ansible.builtin.add_host:
+    name: "{{ logging_workflow_issuer_host }}"
+    ansible_host: >-
+      {{ logging_workflow_authority_placement.platform_host_ips[logging_workflow_issuer_host]
+         if logging_workflow_authority_placement.get('platform_host_ips', {}).get(logging_workflow_issuer_host, 'dhcp') != 'dhcp'
+         else hostvars[logging_workflow_issuer_host].ansible_host | default(logging_workflow_issuer_host) }}

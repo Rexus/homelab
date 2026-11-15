@@ -63,8 +63,9 @@ endpoint for applications requiring that API. No additional storage gateway is i
 the [storage contracts](06-data/README.md#storage-interfaces) define the required interface.
 
 The [cluster topology](04-hosting/03-kubernetes.md) defines three independent tier APIs,
-compact control planes and optional worker pools. [Controller patterns](10-delivery/02-controllers.md)
-keep Tier 0 Flux separate from Tier 1 delivery and scoped Tier 2 application access.
+compact control planes and optional worker pools. [Release and reconciliation authority](10-delivery/02-controllers.md)
+keep Tier 0 control reconciliation independent from Tier 1 release authority and scoped Tier 2 access.
+The [selected delivery mapping](../08-reference/tier-1-delivery.md) identifies the concrete products.
 
 Keycloak and NetBox use the database service. Vault has its own storage design and independent recovery/unseal material; the database service is not its storage backend by implication.
 Database, cache, storage, and backup requirements remain service-specific.

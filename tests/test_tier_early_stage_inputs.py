@@ -29,7 +29,7 @@ class EarlyStageInputs(TierRepositoryTestCase):
             'hosts': 'issuing_ca', 'gather_facts': False,
             'tasks': [{'ansible.builtin.assert': {'that': [f"ansible_host == '{expected}'"]}}],
         }]))
-        docs = self.root / 'verify-architecture/docs/auto-docs/03-deployment/stage-03-trust'
+        docs = self.root / 'verify-architecture/docs/auto-docs/03-deployment/stage-02-trust'
         checked = 0
         for name in ('step-1c-network-hsm.md', 'step-1d-single-usb.md'):
             for command in re.findall(r'(?ms)^```bash\n(.*?)^```', (docs / name).read_text()):

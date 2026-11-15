@@ -175,7 +175,7 @@ storage paths need separate migration qualification.
 
 ## Realization
 
-Implementation procedures: [trust and custody](../../03-deployment/stage-03-trust/README.md#step-1-prepare-issuer-and-key-custody)
+Implementation procedures: [trust and custody](../../03-deployment/stage-02-trust/README.md#step-1-prepare-issuer-and-key-custody)
 and [secret-service integration](../../03-deployment/stage-06-secrets/README.md#step-1-deploy-the-secret-service).
 Device ceremonies remain authorized procedures; the HSM automation supplies native USB
 attachments, provider packages/configuration and non-destructive identity inspection. Single-issuer

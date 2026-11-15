@@ -1,0 +1,78 @@
+---
+- name: Select the independently recovered Tier 1 cluster
+  ansible.builtin.set_fact:
+    recovery_tier1: "{{ platform_recovery.clusters | selectattr('tier', 'equalto', 1) | first }}"
+
+- name: Require the actual product verification Jobs recorded by this recovery
+  ansible.builtin.assert:
+    that:
+      - recovery_verification_jobs | default([]) | length == platform_recovery.products | length
+      - platform_recovery.cutover.resume_roots | length > 0
+    fail_msg: Every restored product must pass its actual content and denied-access Job before resumption.
+
+- name: Require all restored executions to have completed native cancellation before releasing Orca queues
+  ansible.builtin.assert:
+    that:
+      - recovery_execution_fence.kind == 'Job'
+      - recovery_execution_fence.uid | length > 0
+      - recovery_execution_fence.status.succeeded | int == 1
+  when: platform_recovery.products | selectattr('kind', 'equalto', 'spinnaker') | list | length > 0
+
+- name: Release the native Orca queue only after verified cancellation and ticket rotation
+  kubernetes.core.k8s:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_tier1.kubeconfig }}"
+    context: "{{ recovery_tier1.context }}"
+    validate_certs: true
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: {name: orca, namespace: "{{ item.namespace }}"}
+      spec:
+        replicas: 0
+        template:
+          spec:
+            containers:
+              - name: orca
+                env: [{name: KEIKO_QUEUE_ENABLED, value: 'true'}]
+  loop: "{{ platform_recovery.products | selectattr('kind', 'equalto', 'spinnaker') | list }}"
+
+- name: Resume each cluster with its own package and verification identities
+  ansible.builtin.include_tasks: cutover-cluster.yml
+  loop: "{{ platform_recovery.clusters | sort(attribute='tier') }}"
+  loop_control:
+    loop_var: recovery_cutover_cluster
+
+- name: Accept the new authority epoch only after normal source ownership is active
+  ansible.builtin.include_tasks: activate-authority.yml
+  when: platform_recovery.promotion_authority is defined
+
+- name: Repeat content and denied-access checks after the operating payload converges
+  ansible.builtin.include_tasks: checks.yml
+  loop: "{{ platform_recovery.products }}"
+  loop_control:
+    loop_var: recovery_product
+
+- name: Reconnect only the accepted recovered VM interfaces after all product gates pass
+  ansible.builtin.command:
+    argv: [qm, set, "{{ recovery_cutover_nic.0.vmid | string }}", "--{{ recovery_cutover_nic.1.name }}",
+           "{{ recovery_cutover_nic.1.configuration }}"]
+  delegate_to: "{{ recovery_cutover_nic.0.node }}"
+  become: true
+  loop: "{{ platform_recovery.cutover.virtual_machines | subelements('network') }}"
+  loop_control:
+    loop_var: recovery_cutover_nic
+  changed_when: true
+
+- name: Restore original hypervisor supervision after controlled network cutover
+  ansible.builtin.include_tasks: hypervisor-resume.yml
+
+- name: Retain the final controlled resumption record
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/cutover.json"
+    mode: '0600'
+    content: >-
+      {{ {'version': 1, 'recovery_id': platform_recovery.recovery_id,
+          'plan_sha256': platform_recovery.plan_sha256, 'phase': 'resumed',
+          'verification_jobs': recovery_verification_jobs,
+          'sources': platform_recovery.package.sources} | to_nice_json }}

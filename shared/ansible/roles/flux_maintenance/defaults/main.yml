@@ -11,8 +11,13 @@ flux_maintenance_recovery_directory: ""
 flux_maintenance_custody_accepted: false
 flux_maintenance_artifact_lock_sha256: ""
 flux_maintenance_application_branch: delivery
-flux_maintenance_data_restored: false
-flux_maintenance_executions_fenced: false
+# Actual UID-bound verification resources checked while reconciliation is paused.
+flux_maintenance_resume_checks: []
+# Explicit native workload identities belonging to the selected live inventory.
+flux_maintenance_writers: []
+# Approved recovery handoff for newly commissioned roots initially created paused.
+# Only exact UIDs captured as previously suspended can be selected deliberately.
+flux_maintenance_resume_suspended_uids: []
 flux_maintenance_health_checks: []
 flux_maintenance_retries: 120
 flux_maintenance_delay: 5

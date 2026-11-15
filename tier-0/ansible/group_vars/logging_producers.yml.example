@@ -1,18 +1,27 @@
-# Local inputs; reusable implementation: Shared ansible/roles/log_forwarder.
-# Defaults and optional settings: Shared ansible/roles/log_forwarder/defaults/main.yml.
-# logging_producers already includes foundation_logging; reuse other approved inventory groups/hosts.
-# Set the stable service DNS name under platform_internal_domain once below.
-# Older inputs use platform_domain until migrated; keep the peer equal to the issued certificate SAN.
-# Override target with an IP only if DNS is unavailable.
+# Local inputs; implementation and optional settings are in Shared ansible/roles/log_forwarder/.
+# Reuse existing inventory names, addresses and login settings. No per-host files are required.
+# Optional setup names an existing group_vars/<setup>.yml for the combined logging workflow.
+# The peer must match the receiver certificate DNS SAN. Override target only for a fixed IP.
+log_forwarder_peer: "logs.{{ platform_internal_domain | default(platform_domain) }}"
 log_forwarder_target: "{{ log_forwarder_peer }}"
-log_forwarder_peer: ""  # exact receiver certificate DNS SAN
-# Set a distinct external dead-man URL per host; a shared URL can hide a failed producer.
-# Add streams to ansible/inventory/host_vars/<inventory-host>.yml; preserve existing host settings.
-# log_forwarder_watchdog_url: <unique-host-external-dead-man-url>
-# log_forwarder_streams:
-#   - {name: log-1-os, kind: security, input: journal}
-#   - name: log-1-audit
-#     kind: security
-#     input: files
-#     files: [/var/log/audit/audit.log]
-# CA example: separate security stream for the actual OpenXPKI/Dogtag audit files.
+
+# Each {} selects the native security journal stream <inventory-host>-os.
+# An explicit streams list replaces that host's default and preserves assigned certificate names.
+logging_producer_hosts:
+  log-1: {setup: syslog}
+  # ca-1:
+  #   setup: foundation
+  #   streams:
+  #     - {name: ca-1-os, kind: security, input: journal}
+  #     - {name: ca-1-audit, kind: security, input: files, files: [/var/log/audit/audit.log]}
+
+# Local queue/certificate/service checks always run. An optional unique HTTPS heartbeat URL
+# comes from an independent monitoring service configured to alert when this host stops checking in.
+# Add watchdog_url to its host entry when that service is ready; store capability URLs privately.
+#   log-1: {watchdog_url: "https://monitor.internal.example/heartbeat/unique-host-token"}
+log_forwarder_watchdog_required: false
+# Set true with an empty/omitted URL only to deliberately retire an existing external check.
+log_forwarder_watchdog_disable: false
+
+# Older deployments can omit logging_producer_hosts to retain inventory-group selection and
+# existing log_forwarder_streams/watchdog inputs in host_vars. Keep issued stream identities.

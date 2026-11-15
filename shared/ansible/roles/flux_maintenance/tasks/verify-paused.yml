@@ -1,0 +1,41 @@
+---
+- name: Require the original receipt before staging or resuming
+  ansible.builtin.set_fact:
+    flux_maintenance_scope_receipt: "{{ lookup('ansible.builtin.file', flux_maintenance_output ~ '/scope-receipt.json') | from_json }}"
+
+- name: Bind the retained pause to the current source and complete live inventory
+  ansible.builtin.assert:
+    that:
+      - flux_maintenance_scope | flux_scope_validate(flux_maintenance_scope_receipt, flux_maintenance_source_uid)
+
+- name: Reestablish all fences before retrying a process interrupted during resumption
+  ansible.builtin.include_tasks: refence.yml
+  when: flux_maintenance_scope_receipt.phase == 'resuming'
+
+- name: Verify every retained resource remains suspended and drained
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ item.value.api_version }}"
+    kind: "{{ item.value.kind }}"
+    namespace: "{{ item.value.namespace }}"
+    name: "{{ item.value.name }}"
+  loop: "{{ flux_maintenance_scope_receipt.resources | dict2items }}"
+  loop_control: {label: "{{ item.key }}"}
+  register: flux_maintenance_pause_check
+  failed_when: >-
+    flux_maintenance_pause_check.resources | length != 1 or
+    flux_maintenance_pause_check.resources[0].metadata.uid != item.value.uid or
+    not flux_maintenance_pause_check.resources[0].spec.get('suspend', false) | bool or
+    flux_maintenance_pause_check.resources[0].metadata.get('annotations', {}).get('kustomize.toolkit.fluxcd.io/reconcile') != 'disabled' or
+    not (flux_maintenance_pause_check.resources[0] | flux_drained)
+
+- name: Verify every selected writer remains stopped before staging or resuming
+  ansible.builtin.include_tasks: writer-resource.yml
+  vars:
+    writer_resource: "{{ item.value }}"
+    writer_resume: false
+    writer_verify_only: true
+  loop: "{{ flux_maintenance_scope_receipt.writers | default({}) | dict2items }}"
+  loop_control: {label: "{{ item.key }}"}

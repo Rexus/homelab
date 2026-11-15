@@ -39,6 +39,17 @@ owners, versions, backup IDs/times and integrity records. Record unused capabili
 - [ ] **Cluster and application identity/data:** original machine secrets/configuration/access files,
   verified etcd snapshot and native database, Vault, issuer/directory and media recovery sets.
   Record compatible recovery points; etcd is not a persistent-volume backup.
+- [ ] **Control-product restore inputs:** original Vault cluster/version/quorum and independently
+  held token/shares, tool versions, control-backup receipts, paired NetBox database/media evidence
+  and runtime UID/GID. Retain native workload/claim templates, stopped recovery consumers, private-file
+  checksums and independent source keys/artifact locks using the
+  [control-product input guide](../recovery/control-product-inputs.md).
+- [ ] **Delivery recovery authority:** retained GitLab instance administrator API headers/trust,
+  Rails secrets and exact stopped Toolbox/webservice/Sidekiq templates; native product backup IDs,
+  Spinnaker dependency credentials and an independently retained replacement promotion ticket key.
+  Keep authority files owner-only and outside Git. Prepare the
+  [native GitLab execution fence](../recovery/platform-recovery-contract.md#gitlab-native-delivery-fences)
+  and accepted operating source before an outage; ordinary runners cannot provide this recovery path.
 - [ ] **Selected hardware signing:** original public SPKI/object/serial records, approved provider/plugin
   artifacts and native device-recovery material under independent custody. For the optional
   [signing API](../../../03-deployment/stage-06-secrets/step-11b-openbao.md#6-accept-operation-and-independent-recovery),

@@ -324,7 +324,7 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn("rect rgba(", sequence)
 
     def test_logging_steps_keep_deployment_boundaries_and_inventory_names(self):
-        root = UPSTREAM / "docs/03-deployment/stage-02-logging"
+        root = UPSTREAM / "docs/03-deployment/stage-03-logging"
         tier = UPSTREAM / "tier-0"
         inventory = yaml.safe_load((tier / "ansible/inventory/hosts.yml.example").read_text())
         hosts = inventory["all"]["children"]["foundation_logging"]["hosts"]
@@ -334,8 +334,10 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn(f'  "{guest}" = {{', hardware)
         defaults = yaml.safe_load((tier / "ansible/roles/syslog_ng/defaults/main.yml").read_text())
         steps = figure_sources(root / "README.md")
-        self.assertEqual(len(steps), 3)
-        archive, provisioning, collection = steps
+        self.assertEqual(len(steps), 4)
+        archive, provisioning, collection, enrollment = steps
+        self.assertIn('sequenceDiagram', enrollment)
+        self.assertIn('approve', enrollment.lower())
         self.assertEqual(archive, LOGGING_SVG.read_text())
         for code in (provisioning, collection):
             self.assertIn("flowchart", code)
@@ -352,7 +354,7 @@ class DiagramConventions(TierRepositoryTestCase):
             self.assertNotIn('subgraph PVE[', code)
         self.assertIn(f'TLS {defaults["syslog_ng_tls_port"]}', collection)
         self.assertNotIn("log-2", provisioning)
-        redundant = ET.fromstring(figure_sources(root / "step-14b-redundant-intake.md")[0])
+        redundant = ET.fromstring(figure_sources(root / "step-6b-redundant-intake.md")[0])
         nodes = {node.get('id'): node for node in redundant.iter() if node.get('id')}
         self.assertIn('Proxmox host A', ''.join(nodes['PVE1'].itertext()))
         self.assertIn('Proxmox host B', ''.join(nodes['PVE2'].itertext()))
@@ -375,7 +377,7 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertIn('Primary <-->|Replication| Replica', identity)
         self.assertIn('class Pair replicas', identity)
         self.assertIn('Ingress{{"HTTPS sign-in', identity)
-        trust = diagrams(root / "03-deployment/stage-03-trust/README.md")[0]
+        trust = diagrams(root / "03-deployment/stage-02-trust/README.md")[0]
         self.assertLess(trust.index('subgraph Identity['), trust.index('subgraph Crypto['))
         self.assertIn('Identity ~~~ Crypto', trust)
         directory = diagrams(root / "03-deployment/stage-05-identity/README.md")[0]
@@ -411,18 +413,33 @@ class DiagramConventions(TierRepositoryTestCase):
         self.assertNotIn('Admin[', external)
 
     def test_logging_diagrams_link_to_the_owning_iac_at_each_step(self):
-        root = UPSTREAM / "docs/03-deployment/stage-02-logging"
+        root = UPSTREAM / "docs/03-deployment/stage-03-logging"
         recipes = "../../../tier-0/ansible/playbooks/deployment/"
+        main = (root / 'README.md').read_text()
+        # The concise main route names the real inputs/combined command, then
+        # links focused storage/custody procedures instead of repeating recipes.
+        for input_name in ('terraform/deployments/syslog/terraform.tfvars', 'ansible/inventory/hosts.yml',
+                           'ansible/group_vars/syslog.yml', 'ansible/group_vars/logging_producers.yml'):
+            self.assertIn(input_name, main)
+            self.assertTrue((UPSTREAM / 'tier-0' / (input_name + '.example')).is_file())
+        self.assertIn('bash scripts/deploy.sh syslog\n', main)
+        for related in ('step-7a-nas-archive.md', 'procedures/receiver.md', 'procedures/producer-trust.md'):
+            self.assertIn(f']({related}', main)
+            self.assertTrue((root / related).is_file())
+        storage = (root / 'procedures/receiver.md').read_text()
+        self.assertIn('../../../../tier-0/ansible/roles/syslog_ng/tasks/storage.yml', storage)
+        archive = (root / 'step-7a-nas-archive.md').read_text()
+        for recipe in ('logging-archive.yml', 'logging-backup.yml'):
+            self.assertIn('ansible/playbooks/deployment/' + recipe, archive)
+            self.assertTrue((UPSTREAM / 'tier-0/ansible/playbooks/deployment' / recipe).is_file())
+        workflow = yaml.safe_load((UPSTREAM / 'tier-0/ansible/playbooks/deployment/logging-workflow.yml').read_text())
+        roles = [task['ansible.builtin.include_role'] for play in workflow for task in play.get('tasks', [])
+                 if 'ansible.builtin.include_role' in task]
+        for role in ({'name': 'syslog_ng', 'tasks_from': 'storage'},
+                     {'name': 'logging_workflow', 'tasks_from': 'verify'}):
+            self.assertIn(role, roles)
         expected = {
-            "README.md": [
-                [recipes + "logging-archive.yml", recipes + "logging-backup.yml"],
-                ["../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example",
-                 "../../../tier-0/ansible/inventory/hosts.yml.example",
-                 recipes + "logging-storage.yml"],
-                [recipes + "foundation-logging.yml", recipes + "logging-producers.yml",
-                 "../../../shared/ansible/roles/log_forwarder/tasks/main.yml"],
-            ],
-            "step-14b-redundant-intake.md": [[
+            "step-6b-redundant-intake.md": [[
                 "../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example",
                 "../../../tier-0/ansible/inventory/hosts.yml.example",
                 "../../../tier-0/ansible/group_vars/syslog.yml.example",

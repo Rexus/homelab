@@ -345,7 +345,7 @@ Edit in **`<prefix>-tier-0/`**.
 - `ansible/group_vars/syslog.yml`: reserved log-1 IP; receiver settings follow later
 
 Confirm network placement and permissions before provisioning.
-This uses the same base context as [Stage 2 logging](../03-deployment/stage-02-logging/README.md).
+This uses the same base context as [Stage 3 logging](../03-deployment/stage-03-logging/README.md).
 For a disposable environment, retain the same `--env` on every command and complete
 [environment isolation](../08-reference/repository-scripts.md#environment-isolation) first.
 
@@ -357,7 +357,7 @@ bash scripts/deploy.sh syslog --terraform-only
 
 Terraform displays its plan and asks for `yes` before provisioning. Add `--plan-only` for
 an optional preview, or `--auto-approve` only in approved unattended CI.
-Then follow Stage 2's storage/TLS inputs and Ansible steps; the recipe prepares the selected data disk.
+Then follow Stage 3's storage/TLS inputs and Ansible steps; the recipe prepares the selected data disk.
 The existing [script options](../08-reference/repository-scripts.md) apply in every tier.
 In a private source checkout, start in `tier-0/` and use
 `bash scripts/init-local-files.sh` or `bash scripts/deploy.sh ...`.

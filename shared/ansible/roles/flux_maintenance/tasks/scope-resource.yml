@@ -1,0 +1,49 @@
+---
+- name: Inspect the exact retained reconciliation identity
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ scope_resource.api_version }}"
+    kind: "{{ scope_resource.kind }}"
+    namespace: "{{ scope_resource.namespace }}"
+    name: "{{ scope_resource.name }}"
+  register: flux_maintenance_resource
+
+- name: Reject a replaced or missing reconciliation resource
+  ansible.builtin.assert:
+    that:
+      - flux_maintenance_resource.resources | length == 1
+      - flux_maintenance_resource.resources[0].metadata.uid == scope_resource.uid
+
+- name: Apply the UID-bound reconciliation fence and parent-write protection
+  kubernetes.core.k8s_json_patch:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ scope_resource.api_version }}"
+    kind: "{{ scope_resource.kind }}"
+    namespace: "{{ scope_resource.namespace }}"
+    name: "{{ scope_resource.name }}"
+    patch: >-
+      {{ flux_maintenance_resource.resources[0] | flux_suspend_patch(scope_suspend,
+         scope_resource.previous_reconcile if scope_restore_reconcile | default(false) else 'disabled') }}
+
+- name: Wait for the selected fence and in-progress reconciliation to drain
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ scope_resource.api_version }}"
+    kind: "{{ scope_resource.kind }}"
+    namespace: "{{ scope_resource.namespace }}"
+    name: "{{ scope_resource.name }}"
+  register: flux_maintenance_drained
+  until:
+    - flux_maintenance_drained.resources | length == 1
+    - flux_maintenance_drained.resources[0].metadata.uid == scope_resource.uid
+    - flux_maintenance_drained.resources[0].spec.get('suspend', false) | bool == scope_suspend | bool
+    - flux_maintenance_drained.resources[0] | flux_drained
+  retries: "{{ flux_maintenance_retries }}"
+  delay: "{{ flux_maintenance_delay }}"
+  when: scope_suspend | bool

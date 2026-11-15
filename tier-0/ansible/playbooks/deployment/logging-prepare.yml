@@ -1,0 +1,5 @@
+---
+- name: Prepare public logging requests without changing installed trust
+  ansible.builtin.import_playbook: logging-workflow.yml
+  vars:
+    logging_workflow_action: prepare

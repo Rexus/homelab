@@ -15,6 +15,30 @@ from test_tier_deployment_navigation import anchors, links
 
 
 class DocumentationMigration(TierRepositoryTestCase):
+    def test_trust_and_logging_stage_moves_preserve_existing_project_routes(self):
+        self.assert_project_alias(
+            "03-deployment/stage-03-trust/README.md", "03-deployment/stage-02-trust/README.md",
+            "deployment/stage-3-trust/README.md")
+        self.assert_project_alias(
+            "03-deployment/stage-02-logging/README.md", "03-deployment/stage-03-logging/README.md",
+            "deployment/stage-2-logging/README.md")
+
+    def test_all_migration_targets_are_final_after_trust_and_logging_reorder(self):
+        for old, current in MOVES.items():
+            self.assertNotIn(current, MOVES, f"Unflattened migration: {old} -> {current}")
+            self.assertTrue((UPSTREAM / "docs" / current).is_file(), current)
+        for old, stage in (("03-deployment/stage-03-trust", "stage-02-trust"),
+                           ("03-deployment/stage-02-logging", "stage-03-logging")):
+            for current in (UPSTREAM / "docs/03-deployment" / stage).rglob("*.md"):
+                suffix = current.relative_to(UPSTREAM / "docs/03-deployment" / stage).as_posix()
+                # Logging options were renumbered with the combined eight-action workflow.
+                previous_suffix = {
+                    "step-6b-redundant-intake.md": "step-14b-redundant-intake.md",
+                    "step-7a-nas-archive.md": "step-15a-nas-archive.md",
+                    "step-7b-retention-lock.md": "step-15b-retention-lock.md",
+                }.get(suffix, suffix) if stage == "stage-03-logging" else suffix
+                self.assertEqual(MOVES[f"{old}/{previous_suffix}"], f"03-deployment/{stage}/{suffix}")
+
     def test_retired_numbered_chapters_are_kept_only_for_owned_project_links(self):
         self.assert_project_alias(
             "01-architecture/17-kubernetes/README.md", "01-architecture/04-hosting/03-kubernetes.md",
@@ -139,9 +163,11 @@ class DocumentationMigration(TierRepositoryTestCase):
                     "[Previous development](auto-docs/03-development/README.md#old-section)\n"
                     "[Previous administration](auto-docs/04-administration/README.md#old-section)\n"
                     "[Conventions](auto-docs/conventions/README.md)\n"
+                    "[VMID figure](auto-docs/conventions/vmid-convention.svg)\n"
                     "[Paths](auto-docs/paths/README.md)\n"
                     "[Decisions](auto-docs/decisions/README.md)\n"
-                    "[Reference](auto-docs/reference/README.md)\n")
+                    "[Reference](auto-docs/reference/README.md)\n"
+                    "[Palette](auto-docs/reference/diagrams/palette.json)\n")
         record.write_text(original, encoding="utf-8")
         old = manual / "deployment/foundation/README.md"
         old.write_text("# Old foundation\n\n## Step 4: Publish and test VM templates\n", encoding="utf-8")
@@ -243,43 +269,43 @@ class DocumentationMigration(TierRepositoryTestCase):
                     "platforms/proxmox/cluster-ha.md", "deployment/stages/foundation.md",
                     "architecture/system/capability-growth.md", "architecture/system-design/README.md",
                     "architecture/subsystem-design/compute/README.md",
-                    "deployment/stage-0-foundation/README.md", "deployment/stage-01-trust/usb-hsm.md",
-                    "deployment/stage-01-foundation/README.md",
-                    "deployment/stage-01-foundation/procedures/syslog.md",
-                    "deployment/stage-04-control-services/procedures/observability.md",
-                    "deployment/stage-05-delivery/analytics.md",
-                    "deployment/stage-04-control-services/step-2d-telemetry-vm.md",
-                    "deployment/stage-06-workloads/README.md",
-                    "deployment/stage-06-workloads/telemetry.md",
-                    "deployment/stage-06-workloads/public-https.md",
-                    "deployment/stage-03-identity-runtime/README.md",
-                    "deployment/stage-03-identity-runtime/procedures/kubernetes.md",
-                    "deployment/stage-04-control-services/README.md",
-                    "deployment/stage-04-control-services/step-2b-vault-vm.md",
-                    "deployment/stage-04-control-services/step-2c-seal-integration.md",
+                    "deployment/stage-0-foundation/README.md", "deployment/stage-1-trust/usb-hsm.md",
+                    "deployment/stage-1-foundation/README.md",
+                    "deployment/stage-1-foundation/procedures/syslog.md",
+                    "deployment/stage-4-control-services/procedures/observability.md",
+                    "deployment/stage-5-delivery/analytics.md",
+                    "deployment/stage-4-control-services/step-2d-telemetry-vm.md",
+                    "deployment/stage-6-workloads/README.md",
+                    "deployment/stage-6-workloads/telemetry.md",
+                    "deployment/stage-6-workloads/public-https.md",
+                    "deployment/stage-3-identity-runtime/README.md",
+                    "deployment/stage-3-identity-runtime/procedures/kubernetes.md",
+                    "deployment/stage-4-control-services/README.md",
+                    "deployment/stage-4-control-services/step-2b-vault-vm.md",
+                    "deployment/stage-4-control-services/step-2c-seal-integration.md",
                     "architecture/cryptography/hardware-migration.md",
                     "deployment/foundation/step-3b-outbound-cache.md",
                     "deployment/software-intake/README.md",
-                    "deployment/stage-01-logging/README.md",
-                    "deployment/stage-01-logging/step-3b-redundant-intake.md",
-                    "deployment/stage-01-logging/step-3c-nas-archive.md",
-                    "deployment/stage-01-logging/step-3d-retention-lock.md",
+                    "deployment/stage-1-logging/README.md",
+                    "deployment/stage-1-logging/step-3b-redundant-intake.md",
+                    "deployment/stage-1-logging/step-3c-nas-archive.md",
+                    "deployment/stage-1-logging/step-3d-retention-lock.md",
                     "03-deployment/stage-02-logging/step-3b-redundant-intake.md",
                     "03-deployment/stage-02-logging/step-3c-nas-archive.md",
                     "03-deployment/stage-02-logging/step-3d-retention-lock.md",
-                    "deployment/stage-03-identity/README.md",
-                    "deployment/stage-03-identity/procedures/kubernetes.md",
-                    "deployment/stage-03-identity/step-2b-manual-cluster.md",
-                    "deployment/stage-09-workloads/README.md",
-                    "deployment/stage-09-workloads/public-https.md",
-                    "deployment/stage-09-workloads/telemetry.md",
+                    "deployment/stage-3-identity/README.md",
+                    "deployment/stage-3-identity/procedures/kubernetes.md",
+                    "deployment/stage-3-identity/step-2b-manual-cluster.md",
+                    "deployment/stage-9-workloads/README.md",
+                    "deployment/stage-9-workloads/public-https.md",
+                    "deployment/stage-9-workloads/telemetry.md",
                     "deployment/stage-10-workloads/README.md",
                     "deployment/stage-10-workloads/public-https.md",
                     "deployment/stage-10-workloads/telemetry.md",
                     "deployment/stage-10-workloads/isolated-clusters.md",
-                    "deployment/stage-07-delivery/step-1b-source-control-vm.md",
-                    "deployment/stage-07-delivery/step-1c-podman-runner.md",
-                    "deployment/stage-07-delivery/step-1d-image-based-linux.md",
+                    "deployment/stage-7-delivery/step-1b-source-control-vm.md",
+                    "deployment/stage-7-delivery/step-1c-podman-runner.md",
+                    "deployment/stage-7-delivery/step-1d-image-based-linux.md",
                     "deployment/foundation/procedures/proxmox.md",
                     "deployment/foundation/procedures/enterprise-linux-template.md",
                     "deployment/foundation/procedures/talos-template.md",
@@ -293,14 +319,14 @@ class DocumentationMigration(TierRepositoryTestCase):
                     "administration/compute/proxmox-tls.md",
                     "administration/compute/template-lifecycle.md",
                     "administration/compute/reinstall.md",
-                    "deployment/stage-01-software-intake/bootstrap-consumer.md",
-                    "deployment/stage-01-software-intake/proxy-cache.md",
-                    "deployment/stage-02-logging/receiver.md",
-                    "deployment/stage-02-logging/sources.md",
-                    "deployment/stage-02-logging/producer-trust.md",
-                    "deployment/stage-06-secrets/monitoring.md",
-                    "deployment/stage-08-observability/configuration.md",
-                    "deployment/stage-08-observability/infrastructure-monitoring.md",
+                    "deployment/stage-1-software-intake/bootstrap-consumer.md",
+                    "deployment/stage-1-software-intake/proxy-cache.md",
+                    "deployment/stage-2-logging/receiver.md",
+                    "deployment/stage-2-logging/sources.md",
+                    "deployment/stage-2-logging/producer-trust.md",
+                    "deployment/stage-6-secrets/monitoring.md",
+                    "deployment/stage-8-observability/configuration.md",
+                    "deployment/stage-8-observability/infrastructure-monitoring.md",
                     "deployment/stage-10-lab-environments/isolated-clusters.md"]
         for old in examples:
             relative = f"docs/auto-docs/{old}"

@@ -29,6 +29,13 @@
            ([[ 'git', '--version' ], [ 'sops', '--version' ]]
              if cluster_platform_management | default('ansible') == 'flux' else []) }}
       flux-maintenance: [[git, --version]]
+      platform-recovery:
+        - [git, --version]
+        - [kubectl, version, --client=true]
+        - [restic, version]
+        - [skopeo, --version]
+        - [helm, version, --short]
+        - [sops, --version]
       delivery-promotions: >-
         {{ [[ 'git', '--version' ], [ 'sops', '--version' ]]
            if delivery_promotion_flux_output | default('') | length > 0 else [] }}
@@ -54,7 +61,8 @@
       cluster-platform: [kubernetes.core]
       flux-maintenance: [kubernetes.core]
       flux-recovery-git: []
-      delivery-promotions: []
+      platform-recovery: [kubernetes.core]
+      delivery-promotions: [kubernetes.core]
       cluster-security-logging: [kubernetes.core, ansible.utils, community.crypto]
       delivery-platform: [kubernetes.core, ansible.utils]
       observability-platform: [kubernetes.core, ansible.utils, community.crypto]

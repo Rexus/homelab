@@ -1,0 +1,58 @@
+---
+- name: Inspect only the accepted stopped native Sidekiq workloads
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: "{{ item.kind }}"
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ item.name }}"
+  loop: "{{ recovery_product.gitlab_recovery.sidekiq_workloads }}"
+  register: recovery_gitlab_sidekiq
+
+- name: Refuse another workload or an unowned Sidekiq target
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+      - item.resources[0].spec.template.metadata.labels.get('app', '') == 'sidekiq'
+      - item.resources[0].metadata.annotations.get('recovery.homelab/plan-sha256', '') == platform_recovery.plan_sha256
+      - item.resources[0].spec.replicas | default(1) | int == 0
+  loop: "{{ recovery_gitlab_sidekiq.results }}"
+
+- name: Pause every restored GitLab runner schedule and webhook before background workers start
+  ansible.builtin.include_tasks: gitlab-fence.yml
+  vars:
+    recovery_gitlab_fence_operation: pause-triggers
+
+- name: Complete native GitLab execution cancellation with delivery triggers stopped
+  block:
+    - name: Start only the accepted isolated Sidekiq workers for native cancellation bookkeeping
+      kubernetes.core.k8s_scale:
+        kubeconfig: "{{ recovery_kubeconfig }}"
+        context: "{{ recovery_context }}"
+        validate_certs: true
+        api_version: apps/v1
+        kind: "{{ item.kind }}"
+        namespace: "{{ recovery_product.namespace }}"
+        name: "{{ item.name }}"
+        replicas: 1
+        wait: true
+        wait_timeout: 900
+      loop: "{{ recovery_product.gitlab_recovery.sidekiq_workloads }}"
+
+    - name: Cancel and reobserve every restored pipeline job and bridge through the native API
+      ansible.builtin.include_tasks: gitlab-fence.yml
+      vars:
+        recovery_gitlab_fence_operation: fence
+  always:
+    - name: Stop and drain the temporary Sidekiq workers on success or failure
+      ansible.builtin.include_tasks: writer.yml
+      loop: "{{ recovery_product.gitlab_recovery.sidekiq_workloads }}"
+      loop_control:
+        loop_var: recovery_writer
+
+- name: Recheck native GitLab fences after temporary workers have stopped
+  ansible.builtin.include_tasks: gitlab-fence.yml
+  vars:
+    recovery_gitlab_fence_operation: verify

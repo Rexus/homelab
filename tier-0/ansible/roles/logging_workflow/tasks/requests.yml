@@ -1,0 +1,53 @@
+---
+- name: Reset the public manifest for this accepted selection
+  ansible.builtin.set_fact:
+    logging_workflow_requests: []
+    logging_workflow_sources: []
+
+- name: Derive receiver identities from the configured inventory and peer name
+  ansible.builtin.include_tasks: receiver-request.yml
+  loop: "{{ logging_run.receivers }}"
+  loop_control:
+    loop_var: receiver
+
+- name: Collect only selected producers and their existing stream identities
+  ansible.builtin.include_tasks: collect-producer.yml
+  loop: "{{ logging_run.producers }}"
+  loop_control:
+    loop_var: producer
+
+- name: Reject conflicting source names instead of replacing existing bindings
+  ansible.builtin.assert:
+    that:
+      - logging_workflow_requests | map(attribute='name') | unique | length == logging_workflow_requests | length
+    fail_msg: Retain existing certificate identities; remove or correct a conflicting manual source entry before enrollment.
+
+- name: Preserve compatible legacy source entries while rejecting changed bindings
+  ansible.builtin.assert:
+    that:
+      - logging_workflow_new_source | length == 0 or item.address == logging_workflow_new_source.address
+      - logging_workflow_new_source | length == 0 or item.tier == logging_workflow_new_source.tier
+      - logging_workflow_new_source | length == 0 or item.tls_dn == logging_workflow_new_source.tls_dn
+      - >-
+        logging_workflow_new_source | length == 0 or
+        item.kind | default(logging_workflow_new_source.kind) == logging_workflow_new_source.kind
+    fail_msg: A derived source conflicts with an already admitted identity, address, owner or classification.
+  vars:
+    logging_workflow_new_source: "{{ logging_workflow_sources | selectattr('name', 'equalto', item.name) | first | default({}) }}"
+  loop: "{{ syslog_ng_sources | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Retain the derived public issuance and intake manifest
+  ansible.builtin.set_fact:
+    logging_run: >-
+      {{ logging_run | combine({'requests_manifest': logging_workflow_requests,
+      'sources': (syslog_ng_sources | default([]) | rejectattr('name', 'in', logging_workflow_sources | map(attribute='name') | list) | list)
+      + logging_workflow_sources}) }}
+
+- name: Save the public request manifest for review and repeatable enrollment
+  ansible.builtin.copy:
+    dest: "{{ logging_run.workspace }}/requests.json"
+    content: "{{ {'requests': logging_run.requests_manifest, 'sources': logging_run.sources} | to_nice_json }}\n"
+    mode: '0600'
+  when: logging_run.action != 'verify'

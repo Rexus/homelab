@@ -32,11 +32,11 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
         self.generate()
         for docs in (UPSTREAM / 'docs', self.root / 'verify-architecture/docs/auto-docs'):
             prefix = '<prefix>' if docs == UPSTREAM / 'docs' else 'verify'
-            issuer = (docs / '03-deployment/stage-03-trust/procedures/issuer.md').read_text()
+            issuer = (docs / '03-deployment/stage-02-trust/procedures/issuer.md').read_text()
             for expected in (f'{prefix}-tier-0', 'deployment/openxpki.yml', 'Debian 12', '2028-06-30'):
                 self.assertIn(expected, issuer)
             self.assertIn('(../README.md)', issuer)
-            installation = (docs / '03-deployment/stage-03-trust/README.md').read_text()
+            installation = (docs / '03-deployment/stage-02-trust/README.md').read_text()
             for expected in ('template_vm_id', '--plan-only', 'foundation --terraform-only',
                              'extra_disks', 'openxpki_required_state_paths'):
                 self.assertIn(expected, installation)
@@ -45,7 +45,7 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
             for expected in ('## External CA integration gate', 'two-phase install',
                              'ipareplica_setup_ca: true', 'ipaserver_external_ca'):
                 self.assertIn(expected, identity)
-            offline = (docs / '03-deployment/stage-03-trust/procedures/offline-root.md').read_text()
+            offline = (docs / '03-deployment/stage-02-trust/procedures/offline-root.md').read_text()
             self.assertIn('Keep `root_ca` empty', offline)
             self.assertIn('clca does not support concurrent writers', offline)
             operations = (docs / '05-operations/03-cryptography/certificate-authority.md').read_text()

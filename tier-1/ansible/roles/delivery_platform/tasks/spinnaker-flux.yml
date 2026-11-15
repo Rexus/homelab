@@ -8,6 +8,27 @@
          | hash('sha256') | truncate(10, true, '') }}
     spinnaker_flux_database_action: "{{ 'initialize' if delivery_platform_spinnaker_lifecycle == 'fresh' else 'verify' }}"
 
+- name: Bind an upgrade recovery point to the accepted source and complete proposed manifest
+  ansible.builtin.set_fact:
+    spinnaker_flux_target_sha256: >-
+      {{ (delivery_platform_spinnaker_render ~ (delivery_platform_checked_secrets | to_json) ~
+          (delivery_platform_flux_secret_data | to_json)) | hash('sha256') }}
+    spinnaker_flux_upgrade_id: >-
+      {{ (delivery_platform_spinnaker_upgrade_from_sha256 ~
+          ((delivery_platform_spinnaker_render ~ (delivery_platform_checked_secrets | to_json) ~
+            (delivery_platform_flux_secret_data | to_json)) | hash('sha256')))
+         | hash('sha256') | truncate(20, true, '') }}
+    spinnaker_backup_mysql_image: "{{ spinnaker_upgrade_mysql_image }}"
+    spinnaker_backup_redis_image: "{{ spinnaker_upgrade_redis_image }}"
+  when: delivery_platform_spinnaker_lifecycle == 'upgrade'
+
+- name: Render the native fenced backup entry point before an upgrade can be published
+  ansible.builtin.template:
+    src: spinnaker/flux-upgrade.yml.j2
+    dest: "{{ delivery_platform_output }}/spinnaker-flux-upgrade.yml"
+    mode: '0600'
+  when: delivery_platform_spinnaker_lifecycle == 'upgrade'
+
 - name: Require retained preissued TLS and binary JVM keystores before encrypted publication
   ansible.builtin.assert:
     that:

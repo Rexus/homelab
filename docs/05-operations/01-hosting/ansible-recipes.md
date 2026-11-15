@@ -65,7 +65,7 @@ restore approved configuration using the product's runbook. Normal deployment wi
    inspection never initializes or activates a token.
 
 The override selects only a tier-local recipe; it creates no new Terraform root/state owner.
-Initial deployment uses the separate [issuer procedure](../../03-deployment/stage-03-trust/procedures/issuer.md).
+Initial deployment uses the separate [issuer procedure](../../03-deployment/stage-02-trust/procedures/issuer.md).
 
 <a id="recipe-map"></a>
 
@@ -87,7 +87,7 @@ The signing play is a gated backend renderer, not a service, VIP or HA installer
 | 0 / `vault` | `deployment/vault-vm.yml` | `maintenance/vault.yml`: reconcile existing role configuration |
 | 0 / `vault`, independent signing environment | `deployment/vault-vm.yml` with explicit OpenBao inputs; `deployment/openbao-signing.yml` after original initialization | [Signing API](../../03-deployment/stage-06-secrets/step-11b-openbao.md): scoped keys/clients, audit and independent recovery; never migrates Vault |
 | 0 / `hsm` | `deployment/hsm-gateways.yml`; explicit `hsm-issuer.yml`/`hsm-token.yml` for original-key binding | `maintenance/hsm.yml`: baseline/provider reconciliation; `deployment/hsm-inspect.yml`: read-only provider check, no key rotation |
-| 0 / `hsm`, optional remoting | `deployment/hsm-remote.yml`, `hsm-remote-client.yml` | `hsm-remote-check.yml`: explicit original-key identity/signature checks; [native transport](../../03-deployment/stage-03-trust/procedures/pkcs11-remoting.md) |
+| 0 / `hsm`, optional remoting | `deployment/hsm-remote.yml`, `hsm-remote-client.yml` | `hsm-remote-check.yml`: explicit original-key identity/signature checks; [native transport](../../03-deployment/stage-02-trust/procedures/pkcs11-remoting.md) |
 | 0 / `immutable-template` | `deployment/immutable-template.yml` | Existing builder recipe, with its current gates |
 | 0 / `template-refresh` | `deployment/template-refresh.yml` | Existing refresh recipe; replacement remains explicitly enabled |
 | 2 / `edge` | `deployment/edge-proxy.yml` | `maintenance/edge.yml`: proxy configuration |

@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import unittest
@@ -118,12 +119,13 @@ class AnsibleOwnership(TierRepositoryTestCase):
             "tier-0": {"hsm_proxy_ingress", "immutable_template", "proxmox_host", "proxmox_ha", "proxmox_template_replace",
                        "proxmox_template_disk", "proxmox_template_policy",
                        "template_refresh", "vault", "syslog_ng", "openxpki", "openxpki_bundle",
-                       "logging_authority", "logging_archive", "logging_backup", "infrastructure_runner",
+                       "logging_authority", "logging_archive", "logging_backup", "logging_workflow",
+                       "logging_credentials", "logging_pki", "infrastructure_runner",
                        "control_applications", "infrastructure_monitoring", "cluster_endpoint",
                        "control_backup", "logging_export", "netbox_audit", "netbox_audit_account",
                        "freeipa_ldap_reader", "hsm_provider", "hsm_remote"},
             "tier-1": {"gitlab_container", "podman_runner", "development_platform", "delivery_platform",
-                       "delivery_promotion",
+                       "delivery_promotion", "platform_recovery",
                        "observability_platform", "development_data", "software_intake", "observability_vm"},
             "tier-2": {"cache_proxy", "edge_load_balancer", "public_certificates", "public_certificate_schedule",
                        "lab_environment", "workload_telemetry"},
@@ -141,6 +143,10 @@ class AnsibleOwnership(TierRepositoryTestCase):
             for setup in (repo / ".deployment-setups").read_text().splitlines():
                 self.assertTrue((repo / f"ansible/playbooks/{setup}.yml").is_file())
                 required = variables["control_node_setup_collection_names"][setup]
+                if isinstance(required, str):
+                    # Conditional Jinja lists must declare every possible collection in the catalog.
+                    # The native import check below covers evaluation of the selected branch.
+                    required = re.findall(r"['\"]([a-z_]+\.[a-z_]+)['\"]", required)
                 self.assertTrue(set(required).issubset(available), (tier, setup))
         self.assertNotIn("freeipa", (shared / "ansible/requirements.yml").read_text())
         self.assertIn("freeipa", (self.root / "verify-tier-0/ansible/requirements.yml").read_text())

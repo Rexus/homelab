@@ -1,0 +1,38 @@
+---
+# group_vars is tier-owned beside playbooks/, rather than under this playbook's
+# deployment/ directory. Preserve explicit inventory identities while loading it.
+- name: Retain explicit producer inventory inputs
+  ansible.builtin.set_fact:
+    log_forwarder_inventory_inputs:
+      log_forwarder_streams: "{{ hostvars[inventory_hostname].log_forwarder_streams | default(omit) }}"
+      log_forwarder_watchdog_url: "{{ hostvars[inventory_hostname].log_forwarder_watchdog_url | default(omit) }}"
+      log_forwarder_peer: "{{ hostvars[inventory_hostname].log_forwarder_peer | default(omit) }}"
+      log_forwarder_target: "{{ hostvars[inventory_hostname].log_forwarder_target | default(omit) }}"
+  no_log: true
+
+- name: Load the selected producer's common tier inputs
+  ansible.builtin.include_vars:
+    file: "{{ item }}"
+  loop: >-
+    {{ query('ansible.builtin.first_found',
+             {'files': [playbook_dir ~ '/../../group_vars/logging_producers.yml'], 'skip': true}) }}
+  no_log: true
+
+- name: Preserve explicit inventory stream and receiver identities
+  ansible.builtin.set_fact:
+    "{{ item.key }}": "{{ item.value }}"
+  loop: "{{ log_forwarder_inventory_inputs | dict2items }}"
+  no_log: true
+
+- name: Resolve this selected host's catalog overrides
+  ansible.builtin.set_fact:
+    log_forwarder_streams: >-
+      {{ logging_producer_hosts[inventory_hostname].streams |
+         default(log_forwarder_streams | default(
+           [{'name': inventory_hostname ~ '-os', 'kind': 'security', 'input': 'journal'}], true)) }}
+    log_forwarder_watchdog_url: >-
+      {{ logging_producer_hosts[inventory_hostname].watchdog_url | default(log_forwarder_watchdog_url) }}
+  when:
+    - logging_producer_hosts is defined
+    - inventory_hostname in logging_producer_hosts
+  no_log: true

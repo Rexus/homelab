@@ -1,0 +1,119 @@
+---
+- name: Require checksum-bound recovery input from the independent entry point
+  ansible.builtin.assert:
+    that:
+      - platform_recovery.version == 1
+      - platform_recovery.scope in ['tier1', 'all-vms']
+      - platform_recovery.plan_sha256 is match('^[a-f0-9]{64}$')
+      - platform_recovery.recovery_id is match('^[a-z0-9][a-z0-9.-]{0,62}$')
+      - platform_recovery.products | length > 0
+      - platform_recovery.clusters | length > 0
+    fail_msg: Run scripts/flux-recovery.py run with the independently accepted plan checksum.
+
+- name: Prepare private target-bound recovery receipts
+  ansible.builtin.file:
+    path: "{{ platform_recovery.workspace }}/receipts"
+    state: directory
+    mode: '0700'
+
+- name: Rebuild observed verification identities on every run
+  ansible.builtin.set_fact:
+    recovery_verification_jobs: []
+
+- name: Verify accepted operating sources and artifact coverage before target mutation
+  ansible.builtin.command:
+    argv: ["{{ ansible_playbook_python }}", "{{ platform_recovery.workspace }}/tier-1/scripts/recovery_payload.py",
+           --inputs, "{{ platform_recovery.workspace }}/recovery-inputs.json",
+           --output, "{{ platform_recovery.workspace }}/receipts/operating-payload.json"]
+  changed_when: false
+
+- name: Load the native rendered operating resource contract
+  ansible.builtin.set_fact:
+    recovery_operating_payload: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/operating-payload.json') | from_json }}"
+
+- name: Check native control backup tooling and custody before any target mutation
+  ansible.builtin.include_tasks: control-preflight.yml
+  loop: "{{ platform_recovery.products | selectattr('kind', 'equalto', 'vault-raft') | list }}"
+  loop_control:
+    loop_var: recovery_control_product
+  when: platform_recovery.phase != 'verify'
+
+- name: Publish independently retained artifacts before reconstructing any hosted service
+  ansible.builtin.include_tasks: artifact-supply.yml
+  when: platform_recovery.phase != 'verify'
+
+- name: Fence surviving hypervisor HA supervision before any guest can be restored or cloned
+  ansible.builtin.include_tasks: hypervisor-fence.yml
+  when: platform_recovery.phase != 'verify'
+
+- name: Rebuild the exact retained Tier 0 templates before reconstructing cluster VMs
+  ansible.builtin.include_tasks: template-rebuild.yml
+  when:
+    - platform_recovery.template_rebuild is defined
+    - platform_recovery.phase != 'verify'
+
+- name: Restore isolated Tier 0 prerequisites before Tier 1 targets
+  ansible.builtin.include_tasks: virtual-machine.yml
+  loop: "{{ platform_recovery.virtual_machines | sort(attribute='tier') }}"
+  loop_control:
+    loop_var: recovery_vm
+    label: "tier-{{ recovery_vm.tier }}/{{ recovery_vm.node }}/{{ recovery_vm.vmid }}"
+  when: platform_recovery.phase != 'verify'
+
+- name: Serve the accepted independent Git bundles through the existing recovery source recipe
+  ansible.builtin.command:
+    argv:
+      - ansible-playbook
+      - -i
+      - localhost,
+      - "{{ platform_recovery.workspace }}/tier-1/ansible/playbooks/deployment/flux-recovery-git.yml"
+      - -e
+      - "@{{ platform_recovery.workspace }}/{{ item.recovery_git_inputs | default(platform_recovery.recovery_git_inputs) }}"
+      - -e
+      - "{{ {'flux_recovery_git_package': (item.package | default(platform_recovery.package)).directory,
+               'flux_recovery_git_artifact_lock_sha256': (item.package | default(platform_recovery.package)).artifact_lock_sha256} | to_json }}"
+  environment:
+    CONTROL_NODE_COLLECTIONS_MODE: check
+  loop: "{{ platform_recovery.clusters | sort(attribute='tier') }}"
+  changed_when: true
+  when: platform_recovery.phase != 'verify'
+
+- name: Recover each cluster with retained administrative identity in dependency order
+  ansible.builtin.include_tasks: tier.yml
+  loop: "{{ platform_recovery.clusters | sort(attribute='tier') }}"
+  loop_control:
+    loop_var: recovery_cluster
+    label: "tier-{{ recovery_cluster.tier }}"
+  when: platform_recovery.phase != 'verify'
+
+- name: Reverify completed target identities without reconstructing or refencing them
+  ansible.builtin.include_tasks: verify-targets.yml
+  when: platform_recovery.phase == 'verify'
+
+- name: Repeat actual content checks for a previously completed recovery
+  ansible.builtin.include_tasks: checks.yml
+  loop: "{{ platform_recovery.products }}"
+  loop_control:
+    loop_var: recovery_product
+  when: platform_recovery.phase == 'verify'
+
+- name: Rotate promotion authority tickets and retain trigger fences
+  ansible.builtin.include_tasks: promotion-authority.yml
+  when:
+    - platform_recovery.promotion_authority is defined
+    - platform_recovery.phase != 'verify'
+
+- name: Record verified recovery while production writers remain fenced
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/data-verified.json"
+    mode: '0600'
+    content: >-
+      {{ {'version': 1, 'recovery_id': platform_recovery.recovery_id,
+          'plan_sha256': platform_recovery.plan_sha256,
+          'products': platform_recovery.products | map(attribute='name') | list,
+          'phase': 'verified-isolated', 'production_cutover': 'pending-explicit-cutover-plan'} | to_nice_json }}
+  when: platform_recovery.phase != 'verify'
+
+- name: Resume only the independently accepted verified recovery scope
+  ansible.builtin.include_tasks: cutover.yml
+  when: platform_recovery.phase == 'resume'

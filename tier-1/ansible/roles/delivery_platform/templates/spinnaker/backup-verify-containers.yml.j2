@@ -1,0 +1,43 @@
+- name: verify-mysql-import
+  image: {{ spinnaker_backup_mysql_image | default(delivery_platform_software.mysql_image) | to_json }}
+  securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+  env:
+    - name: BACKUP_RUN
+      valueFrom: {fieldRef: {fieldPath: metadata.uid}}
+  command: [/bin/bash, -ec]
+  args:
+    - |
+      set -o pipefail
+      directory="/backup/$BACKUP_RUN"
+      gzip -t "$directory/mysql.sql.gz"
+      mkdir -p /verify/mysql
+      mysqld --no-defaults --initialize-insecure --datadir=/verify/mysql
+      mysqld --no-defaults --datadir=/verify/mysql --socket=/verify/mysql.sock \
+        --pid-file=/verify/mysql.pid --skip-networking --mysqlx=0 &
+      server=$!
+      trap 'kill "$server" 2>/dev/null || true; wait "$server" 2>/dev/null || true' EXIT
+      for attempt in $(seq 1 90); do
+        mysqladmin --no-defaults --socket=/verify/mysql.sock --user=root ping --silent && break
+        kill -0 "$server"
+        sleep 2
+      done
+      gzip -dc "$directory/mysql.sql.gz" | mysql --no-defaults --socket=/verify/mysql.sock --user=root
+      count="$(mysql --no-defaults --socket=/verify/mysql.sock --user=root --batch --skip-column-names \
+        --execute="SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name IN ('clouddriver','echo','fiat','front50','orca')")"
+      test "$count" = 5
+      mysqlcheck --no-defaults --socket=/verify/mysql.sock --user=root --databases clouddriver echo fiat front50 orca
+      mysqladmin --no-defaults --socket=/verify/mysql.sock --user=root shutdown
+      wait "$server"
+      trap - EXIT
+  volumeMounts:
+    - {name: backup, mountPath: /backup, readOnly: true}
+    - {name: verify-mysql, mountPath: /verify}
+- name: verify-redis-rdb
+  image: {{ spinnaker_backup_redis_image | default(delivery_platform_software.redis_image) | to_json }}
+  securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+  env:
+    - name: BACKUP_RUN
+      valueFrom: {fieldRef: {fieldPath: metadata.uid}}
+  command: [sh, -ec]
+  args: ['redis-check-rdb "/backup/$BACKUP_RUN/redis.rdb"']
+  volumeMounts: [{name: backup, mountPath: /backup, readOnly: true}]

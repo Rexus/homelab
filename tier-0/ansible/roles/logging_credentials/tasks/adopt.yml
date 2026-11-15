@@ -1,0 +1,8 @@
+---
+- name: Require the retained original passphrase to unlock the existing native authority key
+  community.crypto.openssl_privatekey_info:
+    path: "{{ logging_credentials_authority_key_file }}"
+    passphrase: "{{ logging_credentials_document.secrets.authority_passphrase }}"
+    return_private_key_data: false
+  no_log: true
+  diff: false

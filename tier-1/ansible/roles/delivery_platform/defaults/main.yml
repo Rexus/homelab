@@ -55,8 +55,10 @@ delivery_platform_spinnaker_promotion_namespace: delivery-promotion
 # Flux requires a deliberate fresh/adopt/upgrade/recover selection.
 delivery_platform_spinnaker_lifecycle: ""
 delivery_platform_spinnaker_job_revision: '1'
+# Independently retained accepted CURRENT native manifest, loaded before rendering the proposed upgrade.
+delivery_platform_spinnaker_upgrade_from: ""
+delivery_platform_spinnaker_upgrade_from_sha256: ""
 delivery_platform_spinnaker_recovery_id: ""
-delivery_platform_spinnaker_recovery_fenced: false
 delivery_platform_spinnaker_overlay: ""
 delivery_platform_repository_root: "{{ playbook_dir }}/../../.."
 delivery_platform_spinnaker_review_sha256: ""

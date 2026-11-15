@@ -68,7 +68,7 @@ The managed monitor and receiver use separate VMs on `management`; Kubernetes us
 This shows runtime independence. Physical failure domains require their own placement acceptance.
 
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`).
-**Prerequisites:** accepted [protected logging](../../stage-02-logging/README.md), approved
+**Prerequisites:** accepted [protected logging](../../stage-03-logging/README.md), approved
 runtime/storage and independent recovery inputs. Tier 1 Observability is not required.
 **Design:** [telemetry composition](../../../01-architecture/11-operations/03-observability.md).
 
@@ -162,7 +162,7 @@ Verify its baseline and approved software access, then rejoin below.
 
 ### Prepare the service inputs
 
-For either host path, complete [logging source Steps 1–2](../../stage-02-logging/procedures/sources.md)
+For either host path, complete [logging source Steps 1–2](../../stage-03-logging/procedures/sources.md)
 for this host's OS/audit streams before NetBox audit collection. Add it to Tier 0's
 `logging_producers`, approve its independent producer identity and verify delivery at protected intake.
 The monitoring installer does not enroll or configure these senders.

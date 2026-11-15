@@ -1,0 +1,39 @@
+---
+- name: Inspect retained authority custody before first issuance
+  ansible.builtin.stat:
+    path: "{{ logging_run.workspace }}/{{ item }}"
+  loop: [authority/key.pem, authority-created.json]
+  register: logging_workflow_authority_custody
+
+- name: Refuse a replacement authority after loss of its private material
+  ansible.builtin.assert:
+    that:
+      - not logging_workflow_authority_custody.results[1].stat.exists or logging_workflow_authority_custody.results[0].stat.exists
+      - logging_workflow_credential_backend != 'hashicorp_vault' or logging_workflow_authority_custody.results[0].stat.exists
+    fail_msg: Restore the original authority key, encrypted secret and separate unlock file; do not initialize a replacement.
+
+- name: Retain the independent authority secret using the selected backend
+  ansible.builtin.include_role:
+    name: logging_credentials
+  vars:
+    logging_credentials_workspace: "{{ logging_run.workspace }}"
+    logging_credentials_repository_name: "{{ logging_run.repository | basename }}"
+    logging_credentials_operation: >-
+      {{ 'initialize' if logging_workflow_credential_backend == 'ansible_vault' else 'read' }}
+    logging_credentials_backend: "{{ logging_workflow_credential_backend }}"
+
+- name: Issue under the retained independent authority
+  ansible.builtin.include_role:
+    name: logging_authority
+  vars:
+    logging_authority_directory: "{{ logging_run.workspace }}/authority"
+    logging_authority_passphrase: "{{ logging_managed_secrets.authority_passphrase }}"
+    logging_authority_initialize: "{{ not logging_workflow_authority_custody.results[0].stat.exists }}"
+    logging_authority_requests: "{{ logging_run.requests_manifest }}"
+
+- name: Retain the initialized authority marker outside its key directory
+  ansible.builtin.copy:
+    dest: "{{ logging_run.workspace }}/authority-created.json"
+    content: "{{ {'issuer': 'independent', 'directory': logging_run.workspace ~ '/authority'} | to_nice_json }}\n"
+    force: false
+    mode: '0600'

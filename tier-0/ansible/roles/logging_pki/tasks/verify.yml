@@ -1,0 +1,61 @@
+---
+- name: Inspect the issued leaf and its returned trust identities
+  community.crypto.x509_certificate_info:
+    path: "{{ logging_pki_status.directory }}/{{ item }}.pem"
+    valid_at:
+      now: '+0s'
+      beyond_leaf_window: '+31d'
+  loop: [leaf, issuer, root]
+  register: logging_pki_certificates
+
+- name: Match the original key subject SAN EKU and pinned issuer chain
+  ansible.builtin.assert:
+    that:
+      - logging_pki_certificates.results[0].valid_at.now
+      - not logging_pki_certificates.results[0].expired
+      - not logging_pki_certificates.results[0].valid_at.beyond_leaf_window
+      - "logging_pki_certificates.results[0].subject == {'commonName': request.name}"
+      - logging_pki_certificates.results[0].public_key_fingerprints.sha256 == request.key_sha256
+      - logging_pki_certificates.results[0].basic_constraints == ['CA:FALSE']
+      - logging_pki_certificates.results[0].basic_constraints_critical
+      - logging_pki_certificates.results[0].key_usage == ['Digital Signature']
+      - logging_pki_certificates.results[0].extended_key_usage == [logging_pki_expected_eku]
+      - >-
+        logging_pki_certificates.results[0].subject_alt_name | default([], true) | sort
+        == request.san | default([]) | sort
+      - logging_pki_certificates.results[1].fingerprints.sha256 | lower == openxpki_issuer_fingerprint | lower
+      - logging_pki_certificates.results[2].fingerprints.sha256 | lower == openxpki_root_fingerprint | lower
+    fail_msg: The issued certificate differs from the approved logging request or pinned infrastructure CA.
+  vars:
+    logging_pki_expected_eku: "{{ 'TLS Web Client Authentication' if request.profile == 'client' else 'TLS Web Server Authentication' }}"
+
+- name: Verify native chain signatures purpose revocation and CRL freshness
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - verify
+      - -CAfile
+      - "{{ logging_pki_status.directory }}/root.pem"
+      - -untrusted
+      - "{{ logging_pki_status.directory }}/issuer.pem"
+      - -CRLfile
+      - "{{ logging_pki_status.directory }}/revoked.pem"
+      - -crl_check
+      - -purpose
+      - "{{ 'sslclient' if request.profile == 'client' else 'sslserver' }}"
+      - "{{ logging_pki_status.directory }}/leaf.pem"
+  changed_when: false
+
+- name: Release only verified public certificate chain and CRL
+  ansible.builtin.fetch:
+    src: "{{ logging_pki_status.directory }}/{{ item.src }}"
+    dest: "{{ logging_pki_public_directory }}/{{ item.dest }}"
+    flat: true
+  loop:
+    - {src: leaf.pem, dest: "{{ request.name }}.pem"}
+    - {src: ca.pem, dest: ca.pem}
+    - {src: revoked.pem, dest: revoked.pem}
+
+- name: Mark the public handoff as verified
+  ansible.builtin.set_fact:
+    logging_pki_verified: "{{ logging_pki_verified | default([]) + [request.name] }}"

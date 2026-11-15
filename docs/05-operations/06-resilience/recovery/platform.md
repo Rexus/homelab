@@ -62,6 +62,12 @@ media, independently held keys/credentials and a recorded network/storage plan.
 5. [Recover services and their data](#5-recover-services-and-their-data).
 6. [Resume operations and prove the next recovery point](#6-resume-operations-and-prove-the-next-recovery-point).
 
+For surviving Proxmox with independently retained identity, inputs, artifacts and product backups, use the
+[accepted recovery-plan entry point](platform-recovery-contract.md). It restores VM targets in
+tier order, reconstructs empty Talos clusters with retained secrets, invokes product restores and supports
+an explicit verified resume phase. Its input and startup-evidence limits are listed with that contract.
+The steps below cover the broader host-loss and independently commissioned recovery prerequisites.
+
 ## 1. Establish independent access
 
 1. Fence former hosts and automation. Preserve surviving media/evidence before reuse.

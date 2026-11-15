@@ -313,7 +313,7 @@ and observe approved application namespaces read-only. Flux's restricted applica
 owns their workload writes. The promotion bot can write only the separate application Git project;
 it receives no platform/bootstrap source rights. Revoke existing direct-deploy RoleBindings and
 token Secrets explicitly; replacing account templates does not revoke old credentials.
-Use the [approval limits and bypass tests](../../01-architecture/10-delivery/approval-controls.md).
+Use the [approval limits and bypass tests](../../08-reference/spinnaker-approval.md).
 
 ## Choose Backup Storage
 
@@ -412,23 +412,19 @@ Use [Flux rendering and approved revision reconciliation](procedures/flux-platfo
 The native base and checksum remain review artifacts; direct Ansible apply below belongs only to the
 legacy alternative. Flux exports a dependency graph instead of applying combined native YAML.
 
-| Lifecycle | Required behavior |
-| --- | --- |
-| `fresh` | Retained credentials; explicit empty SQL/Redis claims; one-time data guard, repository commissioning, SQL initialization, native service migrations, verified backup, then ingress |
-| `adopt` | Previous writer disabled, existing SQL/Redis and original identities preserved; verify schemas/data rather than initialize |
-| `upgrade` | Approved pins and bounded Job revision; existing-data/schema verification and pre-upgrade backup before service-native Liquibase migrations; separate tested rollback/data plan |
-| `recover` | Explicit recovery ID and fencing acknowledgement; product data restored offline; matching `.delivery-restored` markers on SQL/Redis claims; no fresh initialization |
+Choose `fresh`, `adopt`, `upgrade` or `recover` through the linked lifecycle input table. Fresh/recovery
+guards mount one RWO claim each. Adoption/upgrade use authenticated running-product checks.
+Retain completed Jobs and review each Job revision change.
 
-Jobs retain completion instead of TTL deletion; ordinary reconciliation must not recreate completed
-initialization or migration work. A changed Job revision is a separately reviewed operation. The
-empty-data guard fails if a deleted fresh Job is rerun against initialized claims. Repository
-initialization is enabled only for a new absent child directory and disabled after commissioning.
+An upgrade uses the accepted current runtime to obtain an independently verified backup before
+source advancement, database rollout or schema changes. Follow the generated entry point and exact
+accepted-input contract in the operating runbook.
+[Upgrade Spinnaker](../../05-operations/05-delivery.md#upgrade-spinnaker).
 
-Recovery payloads scale Echo, Orca and Gate to zero, omit ingress and suspend scheduled backups while
-data/queues are fenced. The guard requires original native SQL/Redis content plus the approved
-recovery marker, not an empty PVC. After product restore, stale execution cancellation/review and
-pipeline import, approve the next non-fresh lifecycle revision before enabling services/triggers.
-No automated restore, reverse migration or stale-execution cancellation is implied.
+Recovery keeps all application Deployments at zero replicas and ingress absent. Each claim guard
+checks its exact restore marker and product data before persistence restarts. Follow the product
+recovery workflow for restoration, stale-execution controls and verified cutover.
+[Product recovery](../../05-operations/06-resilience/recovery/tier-1-products.md).
 
 ### Retained direct Ansible lifecycle
 

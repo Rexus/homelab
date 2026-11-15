@@ -29,6 +29,7 @@ CRD_CACHE = os.environ.get("SPINNAKER_CRD_CACHE")
 CRD_SHA256 = {
     "cert-manager.yaml": "29810b2a84c8ee0731a79679ee1dfd7e93cd750eb0244542eec47fa8700f2749",
     "traefik.yaml": "164d529984ce726950383a34ea38c5cfd5aedb67dc6e04dfd1ea0854f28cb954",
+    "traefik-middlewares.yaml": "2d2e097725637a7fc372fab3492db2cb94860e7d463424bd6b341f6a2a81c685",
 }
 KUSTOMIZE = shutil.which("kustomize")
 KUBECTL = shutil.which("kubectl")
@@ -336,7 +337,18 @@ class SpinnakerReference(TierRepositoryTestCase):
         self.assertEqual(registration["platform"]["client-secret"], "${OIDC_CLIENT_SECRET}")
         self.assertIn("groups", registration["user-info-requirements"])
         self.assertFalse(gate["security"]["basicform"]["enabled"])
+        middleware = next(d for d in documents if d["kind"] == "Middleware"
+                          and d["metadata"]["name"] == "spinnaker-authenticated-identity")
+        self.assertEqual(middleware["spec"]["headers"]["customRequestHeaders"], {
+            "X-Spinnaker-User": "", "X-Spinnaker-Accounts": "",
+            "X-Spinnaker-User-Origin": "", "X-Spinnaker-Anonymous": ""})
+        ingress = next(d for d in documents if d["kind"] == "Ingress")
+        self.assertEqual(ingress["metadata"]["annotations"][
+            "traefik.ingress.kubernetes.io/router.middlewares"],
+            "spinnaker-spinnaker-authenticated-identity@kubernetescrd")
         for name, deployment in deployments.items():
+            self.assertRegex(deployment['spec']['template']['metadata']['annotations'][
+                'delivery.homelab/config-sha256'], r'^[a-f0-9]{64}$')
             pod = deployment["spec"]["template"]["spec"]
             self.assertFalse(pod["automountServiceAccountToken"])
             container = next(c for c in pod["containers"] if c["name"] == name)
@@ -370,7 +382,8 @@ class SpinnakerReference(TierRepositoryTestCase):
                             and not d.get("data") for d in documents if d["kind"] == "Secret"))
         backup = next(d for d in documents if d["kind"] == "CronJob")["spec"]["jobTemplate"]["spec"]
         pod = backup["template"]["spec"]
-        self.assertEqual([c["name"] for c in pod["initContainers"]], ["redis-tls", "mysql", "redis"])
+        self.assertEqual([c["name"] for c in pod["initContainers"]],
+                         ["redis-tls", "mysql", "redis", "verify-mysql-import", "verify-redis-rdb"])
         self.assertEqual([c["name"] for c in pod["containers"]], ["independent-copy"])
         uploader = pod["containers"][0]
         self.assertEqual(uploader["image"], SOFTWARE["restic_image"])

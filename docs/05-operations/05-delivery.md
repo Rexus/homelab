@@ -67,14 +67,14 @@ flowchart TB
 *Figure: Selected Tier 1 delivery realization with optional later GitLab/build services and their
 three external data VMs. Each data guest retains its own disk; the disk aggregate does not imply
 replication or a joint recovery point. Observability retains its separate Stage 8 operating view.*
-[Source mapping and design](../01-architecture/10-delivery/flux-ownership.md),
+[Selected implementation and source mapping](../08-reference/tier-1-delivery.md),
 [render record](../08-reference/diagrams/tier1-flux-ownership-render.md),
 [delivery inputs](../../tier-1/ansible/group_vars/delivery_platform.yml.example),
 [development inputs](../../tier-1/ansible/group_vars/development_platform.yml.example),
 [data-VM inputs](../../tier-1/terraform/deployments/development-data/terraform.tfvars.example),
 [bootstrap role](../../shared/ansible/roles/cluster_platform),
 [external maintenance role](../../shared/ansible/roles/flux_maintenance).
-The [ownership flow](../01-architecture/10-delivery/flux-ownership.md#figure-tier1-flux-ownership)
+The [ownership flow](../08-reference/tier-1-delivery.md#figure-tier1-flux-ownership)
 shows bootstrap, separate source permissions and independent recovery. Tier 0 retains its own Flux
 and infrastructure authority; Argo CD/direct Spinnaker and standalone GitLab remain explicit alternatives.
 
@@ -85,6 +85,7 @@ and infrastructure authority; Argo CD/direct Spinnaker and standalone GitLab rem
 - [Prepare independent custody](#prepare-independent-custody)
 - [Serve accepted recovery sources](#serve-accepted-recovery-sources)
 - [Advance an approved platform revision](#advance-an-approved-platform-revision)
+- [Upgrade Spinnaker](#upgrade-spinnaker)
 - [Operate promotions and pipeline definitions](#operate-promotions-and-pipeline-definitions)
 - [Suspend and recover applications](#suspend-and-recover-applications)
 - [Choose another task](#choose-another-task)
@@ -214,6 +215,9 @@ Private keys, Terraform state and service-data backups retain their independent 
 
 ## Advance an approved platform revision
 
+Spinnaker upgrades use the dedicated backup/staging entry point below before source advancement.
+[Upgrade Spinnaker](#upgrade-spinnaker).
+
 1. Render the selected native payload and review its actual diff, lifecycle Job revisions and pins.
    Follow the manual signed-commit/push policy and retain a product-compatible rollback plan.
 2. Export the candidate custody package above. Set `flux_maintenance_operation: advance`,
@@ -238,67 +242,203 @@ On failure, keep the affected source/consumers fenced and inspect the actual rev
 Do not advance another revision to hide a failed migration. A Git revert cannot reverse database
 schema changes; follow [the upgrade gate](01-hosting/maintenance.md#upgrade-gate).
 
+## Upgrade Spinnaker
+
+Run on **the independent Tier 1 execution host**, from **`<prefix>-tier-1/`**. This path supports
+nondecreasing MySQL 8.4 LTS and Redis 8.2 patch versions. Other database series need a separately
+implemented native migration.
+
+1. Retain the accepted current `spinnaker-manifests.yml`, its independently accepted SHA-256 and
+   private credentials outside the renderer's output directory. In
+   `ansible/group_vars/delivery_platform.yml`, set the current installation and target inputs.
+
+   ```yaml
+   delivery_platform_spinnaker_lifecycle: upgrade
+   delivery_platform_spinnaker_upgrade_from: /retained/delivery/current/spinnaker-manifests.yml
+   delivery_platform_spinnaker_upgrade_from_sha256: <accepted-current-manifest-sha256>
+   delivery_platform_kubeconfig: /secure/tier1.kubeconfig
+   delivery_platform_context: tier1
+   ```
+
+   Preserve accepted namespace, claim, certificate and credential identities. Select the target
+   product pins through the normal native inputs.
+
+2. Render the target and generated upgrade play from **`<prefix>-tier-1/`**.
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+     ansible/playbooks/deployment/delivery-platform.yml \
+     -e @ansible/group_vars/delivery_platform.yml \
+     -e @secrets/delivery-platform.yml --ask-vault-pass -e delivery_platform_action=render
+   ```
+
+   Review the generated `spinnaker-flux-upgrade.yml` and platform payload. Its backup tools,
+   configuration and Secret references come from the accepted current installation.
+
+3. Approve/commit the private platform payload and retain its independent configuration/artifact
+   package. Restrict cluster-payload changes to the selected delivery component. Set the following
+   fields in `ansible/group_vars/delivery_platform.yml` using that accepted revision and package.
+
+   ```yaml
+   spinnaker_upgrade_operation: apply
+   spinnaker_upgrade_revision: <accepted-platform-configuration-commit>
+   spinnaker_upgrade_source_checkout: /retained/platform-configuration
+   spinnaker_upgrade_recovery_directory: /retained/accepted-recovery-package
+   spinnaker_upgrade_artifact_lock_sha256: <accepted-artifact-lock-sha256>
+   ```
+
+   Keep the checkout at that exact clean commit. The upgrade pauses all `tier1-platform` source
+   consumers and stops only the selected Spinnaker Deployments and backup CronJob. It retains other
+   service configuration and original suspension states.
+
+4. Run the generated entry point from **`<prefix>-tier-1/`**. This command uses the default output
+   directory; use the generated file under the selected `delivery_platform_output` if customized.
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+     secrets/delivery-platform/spinnaker-flux-upgrade.yml \
+     -e @ansible/group_vars/delivery_platform.yml \
+     -e @secrets/delivery-platform.yml --ask-vault-pass
+   ```
+
+   The native flow verifies the current runtime, drains writers, exports with accepted-current
+   tools, imports SQL into an isolated server and checks Redis RDB integrity. It stores an independent
+   restic snapshot, restores that exact snapshot and compares both exports before creating the
+   immutable source/target-bound receipt. Source advancement follows this verified recovery point.
+
+   The controller then stages the accepted source paused, installs its suspended reconciliation
+   graph, retains exact new resource UIDs and resumes against the completed backup Job UID and
+   dependency health. The backup gate precedes changed database runtimes, schema and workloads.
+
+5. Retain `upgrade-<operation-id>/verified-backup.json`, `scope-receipt.json`, snapshot/Job identities
+   and exact revision/health results beneath the selected output directory. On failure, correct the
+   reported condition and rerun the same generated play with the same accepted inputs. Existing
+   checkpoints are revalidated while the source/writers stay fenced.
+
+For backup-only operation, append `-e spinnaker_upgrade_operation=backup` to Step 4. This is also the
+entry point's default when the variable is omitted; it leaves source/writers fenced after verified
+backup. For unattended execution, supply the accepted Vault identity in place of `--ask-vault-pass`.
+Git rollback does not reverse database migrations. Record native runtime/CSI and recovery-point
+qualification separately from rendered manifests and API-double tests.
+
 ## Operate promotions and pipeline definitions
 
-For a first installation, complete the deployment procedure's worker publication, initial application
-source and suspension handoff before importing pipelines.
-[First-use promotion sequence](../03-deployment/stage-07-delivery/procedures/flux-platform.md#promotion-and-acceptance).
+First installation and credential-boundary adoption follow the ordered deployment procedure.
+It supplies the authority namespace, encrypted Secrets, native admission policy, initial application
+and Gate import/adoption commands.
+[Promotion setup and adoption](../03-deployment/stage-07-delivery/procedures/flux-platform.md#promotion-and-acceptance).
 
-From **`<prefix>-tier-1/`**, initialize `--setup delivery-promotions`; edit
-`ansible/group_vars/delivery_promotion.yml` using its exact schema. Retain a real digest-pinned
-worker image independently, a bot credential limited to the separate application project and a
-separate signing key. The Run Job account is confined to `delivery-promotion`; application status
-is read-only and direct application/platform writes are denied.
+1. In **`<prefix>-tier-1/`**, edit `ansible/group_vars/delivery_promotion.yml` for the accepted
+   application policy, digest-pinned worker image, roles, HTTPS endpoints and explicit egress.
+   Retain stable pipeline IDs. Edit `secrets/delivery-promotion.yml` with `ansible-vault edit` for
+   private input changes. Its `delivery_promotion_credentials` maps exact Secret names to
+   `stringData` fields. Git/signing/ticket keys remain independently recoverable.
 
-Render with `ansible/playbooks/deployment/delivery-promotions.yml` and
-`delivery_promotion_action=render`. Review the private resource/pipeline artifacts and publish the
-promotion resources through platform Flux. With authenticated private Gate headers, rerun the same
-playbook with `delivery_promotion_action=import` to create/update stable pipeline IDs repeatably.
-Keep credentials encrypted in private inputs; never publish Gate headers or Git/signing Secrets.
+2. Render the changed policy/resources and stable pipeline definitions from **`<prefix>-tier-1/`**.
 
-Run **from `<prefix>-tier-1/`**, with encrypted private Gate headers supplied through an approved Vault
-identity when importing:
+   After a generated refresh, first compare the preserved project-owned
+   `pipelines/flux-promotion.yml.j2` with the current upstream template. Merge its secretless client
+   changes while retaining project integration stages and stable IDs. Updated worker/role code alone
+   cannot make a retained credential-bearing pipeline work with the new admission/revocation boundary.
+   [Pipeline diff and adoption](../03-deployment/stage-07-delivery/procedures/flux-platform.md#1a-adopt-the-current-pipeline-template-after-refresh).
 
-```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/delivery-promotions.yml \
-  -e @ansible/group_vars/delivery_promotion.yml -e delivery_promotion_action=render
-```
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+     ansible/playbooks/deployment/delivery-promotions.yml \
+     -e @ansible/group_vars/delivery_promotion.yml \
+     -e @secrets/delivery-promotion.yml --ask-vault-pass -e delivery_promotion_action=render
+   ```
 
-For direct Flux export set `delivery_promotion_flux_output`,
-`delivery_promotion_flux_sops_age_recipients` and component dependencies in the same inputs. Provision
-`delivery-promotion-git` (`username`, `password`) and `delivery-promotion-signing` (`key`, SSH Ed25519)
-through the selected encrypted Secret owner before Jobs start. The resource renderer does not invent
-those credentials. Keep their public signing key and independent private recovery copy.
+   Review the platform export and its SOPS-encrypted Secrets, approve/reconcile it through the
+   platform-maintenance workflow, then verify authority readiness. Client DNS and authority egress
+   must reach the actual API, Git, Gate and native HTTPS Fiat endpoints. Retain the public authority
+   CA at `delivery_promotion_authority_ca_file` on the controller.
+   Adoption also requires publication of the updated native Spinnaker payload and its hardened Orca
+   profile; follow the linked deployment handoff before retiring the previous credential path.
+   Verify the Gate Ingress keeps `spinnaker-authenticated-identity` attached and direct service access
+   remains confined to the accepted ingress/private services. Requalify forged `X-Spinnaker-*`
+   identity/account header denials after ingress or authentication changes.
 
-Request an exact image digest, immutable application configuration revision, target and expected
-delivery-branch head. Review the proposed change, give the authorized manual judgment, then require
-the intended Flux revision and relevant workload/Helm health. A stale head requires a fresh approval;
-retrying an already published exact candidate observes it, while a superseded revision cannot succeed.
-Rollback uses a new approved signed Git change and application/data compatibility evidence.
+3. Import the reviewed definitions from **`<prefix>-tier-1/`** using the private operator Gate session.
 
-[Approval controls](../01-architecture/10-delivery/approval-controls.md) document role/API/Git bypasses,
-one judgment, possible self-approval and administrator authority. The executor can create arbitrary
-Jobs in its permitted namespace and access their mounted promotion credentials: treat that identity
-as trusted promotion authority, not an unbypassable independent approval service.
-Pipeline imports manage database configuration; Flux managing Spinnaker's pods does not do that import.
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+     ansible/playbooks/deployment/delivery-promotions.yml \
+     -e @ansible/group_vars/delivery_promotion.yml \
+     -e @secrets/delivery-promotion.yml --ask-vault-pass -e delivery_promotion_action=import
+   ```
+
+   Existing credential-bearing installations use the deployment procedure's `adopt` path first.
+   It applies a Gate execution fence, verifies replacement authority and hardened Orca rollouts, revokes the old bot
+   token through GitLab CE, stops old Jobs/orphan Pods and removes client Git/signing Secrets. Correct a failed
+   step and rerun with the same inputs while the fence remains applied.
+
+4. Request the immutable image digest, application configuration SHA, release ID and compatibility
+   evidence through the saved promote/rollback pipeline. Review its exact diff, destination, base
+   and candidate commit before an authorized manual judgment. Secretless Jobs call the HTTPS
+   authority, which verifies the expiring execution-bound HMAC ticket, actual Orca judgment actor
+   and live Fiat role before publishing and observing the exact release.
+
+5. Record execution/actor, accepted policy and diff, candidate Git commit and exact Flux/target health.
+   A changed delivery head, changed policy or expired ticket needs a fresh preview and judgment.
+   Retry the same candidate to resume observation. Supersession fails. Rollback creates another
+   approved signed application change with compatible data expectations.
+
+One authorized judgment and possible requester/approver role overlap remain part of the contract.
+Platform, pipeline, GitLab, cluster and identity administrators retain auditable privileged recovery
+authority. Native stage-context patches and restarts are checked again by the isolated credential
+holder. Installed Gate/Fiat authorization, admission denials and credential retirement need live
+qualification in addition to mocked API and local Git tests.
+[Selected approval controls and denial cases](../08-reference/spinnaker-approval.md).
 
 ## Suspend and recover applications
 
-Set maintenance operation `suspend` for `tier1-applications` and review/apply from the external host.
-Fence webhooks, runners, bot credentials and stale Orca executions separately.
-For application recovery, select `recover` with the accepted exact application commit: this pins the
-source and keeps reconciliation suspended. Perform actual
-[product restoration](06-resilience/recovery/tier-1-products.md) before resuming.
+1. Select `flux_maintenance_operation: suspend`, the exact source and its independent kubeconfig.
+   The role discovers live inventories, ownership labels, source consumers and dependencies. It saves
+   original UIDs and suspension values in `secrets/flux-maintenance/scope-receipt.json` before changes.
+   Controlling ancestors pause first, followed by descendant Kustomizations and HelmReleases.
+   Temporary native Flux reconcile annotations protect children against parent writes.
+   The scope includes every consumer of that source. Component-root selectors are unsupported because
+   a source ref change can reach all of them. Select product writers independently in the next step.
+2. Add product writers requiring shutdown to `flux_maintenance_writers` using their API version,
+   kind, namespace and name. The role verifies live inventory ownership, retains replicas/suspension
+   values, and stops the selected Deployments, StatefulSets, Jobs or CronJobs. A suspended CronJob can
+   have running Jobs, so select those Jobs too. Continue only when the role's drain checks succeed.
+3. Use `stage-paused` with the accepted full commit and independent custody package when selecting
+   recovery configuration. It requires a complete, still-paused receipt before changing the source.
+   `recover` is a compatibility alias for this operation. `advance` refuses a suspended root or
+   controlling ancestor before source mutation.
+   An upgrade entry point must verify its retained backup first, stage the accepted graph with every
+   child still suspended, then run `suspend` again to capture its new inventory and dependencies.
+   Changing only the parent's graph cannot fence existing active children.
+4. Perform [product restoration](06-resilience/recovery/tier-1-products.md), including writer and
+   stale execution fencing. Supply its completed verification Jobs in `flux_maintenance_resume_checks`
+   with `api_version: batch/v1`, `kind: Job`, namespace, name and the observed Job UID. Recovery
+   acknowledgements alone cannot satisfy this gate.
+5. Select `resume`. For applications, also select the independently accepted branch-head commit and
+   original `flux_maintenance_application_branch`. The role checks the source revision while paused,
+   verifies the completed Jobs, restores stopped writers and resumes native dependencies before their
+   dependents. A failed resume reestablishes fences and retains the original values for retry.
 
-Operation `resume` requires the independently accepted application head revision,
-`flux_maintenance_data_restored: true` and
-`flux_maintenance_executions_fenced: true` after actual checks. Resume returns application delivery
-to its protected branch while still suspended, waits for the exact approved head SHA, then unfences
-only after data and execution fencing are accepted. Reimport reviewed pipeline
-definitions before enabling new triggers; restoration must not replay stale promotions.
-Set `flux_maintenance_application_branch` to the original `cluster_platform_flux_application_branch`
-before resuming a site with a custom branch name.
+Suspension waits for reported reconciliation and pending Helm operations to drain. It does not cancel
+an operation already underway. Interrupted suspension keeps its preparing receipt. Rerun it to capture
+children created by a draining parent, preserving previously recorded states. Changed resource UIDs
+require investigating the selected replacement before proceeding.
+
+Unrelated descendants remain active while shared controlling ancestors provide the required fence.
+Previously suspended resources stay suspended, retaining a
+native reconcile protection annotation so a parent cannot overwrite their intentional pause. Remove
+that protection only when deliberately returning that resource to its declared Git state. Restore
+verification Jobs must belong to the selected recovery run. Keep the receipt independently for audit.
+
+For a newly commissioned root created paused, the approved recovery plan can select its exact captured
+UID in `flux_maintenance_resume_suspended_uids`. The default empty list preserves intentional pauses.
+The selected GitRepository retains reconcile protection after a ref change so a controlling parent
+cannot rewind its accepted revision. Adopt that reference in its declared owner before removing the
+temporary protection. The receipt retains the original source policy for review.
+
+Controller-model tests exercise descendant activity and parent overwrites. Live controller, Helm,
+writer-drain and recovery qualification remains part of the installation's acceptance record.
 
 ## Choose another task
 

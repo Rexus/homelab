@@ -1,0 +1,31 @@
+---
+# Include during openxpki_bundle construction, after policy.yml and before the immutable archive.
+# Never render into the active issuer release tree.
+- name: Require the new private configuration bundle profile directory
+  ansible.builtin.assert:
+    that:
+      - openxpki_bundle_directory is match('^/')
+      - >-
+        logging_pki_profile_directory == openxpki_bundle_directory ~ '/bundle/config.d/realm/'
+        ~ openxpki_bundle_realm ~ '/profile'
+      - openxpki_bundle_dns_suffixes | length > 0
+
+- name: Inspect the new configuration archive destination
+  ansible.builtin.stat:
+    path: "{{ openxpki_bundle_directory }}/configuration.tar.gz"
+    follow: false
+  register: logging_pki_bundle_archive
+
+- name: Require an unfinished new bundle before adding logging profiles
+  ansible.builtin.assert:
+    that: not logging_pki_bundle_archive.stat.exists
+    fail_msg: Build profiles in a new private bundle directory before archiving and accepting its checksum.
+
+- name: Add the independently approved logging leaf profiles to the new bundle
+  ansible.builtin.template:
+    src: profile.yaml.j2
+    dest: "{{ logging_pki_profile_directory }}/logging_{{ logging_pki_profile_kind }}.yaml"
+    mode: '0600'
+  loop: [client, server]
+  loop_control:
+    loop_var: logging_pki_profile_kind

@@ -241,7 +241,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.y
 
 For **12b**, register the existing host and inventory-adjacent `ansible/inventory/host_vars/<host>.yml`
 connection overrides, retaining its original provisioning owner instead of creating another VM/state.
-Both paths extend [existing producer forwarding](../stage-02-logging/procedures/sources.md) for OS/audit streams
+Both paths extend [existing producer forwarding](../stage-03-logging/procedures/sources.md) for OS/audit streams
 and verify an event at protected intake. NetBox audit can then use this prepared host; Netdata is installed at action 20.
 
 ## Step 13: Configure NetBox and its private inputs

@@ -15,20 +15,25 @@ Kubernetes platform services. Stage 8 Observability and Stage 9 GitLab/runners r
 **IaC:** *Figure: Three starter node VMs provide Tier 1 Kubernetes. Independent Flux owns selected
 platform services, including Spinnaker; Spinnaker promotes application Git. This logical grouping
 does not assign pods to individual VMs or establish high availability.*
-[Ownership and source mapping](../../01-architecture/10-delivery/flux-ownership.md),
+[Selected ownership and source mapping](../../08-reference/tier-1-delivery.md),
 [editable SVG/render record](../../08-reference/diagrams/tier1-flux-ownership-render.md),
 [Tier 1 node inputs](../../../tier-1/terraform/deployments/kubernetes/terraform.tfvars.example),
 [shared bootstrap](../../../shared/ansible/roles/cluster_platform) and
 [native delivery renderer](../../../tier-1/ansible/roles/delivery_platform).
 
-The [bootstrap/maintenance/promotion/recovery flow](../../01-architecture/10-delivery/flux-ownership.md#figure-tier1-flux-ownership)
+The [bootstrap/maintenance/promotion/recovery flow](../../08-reference/tier-1-delivery.md#figure-tier1-flux-ownership)
 shows the separate sources and actual tier boundaries. Stage 8/9 services are explicit later selections.
 
 **Prerequisites:** accepted Tier 0 access, Kubernetes, Identity and Secrets; independent approved Git,
 charts/images, private DNS/TLS, decryption custody and qualified storage. Stage 7 precedes Stage 9
 GitLab and cannot require the new GitLab, Harbor, Spinnaker or ordinary runners to restore themselves.
 **Working repository:** `<prefix>-tier-1/`; optional private edge remains Tier 2.
-**Design:** [D-041](../../07-decisions/README.md#d-041) and [Flux ownership](../../01-architecture/10-delivery/flux-ownership.md).
+**Design:** [Logical delivery roles](../../01-architecture/10-delivery/02-controllers.md).
+**Selection:** [D-041](../../07-decisions/README.md#d-041) and
+[Tier 1 implementation](../../08-reference/tier-1-delivery.md).
+**Automation:** selected installers and external integration boundaries follow
+[stage coverage](../../08-reference/implementation-support.md#stage-coverage).
+
 **Evidence:** code/rendering and live qualification are separate; use the
 [support map](../../08-reference/implementation-support.md#tier-1-flux-evidence).
 
@@ -152,7 +157,7 @@ Complete [the live acceptance matrix](procedures/flux-platform.md#promotion-and-
 [Spinnaker checks](step-2b-spinnaker.md#step-4-qualify-delivery). Test denied direct API/Git paths,
 revoked old direct-deploy tokens, exact-revision promotion, conflicts/retries, drift, compatible rollback
 and independent maintenance with Spinnaker unavailable. Record actual
-[approval limitations](../../01-architecture/10-delivery/approval-controls.md).
+[approval limitations](../../08-reference/spinnaker-approval.md).
 
 After fresh filesystem repository commissioning, disable `filesystem_initialize`, render a new
 reviewed platform revision and reconcile it. Reconciliation must never initialize existing state

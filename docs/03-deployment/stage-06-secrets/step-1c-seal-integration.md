@@ -76,7 +76,7 @@ The role copies the CA and writes a root-only systemd environment file; no guest
 For PKCS#11, select the approved Enterprise `vault_package_name`, `vault_provider_packages`,
 `vault_provider_accepted: true`, credential-free `vault_seal_hcl` and private
 `vault_seal_environment.VAULT_HSM_PIN`. Existing software intake supplies the qualified packages.
-Provision a local USB device through the [hardware option](../stage-03-trust/step-1d-single-usb.md)
+Provision a local USB device through the [hardware option](../stage-02-trust/step-1d-single-usb.md)
 before configuring its provider.
 
 Return to **1b** and run its normal `bash scripts/deploy.sh vault` command.

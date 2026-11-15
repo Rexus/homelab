@@ -21,14 +21,14 @@ define the three servers and their persistence;
 [control-node inputs](../../../tier-0/terraform/deployments/kubernetes/terraform.tfvars.example)
 define the cluster's network attachment. Custody remains manual and independently recoverable.
 This is the main-path reference selection; use the project's completion records for actual acceptance.
-[Hardware custody](../../03-deployment/stage-03-trust/README.md#step-1-prepare-issuer-and-key-custody),
+[Hardware custody](../../03-deployment/stage-02-trust/README.md#step-1-prepare-issuer-and-key-custody),
 [VM Vault](../../03-deployment/stage-06-secrets/step-1b-vault-vm.md) and
 [optional OpenBao signing](../../03-deployment/stage-06-secrets/step-11b-openbao.md) have separate selections.
 
 **Design:** [Cryptography](../../01-architecture/08-cryptography/README.md),
 [certificate authorities](../../01-architecture/08-cryptography/01-certificate-authority.md)
 and [Secrets](../../01-architecture/08-cryptography/08-secrets.md).
-**Install:** [Stage 3: Cryptographic trust](../../03-deployment/stage-03-trust/README.md)
+**Install:** [Stage 2: Cryptographic trust](../../03-deployment/stage-02-trust/README.md)
 and [Stage 6: Secrets](../../03-deployment/stage-06-secrets/README.md).
 
 ## Find the configuration

@@ -1,0 +1,104 @@
+---
+- name: Select this product's actual cluster for every verification run
+  ansible.builtin.set_fact:
+    recovery_product_cluster: "{{ platform_recovery.clusters | selectattr('tier', 'equalto', recovery_product.tier | default(1)) | first }}"
+
+- name: Use only this product's retained cluster credentials
+  ansible.builtin.set_fact:
+    recovery_kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_product_cluster.kubeconfig }}"
+    recovery_context: "{{ recovery_product_cluster.context }}"
+
+- name: Perform actual content and denied-access checks on the isolated restored product
+  ansible.builtin.uri:
+    url: "{{ recovery_check.url }}"
+    method: GET
+    validate_certs: true
+    follow_redirects: none
+    use_proxy: false
+    ca_path: "{{ platform_recovery.workspace ~ '/' ~ recovery_check.ca_path if recovery_check.ca_path is defined else omit }}"
+    headers: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/' ~ recovery_check.headers_file) | from_json if recovery_check.headers_file is defined else {} }}"
+    return_content: true
+    status_code: "{{ recovery_check.status }}"
+  loop: "{{ recovery_product.checks }}"
+  loop_control:
+    loop_var: recovery_check
+  register: recovery_checks
+  no_log: true
+  failed_when: >-
+    recovery_checks.status | default(0) != recovery_check.status or
+    (recovery_check.content_sha256 is defined and
+     recovery_checks.content | default('') | hash('sha256') != recovery_check.content_sha256)
+
+- name: Require both a real retained-content proof and an unauthorized request denial
+  ansible.builtin.assert:
+    that:
+      - recovery_product.checks | selectattr('content_sha256', 'defined') | list | length > 0
+      - recovery_product.checks | selectattr('status', 'in', [401, 403]) | list | length > 0
+
+- name: Record checks without retaining response bodies or credentials
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-checks.json"
+    mode: '0600'
+    content: >-
+      {{ {'plan_sha256': platform_recovery.plan_sha256, 'product': recovery_product.name,
+          'backup_id': recovery_product.backup_id, 'passed': recovery_checks.results | length} | to_nice_json }}
+
+- name: Install the native product verification inputs without private request credentials
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "verify-{{ recovery_product.name }}-{{ platform_recovery.recovery_id }}"
+        namespace: "{{ recovery_product.namespace }}"
+      data:
+        checks.json: "{{ recovery_product.checks | to_json }}"
+        verify_product.py: "{{ lookup('ansible.builtin.file', role_path ~ '/files/verify_product.py') }}"
+  when: platform_recovery.phase | default('restore') != 'verify'
+
+- name: Render the actual in-cluster content and denied-access verification Job
+  ansible.builtin.set_fact:
+    recovery_job:
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: "verify-{{ recovery_product.name }}-{{ platform_recovery.recovery_id }}"
+        namespace: "{{ recovery_product.namespace }}"
+      spec:
+        backoffLimit: 0
+        activeDeadlineSeconds: 300
+        template:
+          metadata:
+            labels: "{{ recovery_product.verification_labels | default({}) | combine({'recovery.homelab/id': platform_recovery.recovery_id}) }}"
+          spec:
+            restartPolicy: Never
+            automountServiceAccountToken: false
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 65532
+              runAsGroup: 65532
+              seccompProfile: {type: RuntimeDefault}
+            containers:
+              - name: verify-known-content-and-denial
+                image: "{{ recovery_product.python_image }}"
+                command: [python3, /verification/verify_product.py]
+                securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+                volumeMounts:
+                  - {name: verification, mountPath: /verification, readOnly: true}
+                  - {name: roots, mountPath: /roots, readOnly: true}
+                  - {name: credentials, mountPath: /credentials, readOnly: true}
+            volumes:
+              - {name: verification, configMap: {name: "verify-{{ recovery_product.name }}-{{ platform_recovery.recovery_id }}"}}
+              - {name: roots, secret: {secretName: "{{ recovery_product.verification_ca_secret }}"}}
+              - {name: credentials, secret: {secretName: "{{ recovery_product.verification_headers_secret }}"}}
+
+- name: Require the actual verification Job and retain its immutable UID
+  ansible.builtin.include_tasks: native-job.yml
+
+- name: Add the reobserved native verification identity to the resumption gates
+  ansible.builtin.set_fact:
+    recovery_verification_jobs: "{{ recovery_verification_jobs + [recovery_native_receipt | combine({'api_version': 'batch/v1', 'tier': recovery_product.tier})] }}"

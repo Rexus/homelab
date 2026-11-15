@@ -47,7 +47,7 @@ it is not a second application or database installer. FreeIPA stays on its origi
 | `keycloak-db-backup` | Object/WAL alternative only: independently scoped object credentials and endpoint trust |
 
 Use the [exact namespace/key and certificate contract](../../stage-06-secrets/procedures/control-applications.md#secrets-and-certificates).
-Obtain all leaves through qualified issuance before apply; the Stage 3 TLS-server
+Obtain all leaves through qualified issuance before apply; the Stage 2 TLS-server
 policy does not supply client-auth profiles. No CA private key or later Vault
 dependency belongs in these inputs. Keep TLS verification enabled on the controller.
 

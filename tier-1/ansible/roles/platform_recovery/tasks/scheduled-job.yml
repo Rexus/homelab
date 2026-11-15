@@ -1,0 +1,49 @@
+---
+- name: Inspect all Pods belonging to this exact native scheduled Job
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Pod
+    namespace: "{{ recovery_product.namespace }}"
+    label_selectors: ["batch.kubernetes.io/controller-uid={{ recovery_schedule_job.metadata.uid }}"]
+  register: recovery_scheduled_pods
+
+- name: Decide whether this schedule still owns pending or terminating work
+  ansible.builtin.set_fact:
+    recovery_schedule_needs_drain: >-
+      {{ (recovery_schedule_job.status.succeeded | default(0) | int == 0 and
+          recovery_schedule_job.status.failed | default(0) | int == 0) or
+         recovery_scheduled_pods.resources | selectattr('metadata.deletionTimestamp', 'defined') | list | length > 0 or
+         recovery_scheduled_pods.resources | selectattr('status.phase', 'defined')
+           | selectattr('status.phase', 'in', ['Succeeded', 'Failed']) | list | length != recovery_scheduled_pods.resources | length }}
+
+- name: Remove active native work with foreground ownership cleanup
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    name: "{{ recovery_schedule_job.metadata.name }}"
+    namespace: "{{ recovery_product.namespace }}"
+    state: absent
+    wait: true
+    delete_options: {propagationPolicy: Foreground}
+  when: recovery_schedule_needs_drain | bool
+
+- name: Require all Pods from the drained Job to disappear including pending and terminating Pods
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Pod
+    namespace: "{{ recovery_product.namespace }}"
+    label_selectors: ["batch.kubernetes.io/controller-uid={{ recovery_schedule_job.metadata.uid }}"]
+  register: recovery_scheduled_drained
+  until: recovery_scheduled_drained.resources | length == 0
+  retries: "{{ recovery_health_retries | default(120) }}"
+  delay: "{{ recovery_health_delay | default(5) }}"
+  when: recovery_schedule_needs_drain | bool

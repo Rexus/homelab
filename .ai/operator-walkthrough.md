@@ -346,7 +346,7 @@ target obligations. No commit or push was performed for this change.
 The follow-up started from the actual pictures rather than treating successful rendering or
 collision checks as visual acceptance. Logging still had competing perimeter routes and crowded
 archive labels. Its retention view now has aligned receiver, NAS and independent-backup columns,
-with offline custody below. Health/checkpoint reporting has a separate sequence. Stage 2 had retained
+with offline custody below. Health/checkpoint reporting has a separate sequence. Stage 3 had retained
 a different opening Mermaid figure; it now shares the editable protected-logging.svg with operations.
 
 The wider review split tangled request and placement views in intake, delivery, public certificates,
@@ -652,7 +652,7 @@ definitions, failover or recovery acceptance. Those remain in the operational ve
 
 ### Continuous logging installation, 2026-11-13
 
-Stage 2 now has sixteen sequential edit/run/check actions on its main page. The first
+Stage 3 now has sixteen sequential edit/run/check actions on its main page. The first
 receiver, requests, explicit signing choices and first producer no longer require a
 receiver/trust/source document cycle. Storage is prepared once; later reconciliation
 explicitly reuses it. Receiver and authority leaf pages own adoption/diagnosis and
@@ -839,7 +839,7 @@ requires that OS account to exist and never creates/removes it.
 - [x] Cross-check every active Terraform extra-disk reference against its service's stable
   by-id selector in source and generated repositories: cache, receiver, issuer and verified intake,
   plus the independent backup starter. Correct stale disk-letter references; preserve local UUID pins.
-- [x] Replace Stage 2 action 1.4's interactive SSH with the storage-only Ansible recipe.
+- [x] Replace Stage 3 action 1.4's interactive SSH with the storage-only Ansible recipe.
   Terraform allocates the guest/scsi1 disk; Shared prepares and verifies its filesystem/UUID mount
   before receiver TLS enrollment. Receiver verification and diagnostics run from the controller.
 - [x] Wait for managed guests before facts/configuration, including issuer, logging, runner,
@@ -1052,7 +1052,7 @@ including 30 numbered option files. This is source/local qualification, not live
 
 - [x] Align numbered choices, dedicated filenames, branch returns and legacy link migration;
   separate bootstrap preparation from Proxmox-specific guides.
-- [x] Place verified intake after accepted logging/trust at Stage 3 option 3b, and host hardening
+- [x] Place verified intake after accepted logging/trust at Stage 2 option 3b, and host hardening
   after service hosts exist. Correct detailed coverage tables and retired source/runtime doc links.
 - [x] Preserve manual-cluster credentials through later guides, qualify Talos 1.13.x before
   image/node selection, and disclose the manual-cluster SSO implementation gap before that choice.
@@ -1178,7 +1178,7 @@ and [operational verification](operational-verification.md) before checking live
   Keep malware detection, publisher authentication and vulnerability assessment distinct.
 
 The subsequent verified-intake implementation adds the optional Tier 1 `intake` setup and
-source-mapped [deployment guide](../docs/03-deployment/stage-03-trust/step-15b-verified-intake.md).
+source-mapped [deployment guide](../docs/03-deployment/stage-02-trust/step-15b-verified-intake.md).
 It supplies native RPM/APT acquisition, copied-content verification, ClamAV gates, private quarantine,
 immutable HTTPS publication and scheduling. Terraform supplies its VM/disks; guarded Ansible supplies
 the dedicated filesystem and UUID mount. The single worker still requires approved native tools,
@@ -1188,7 +1188,7 @@ Live acceptance remains [INTAKE-6–9](operational-verification.md#software-inta
 Proposal-completeness review, 2026-11-10: the core staged-intake installer is supplied;
 the following implementation/integration work remains before the entire proposal is covered:
 
-- [x] Supply [tier-owned native consumer recipes](../docs/03-deployment/stage-03-trust/step-15b-verified-consumers.md)
+- [x] Supply [tier-owned native consumer recipes](../docs/03-deployment/stage-02-trust/step-15b-verified-consumers.md)
   for RPM/APT selections, publisher keyrings, public trust and strict metadata refresh.
   Independent network bypass denial remains a live acceptance check, not an Ansible assertion.
 - [ ] Add intake-specific health metrics and severity-based alerts: definition age, scanner/job
@@ -1256,13 +1256,13 @@ all ten selected capability stages. This is a staged, commissioned platform, not
 a zero-touch appliance or an operationally accepted deployment.
 The first security gate is verified Proxmox API trust; all supplied Terraform roots
 now verify TLS, and provisioning entry points reject inherited insecure flags.
-Stage 2 now has a selected Linux/NAS main path: reviewed-CSR producer trust, native
+Stage 3 now has a selected Linux/NAS main path: reviewed-CSR producer trust, native
 host forwarding, create-only checkpoints, audited file views and independent encrypted
 backup. NAS snapshots/accounts and the recovery filesystem require commissioning;
 physical faults and access/restore results remain manual verification. This is
-asynchronous bounded-loss custody, not replicated/lossless intake. The Stage 3 policy issues
+asynchronous bounded-loss custody, not replicated/lossless intake. The Stage 2 policy issues
 TLS-server leaves, not producer client-auth certificates. Do not bypass that gate to
-declare a production PKI or assume Stage 3 automatically replaces producer trust.
+declare a production PKI or assume Stage 2 automatically replaces producer trust.
 
 The generated collection keeps resources, inventory, inputs and state tier-local.
 Shared owns native chart execution and reusable cluster roles. Tier-owned application
@@ -1292,7 +1292,7 @@ No live acceptance box is checked by this consistency review.
 - [x] Prepare receivers before exporters, product runtimes before their backup tests, and original
   state before CI handover. Keep incomplete alternatives separate from runnable installers.
 - [x] Make the front door distinguish runnable workflows from integration starters.
-- [x] Keep foundation prerequisites outside numbered capability stages; logging remains Stage 2.
+- [x] Keep foundation prerequisites outside numbered capability stages; logging remains Stage 3.
 - [x] Prevent the Proxmox preparation guide from skipping logging and jumping to identity/clusters.
 - [x] Add gateway/controller adoption and VLAN/port preparation before the UniFi policy matrix.
 - [x] Distinguish ordinary client access ports from server trunks and supported multi-switch aggregation.
@@ -1314,9 +1314,9 @@ No live acceptance box is checked by this consistency review.
 - [x] Reproduce and fix missing-role failures in direct PKI/scheduler commands; test the documented invocations.
 - [x] Connect edge publication and total-loss recovery to the new HTTPS and issuer-restore procedures.
 - [x] Separate NAS-backed trusted-admin retention from optional storage-enforced locks;
-  link both Stage 2 branches and record custody/review triggers in the evidence template.
+  link both Stage 3 branches and record custody/review triggers in the evidence template.
 - [x] Use `syslog` in fresh Tier 0 README quick starts, in the same base state context as
-  Stage 2; link environment isolation beside optional `--env`, and retain storage/TLS preparation gates.
+  Stage 3; link environment isolation beside optional `--env`, and retain storage/TLS preparation gates.
 - [x] Point test source-control, runner and image-builder instructions at their selected
   Ansible test vars and explicit complete-map Terraform overlays, including final conversion.
 - [x] Prepare/test local-input recovery before provisioning; test guest restore after the
@@ -1325,7 +1325,7 @@ No live acceptance box is checked by this consistency review.
   PKI's TLS-server profile also issues logging client certificates.
 - [x] Align remaining IdP wording and the image-builder's shared-catalog comment with their authoritative contracts.
 - [x] Align fresh FreeIPA inputs with the sibling-CA design; preserve existing internal-mode local inputs.
-- [x] Keep Stage 3 issuer acceptance separate from Stage 5 identity and later public-edge deployment.
+- [x] Keep Stage 2 issuer acceptance separate from Stage 5 identity and later public-edge deployment.
 - [x] Move the numbered hardware-rollover procedure into administration and preserve managed-guide redirects.
 - [x] Disclose installer coverage before every main path; make the delivery outcome conditional.
 - [x] Rejoin the observability VM alternative at source/reader checks after its project-owned service
@@ -1375,7 +1375,7 @@ No live acceptance box is checked by this consistency review.
   credentials, NAS-owned snapshot commissioning contract, independent restic jobs with no prune,
   offline verifier and restore procedure, native raw/view read audit and fixed application-only
   filesystem views. Actual NAS grants/snapshots/audit and physical independence need live proof.
-  [Locked retention](../docs/03-deployment/stage-02-logging/step-15b-retention-lock.md), replicated intake
+  [Locked retention](../docs/03-deployment/stage-03-logging/step-15b-retention-lock.md), replicated intake
   remain separate variants, not supplied by this NAS implementation. Tier 1 search is
   independently installed; approved projections and their scoped persistent exporter
   have a separate Tier 0 recipe and require live access/replay qualification.
@@ -1431,7 +1431,7 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Bootstrap home bind | [Foundation 3c](../docs/03-deployment/foundation/bootstrap/step-3c-bootstrap-home.md) | Ownership, SSH and SELinux checks before repository/key creation; console/reboot/rollback proof remains manual |
 | Offline bootstrap tooling | [Foundation 3e](../docs/03-deployment/foundation/bootstrap/step-3e-bootstrap-offline.md) | Matching OS/Python/CPU, verified bundle/provider artifacts; does not imply every later stage is disconnected-ready |
 | Alternative balancing | [Foundation 10b](../docs/03-deployment/foundation/proxmox/step-10b-proxlb.md) | ProxLB qualification after API and a movable guest exist; one scheduling owner and live failover proof required |
-| Existing cache update | [Software intake 2b](../docs/03-deployment/stage-01-software-intake/step-2b-adopt-update.md) | Preserve original inputs/state, refresh automation and retest consumers; verified worker installation remains Stage 3 |
+| Existing cache update | [Software intake 2b](../docs/03-deployment/stage-01-software-intake/step-2b-adopt-update.md) | Preserve original inputs/state, refresh automation and retest consumers; verified worker installation remains Stage 2 |
 | Windows Update | [Software intake 7b](../docs/03-deployment/stage-01-software-intake/step-7b-windows-update.md) | Review source and client scope, configure the chosen route and validate a representative Windows consumer |
 | Bootstrap intake | [Software intake Steps 10-13](../docs/03-deployment/stage-01-software-intake/procedures/bootstrap-consumer.md) | Apply the accepted endpoint, activate the shell and prove package/tool access before retiring temporary egress |
 | Infrastructure health | [Observability Step 13](../docs/03-deployment/stage-08-observability/step-13-infrastructure-monitoring.md) | Connect Tier 0-owned hardware/host collection and approved Tier 1 metric delivery; verify alerts and isolation |
@@ -1441,8 +1441,8 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Workload signals | [Lab 5b](../docs/03-deployment/stage-10-lab-environments/step-5b-telemetry.md) | Scoped Collector, queues and distinct credentials; verify source-to-query delivery and recovery |
 | Foundation | [Preparation](../docs/03-deployment/foundation/README.md) | Network, access, templates and recovery precede capability deployment; live commissioning required |
 | Software intake | [Stage 1](../docs/03-deployment/stage-01-software-intake/README.md) | Early Squid/VIP path; independent bootstrap supply and later repository/Harbor extensions; no complete patch controller |
-| Logging | [Stage 2](../docs/03-deployment/stage-02-logging/README.md) | Linux/NAS recipes supplied; actual NAS custody, devices, bounded-loss fault and restore acceptance outstanding |
-| Trust | [Stage 3](../docs/03-deployment/stage-03-trust/README.md) | Software PKI, native YubiHSM/PicoHSM provider and original-key issuer operations supplied; qualify physical mechanisms, CA audit, ceremonies and live recovery |
+| Trust | [Stage 2](../docs/03-deployment/stage-02-trust/README.md) | Software PKI, native YubiHSM/PicoHSM provider and original-key issuer operations supplied; qualify physical mechanisms, CA audit, ceremonies and live recovery |
+| Logging | [Stage 3](../docs/03-deployment/stage-03-logging/README.md) | Linux/NAS recipes supplied; actual NAS custody, devices, bounded-loss fault and restore acceptance outstanding |
 | Kubernetes | [Stage 4](../docs/03-deployment/stage-04-kubernetes/README.md) | Native node/platform/audit recipes; independent endpoint, storage, enrollment and live acceptance required |
 | Identity | [Stage 5](../docs/03-deployment/stage-05-identity/README.md) | Dedicated directory, Keycloak/LDAP and staged Kubernetes SSO; ceremony, accounts and live denial/recovery acceptance required |
 | Secrets | [Stage 6](../docs/03-deployment/stage-06-secrets/README.md) | Native cluster Vault/NetBox/Headlamp and independent monitoring; initialization and qualified recovery custody required |
@@ -1452,12 +1452,12 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Lab environments | [Stage 10](../docs/03-deployment/stage-10-lab-environments/README.md) | VM/cluster, bounded application/policy/RBAC, scoped telemetry and opt-in HTTPS; profiles are not an allocator; live tenant acceptance required |
 | Proxmox HA | [Foundation 1b](../docs/03-deployment/foundation/proxmox/step-1b-cluster-ha.md) | Quorum/storage/fencing separate from VM creation; physical failure tests outstanding |
 | Guest SDN | [Foundation 1c](../docs/03-deployment/foundation/proxmox/step-1c-sdn.md) | Manual VNet setup; verify every eligible node and one tagging owner |
-| Redundant logging | [Logging 14b](../docs/03-deployment/stage-02-logging/step-14b-redundant-intake.md) | Added hosts do not establish replicated commitment or retention |
-| NAS-backed evidence | [Logging 15a](../docs/03-deployment/stage-02-logging/step-15a-nas-archive.md) | Checkpoint/backup/audit-view recipes supplied; NAS-owned snapshots/accounts and live failure/access proof remain commissioning |
-| Retention-locked evidence | [Logging 15b](../docs/03-deployment/stage-02-logging/step-15b-retention-lock.md) | Stronger deletion boundary documented; actual lock mode, publication, replica and recovery integration still required |
-| Shared USB HSM | [Trust 1b](../docs/03-deployment/stage-03-trust/step-1b-usb-hsm.md) | Native host/provider/remoting installation and original-key checks; physical key copies, application sessions and actual failure recovery remain acceptance |
-| Network HSM | [Trust 1c](../docs/03-deployment/stage-03-trust/step-1c-network-hsm.md) | Vendor commissioning/client/HA procedure required |
-| Single USB device | [Trust 1d](../docs/03-deployment/stage-03-trust/step-1d-single-usb.md) | Custody/backup procedure required; availability is not inferred from a token |
+| Redundant logging | [Logging 14b](../docs/03-deployment/stage-03-logging/step-14b-redundant-intake.md) | Added hosts do not establish replicated commitment or retention |
+| NAS-backed evidence | [Logging 15a](../docs/03-deployment/stage-03-logging/step-15a-nas-archive.md) | Checkpoint/backup/audit-view recipes supplied; NAS-owned snapshots/accounts and live failure/access proof remain commissioning |
+| Retention-locked evidence | [Logging 15b](../docs/03-deployment/stage-03-logging/step-15b-retention-lock.md) | Stronger deletion boundary documented; actual lock mode, publication, replica and recovery integration still required |
+| Shared USB HSM | [Trust 1b](../docs/03-deployment/stage-02-trust/step-1b-usb-hsm.md) | Native host/provider/remoting installation and original-key checks; physical key copies, application sessions and actual failure recovery remain acceptance |
+| Network HSM | [Trust 1c](../docs/03-deployment/stage-02-trust/step-1c-network-hsm.md) | Vendor commissioning/client/HA procedure required |
+| Single USB device | [Trust 1d](../docs/03-deployment/stage-02-trust/step-1d-single-usb.md) | Custody/backup procedure required; availability is not inferred from a token |
 | Existing managed cluster | [Kubernetes 1b](../docs/03-deployment/stage-04-kubernetes/step-1b-existing-cluster.md) | Existing IaC lifecycle owner; adoption/restore distinct from fresh bootstrap |
 | Vault VM | [Secrets 1b](../docs/03-deployment/stage-06-secrets/step-1b-vault-vm.md) | Supplied host/service recipe; initialization, authorization, audit forwarding and restore remain explicit |
 | Seal choice | [Secrets 1c](../docs/03-deployment/stage-06-secrets/step-1c-seal-integration.md) | Shamir/Transit/PKCS#11 capability and edition checks; no automatic migration |
@@ -1651,7 +1651,7 @@ Live product qualification, fault/access/restore acceptance and GitHub renderer
 parity remain unverified; no operational box is checked by this review.
 
 Stage capability naming, 2026-10-21: **163 tests: 134 passed, 29 tool-dependent skips**
-in a fresh Linux scratch copy. Stage 3 is Identity, including directory authority,
+in a fresh Linux scratch copy. Stage 2 is Identity, including directory authority,
 the supporting cluster foundation and Keycloak/OIDC federation. Stage 4 is Secrets,
 starting with Vault/audit/recovery and its renamed 1b/1c options. Removed the empty
 retired workload directory: source and fresh generated trees contain exactly seven

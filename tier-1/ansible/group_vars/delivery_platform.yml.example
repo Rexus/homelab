@@ -46,10 +46,13 @@ delivery_platform_spinnaker_promotion_namespace: delivery-promotion
 delivery_platform_spinnaker_lifecycle: fresh
 # Bump after reviewing changed Job bodies or an intentional retry of a failed Job.
 delivery_platform_spinnaker_job_revision: '1'
+# Upgrade requires the retained CURRENT native manifest and its independently accepted checksum.
+# Keep this file outside the proposed render destination. See the delivery operations upgrade path.
+delivery_platform_spinnaker_upgrade_from: ""
+delivery_platform_spinnaker_upgrade_from_sha256: ""
 # Recovery requires both restored data claims with matching .delivery-restored markers.
-# Echo, Orca and Gate stay at zero replicas, ingress withheld and scheduled backups suspended.
+# Application Deployments stay at zero replicas, ingress withheld and scheduled backups suspended.
 delivery_platform_spinnaker_recovery_id: ""
-delivery_platform_spinnaker_recovery_fenced: false
 delivery_platform_spinnaker_certificate_mode: preissued
 delivery_platform_spinnaker_storage_class: ""
 delivery_platform_spinnaker_issuer: {name: platform, kind: ClusterIssuer, group: cert-manager.io}

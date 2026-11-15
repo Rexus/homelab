@@ -1,0 +1,20 @@
+---
+- name: Initialize the public producer result
+  ansible.builtin.set_fact:
+    log_forwarder_result:
+      mode: "{{ log_forwarder_mode }}"
+      streams: []
+      public_request_paths: []
+
+- name: Record effective stream identities and public request paths
+  ansible.builtin.set_fact:
+    log_forwarder_result: >-
+      {{ log_forwarder_result | combine({
+           'streams': log_forwarder_result.streams +
+             [{'name': stream.name, 'kind': stream.kind, 'input': stream.input}],
+           'public_request_paths': log_forwarder_result.public_request_paths +
+             [log_forwarder_requests ~ '/' ~ stream.name ~ '.csr']}) }}
+  loop: "{{ log_forwarder_streams }}"
+  loop_control:
+    loop_var: stream
+    label: "{{ stream.name }}"

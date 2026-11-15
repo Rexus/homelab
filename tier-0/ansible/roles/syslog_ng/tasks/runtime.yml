@@ -63,7 +63,7 @@
 
 - name: Store the offline source catalogue on the data volume
   ansible.builtin.copy:
-    content: "{{ {'schema': 1, 'tls_sources': syslog_ng_sources, 'legacy_udp_sources': syslog_ng_legacy_sources} | to_nice_json }}\n"
+    content: "{{ {'schema': 1, 'tls_sources': (syslog_ng_effective_sources | default(syslog_ng_sources)), 'legacy_udp_sources': syslog_ng_legacy_sources} | to_nice_json }}\n"
     dest: "{{ syslog_ng_data_mount }}/source-catalogue.json"
     owner: root
     group: "{{ syslog_ng_read_group }}"

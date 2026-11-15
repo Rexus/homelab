@@ -1,10 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900"
      role="img" aria-labelledby="title description">
-  <title id="title">Independent Tier 1 Flux and Spinnaker promotion</title>
+  <title id="title">Independent Tier 1 Flux and isolated promotion authority</title>
   <desc id="description">Tier 2 integration is separate. An external host bootstraps and maintains Tier 1.
-    Tier 1 has its own Kubernetes runtime with Flux, platform services, Spinnaker and promotion Jobs, separate Git
+    Tier 1 has its own Kubernetes runtime with Flux, platform services, Spinnaker and secretless promotion Jobs, separate Git
     sources and independent recovery custody. Tier 0 has its own Flux and infrastructure authority.
-    Application promotion writes only the separate application repository; Flux reconciles workloads.</desc>
+    Only the isolated promotion authority holds Git, signing and ticket credentials and writes the separate
+    application repository after verifying judgment. Flux reconciles workloads.</desc>
   <defs>
     <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
       <path d="M0 0 L8 4 L0 8 Z" fill="#627581"/>
@@ -28,6 +29,7 @@
       .logical { fill: none; stroke: #627581; stroke-width: 1.7; stroke-dasharray: 5 4; marker-end: url(#arrow); }
       .label { fill: #1f2937; font-size: 14px; }
       .small { font-size: 14px; }
+      .namespace { font-size: 13px; }
     </style>
   </defs>
   <g id="T2" class="tier2">
@@ -48,9 +50,22 @@
         <text x="395" y="282" class="small">Approval / release orchestration</text>
       </g>
       <g id="Promotion" class="action">
-        <rect x="290" y="345" width="210" height="70"/>
-        <text x="395" y="372">Promotion Job</text>
-        <text x="395" y="396" class="small">delivery-promotion only</text>
+        <rect x="290" y="320" width="210" height="55"/>
+        <text x="395" y="342">Secretless promotion Job</text>
+        <text x="395" y="363" class="namespace">delivery-promotion</text>
+      </g>
+      <g id="AuthorityNamespace" class="group">
+        <rect x="280" y="390" width="230" height="155"/>
+        <text x="395" y="408" class="namespace">delivery-promotion-authority</text>
+        <g id="Authority" class="control">
+          <rect x="290" y="420" width="210" height="55"/>
+          <text x="395" y="443">Promotion authority</text>
+          <text x="395" y="464" class="namespace">Ticket / actor / exact Git checks</text>
+        </g>
+        <g id="Credentials" class="data">
+          <rect x="290" y="505" width="210" height="28"/>
+          <text x="395" y="524" class="namespace">Git / signing / authority Secrets</text>
+        </g>
       </g>
       <g id="Flux" class="control">
         <rect x="550" y="230" width="250" height="70"/>
@@ -58,20 +73,19 @@
         <text x="675" y="282" class="small">Platform / app identities</text>
       </g>
       <g id="Platform" class="services">
-        <rect x="550" y="345" width="250" height="85"/>
+        <rect x="550" y="345" width="250" height="75"/>
         <text x="675" y="369">Platform services / Flux itself</text>
         <text x="675" y="392" class="small">Spinnaker / Harbor · Stage 7</text>
-        <text x="675" y="414" class="small">Stage 8/9 services · opt-in later</text>
+        <text x="675" y="412" class="small">Stage 8/9 services · opt-in later</text>
       </g>
       <g id="State" class="data">
-        <rect x="290" y="475" width="210" height="65"/>
-        <text x="395" y="501">Persistent service data</text>
-        <text x="395" y="524" class="small">Product restore procedures</text>
+        <rect x="550" y="440" width="250" height="30"/>
+        <text x="675" y="460" class="small">Persistent service data</text>
       </g>
       <g id="Applications" class="services">
-        <rect x="550" y="475" width="250" height="65"/>
-        <text x="675" y="501">Application namespaces</text>
-        <text x="675" y="524" class="small">Restricted reconciler / Helm</text>
+        <rect x="550" y="490" width="250" height="50"/>
+        <text x="675" y="511">Application namespaces</text>
+        <text x="675" y="532" class="small">Restricted reconciler / Helm</text>
       </g>
     </g>
     <g id="Sources" class="group">
@@ -122,21 +136,23 @@
     </g>
   </g>
   <path class="connection" data-from="External" data-to="Runtime" d="M220 265 H270"/>
-  <path class="connection" data-from="Spinnaker" data-to="Promotion" d="M395 300 V345"/>
-  <text x="440" y="329" class="label">Run Job</text>
+  <path class="connection" data-from="Spinnaker" data-to="Promotion" d="M395 300 V320"/>
+  <text x="447" y="316" class="label">Run Job</text>
+  <path class="connection" data-from="Promotion" data-to="Authority" d="M500 347 H520 V447 H500"/>
+  <text x="533" y="401" class="namespace" transform="rotate(-90 533 401)">HTTPS</text>
+  <path class="connection" data-from="Authority" data-to="Credentials" d="M395 475 V505"/>
   <path class="connection" data-from="Flux" data-to="Platform" d="M675 300 V345"/>
   <text x="728" y="329" class="label">Reconcile</text>
-  <path class="connection" data-from="Flux" data-to="Applications" d="M550 265 H525 V505 H550"/>
+  <path class="connection" data-from="Flux" data-to="Applications" d="M800 265 H810 V515 H800"/>
   <path class="connection" data-from="Flux" data-to="Sources" d="M800 265 H850"/>
   <text x="835" y="253" class="label">Read</text>
-  <path class="connection" data-from="Promotion" data-to="AppSource" d="M500 380 H512 V451 H1145 V507 H1135"/>
-  <text x="932" y="446" class="label">Approved app Git write only</text>
-  <path class="connection" data-from="Platform" data-to="State" d="M550 415 H510 V465 H395 V475"/>
-  <path class="logical" data-from="Custody" data-to="State" d="M395 620 V540"/>
-  <text x="455" y="594" class="label">Explicit restore</text>
+  <path class="connection" data-from="Authority" data-to="AppSource" d="M500 460 H535 V577 H1145 V507 H1135"/>
+  <text x="790" y="574" class="label">Approved application Git write</text>
+  <path class="connection" data-from="Platform" data-to="State" d="M675 420 V440"/>
+  <path class="logical" data-from="Custody" data-to="State" d="M1100 620 V606 H830 V455 H800"/>
+  <text x="708" y="604" class="label">Product restore</text>
   <path class="logical" data-from="Custody" data-to="External" d="M270 653 H120 V340"/>
   <rect x="47" y="586" width="164" height="26" fill="#f8fafc" stroke="none"/>
   <text x="129" y="605" class="label">Retained inputs</text>
   <path class="logical" data-from="Runtime" data-to="T2" d="M815 185 V110"/>
-  <text x="910" y="591" class="label">Flux reads all three sources; maintenance advances approved pins.</text>
 </svg>

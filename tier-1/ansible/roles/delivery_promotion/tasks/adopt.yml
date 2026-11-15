@@ -1,0 +1,191 @@
+---
+- name: Require the retained cluster and GitLab administrator recovery inputs
+  ansible.builtin.assert:
+    that:
+      - delivery_promotion_kubeconfig | length > 0
+      - delivery_promotion_context | length > 0
+      - delivery_promotion_gitlab_url is match('^https://[^/@]+')
+      - delivery_promotion_retired_token_id | string is match('^[0-9]+$')
+      - delivery_promotion_gitlab_headers | length > 0
+      - delivery_promotion_gitlab_ca_path | length > 0
+
+- name: Retain the intended permissions while fencing ordinary release execution
+  ansible.builtin.set_fact:
+    delivery_promotion_unfenced_definition: "{{ delivery_promotion_application_definition }}"
+    delivery_promotion_application_definition: >-
+      {{ delivery_promotion_application_definition | combine({'permissions':
+         delivery_promotion_application_definition.permissions | combine({'EXECUTE': [delivery_promotion_admin_role]})}) }}
+
+- name: Apply the native application fence before replacing promotion credentials
+  ansible.builtin.include_tasks: import.yml
+
+- name: Require the new isolated authority Secrets before retiring old credentials
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_promotion_kubeconfig }}"
+    context: "{{ delivery_promotion_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: delivery-promotion-authority
+    name: "{{ item }}"
+  loop: "{{ [delivery_promotion_git_secret, delivery_promotion_signing_secret, delivery_promotion_authority_secret] }}"
+  register: delivery_promotion_authority_secrets
+  no_log: true
+
+- name: Keep releases fenced until every retained authority Secret is published
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+    fail_msg: Publish the reviewed authority resources through Flux, then rerun adopt; ordinary execution remains fenced.
+  loop: "{{ delivery_promotion_authority_secrets.results }}"
+  no_log: true
+
+- name: Verify the isolated authority is available before retiring the old writer
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_promotion_kubeconfig }}"
+    context: "{{ delivery_promotion_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: Deployment
+    namespace: delivery-promotion-authority
+    name: delivery-promotion-authority
+  register: delivery_promotion_authority_ready
+  until: >-
+    delivery_promotion_authority_ready.resources | length == 1 and
+    delivery_promotion_authority_ready.resources[0].get('status', {}).get('observedGeneration', 0) >=
+      delivery_promotion_authority_ready.resources[0].metadata.generation and
+    delivery_promotion_authority_ready.resources[0].get('status', {}).get('replicas', 0) == 1 and
+    delivery_promotion_authority_ready.resources[0].get('status', {}).get('updatedReplicas', 0) == 1 and
+    delivery_promotion_authority_ready.resources[0].get('status', {}).get('availableReplicas', 0) == 1
+  retries: 60
+  delay: 5
+
+- name: Require the hardened Orca generation before reopening ordinary execution
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_promotion_kubeconfig }}"
+    context: "{{ delivery_promotion_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ delivery_promotion_spinnaker_namespace }}"
+    name: orca
+  register: delivery_promotion_orca_ready
+  until: >-
+    delivery_promotion_orca_ready.resources | length == 1 and
+    delivery_promotion_orca_ready.resources[0].spec.template.metadata.get('annotations', {}).get(
+      'delivery.homelab/request-http-profile') == 'deny-user-http-v1' and
+    delivery_promotion_orca_ready.resources[0].spec.replicas | int > 0 and
+    delivery_promotion_orca_ready.resources[0].get('status', {}).get('observedGeneration', 0) >=
+      delivery_promotion_orca_ready.resources[0].metadata.generation and
+    delivery_promotion_orca_ready.resources[0].get('status', {}).get('replicas', 0) ==
+      delivery_promotion_orca_ready.resources[0].spec.replicas and
+    delivery_promotion_orca_ready.resources[0].get('status', {}).get('updatedReplicas', 0) ==
+      delivery_promotion_orca_ready.resources[0].spec.replicas and
+    delivery_promotion_orca_ready.resources[0].get('status', {}).get('availableReplicas', 0) ==
+      delivery_promotion_orca_ready.resources[0].spec.replicas
+  retries: 60
+  delay: 5
+
+- name: Read the retired GitLab personal access token identity
+  ansible.builtin.uri:
+    url: "{{ delivery_promotion_gitlab_url }}/api/v4/personal_access_tokens/{{ delivery_promotion_retired_token_id }}"
+    headers: "{{ delivery_promotion_gitlab_headers }}"
+    ca_path: "{{ delivery_promotion_gitlab_ca_path }}"
+    validate_certs: true
+    follow_redirects: none
+    return_content: true
+  register: delivery_promotion_retired_token
+  no_log: true
+
+- name: Revoke the old credential through GitLab CE's native administrator API
+  ansible.builtin.uri:
+    url: "{{ delivery_promotion_gitlab_url }}/api/v4/personal_access_tokens/{{ delivery_promotion_retired_token_id }}"
+    method: DELETE
+    headers: "{{ delivery_promotion_gitlab_headers }}"
+    ca_path: "{{ delivery_promotion_gitlab_ca_path }}"
+    validate_certs: true
+    follow_redirects: none
+    status_code: 204
+  when: not delivery_promotion_retired_token.json.revoked | bool
+  no_log: true
+
+- name: Verify the old credential is revoked before removing the fence
+  ansible.builtin.uri:
+    url: "{{ delivery_promotion_gitlab_url }}/api/v4/personal_access_tokens/{{ delivery_promotion_retired_token_id }}"
+    headers: "{{ delivery_promotion_gitlab_headers }}"
+    ca_path: "{{ delivery_promotion_gitlab_ca_path }}"
+    validate_certs: true
+    follow_redirects: none
+    return_content: true
+  register: delivery_promotion_retired_token_check
+  failed_when: not delivery_promotion_retired_token_check.json.revoked | bool
+  no_log: true
+
+- name: Find all Jobs in the dedicated legacy promotion namespace
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_promotion_kubeconfig }}"
+    context: "{{ delivery_promotion_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: delivery-promotion
+  register: delivery_promotion_legacy_jobs
+
+- name: Remove legacy Jobs and their credential-bearing Pods
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_promotion_kubeconfig }}"
+    context: "{{ delivery_promotion_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: delivery-promotion
+    name: "{{ item.metadata.name }}"
+    state: absent
+    delete_options: {propagationPolicy: Foreground}
+    wait: true
+    wait_timeout: 300
+  loop: "{{ delivery_promotion_legacy_jobs.resources }}"
+
+- name: Find credential-bearing orphan Pods left by legacy promotion executions
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_promotion_kubeconfig }}"
+    context: "{{ delivery_promotion_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Pod
+    namespace: delivery-promotion
+  register: delivery_promotion_legacy_pods
+
+- name: Remove orphan clients before restoring ordinary execution permission
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_promotion_kubeconfig }}"
+    context: "{{ delivery_promotion_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Pod
+    namespace: delivery-promotion
+    name: "{{ item.metadata.name }}"
+    state: absent
+    wait: true
+    wait_timeout: 300
+  loop: "{{ delivery_promotion_legacy_pods.resources }}"
+
+- name: Remove credentials from the unprivileged client namespace
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_promotion_kubeconfig }}"
+    context: "{{ delivery_promotion_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: delivery-promotion
+    name: "{{ item }}"
+    state: absent
+    wait: true
+  loop: "{{ [delivery_promotion_git_secret, delivery_promotion_signing_secret] }}"
+
+- name: Restore only the intended reviewed application permissions
+  ansible.builtin.set_fact:
+    delivery_promotion_application_definition: "{{ delivery_promotion_unfenced_definition }}"
+
+- name: Reopen the secretless approved-request path after credential retirement
+  ansible.builtin.include_tasks: import.yml

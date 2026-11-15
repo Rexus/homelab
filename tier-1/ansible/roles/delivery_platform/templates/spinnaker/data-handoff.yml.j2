@@ -1,6 +1,6 @@
 ---
 # Review and run from an independent maintenance host before enabling the Flux data guard.
-# Existing SQL/Redis RWO volumes must be released for read-only inspection or explicit restoration.
+# Adoption verifies running products. Recovery releases each RWO claim for its isolated restore/check.
 - name: Quiesce existing Spinnaker resources for Flux adoption or data recovery
   hosts: localhost
   connection: local
@@ -74,6 +74,7 @@
             namespace: {{ delivery_platform_spinnaker_namespace }}
           spec: {replicas: 0}
       loop: [spinnaker-mysql, spinnaker-redis]
+      when: {% raw %}adoption_data_action == 'recover'{% endraw %}
     - name: Wait for the previous data pods to terminate before mounting their claims
       kubernetes.core.k8s_info:
         kubeconfig: {% raw %}"{{ adoption_kubeconfig }}"{% endraw %}
@@ -90,3 +91,4 @@
 
       retries: 90
       delay: 10
+      when: {% raw %}adoption_data_action == 'recover'{% endraw %}

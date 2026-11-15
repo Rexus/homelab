@@ -15,7 +15,7 @@
     fail_msg: >-
       Select yubihsm2, picohsm or an approved vendor pkcs11 client, its native packages,
       absolute library path and expected token serial. Configure approved package sources
-      through baseline before deployment. See the selected Stage 3 hardware option.
+      through baseline before deployment. See the selected Stage 2 hardware option.
 
 - name: Validate supplied native client configuration destinations
   ansible.builtin.assert:

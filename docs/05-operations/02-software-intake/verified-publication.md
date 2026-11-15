@@ -1,7 +1,7 @@
 # Verified software intake operations
 
 Operate the optional Tier 1 `intake-1` service. The proxy/cache remains a separate transport service.
-First installation belongs to the [deployment guide](../../03-deployment/stage-03-trust/step-15b-verified-intake.md);
+First installation belongs to the [deployment guide](../../03-deployment/stage-02-trust/step-15b-verified-intake.md);
 the [design](../../01-architecture/07-software-intake/01-verification.md) explains authority and trust.
 
 <a id="figure-reference-verified-publication"></a>
@@ -52,7 +52,7 @@ There is no redundant worker.*
 [worker runtime](../../../tier-1/ansible/roles/software_intake/files/runtime/intake.yml).
 The [Nginx configuration](../../../tier-1/ansible/roles/software_intake/templates/nginx.conf.j2)
 restricts reads to `/srv/intake/public`; private work and quarantine remain outside its document root.
-The [deployment interface view](../../03-deployment/stage-03-trust/step-15b-verified-intake.md#figure-1-verified-publication-and-consumers)
+The [deployment interface view](../../03-deployment/stage-02-trust/step-15b-verified-intake.md#figure-1-verified-publication-and-consumers)
 locates existing supply and readers; trust, protected forwarding and independent backups retain their own owners.
 
 ## Contents
@@ -76,7 +76,7 @@ locates existing supply and readers; trust, protected forwarding and independent
    bash scripts/deploy.sh intake --recipe maintenance
    ```
 
-3. Inspect `latest.json` and its versioned receipt using the [deployment checks](../../03-deployment/stage-03-trust/step-15b-verified-intake.md#7-run-and-inspect-the-first-intake).
+3. Inspect `latest.json` and its versioned receipt using the [deployment checks](../../03-deployment/stage-02-trust/step-15b-verified-intake.md#7-run-and-inspect-the-first-intake).
    To schedule accepted policy, set `software_intake_timer_enabled: true`, select
    `software_intake_schedule` and repeat the first command. There is one serialized service,
    not overlapping workers. To pause new intake, set that value to `false` and reapply.
@@ -134,7 +134,7 @@ and partition/LVM resizing need a separate migration plan; replace lost data thr
 | Reporting/discovery failure | Inspect the actual version and `latest.json`; a committed publication can exist even if later reporting failed |
 
 Structured local syslog events use ident `software-intake`, facility `local6`, and sanitized
-source/verdict/reason/policy fields. Commission [protected forwarding](../../03-deployment/stage-02-logging/procedures/sources.md)
+source/verdict/reason/policy fields. Commission [protected forwarding](../../03-deployment/stage-03-logging/procedures/sources.md)
 and verify delivery to Tier 0. Nginx's local access records omit request 06-paths/queries.
 Neither a successful job nor a local journal proves independent archive delivery.
 An unchanged content/policy version reuses its immutable first-acceptance receipt; subsequent

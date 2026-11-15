@@ -154,8 +154,8 @@ guest writes, installs native packages, copies TLS privately and renders systemd
 It does not install an unpinned download or change the existing Vault package repository.
 
 Configure the selected hardware inputs before deployment. Select `openbao_hsm_client_mode: remote` with the
-complete [native remoting contract](../stage-03-trust/procedures/pkcs11-remoting.md), or `provider` with the
-[native provider contract](../stage-03-trust/step-1b-usb-hsm.md). Hardware servers and key custody must already
+complete [native remoting contract](../stage-02-trust/procedures/pkcs11-remoting.md), or `provider` with the
+[native provider contract](../stage-02-trust/step-1b-usb-hsm.md). Hardware servers and key custody must already
 be accepted; guest client installation happens after guest creation in action 3. The installer creates
 `openbao`, then invokes `hsm_remote` with action `client` or `hsm_provider` with that service identity before
 starting OpenBao. Use `existing` only for an already accepted managed client. Set `openbao_pkcs11_library`,

@@ -1,0 +1,52 @@
+---
+- name: Submit or resume infrastructure PKI enrollment
+  ansible.builtin.include_role:
+    name: logging_pki
+  vars:
+    logging_authority_requests: "{{ logging_run.requests_manifest }}"
+    logging_pki_issuer_host: "{{ logging_workflow_issuer_host }}"
+    logging_pki_public_directory: "{{ logging_run.public }}"
+    logging_pki_generation: "{{ logging_run.generation }}"
+    logging_pki_workspace: "{{ logging_workflow_issuer_inputs.openxpki_data_mount }}/logging-enrollment"
+    openxpki_activate_runtime: "{{ logging_workflow_issuer_inputs.openxpki_activate_runtime }}"
+    openxpki_managed_cli: "{{ logging_workflow_issuer_inputs.openxpki_managed_cli | default(false) }}"
+    openxpki_configuration_sha256: "{{ logging_workflow_issuer_inputs.openxpki_configuration_sha256 }}"
+    openxpki_package_versions: "{{ logging_workflow_issuer_inputs.openxpki_package_versions }}"
+    openxpki_data_mount: "{{ logging_workflow_issuer_inputs.openxpki_data_mount }}"
+    openxpki_root_fingerprint: "{{ logging_workflow_issuer_inputs.openxpki_root_fingerprint }}"
+    openxpki_issuer_fingerprint: "{{ logging_workflow_issuer_inputs.openxpki_issuer_fingerprint }}"
+    openxpki_realm: "{{ logging_workflow_issuer_inputs.openxpki_realm }}"
+  when: logging_run.issuer == 'infrastructure'
+
+- name: Retain independent authority credentials and issue approved requests
+  ansible.builtin.include_tasks: independent.yml
+  when: logging_run.issuer == 'independent'
+
+- name: Require the provided public issuer handoff
+  ansible.builtin.stat:
+    path: "{{ logging_run.public }}/{{ item }}"
+  loop: "{{ ['ca.pem', 'revoked.pem'] + (logging_run.requests_manifest | map(attribute='name') | map('regex_replace', '$', '.pem') | list) }}"
+  register: logging_workflow_public_files
+
+- name: Refuse partial issuance before changing installed trust
+  ansible.builtin.assert:
+    that: item.stat.exists and item.stat.isreg
+    fail_msg: >-
+      Public issuance is incomplete. For provided authority mode, sign requests.json with the existing CA
+      and place ca.pem, revoked.pem and each named leaf in the printed public directory. Rerun the same command.
+  loop: "{{ logging_workflow_public_files.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Verify every public leaf before changing any installed receiver or producer trust
+  ansible.builtin.include_tasks: public.yml
+  loop: "{{ logging_run.requests_manifest }}"
+  loop_control:
+    loop_var: request
+
+- name: Retain the original authority choice without rewriting recovery history
+  ansible.builtin.copy:
+    dest: "{{ logging_run.workspace }}/workflow.json"
+    content: "{{ {'issuer': logging_run.issuer, 'workspace': logging_run.workspace} | to_nice_json }}\n"
+    force: false
+    mode: '0600'

@@ -44,14 +44,17 @@ class BackupStorageAPI:
                 if path == "/api":
                     return self.reply({"apiVersion": "v1", "kind": "APIVersions", "versions": ["v1"]})
                 if path == "/apis":
-                    version = {"groupVersion": "storage.k8s.io/v1", "version": "v1"}
-                    return self.reply({"apiVersion": "v1", "kind": "APIGroupList", "groups": [
-                        {"name": "storage.k8s.io", "versions": [version], "preferredVersion": version}]})
-                if path in ("/api/v1", "/apis/storage.k8s.io/v1"):
-                    api = "v1" if path == "/api/v1" else "storage.k8s.io/v1"
+                    groups = []
+                    for api in sorted({entry[2] for entry in fixture.resources.values()} - {'v1'}):
+                        group, version_name = api.split('/')
+                        version = {"groupVersion": api, "version": version_name}
+                        groups.append({"name": group, "versions": [version], "preferredVersion": version})
+                    return self.reply({"apiVersion": "v1", "kind": "APIGroupList", "groups": groups})
+                if path == "/api/v1" or path in {'/apis/' + entry[2] for entry in fixture.resources.values()}:
+                    api = "v1" if path == "/api/v1" else path[len('/apis/'):]
                     return self.reply({"apiVersion": "v1", "kind": "APIResourceList", "groupVersion": api,
                         "resources": [{"name": name, "kind": kind, "namespaced": namespaced,
-                                       "verbs": ["get", "list", "create", "patch"]}
+                                       "verbs": ["get", "list", "create", "patch", "delete"]}
                                       for name, (kind, namespaced, group) in fixture.resources.items() if group == api]})
                 key = fixture.key(path)
                 if key in fixture.objects:
@@ -80,7 +83,12 @@ class BackupStorageAPI:
                 fixture.mutations.append(("PATCH", self.path, None))
                 return self.reply({"kind": "Status", "code": 405}, 405)
 
-            do_DELETE = do_PATCH
+            def do_DELETE(self):
+                path = urlsplit(self.path).path
+                fixture.mutations.append(("DELETE", path, None))
+                fixture.objects.pop(fixture.key(path), None)
+                return self.reply({"apiVersion": "v1", "kind": "Status", "status": "Success", "code": 200})
+
             do_PUT = do_PATCH
 
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)

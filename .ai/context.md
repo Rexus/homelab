@@ -133,6 +133,11 @@ This file keeps durable context for AI-assisted work across sessions.
   with configuration and executable tasks directly at the entry point. Its chapter numbers
   are independent of architecture chapters and deployment stages. Avoid rebuilding thin
   per-stage index folders; map all ten stages to their actual design and runbook homes.
+- Delivery architecture describes release orchestration, change authorization, desired-state
+  reconciliation and dependency readiness as logical capabilities. Product choices fulfill those
+  roles; keep their exact mapping, versions and native control evidence in implementation references
+  linked from deployment and the concise decision record. Flux is the selected reconciler with
+  dependency ordering, not a general release-workflow orchestrator. Keep logical figures product-neutral.
 - public homelab and small datacenter IaC baseline
 - chosen virtualization platform is Proxmox; other hypervisors are not selectable implementations
 - New deployments target Proxmox VE 9+; the selected 9.2+ path uses native HA/affinity
@@ -218,7 +223,8 @@ This file keeps durable context for AI-assisted work across sessions.
   pinned publisher verification, ClamAV on a sealed copy and immutable read-only HTTPS publication.
   Normal deployment uses one deploy.sh intake: Terraform provisions VM/disks and Ansible uses Shared's
   data_volume role to initialize only verified new blank storage, mount by UUID and grow XFS/ext4.
-  This is Stage 3 option 15b after issuer/logging acceptance, not an unfinished Stage 1 option.
+  This is Stage 2 option 15b after issuer acceptance, with persistent local audit records until Stage 3
+  producer enrollment, not an unfinished Stage 1 option.
   Intake defaults select the scsi1 by-id link, xfs and /srv/intake; software_intake_data_uuid optionally pins existing
   data. Preserve recognized filesystems; an absent declared volume or conflicting fstab identity fails
   rather than formatting a replacement. Do not add manual mkfs/fstab prerequisites to normal
@@ -371,8 +377,10 @@ This file keeps durable context for AI-assisted work across sessions.
   Preserve older naming-conventions.md records on refresh; link them for manual review.
 - docs/02-conventions/vmid-convention.md owns the central VMID quick reference and editable SVG.
   Starter IDs use T C NN with category 0 reserved in every guest allocation group.
-  Categories 1-6 are control planes, workers, infrastructure, network/edge, observability/logging,
-  and bootstrap/automation. Tier 0 omits its leading zero and uses full hundred-ID blocks:
+  Categories 1-6 are control planes, workers, identity/trust/core services, network/edge,
+  observability/logging, and administration/automation. Category is guest function, not criticality
+  or deployment order; PKI issuer ca-1 is 311, while bootstrap is an administration tool.
+  Tier 0 omits its leading zero and uses full hundred-ID blocks:
   1xx, 2xx, 3xx, 4xx, 5xx, 6xx (manual boot-1 601, runner 611, optional ceremony 621).
   3xxx labs and 4xxx clients remain Tier 2-owned, 9xxx templates/builders Tier 0-owned.
   Existing local IDs/state are never renumbered by refresh; new example IDs are not a migration.
@@ -479,7 +487,7 @@ This file keeps durable context for AI-assisted work across sessions.
   administrators, or qualified retention locks when privileged deletion must be prevented.
   One homelab operator may hold all roles with separate credentials; same-person custody
   is explicit, not WORM. Growth/access changes trigger review, not an automatic cloud dependency.
-  docs/01-architecture/11-operations/02-log-retention.md owns this choice; Stage 2 options 3c/3d guide it.
+  docs/01-architecture/11-operations/02-log-retention.md owns this choice; Stage 3 options 7a/7b guide it.
 - Logging implementation: Shared owns stateless `log_forwarder`; tier inventories,
   source keys/cursors and selectors stay local. Tier 0 owns reviewed-CSR signing,
   receiver, create-only NAS checkpoints, audited application filesystem views and
@@ -534,12 +542,12 @@ This file keeps durable context for AI-assisted work across sessions.
 - delegated provisioning is a design goal, not an implemented controller or API;
   its authoritative contract is docs/01-architecture/04-hosting/02-provisioning.md
 - docs/03-deployment/foundation/ contains unnumbered host/network/access/template prerequisites;
-  docs/03-deployment/README.md indexes ten numbered capabilities: software intake, protected logging,
-  cryptographic trust, Kubernetes, Identity, Secrets, Delivery, Observability, Development platform and Lab environments
+  docs/03-deployment/README.md indexes ten numbered capabilities: software intake, cryptographic trust,
+  protected logging, Kubernetes, Identity, Secrets, Delivery, Observability, Development platform and Lab environments
 - Stage 4 owns control-cluster bootstrap and common add-on/audit/recovery gates;
   Stage 5 owns dedicated directory VMs and federation on the existing cluster;
   independent bootstrap DNS/time/credentials avoid a Kubernetes/identity dependency cycle
-- protected syslog/audit intake starts in Stage 2 on independent Tier 0 VMs;
+- protected syslog/audit intake starts in Stage 3 on independent Tier 0 VMs;
   syslog setup provisions VMs/disks and installs Tier 0's isolated syslog-ng OSE receiver after
   explicit data-mount UUID, client catalogue and independent TLS preparation; OS logger is untouched;
   local JSON records/reliable queues are not HA, protected retention or independent backup integration
@@ -553,7 +561,9 @@ This file keeps durable context for AI-assisted work across sessions.
 - Keep figures free of VMIDs, literal IP/MAC allocations and configured disk/RAM/CPU sizes. Use stable
   role/resource labels, interfaces and source links for correspondence; exact allocations and sizing
   belong in inputs/reference tables. Convention format illustrations remain reference exceptions.
-- retain local logs from first boot; central intake precedes PKI/FreeIPA and Kubernetes;
+- retain persistent local journal/audit records and independent recovery custody from first boot;
+  Stage 2 establishes trust without a protected-network-logging prerequisite, then Stage 3 enrolls existing
+  producers before FreeIPA and Kubernetes; independent logging authority remains a selected legacy option;
   portable evidence and an independent reader/key kit support offline data-volume inspection
 - critical-data recovery follows 3-2-1 with independent offline/immutable custody;
   preserve evidence before tier recovery, and separate query roles from all deletion/pruning authority
@@ -689,6 +699,11 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Documentation intent
 
+- docs/07-decisions/README.md keeps each decision in one concise table row with choice, status,
+  rationale, consequences and review trigger. Supporting explanations belong in the owning design
+  documents and are linked from the row. Keep compatibility anchors in the table entry, consolidate
+  overlapping material, and preserve superseded decisions as history. Accepted architecture,
+  implementation coverage and measured live qualification remain distinct records.
 - docs/01-architecture/README.md owns the seven foundational capabilities and reference placement map;
   use named services, tiers vertically (2, 1, 0), and layers horizontally (Edge, Application, Control)
 - domain diagrams expand the same capabilities into components, runtimes and cross-tier consumers;

@@ -1,0 +1,95 @@
+---
+- name: Require the owning inventory and explicit logging operation
+  ansible.builtin.assert:
+    that:
+      - logging_workflow_action in ['apply', 'prepare', 'verify']
+      - logging_workflow_issuer in ['infrastructure', 'independent', 'provided']
+      - groups.get('foundation_logging', []) | length > 0
+      - logging_workflow_receiver_options is mapping
+      - logging_workflow_receiver_options.keys() | difference(groups.foundation_logging) | length == 0
+      - logging_workflow_workspace is match('^/.+')
+      - logging_workflow_workspace | realpath == logging_workflow_workspace
+      - not logging_workflow_workspace.startswith(logging_workflow_repository ~ '/')
+      - not ansible_check_mode
+    fail_msg: Select apply, prepare or verify, a configured receiver and an absolute private workspace outside Git.
+
+- name: Read producer selection without connecting to unselected hosts
+  ansible.builtin.include_role:
+    name: log_forwarder
+    tasks_from: catalog
+
+- name: Require at least one existing producer in the central catalog
+  ansible.builtin.assert:
+    that:
+      - logging_producer_hosts | default({}) | length > 0
+      - logging_producer_hosts.keys() | difference(groups['all']) | length == 0
+      - log_forwarder_peer | default('') | length > 0
+    fail_msg: Initialize syslog inputs, then list existing inventory hosts in logging_producers.yml; host_vars files are optional.
+
+- name: Inspect the private controller workspace without following links
+  ansible.builtin.stat:
+    path: "{{ logging_workflow_workspace }}"
+    follow: false
+  register: logging_workflow_existing_workspace
+
+- name: Refuse linked or shared credential custody
+  ansible.builtin.assert:
+    that:
+      - not logging_workflow_existing_workspace.stat.exists or logging_workflow_existing_workspace.stat.isdir
+      - not (logging_workflow_existing_workspace.stat.islnk | default(false))
+      - not logging_workflow_existing_workspace.stat.exists or logging_workflow_existing_workspace.stat.mode == '0700'
+
+- name: Prepare the controller handoff directories
+  ansible.builtin.file:
+    path: "{{ logging_workflow_workspace }}/{{ item }}"
+    state: directory
+    mode: '0700'
+  loop: ['', requests, public, receivers]
+  when: logging_workflow_action != 'verify'
+
+- name: Inspect the retained workflow authority binding
+  ansible.builtin.stat:
+    path: "{{ logging_workflow_workspace }}/workflow.json"
+  register: logging_workflow_binding_file
+
+- name: Read the original workflow authority choice
+  ansible.builtin.slurp:
+    src: "{{ logging_workflow_workspace }}/workflow.json"
+  register: logging_workflow_binding
+  when: logging_workflow_binding_file.stat.exists
+
+- name: Refuse switching an installed workflow's authority by changing a default
+  ansible.builtin.assert:
+    that: (logging_workflow_binding.content | b64decode | from_json).issuer == logging_workflow_issuer
+    fail_msg: Preserve the original authority; a trust migration requires its own approved overlap and rollback procedure.
+  when: logging_workflow_binding_file.stat.exists
+
+- name: Retain resolved workflow settings for every later play
+  ansible.builtin.set_fact:
+    logging_run:
+      action: "{{ logging_workflow_action }}"
+      issuer: "{{ logging_workflow_issuer }}"
+      repository: "{{ logging_workflow_repository }}"
+      workspace: "{{ logging_workflow_workspace }}"
+      requests: "{{ logging_workflow_workspace }}/requests"
+      public: >-
+        {{ logging_workflow_workspace ~ '/authority/public' if logging_workflow_issuer == 'independent'
+           else logging_workflow_workspace ~ '/public' }}
+      peer: "{{ log_forwarder_peer }}"
+      target: "{{ log_forwarder_target | default(log_forwarder_peer) }}"
+      receivers: "{{ groups.foundation_logging }}"
+      producers: "{{ logging_producer_hosts.keys() | list }}"
+      receiver_options: "{{ logging_workflow_receiver_options }}"
+      sources: []
+      requests_manifest: []
+      generation: "{{ logging_workflow_generation }}"
+
+- name: Reuse each producer's owning setup address instead of asking for it again
+  ansible.builtin.include_tasks: host.yml
+  loop: "{{ logging_producer_hosts | dict2items }}"
+  loop_control:
+    loop_var: producer
+
+- name: Read the established issuer configuration only for infrastructure enrollment
+  ansible.builtin.include_tasks: issuer-inputs.yml
+  when: logging_workflow_issuer == 'infrastructure' and logging_workflow_action in ['apply', 'prepare']

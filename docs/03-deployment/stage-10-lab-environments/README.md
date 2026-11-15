@@ -372,7 +372,7 @@ checks before rejoining Step 5. A private application needs no public DNS/NAT.
 ## Step 5: Connect the selected signals
 
 **5a: protected OS/audit evidence** retains the direct Tier 0 submission path. For Linux sources,
-use the existing [protected-source recipe](../stage-02-logging/procedures/sources.md) with Tier 2-owned
+use the existing [protected-source recipe](../stage-03-logging/procedures/sources.md) with Tier 2-owned
 inventory and stream inputs. Cluster OS/API forwarding was commissioned with its platform; verify it
 rather than bootstrapping that cluster again.
 

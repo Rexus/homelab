@@ -41,6 +41,7 @@ template:
           - |
             redis-cli -h 127.0.0.1 -p 16379 --rdb "/backup/$BACKUP_RUN/redis.rdb"
         volumeMounts: [{name: backup, mountPath: /backup}]
+{{ lookup('ansible.builtin.template', 'spinnaker/backup-verify-containers.yml.j2') | indent(6, true) }}
     containers:
       - name: independent-copy
         image: {{ delivery_platform_software.restic_image | to_json }}
@@ -63,6 +64,9 @@ template:
           - {name: BACKUP_BACKEND, value: {{ delivery_platform_spinnaker_backup_backend | to_json }}}
           - {name: RESTIC_CACHE_DIR, value: /cache}
           - {name: TMPDIR, value: /cache}
+          - {name: BACKUP_RECEIPT_FILE, value: /dev/termination-log}
+          - name: BACKUP_ALLOW_INITIALIZE
+            value: {{ ('true' if delivery_platform_owner != 'flux' or delivery_platform_spinnaker_lifecycle == 'fresh' else 'false') | to_json }}
 {% if delivery_platform_spinnaker_backup_backend == 's3' %}
           - {name: AWS_DEFAULT_REGION, value: {{ delivery_platform_spinnaker_backup_s3_region | to_json }}}
           - {name: RESTIC_CACERT, value: /roots/backup.crt}
@@ -91,6 +95,7 @@ template:
       - {name: envoy, configMap: {name: spinnaker-envoy}}
       - {name: scripts, configMap: {name: spinnaker-scripts, defaultMode: 0550}}
       - {name: cache, emptyDir: {}}
+      - {name: verify-mysql, emptyDir: {}}
 {% if delivery_platform_spinnaker_backup_backend == 'filesystem' %}
       - name: repository
         persistentVolumeClaim:

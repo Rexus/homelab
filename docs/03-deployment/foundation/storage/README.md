@@ -56,7 +56,7 @@ and recovery custody remain the storage owner's work; guest IaC consumes those a
 | Consumer | Interface used by the supplied implementation | Procedure |
 | --- | --- | --- |
 | VM/CT backup files | Proxmox-managed NAS NFS target; PBS remains a separate alternative | [Native NAS backup path](../../../05-operations/06-resilience/backups/virtual-machines.md#nas-file-target) |
-| Protected log archive | Direct encrypted SMB mount; local intake remains independent of the NAS | [NAS archive](../../stage-02-logging/step-15a-nas-archive.md) |
+| Protected log archive | Direct encrypted SMB mount; local intake remains independent of the NAS | [NAS archive](../../stage-03-logging/step-7a-nas-archive.md) |
 | Control recovery copies | Commissioned mounted file repository; read-only source views, separately encrypted backup copies | [Control backups](../../../05-operations/06-resilience/backups/control-applications.md) |
 | NetBox shared media | Existing RWX-capable Kubernetes storage, such as qualified NAS-backed CSI | [Application storage](../../stage-06-secrets/procedures/control-applications.md#dependencies-and-ownership) |
 | Keycloak, NetBox and Grafana database backups | Scheduled verified full backups to a separate NAS file PVC; existing object/WAL archive remains an explicit PITR option | [Database backup inputs](../../stage-06-secrets/procedures/control-applications.md#dependencies-and-ownership), [Grafana](../../stage-08-observability/procedures/observability-platform.md) |

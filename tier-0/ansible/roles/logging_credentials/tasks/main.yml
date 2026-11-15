@@ -1,0 +1,73 @@
+---
+- name: Require an explicit controller-only logging credential operation
+  ansible.builtin.assert:
+    that:
+      - ansible_connection | default('') == 'local'
+      - not (ansible_become | default(false) | bool)
+      - not ansible_check_mode
+      - logging_credentials_operation in ['initialize', 'read', 'migrate']
+      - logging_credentials_backend in ['ansible_vault', 'hashicorp_vault']
+      - logging_credentials_operation != 'initialize' or logging_credentials_backend == 'ansible_vault'
+      - logging_credentials_operation != 'migrate' or logging_credentials_backend == 'hashicorp_vault'
+      - logging_credentials_workspace is match('^/.+')
+      - logging_credentials_workspace | realpath == logging_credentials_workspace
+      - logging_credentials_directory == logging_credentials_workspace ~ '/credentials'
+      - logging_credentials_file == logging_credentials_directory ~ '/logging-secrets.vault.yml'
+      - logging_credentials_repository_name is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+      - logging_credentials_password_directory is match('^/.+')
+      - logging_credentials_password_directory | realpath == logging_credentials_password_directory
+      - logging_credentials_password_file == logging_credentials_password_directory ~ '/ansible-vault.password'
+      - not logging_credentials_password_directory.startswith(logging_credentials_workspace ~ '/')
+      - not logging_credentials_workspace.startswith(logging_credentials_password_directory ~ '/')
+      - logging_credentials_password_directory != logging_credentials_workspace
+      - logging_credentials_authority_key_file is match('^/.+')
+      - logging_credentials_authority_key_file | realpath == logging_credentials_authority_key_file
+    fail_msg: >-
+      Run the logging credentials role locally without become or check mode. Select an absolute protected
+      workspace and a separate private unlock directory. Initialization and migration are explicit operations.
+
+- name: Identify the controller account owning the logging recovery inputs
+  ansible.builtin.command:
+    argv: [id, -u]
+  register: logging_credentials_controller_uid
+  changed_when: false
+
+- name: Inspect protected logging directories without following links
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  loop:
+    - "{{ logging_credentials_workspace }}"
+    - "{{ logging_credentials_directory }}"
+    - "{{ logging_credentials_password_directory }}"
+  register: logging_credentials_directories
+
+- name: Refuse shared or foreign-owned credential directories
+  ansible.builtin.assert:
+    quiet: true
+    that:
+      - not item.stat.exists or (item.stat.isdir | default(false))
+      - not (item.stat.islnk | default(false))
+      - not item.stat.exists or item.stat.uid == logging_credentials_controller_uid.stdout | int
+      - not item.stat.exists or item.stat.mode == '0700'
+    fail_msg: Existing credential directories must be owned by the controller account, mode 0700, without links.
+  loop: "{{ logging_credentials_directories.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Reset protected role outputs for this operation
+  ansible.builtin.set_fact:
+    logging_managed_secrets: {}
+    logging_credentials_migration_verified: false
+  no_log: true
+
+- name: Read or initialize the independent encrypted recovery input
+  ansible.builtin.include_tasks: local.yml
+  when: logging_credentials_operation != 'read' or logging_credentials_backend == 'ansible_vault'
+
+- name: Read or migrate the explicitly selected Vault KVv2 secret
+  ansible.builtin.include_tasks: vault.yml
+  when: logging_credentials_backend == 'hashicorp_vault'

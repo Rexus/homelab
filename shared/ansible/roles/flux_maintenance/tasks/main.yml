@@ -3,13 +3,13 @@
   ansible.builtin.assert:
     that:
       - flux_maintenance_action in ['render', 'apply']
-      - flux_maintenance_operation in ['inspect', 'advance', 'suspend', 'resume', 'recover']
+      - flux_maintenance_operation in ['inspect', 'advance', 'suspend', 'resume', 'recover', 'stage-paused']
       - flux_maintenance_source in ['platform', 'tier1-platform', 'tier1-applications']
+      - flux_maintenance_roots is not defined
       - flux_maintenance_action != 'apply' or flux_maintenance_kubeconfig | length > 0
       - flux_maintenance_operation == 'inspect' or flux_maintenance_approved | bool
       - flux_maintenance_operation != 'advance' or flux_maintenance_source != 'tier1-applications'
-      - flux_maintenance_operation not in ['advance', 'recover'] or flux_maintenance_revision is match('^([a-f0-9]{40}|[a-f0-9]{64})$')
-      - flux_maintenance_operation != 'recover' or flux_maintenance_source == 'tier1-applications'
+      - flux_maintenance_operation not in ['advance', 'recover', 'stage-paused'] or flux_maintenance_revision is match('^([a-f0-9]{40}|[a-f0-9]{64})$')
       - flux_maintenance_operation != 'advance' or flux_maintenance_health_checks | length > 0
       - >-
         flux_maintenance_source != 'platform' or flux_maintenance_operation not in ['advance', 'resume'] or
@@ -17,10 +17,8 @@
       - >-
         flux_maintenance_operation != 'resume' or flux_maintenance_source != 'tier1-applications' or
         flux_maintenance_revision is match('^([a-f0-9]{40}|[a-f0-9]{64})$')
-      - >-
-        flux_maintenance_operation != 'resume' or flux_maintenance_source != 'tier1-applications' or
-        (flux_maintenance_data_restored | bool and flux_maintenance_executions_fenced | bool)
-    fail_msg: Select the exact approved Tier 1 operation. Application recovery stays suspended until data and stale execution fencing are accepted; promotions cannot advance platform sources.
+      - flux_maintenance_operation != 'resume' or flux_maintenance_resume_checks | length > 0
+    fail_msg: Select the approved Tier 1 source-wide operation. Component roots are unsupported because a ref change reaches every source consumer. Resume requires the retained scope and actual UID-bound verification resources.
 
 - name: Require concrete workload or revision health gates
   ansible.builtin.assert:

@@ -12,6 +12,7 @@
     headers: "{{ delivery_promotion_gate_headers }}"
     ca_path: "{{ delivery_promotion_gate_ca_path }}"
     validate_certs: true
+    follow_redirects: none
     return_content: true
     status_code: [200, 404]
   register: delivery_promotion_existing_app
@@ -24,6 +25,7 @@
     headers: "{{ delivery_promotion_gate_headers }}"
     ca_path: "{{ delivery_promotion_gate_ca_path }}"
     validate_certs: true
+    follow_redirects: none
     body_format: json
     body:
       application: "{{ delivery_promotion_application }}"
@@ -49,6 +51,7 @@
     headers: "{{ delivery_promotion_gate_headers }}"
     ca_path: "{{ delivery_promotion_gate_ca_path }}"
     validate_certs: true
+    follow_redirects: none
     return_content: true
   register: delivery_promotion_app_task_result
   until: delivery_promotion_app_task_result.json.status in ['SUCCEEDED', 'TERMINAL', 'CANCELED']

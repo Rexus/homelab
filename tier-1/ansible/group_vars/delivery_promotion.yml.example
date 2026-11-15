@@ -3,10 +3,9 @@
 # ansible-playbook ansible/playbooks/deployment/delivery-promotions.yml -e @ansible/group_vars/delivery_promotion.yml
 # render only creates private artifacts. Publish promotion-resources.yml through the Tier 1
 # platform flux_payload. Import uses authenticated Gate APIs and can be rerun after recovery.
-# delivery_platform owns delivery-promotion Namespace/PSS and the Clouddriver Job-only binding.
-# This role owns delivery-promoter, its exact-object observer grants, policy, NetworkPolicy and
-# the selected HelmRepository in the platform bundle. Its application-source seed is reviewed separately.
-delivery_promotion_action: render  # render | import
+# delivery_platform owns the secretless client namespace and Clouddriver Job-only binding.
+# This role owns the isolated authority, native client admission policy, observation grants and source.
+delivery_promotion_action: render  # render | import | adopt (retire old Job-mounted credentials)
 delivery_promotion_worker_image: ""  # Real built worker registry/image@sha256:<64 hex digits>.
 # Build tier-1/scripts/promotion/Dockerfile from tier-1/scripts with an approved digest-pinned
 # base already containing Python 3, Git, OpenSSH and private Git CA trust. Retain image independently.
@@ -30,6 +29,10 @@ delivery_promotion_chart_values: {}  # Accepted values for that chart.
 delivery_promotion_initial_image_digest: ""  # Actual initial sha256:<64 hex digits>.
 delivery_promotion_commit_email: delivery-bot@example.test
 delivery_promotion_owner_email: platform@example.test
+delivery_promotion_reader_role: tier1-delivery-readers
+# Match the native Spinnaker reader group; the authority's Gate identity receives READ only.
+delivery_promotion_reader_role: tier1-delivery-readers
+# Match the native Spinnaker reader group; the authority's Gate identity receives READ only.
 delivery_promotion_timeout_seconds: 900
 # Default pipeline IDs use Ansible to_uuid over application, target namespace/name and mode.
 # Keep those identities stable. Explicit delivery_promotion_pipeline_ids overrides support adoption.
@@ -50,13 +53,27 @@ delivery_promotion_timeout_seconds: 900
 # application-reconciler identities and namespace-scoped permissions in flux-system and applications.
 # The application reconciler needs namespace-scoped tenant permissions and admission controls.
 # Do not grant application configuration cluster-scoped resources or privileged pod access.
-# Secrets are separately provisioned, encrypted inputs. Git Secret keys are username/password
+# Supply retained encrypted delivery_promotion_credentials in secrets/delivery-promotion.yml.
+# Its keys are the three Secret names below; each value is the Secret's stringData mapping.
+# Git keys: username/password. Signing keys: key. Authority keys:
+# ticket-key (32+ independent random bytes), gate-headers.json (read-only Gate authentication),
+# gate-ca.pem, fiat-ca.pem, tls.crt and tls.key (service SAN from authority URL below).
+# All three Secrets are rendered only into delivery-promotion-authority and encrypted by Flux export.
+# Retain outside GitLab/Harbor/Spinnaker; reuse, never silently regenerate during recovery.
+# Git Secret keys are username/password
 # for a dedicated bot's write_repository-only credential, signing Secret key is key (unencrypted
 # retained SSH Ed25519). ssh-keygen -y checks its type before signing. Other algorithms are rejected
 # because preview and execution reconstruct byte-identical signed commits in separate Jobs.
 # Retain its public key and enforce signed commits through the established review policy.
 delivery_promotion_git_secret: delivery-promotion-git
 delivery_promotion_signing_secret: delivery-promotion-signing
+delivery_promotion_authority_secret: delivery-promotion-authority
+delivery_promotion_authority_url: https://delivery-promotion-authority.delivery-promotion-authority.svc:8443
+delivery_promotion_authority_ca_file: /secure/promotion-authority-ca.pem
+delivery_promotion_authority_gate_url: https://spinnaker.example.test/api/v1
+delivery_promotion_authority_fiat_url: https://fiat.spinnaker.svc.cluster.local:7003
+delivery_promotion_spinnaker_namespace: spinnaker
+delivery_promotion_ticket_ttl_seconds: 86400
 # GitLab CE pattern uses a separate project and a bot as its sole ordinary Maintainer.
 # Protect delivery with push_access_level=40, merge_access_level=0, allow_force_push=false.
 # Human requesters/approvers stay below Maintainer. Audit inherited/group access and every matching
@@ -65,19 +82,18 @@ delivery_promotion_signing_secret: delivery-promotion-signing
 # Do not depend on selected deploy-key permissions on older GitLab CE versions.
 delivery_promotion_controls_accepted:
   single_judgment_and_possible_self_approval: false
-  executor_api_job_and_credential_bypass: false
   pipeline_fiat_gitlab_and_cluster_admin_bypass: false
   gitlab_ce_separate_project_bot_maintainer: false
 # Fiat must enable application resource permissions and remove the old wildcard writer prefix.
-# Requesters need application EXECUTE. Starting a Job also requires the executor role on
-# the delivery-promotion account. Approvers need EXECUTE and their judgment role.
+# Requesters need application EXECUTE and the requester role on the secretless Job account.
+# They do not need the executor role. Approvers need EXECUTE and their judgment role.
 # Pipeline editors and permission administrators hold admin only. Revocation of legacy
 # namespace deployer bindings/accounts is owned by delivery_platform's explicit migration.
 # Manual judgment is one decision by any listed approver or Fiat admin. It provides neither
 # distinct multiple approvers nor immutable audit evidence. Role overlap permits self-approval.
-# Gate API arbitrary stage/Job execution, restarts, pipeline modification and direct Git pushes
-# are explicit trusted bypass surfaces. Exercise them with each role during live acceptance.
-# A skipped judgment fails the following native precondition. CAS requires fresh approval
+# Ordinary API callers cannot bypass the authority by patching stage context or restarting.
+# The authority verifies the native authenticated lastModified actor, live Fiat role and immutable ticket.
+# Administrators changing platform code, policies or credentials remain privileged. CAS requires fresh approval
 # after another release advances delivery. Retrying the exact published candidate only observes.
 # Rollback uses the same preview/judgment/CAS pipeline and requires application/data compatibility
 # evidence. It creates a new signed commit, with no automatic database migration reversal.
@@ -88,6 +104,16 @@ delivery_promotion_gate_ca_path: /secure/platform-ca.pem
 delivery_promotion_gate_headers: {}  # Encrypted authenticated session Cookie or supported Gate auth headers.
 # Exact site-specific API, Git HTTPS and DNS NetworkPolicy destinations, e.g. /32 API/Git VIPs.
 delivery_promotion_egress: []
+# Client egress: DNS; the authority HTTPS grant is added automatically. Authority egress must
+# explicitly include DNS, Kubernetes API, application Git, Gate and Fiat HTTPS destinations.
+delivery_promotion_authority_egress: []
+# Adoption only: actual native cluster and GitLab CE administrator inputs, injected privately.
+delivery_promotion_kubeconfig: /secure/tier1.kubeconfig
+delivery_promotion_context: tier1
+delivery_promotion_gitlab_url: https://gitlab.example.test
+delivery_promotion_gitlab_ca_path: /secure/gitlab-ca.pem
+delivery_promotion_retired_token_id: ""  # Old bot personal access token ID from GitLab; not its secret.
+# Private input: delivery_promotion_gitlab_headers: {PRIVATE-TOKEN: <accepted-admin-credential>}.
 # Optional shared flux_payload publication into the independent private platform checkout.
 delivery_promotion_flux_output: "{{ playbook_dir }}/../../../clusters/tier1"
 delivery_promotion_flux_component: platform/delivery-promotion

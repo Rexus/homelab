@@ -1,0 +1,83 @@
+---
+- name: Bind authority recovery explicitly to the independently reconstructed Tier 1 cluster
+  ansible.builtin.set_fact:
+    recovery_authority_cluster: "{{ platform_recovery.clusters | selectattr('tier', 'equalto', 1) | first }}"
+
+- name: Select only Tier 1 authority credentials regardless of product restore order
+  ansible.builtin.set_fact:
+    recovery_kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_authority_cluster.kubeconfig }}"
+    recovery_context: "{{ recovery_authority_cluster.context }}"
+
+- name: Hold the credential-bearing authority while its ticket identity changes
+  kubernetes.core.k8s_scale:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: Deployment
+    namespace: delivery-promotion-authority
+    name: delivery-promotion-authority
+    replicas: 0
+    wait: true
+    wait_timeout: 900
+
+- name: Load the independently retained replacement authority secret
+  ansible.builtin.set_fact:
+    recovery_authority_secret: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/' ~ platform_recovery.promotion_authority.secret_file) | from_yaml }}"
+  no_log: true
+
+- name: Require a new ticket-key identity before requester access can resume
+  ansible.builtin.assert:
+    that:
+      - recovery_authority_secret.kind == 'Secret'
+      - recovery_authority_secret.metadata.namespace == 'delivery-promotion-authority'
+      - recovery_authority_secret.data['ticket-key'] | b64decode | hash('sha256') == platform_recovery.promotion_authority.new_ticket_key_sha256
+      - platform_recovery.promotion_authority.new_ticket_key_sha256 != platform_recovery.promotion_authority.previous_ticket_key_sha256
+    fail_msg: Retain a replacement ticket key with the recovery inputs. Pending pre-recovery approvals must be invalidated.
+  no_log: true
+
+- name: Install the replacement key with the retained authority credentials
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    state: present
+    definition: "{{ recovery_authority_secret }}"
+  no_log: true
+
+- name: Reobserve the new ticket key while the authority remains fenced
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: delivery-promotion-authority
+    name: "{{ recovery_authority_secret.metadata.name }}"
+  register: recovery_authority_observed
+  no_log: true
+
+- name: Verify the installed authority identity
+  ansible.builtin.assert:
+    that:
+      - recovery_authority_observed.resources | length == 1
+      - recovery_authority_observed.resources[0].data['ticket-key'] | b64decode | hash('sha256') == platform_recovery.promotion_authority.new_ticket_key_sha256
+  no_log: true
+
+- name: Roll the authority onto the new ticket identity before allowing requester traffic
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: {name: delivery-promotion-authority, namespace: delivery-promotion-authority}
+      spec:
+        replicas: 0
+        strategy: {type: Recreate, rollingUpdate: null}
+        template:
+          metadata:
+            annotations:
+              recovery.homelab/ticket-key-sha256: "{{ platform_recovery.promotion_authority.new_ticket_key_sha256 }}"

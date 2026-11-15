@@ -1,0 +1,25 @@
+---
+- name: Inspect the public request fetched over the existing inventory connection
+  community.crypto.openssl_csr_info:
+    path: "{{ logging_run.requests }}/{{ stream.name }}.csr"
+  register: logging_workflow_producer_csr
+
+- name: Require the catalogued producer identity and leaf purpose
+  ansible.builtin.assert:
+    that:
+      - logging_workflow_producer_csr.signature_valid
+      - "logging_workflow_producer_csr.subject == {'commonName': stream.name}"
+      - logging_workflow_producer_csr.basic_constraints == ['CA:FALSE']
+      - logging_workflow_producer_csr.extended_key_usage == ['TLS Web Client Authentication']
+      - logging_workflow_producer_csr.subject_alt_name | default([], true) | length == 0
+
+- name: Retain the request and server-owned source binding
+  ansible.builtin.set_fact:
+    logging_workflow_requests: >-
+      {{ logging_workflow_requests + [{'name': stream.name, 'profile': 'client',
+      'csr': logging_run.requests ~ '/' ~ stream.name ~ '.csr',
+      'key_sha256': logging_workflow_producer_csr.public_key_fingerprints.sha256}] }}
+    logging_workflow_sources: >-
+      {{ logging_workflow_sources + [{'name': stream.name,
+      'address': hostvars[producer].logging_workflow_source_address,
+      'tier': 0, 'tls_dn': 'CN=' ~ stream.name, 'kind': stream.kind}] }}

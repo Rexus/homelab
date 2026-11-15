@@ -1,0 +1,58 @@
+---
+# All tasks use controller-side actions. Running against all inventory hosts also
+# supports --limit <producer> without requiring localhost in the limit.
+- name: Read the owning tier's optional central producer inputs
+  ansible.builtin.include_vars:
+    file: "{{ item }}"
+  loop: >-
+    {{ query('ansible.builtin.first_found',
+             {'files': [playbook_dir ~ '/../../group_vars/logging_producers.yml'], 'skip': true}) }}
+  no_log: true
+
+- name: Require a mapping of existing inventory hosts
+  ansible.builtin.assert:
+    that:
+      - logging_producer_hosts is mapping
+    fail_msg: Set logging_producer_hosts to a mapping in ansible/group_vars/logging_producers.yml.
+  when: logging_producer_hosts is defined
+
+- name: Reject catalog entries that are absent from the owning inventory
+  ansible.builtin.assert:
+    that:
+      - logging_producer_hosts.keys() | difference(groups['all']) | length == 0
+    fail_msg: Every logging_producer_hosts key must already exist in this tier's inventory.
+  when: logging_producer_hosts is defined
+
+- name: Validate the catalog entry shape without displaying private endpoints
+  ansible.builtin.assert:
+    that:
+      - item.key is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+      - item.value is mapping
+      - item.value.keys() | difference(['streams', 'watchdog_url', 'setup']) | length == 0
+      - item.value.setup is not defined or item.value.setup is match('^[a-z][a-z0-9_-]*$')
+      - item.value.streams is not defined or item.value.streams | type_debug == 'list'
+      - item.value.streams is not defined or item.value.streams | length > 0
+      - item.value.watchdog_url is not defined or item.value.watchdog_url is string
+    fail_msg: Each host accepts an empty mapping, optional setup, a nonempty streams list and an HTTPS watchdog_url.
+  loop: "{{ logging_producer_hosts | default({}) | dict2items }}"
+  no_log: true
+
+- name: Select only catalogued hosts and retain their existing connection and identity inputs
+  ansible.builtin.add_host:
+    name: "{{ item.key }}"
+    groups: logging_producers
+    log_forwarder_streams: >-
+      {{ item.value.streams | default(hostvars[item.key].log_forwarder_streams |
+         default([{'name': item.key ~ '-os', 'kind': 'security', 'input': 'journal'}], true)) }}
+    log_forwarder_watchdog_url: >-
+      {{ item.value.watchdog_url | default(hostvars[item.key].log_forwarder_watchdog_url | default('')) }}
+  loop: "{{ logging_producer_hosts | default({}) | dict2items }}"
+  no_log: true
+
+- name: Select the exact current catalog or retain legacy group selection
+  ansible.builtin.set_fact:
+    log_forwarder_selected_pattern: >-
+      {{ (logging_producer_hosts.keys() | join(',') or 'all:!all')
+         if logging_producer_hosts is defined else 'logging_producers' }}
+  delegate_to: localhost
+  delegate_facts: true

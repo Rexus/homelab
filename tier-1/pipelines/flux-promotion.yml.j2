@@ -1,10 +1,11 @@
 # Spinnaker 2026.3.2 native stages. Rendered twice with fixed promote/rollback IDs.
 # Import requires Fiat application resource permissions and an executor-only Job account.
-# Requesting a run needs application EXECUTE plus delivery-promotion account WRITE.
-# Assign requester and executor roles together to authorized operators. Approvers need
+# Requesters can create secretless client Jobs, never Jobs in the authority namespace.
+# The authority independently verifies the actual judgment actor and exact signed preview.
+# Approvers need
 # application EXECUTE and requiredJudgmentRoles, without application WRITE.
 # A single matching approver or Fiat admin can judge. Role overlap permits self-approval.
-# Pipeline editors, API executors able to submit arbitrary Jobs, credential holders,
+# Pipeline editors, credential holders,
 # Kubernetes administrators and GitLab inherited/project/instance administrators remain trusted.
 # UI pipeline locking is an editing affordance. Qualification must exercise direct API/Git paths.
 # Native behavior and Apache-2.0 licensing were checked at the existing immutable release revision.
@@ -46,15 +47,8 @@ stages:
     requiredJudgmentRoles: {{ [delivery_promotion_approver_role] | to_json }}
     selectedStageRoles: {{ [delivery_promotion_approver_role] | to_json }}
     propagateAuthenticationContext: false
-    instructions: |
-      {{ delivery_promotion_mode | upper }} application configuration and image together.
-      Candidate ${ #stage('Preview').outputs.candidate}
-      Expected delivery head ${ #stage('Preview').outputs.base}
-      Configuration ${ #stage('Preview').outputs.config_revision}
-      Image ${ #stage('Preview').outputs.image_digest}
-      Compatibility evidence ${ #stage('Preview').outputs.compatibility_reference}
-      Review the complete diff below. Continuing approves this exact preview.
-      ${ #stage('Preview').outputs.diff}
+    approvalTicket: "${ #stage('Preview').outputs.approval_ticket}"
+    instructions: "${ #stage('Preview').outputs.approval_instructions}"
   - refId: verify-approval
     name: Verify approval dependency
     type: checkPreconditions
@@ -96,7 +90,7 @@ stages:
             labels: {app.kubernetes.io/name: delivery-promotion-worker}
           spec:
             serviceAccountName: delivery-promoter
-            automountServiceAccountToken: true
+            automountServiceAccountToken: false
             restartPolicy: Never
             securityContext:
               runAsNonRoot: true
@@ -119,6 +113,9 @@ stages:
                 env:
                   - {name: HOME, value: /tmp}
                   - {name: PYTHONDONTWRITEBYTECODE, value: '1'}
+                  - {name: PROMOTION_EXECUTION_ID, value: "${execution.id}"}
+                  - {name: PROMOTION_AUTHORITY_URL, value: {{ delivery_promotion_authority_url | to_json }}}
+                  - {name: PROMOTION_TIMEOUT_SECONDS, value: {{ delivery_promotion_timeout_seconds | string | to_json }}}
 {% if operation == 'preview' %}
                   - {name: PROMOTION_CONFIG_REVISION, value: "${parameters.configRevision}"}
                   - {name: PROMOTION_IMAGE_DIGEST, value: "${parameters.imageDigest}"}
@@ -126,20 +123,19 @@ stages:
                   - {name: PROMOTION_COMPATIBILITY_REFERENCE, value: "${parameters.compatibilityReference}"}
                   - {name: PROMOTION_MODE, value: {{ delivery_promotion_mode }}}
 {% else %}
-                  - {name: PROMOTION_PLAN_B64, value: "${ #stage('Preview').outputs.plan_b64}"}
+                  - {name: PROMOTION_APPROVAL_TICKET, value: "${ #stage('Preview').outputs.approval_ticket}"}
 {% endif %}
                 volumeMounts:
-                  - {name: policy, mountPath: /policy, readOnly: true}
-                  - {name: git-credential, mountPath: /git-credential, readOnly: true}
-                  - {name: signing, mountPath: /signing, readOnly: true}
+                  - {name: authority-client, mountPath: /authority-client, readOnly: true}
                   - {name: scratch, mountPath: /tmp}
             volumes:
-              - name: policy
-                configMap: {name: delivery-promotion-policy}
-              - name: git-credential
-                secret: {secretName: {{ delivery_promotion_git_secret }}, defaultMode: 288}
-              - name: signing
-                secret: {secretName: {{ delivery_promotion_signing_secret }}, defaultMode: 288}
+              - name: authority-client
+                projected:
+                  sources:
+                    - serviceAccountToken: {path: token, audience: delivery-promotion-authority, expirationSeconds: 3600}
+                    - configMap:
+                        name: delivery-promotion-authority-ca
+                        items: [{key: ca.pem, path: ca.pem}]
               - name: scratch
                 emptyDir: {sizeLimit: 256Mi}
 {% endfor %}

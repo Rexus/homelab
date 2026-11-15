@@ -17,9 +17,9 @@ Tier 0's [foundation inputs](../../../tier-0/terraform/deployments/foundation/te
 [runtime role](../../../tier-0/ansible/roles/openxpki/tasks/main.yml) own the issuer and its attached state;
 [portal configuration](../../../tier-0/ansible/roles/openxpki/templates/apache.conf.j2) owns the HTTPS portal
 and network-scoped HTTP(S) certificate/CRL downloads.
-The [offline ceremony](../../03-deployment/stage-03-trust/procedures/offline-software-root.md) and
+The [offline ceremony](../../03-deployment/stage-02-trust/procedures/offline-software-root.md) and
 [FreeIPA installation](../../03-deployment/stage-05-identity/procedures/freeipa.md) remain separate operations.
-The figure selects software custody; [hardware options](../../03-deployment/stage-03-trust/README.md#step-1-prepare-issuer-and-key-custody)
+The figure selects software custody; [hardware options](../../03-deployment/stage-02-trust/README.md#step-1-prepare-issuer-and-key-custody)
 replace that key/provider contract. Retain the [original recovery set](issuer-recovery.md#capture-a-recovery-set)
 and [protected audit path](../06-resilience/protected-logging.md) for the accepted installation.
 
@@ -160,7 +160,7 @@ suspect credential. A file-copy or playbook success does not verify client trust
 
 **Stop:** wrong issuer/signature, missing serial or stale publication. Repair delivery
 without undoing revocation or weakening client checks. Root CRLs are renewed only
-through the [offline root ceremony](../../03-deployment/stage-03-trust/procedures/offline-software-root.md#publish-and-preserve-state),
+through the [offline root ceremony](../../03-deployment/stage-02-trust/procedures/offline-software-root.md#publish-and-preserve-state),
 not the online issuer command. FreeIPA's CA uses its own native administration.
 
 <a id="change-and-recovery"></a>
@@ -175,7 +175,7 @@ not the online issuer command. FreeIPA's CA uses its own native administration.
    | Change | Required route |
    | --- | --- |
    | Key/provider/algorithm or CA rollover | [Hardware/custody migration](hardware-migration.md), approved overlap and native token lifecycle |
-   | Root key or subordinate signing | Separate authorized [offline ceremony](../../03-deployment/stage-03-trust/procedures/offline-root.md) |
+   | Root key or subordinate signing | Separate authorized [offline ceremony](../../03-deployment/stage-02-trust/procedures/offline-root.md) |
    | Package/configuration/schema | Isolated restored rehearsal and product-specific migration; routine binding checks reject a new archive/package set |
    | Database/session/DataVault credentials | Separate tested product migration; changing YAML or deleting `deployment.json` is not rotation |
    | Lost/failed issuer | [Clean-target recovery](issuer-recovery.md#prepare-and-restore-a-clean-target), with the old writer fenced |

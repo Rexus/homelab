@@ -45,7 +45,7 @@ flowchart TB
 existing issuer stays in place.*
 Tier 0 [foundation inputs](../../../tier-0/terraform/deployments/foundation/terraform.tfvars.example) and
 [directory recipe](../../../tier-0/ansible/playbooks/deployment/identity-freeipa.yml).
-Directory VMs may already be allocated by Stage 3; retain the existing CA and all state.
+Directory VMs may already be allocated by Stage 2; retain the existing CA and all state.
 
 **Prerequisites:** accepted [Kubernetes platform](../stage-04-kubernetes/README.md),
 approved compute/templates, certificate trust, software supply and independent credentials.
@@ -112,7 +112,7 @@ Edit **Tier 0** without removing the issuer or any other managed guest:
 | `terraform/common.tfvars` | Applied `network_zones.identity` attachment or actual bridge/VLAN/subnet/gateway |
 
 Provide stable forward/reverse DNS and independent bootstrap DNS/time before realm installation.
-A Stage 3 guest allocation needs no replacement; the plan below should retain it.
+A Stage 2 guest allocation needs no replacement; the plan below should retain it.
 Fresh inventory declares the authority role. In retained inventory, add `platform_domain_role: authority`
 under the existing `identity` group's `vars`, preserving its children. Directory hosts receive their
 `platform_domain` FQDN while commissioning; other standalone hosts retain `platform_internal_domain`.
@@ -132,7 +132,7 @@ OS and placement, without realm installation or changes to the existing issuer.
 
 ## Step 4: Connect the new directory hosts to protected logging
 
-For **`idm-1` and `idm-2`**, extend [the existing source-forwarding setup](../stage-02-logging/procedures/sources.md)
+For **`idm-1` and `idm-2`**, extend [the existing source-forwarding setup](../stage-03-logging/procedures/sources.md)
 using `foundation.yml` as their setup map. Declare distinct producer identities and retain other streams.
 Prepare keys/CSRs, authorize signing, update the existing receiver catalogue, then install forwarding from
 the controller. No receiver disk/authority setup is repeated.
@@ -184,7 +184,7 @@ chain. This identity-only recipe does not initialize or configure `ca-1`.
 
 ## Step 8: Sign the identity request offline
 
-Verify the public request and use the authorized [root ceremony](../stage-03-trust/procedures/offline-root.md)
+Verify the public request and use the authorized [root ceremony](../stage-02-trust/procedures/offline-root.md)
 for the selected custody. Sign the sibling identity CA, not a TLS-server leaf through the infrastructure
 issuer. Return public certificates only. Keep the primary's pending installation and private key;
 do not regenerate its identity to retry a transfer.
@@ -298,7 +298,7 @@ and replication TLS, and the selected file-backup client or object/WAL credentia
 LDAP password and existing Keycloak API administration credentials.
 
 Use the [exact namespace/key/certificate table](../stage-06-secrets/procedures/control-applications.md#secrets-and-certificates)
-from the shared product reference. Client-auth profiles require qualified issuance; Stage 3's TLS-server-only
+from the shared product reference. Client-auth profiles require qualified issuance; Stage 2's TLS-server-only
 profile does not issue them. No CA private key or later Vault dependency belongs in bootstrap inputs.
 
 For **14b**, retain `manage_secrets: false` and commission the same Secrets through that owner; omit only

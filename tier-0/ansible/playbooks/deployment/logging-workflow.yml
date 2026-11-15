@@ -1,0 +1,178 @@
+---
+- name: Resolve logging inputs and certificate custody on the deployment controller
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+  any_errors_fatal: true
+  roles:
+    - logging_workflow
+
+- name: Wait for the declared receiver guests
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: foundation_logging
+
+- name: Prepare receiver storage through IaC
+  hosts: foundation_logging
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Inspect installed receiver trust before preparing any new identity
+      ansible.builtin.stat:
+        path: /etc/syslog-ng-receiver/tls/server.pem
+      register: logging_workflow_installed_identity
+      when: hostvars.localhost.logging_run.action in ['apply', 'prepare']
+
+    - name: Inspect the retained controller service key without reading it
+      ansible.builtin.stat:
+        path: "{{ hostvars.localhost.logging_run.workspace }}/receivers/{{ inventory_hostname }}/key.pem"
+      delegate_to: localhost
+      become: false
+      register: logging_workflow_retained_receiver_key
+      when: hostvars.localhost.logging_run.action in ['apply', 'prepare']
+
+    - name: Refuse accidental trust replacement on a receiver installed by an earlier workflow
+      ansible.builtin.assert:
+        that:
+          - not logging_workflow_installed_identity.stat.exists or logging_workflow_retained_receiver_key.stat.exists
+        fail_msg: >-
+          This receiver has an installed identity without its original workflow key in this workspace.
+          Preserve the existing authority and key. Continue the direct receiver recipe, or complete
+          a reviewed key/certificate custody adoption before using the combined workflow.
+      when: hostvars.localhost.logging_run.action in ['apply', 'prepare']
+
+    - name: Configure package access and the existing guest baseline
+      ansible.builtin.include_role:
+        name: baseline
+      when: hostvars.localhost.logging_run.action in ['apply', 'prepare']
+
+    - name: Prepare the guarded persistent volume without installing a listener yet
+      ansible.builtin.include_role:
+        name: syslog_ng
+        tasks_from: storage
+      vars:
+        syslog_ng_workflow_data_uuid: >-
+          {{ hostvars.localhost.logging_run.receiver_options.get(inventory_hostname, {}).get('data_uuid', syslog_ng_data_uuid | default('')) }}
+      when: hostvars.localhost.logging_run.action in ['apply', 'prepare']
+
+    - name: Record the actual receiver address for producer route selection
+      ansible.builtin.set_fact:
+        logging_workflow_receiver_address: "{{ ansible_default_ipv4.address }}"
+
+    - name: Show the verified storage identity and optional configuration guard
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}: {{ data_volume_result }}.
+          The UUID mount is already persistent. Optional guard in ansible/group_vars/syslog.yml:
+          logging_workflow_receiver_options: {"{{ inventory_hostname }}": {data_uuid: "{{ data_volume_result.uuid }}"}}.
+          Merge into the existing receiver map; retain this binding with recovery records.
+      when: hostvars.localhost.logging_run.action in ['apply', 'prepare']
+
+- name: Prepare selected producer keys on their existing hosts
+  hosts: logging_workflow_producers
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  vars:
+    log_forwarder_requests: "{{ hostvars.localhost.logging_run.requests }}"
+    log_forwarder_credentials: "{{ hostvars.localhost.logging_run.public }}"
+  tasks:
+    - name: Reuse the accepted package proxy without applying a guest baseline to existing producers
+      ansible.builtin.include_role:
+        name: baseline
+        tasks_from: repository_proxy
+      when:
+        - hostvars.localhost.logging_run.action in ['apply', 'prepare']
+        - baseline_manage_repository_proxy | default(true) | bool
+
+    - name: Prepare host-local keys and fetch public CSRs only
+      ansible.builtin.include_role:
+        name: log_forwarder
+      vars:
+        log_forwarder_mode: prepare
+      when: hostvars.localhost.logging_run.action in ['apply', 'prepare']
+
+    - name: Resolve the configured intake before discovering the producer source address
+      ansible.builtin.getent:
+        database: ahostsv4
+        key: "{{ hostvars.localhost.logging_run.target }}"
+
+    - name: Inspect the actual source route toward the configured intake
+      ansible.builtin.command:
+        argv: [ip, -j, -4, route, get, "{{ ansible_facts.getent_ahostsv4.keys() | first }}"]
+      register: logging_workflow_source_route
+      changed_when: false
+
+    - name: Retain the observed outbound source for the receiver ACL
+      ansible.builtin.set_fact:
+        logging_workflow_source_address: "{{ (logging_workflow_source_route.stdout | from_json | first).prefsrc }}"
+
+- name: Prepare or enroll the public logging identity manifest
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+  any_errors_fatal: true
+  tasks:
+    - name: Derive public requests and receiver source bindings from the accepted inputs
+      ansible.builtin.include_role:
+        name: logging_workflow
+        tasks_from: requests
+
+    - name: Issue or resume the selected certificate handoff
+      ansible.builtin.include_role:
+        name: logging_workflow
+        tasks_from: issue
+      when: logging_run.action == 'apply'
+
+    - name: Explain the prepared public handoff
+      ansible.builtin.debug:
+        msg: >-
+          Requests: {{ logging_run.workspace }}/requests.json. Public output: {{ logging_run.public }}.
+          Receiver key directories: {{ logging_run.workspace }}/receivers. Keys remain private;
+          producer keys remain on their hosts. Rerun the same syslog deployment after any required CA approval.
+
+- name: Install the authenticated receivers using the derived certificate paths
+  hosts: foundation_logging
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Install only the complete approved receiver handoff
+      ansible.builtin.include_role:
+        name: syslog_ng
+      vars:
+        syslog_ng_enrolled_sources: "{{ hostvars.localhost.logging_run.sources }}"
+        syslog_ng_tls_ca_src: "{{ hostvars.localhost.logging_run.public }}/ca.pem"
+        syslog_ng_tls_crl_src: "{{ hostvars.localhost.logging_run.public }}/revoked.pem"
+        syslog_ng_tls_cert_src: "{{ hostvars.localhost.logging_run.public }}/{{ inventory_hostname }}.pem"
+        syslog_ng_tls_key_src: "{{ hostvars.localhost.logging_run.workspace }}/receivers/{{ inventory_hostname }}/key.pem"
+        syslog_ng_workflow_data_uuid: >-
+          {{ hostvars.localhost.logging_run.receiver_options.get(inventory_hostname, {}).get('data_uuid', syslog_ng_data_uuid | default('')) }}
+      when: hostvars.localhost.logging_run.action == 'apply'
+
+- name: Install and verify the selected producer forwarding
+  hosts: logging_workflow_producers
+  become: true
+  serial: 1
+  any_errors_fatal: true
+  vars:
+    log_forwarder_requests: "{{ hostvars.localhost.logging_run.requests }}"
+    log_forwarder_credentials: "{{ hostvars.localhost.logging_run.public }}"
+    log_forwarder_peer: "{{ hostvars.localhost.logging_run.peer }}"
+    log_forwarder_target: "{{ hostvars.localhost.logging_run.target }}"
+  tasks:
+    - name: Install the exact selected identities and bounded queues
+      ansible.builtin.include_role:
+        name: log_forwarder
+      vars:
+        log_forwarder_mode: install
+      when: hostvars.localhost.logging_run.action == 'apply'
+
+    - name: Test each declared native stream from source to retained record
+      ansible.builtin.include_role:
+        name: logging_workflow
+        tasks_from: verify
+      when: hostvars.localhost.logging_run.action in ['apply', 'verify']

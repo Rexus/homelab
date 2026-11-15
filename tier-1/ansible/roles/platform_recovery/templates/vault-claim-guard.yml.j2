@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ recovery_control_guard_name }}
+  namespace: {{ recovery_product.namespace }}
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels: {recovery.homelab/id: {{ platform_recovery.recovery_id }}}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 100, runAsGroup: 1000, runAsNonRoot: true, fsGroup: 1000, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: guard-one-empty-claim
+          image: {{ recovery_product.vault.image | to_json }}
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              entries="$(find /data -mindepth 1 -maxdepth 1 ! -name lost+found -print -quit)"
+              test -z "$entries"
+          env:
+            - {name: RECOVERY_CLAIM_UID, value: {{ recovery_control_claim_observed.resources[0].metadata.uid | to_json }}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: data, mountPath: /data}]
+      volumes:
+        - {name: data, persistentVolumeClaim: {claimName: {{ recovery_control_claim }}}}

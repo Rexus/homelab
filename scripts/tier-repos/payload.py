@@ -12,7 +12,7 @@ TERRAFORM_ONLY_DEPLOYMENTS = {
 }
 SHARED_TREES = {
     "config": ("*.json", "platform.tfvars"),
-    "ansible/roles": ("*.yml", "*.yaml", "*.j2"),
+    "ansible/roles": ("*.yml", "*.yaml", "*.j2", "*.py"),
     "ansible/playbooks": ("*.yml",),
     "scripts": ("*.sh", "*.py", "Dockerfile", "*.example"),
     "ci": ("*.example",),

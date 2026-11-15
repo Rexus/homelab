@@ -137,40 +137,31 @@ are separate inputs. A DNS alias alone does not authorize a new TLS name.
    Replace `logs.corp.example.com` with the actual SAN of the currently installed certificate.
    Reapply only when ready, using the producer's existing ordered setup/host inputs.
 
-2. On **the protected controller**, reuse the original `LOGGING_RECEIVER_DIR` and receiver name.
-   Set `LOGGING_RECEIVER_DNS` to the new service name. Prepare the changed CSR with
-   [Stage 2, action 6](../../03-deployment/stage-02-logging/README.md#step-6-prepare-the-receiver-key-and-request).
-   It retains `key.pem`. Review the new CSR and update that receiver's existing approval entry
-   with the exact new SAN as in action 8. Preserve other requests and cumulative revocations.
+2. In the **Tier 0 producer catalog**, set `log_forwarder_peer` to the new DNS SAN and
+   `log_forwarder_target` to the accepted reachable service endpoint. Select an intentional new
+   `logging_workflow_generation` in **`syslog.yml`**. Run request preparation from **`<prefix>-tier-0/`**:
 
-3. Sign through the **existing logging authority**, using
-   [action 9b](../../03-deployment/stage-02-logging/README.md#9b-existing-authority-sign-without-initialization).
-   Return the public leaf/CA/CRL through the existing custody path. Update the receiver's existing
-   `SYSLOG_NG_TLS_*` environment to those accepted files as in action 10. Keep the original key path.
+   ```bash
+   bash scripts/deploy.sh syslog --ansible-only --playbook deployment/logging-prepare.yml
+   ```
 
-4. Schedule the listener/producer change within the accepted queue and outage budget. Install the
-   new receiver leaf from **`<prefix>-tier-0/`**, retaining those protected TLS inputs.
+   This retains the original receiver key. Complete the selected [authority's issuance](../../03-deployment/stage-03-logging/procedures/producer-trust.md)
+   before the scheduled listener change. The supplied request has one DNS SAN; a simultaneous dual-name
+   cutover needs a qualified dual-SAN issuer handoff rather than an assumed second alias.
+3. In the change window, run from **`<prefix>-tier-0/`**:
 
    ```bash
    bash scripts/deploy.sh syslog --ansible-only
    ```
 
-   Producers still verifying the old SAN retry until their peer configuration is switched.
-   The single-name request recipe issues one DNS SAN. If both names must remain simultaneously valid,
-   commission a reviewed dual-SAN leaf through the existing authority before deploying that leaf.
-
-5. In **each producer tier's `ansible/group_vars/logging_producers.yml`**, select the new verified name.
-
-   ```yaml
-   log_forwarder_target: "{{ log_forwarder_peer }}"
-   log_forwarder_peer: logs.internal.example.com
-   ```
-
-   Reapply forwarding with the existing ordered setup and host inputs from
-   [source installation](../../03-deployment/stage-02-logging/procedures/sources.md#2-install-and-test-forwarding).
-   Keep each stream's identity, key, queue and cursor. Submit and verify a distinct event from every
-   selected producer as in [Stage 2, action 12](../../03-deployment/stage-02-logging/README.md#step-12-install-forwarding-and-verify-the-first-event).
-   Check delivery, TLS errors, backlog and external watchdogs before completing the cutover.
+   The combined workflow resumes approval, verifies the new leaf and installs receiver/selected
+   Tier 0 producers. Preserve the original workspace, authority, queues and stream identities.
+   Producers in other owning tiers retain their separately accepted public handoff and must be
+   reapplied with the new peer name before retiring the old DNS name.
+4. Repeat the [retained-event acceptance](../../03-deployment/stage-03-logging/README.md#step-5-verify-collection)
+   and monitor TLS errors/backlogs. Existing direct receiver installations continue their original
+   certificate paths and explicit recipe until reviewed custody adoption; refreshing the generated
+   code alone does not migrate a CA or its private key.
 
 ## 5. Optionally change machine hostnames
 

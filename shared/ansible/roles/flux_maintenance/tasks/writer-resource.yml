@@ -1,0 +1,112 @@
+---
+- name: Inspect the exact writer identity before mutation
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ writer_resource.api_version }}"
+    kind: "{{ writer_resource.kind }}"
+    namespace: "{{ writer_resource.namespace }}"
+    name: "{{ writer_resource.name }}"
+  register: flux_maintenance_writer
+
+- name: Require the original writer before resuming or stopping it
+  ansible.builtin.assert:
+    that:
+      - flux_maintenance_writer.resources | length == 1
+      - flux_maintenance_writer.resources[0].metadata.uid == writer_resource.uid
+
+- name: Apply the exact retained writer state through native Kubernetes fields
+  kubernetes.core.k8s_json_patch:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ writer_resource.api_version }}"
+    kind: "{{ writer_resource.kind }}"
+    namespace: "{{ writer_resource.namespace }}"
+    name: "{{ writer_resource.name }}"
+    patch: "{{ flux_maintenance_writer.resources[0] | flux_writer_patch(writer_resource, writer_resume) }}"
+  when: not writer_verify_only | default(false) | bool
+
+- name: Refuse writer drift while verifying an existing pause
+  ansible.builtin.assert:
+    that:
+      - >-
+        flux_maintenance_writer.resources[0].spec.get(writer_resource.field) ==
+        (0 if writer_resource.field == 'replicas' else true)
+    fail_msg: A selected writer restarted during maintenance. Reestablish and verify its fence before staging or restoring data.
+  when: writer_verify_only | default(false) | bool
+
+- name: Wait for writer replicas or active Jobs to stop
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ writer_resource.api_version }}"
+    kind: "{{ writer_resource.kind }}"
+    namespace: "{{ writer_resource.namespace }}"
+    name: "{{ writer_resource.name }}"
+  register: flux_maintenance_writer_stopped
+  until:
+    - flux_maintenance_writer_stopped.resources | length == 1
+    - flux_maintenance_writer_stopped.resources[0].metadata.uid == writer_resource.uid
+    - >-
+      flux_maintenance_writer_stopped.resources[0].status.get('replicas', 0) | int == 0 and
+      flux_maintenance_writer_stopped.resources[0].status.get('active', []) | length == 0
+      if writer_resource.kind == 'CronJob' else
+      flux_maintenance_writer_stopped.resources[0].status.get('active', 0) | int == 0 and
+      flux_maintenance_writer_stopped.resources[0].status.get('replicas', 0) | int == 0
+  retries: "{{ flux_maintenance_retries }}"
+  delay: "{{ flux_maintenance_delay }}"
+  when: not writer_resume | bool
+
+- name: Wait for all selected writer Pods including terminating Pods to leave
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: Pod
+    namespace: "{{ writer_resource.namespace }}"
+    label_selectors: "{{ writer_resource.pod_selectors }}"
+  register: flux_maintenance_writer_pods
+  until: flux_maintenance_writer_pods.resources | length == 0
+  retries: "{{ flux_maintenance_retries }}"
+  delay: "{{ flux_maintenance_delay }}"
+  when:
+    - not writer_resume | bool
+    - writer_resource.pod_selectors | length > 0
+
+- name: Drain actual CronJob children even when its active status list has not caught up
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ writer_resource.namespace }}"
+  register: flux_maintenance_cronjob_jobs
+  until: (flux_maintenance_cronjob_jobs.resources | flux_cronjob_children(writer_resource.uid)).drained
+  retries: "{{ flux_maintenance_retries }}"
+  delay: "{{ flux_maintenance_delay }}"
+  when:
+    - not writer_resume | bool
+    - writer_resource.kind == 'CronJob'
+
+- name: Drain remaining CronJob Pods by their actual parent Job UIDs
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: v1
+    kind: Pod
+    namespace: "{{ writer_resource.namespace }}"
+  register: flux_maintenance_cronjob_pods
+  until: >-
+    flux_maintenance_cronjob_pods.resources | flux_cronjob_pods_drained(
+      (flux_maintenance_cronjob_jobs.resources | flux_cronjob_children(writer_resource.uid)).uids)
+  retries: "{{ flux_maintenance_retries }}"
+  delay: "{{ flux_maintenance_delay }}"
+  when:
+    - not writer_resume | bool
+    - writer_resource.kind == 'CronJob'

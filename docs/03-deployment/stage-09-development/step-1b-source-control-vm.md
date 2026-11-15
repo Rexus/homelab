@@ -273,7 +273,7 @@ Maintenance notes:
   and test a matching-version clean-target restore; a raw copy of the running data directory is insufficient.
 - Pin the GitLab image tag before production use.
 - Keep runners on separate hosts when build workloads become noisy.
-- Send OS/security/audit events to [Tier 0 protected logging](../stage-02-logging/procedures/sources.md)
+- Send OS/security/audit events to [Tier 0 protected logging](../stage-03-logging/procedures/sources.md)
   from installation; do not wait for Observability. Operational application logs
   and metrics later use [Stage 8](../stage-08-observability/README.md) under approved scopes.
 

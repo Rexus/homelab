@@ -1,0 +1,37 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: spinnaker-preupgrade-{{ spinnaker_flux_upgrade_id }}
+  namespace: {{ delivery_platform_spinnaker_namespace }}
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 300
+  template:
+    metadata: {labels: {app.kubernetes.io/name: spinnaker-upgrade-gate}}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 999, runAsGroup: 999, runAsNonRoot: true, fsGroup: 999}
+      containers:
+        - name: verified-recovery-point
+          image: {{ spinnaker_upgrade_mysql_image | to_json }}
+          command: [sh, -ec]
+          args:
+            - |
+              test "$(cat /receipt/source-sha256)" = "$SOURCE_SHA256"
+              test "$(cat /receipt/target-sha256)" = "$TARGET_SHA256"
+              test "$(cat /receipt/verification)" = native-import-and-independent-readback-v1
+              grep -Eq '^[a-f0-9]{64}$' /receipt/snapshot
+              test -s /receipt/backup-job-uid
+              test -s /receipt/backup-pod-uid
+          env:
+            - {name: SOURCE_SHA256, value: {{ delivery_platform_spinnaker_upgrade_from_sha256 | to_json }}}
+            - {name: TARGET_SHA256, value: {{ spinnaker_flux_target_sha256 | to_json }}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts: [{name: receipt, mountPath: /receipt, readOnly: true}]
+      volumes:
+        - name: receipt
+          configMap: {name: spinnaker-upgrade-{{ spinnaker_flux_upgrade_id }}}

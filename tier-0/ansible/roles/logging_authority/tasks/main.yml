@@ -97,5 +97,11 @@
     crl_mode: update
     last_update: '+0s'
     next_update: '+7d'
-    mode: "0644"
   no_log: true
+
+# In the pinned community.crypto 2.x line, x509_crl.mode is the deprecated CRL operation alias.
+- name: Publish public CRL permissions independently of native revocation processing
+  ansible.builtin.file:
+    path: "{{ logging_authority_directory }}/public/revoked.pem"
+    state: file
+    mode: '0644'

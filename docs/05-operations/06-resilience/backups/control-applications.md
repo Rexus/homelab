@@ -181,6 +181,18 @@ Use [repository checks and selection](#list-and-restore) below for periodic read
 then run [isolated product restores](../recovery/README.md).
 A successful file check does not prove application consistency.
 
+### 7. Retain the native recovery input set
+
+Before an outage, prepare the selected control-product entries and private-file catalog alongside
+each accepted backup. Record original Vault cluster/version/quorum and native tool identities,
+media marker/known-file checksum/UID/GID, and paired NetBox database/media points. Retain original
+Helm/native resources with stopped recovery workloads, application replicas at zero, private runtime
+inputs, independent source keys and accepted configuration/artifact locks. Keep original Shamir
+shares/token in their separate custody path.
+[Control-product preparation](../recovery/control-product-inputs.md),
+[checksum-bound private inputs](../recovery/platform-recovery-contract.md#1-prepare-the-retained-recovery-inputs),
+[complete recovery set](recovery-set.md#required-material).
+
 <a id="list-and-restore"></a>
 
 ## How to list, inspect and restore a recovery point?

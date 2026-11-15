@@ -1,0 +1,18 @@
+---
+- name: List actual Flux reconciliation objects across namespaces
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+  loop:
+    - {api_version: kustomize.toolkit.fluxcd.io/v1, kind: Kustomization}
+    - {api_version: helm.toolkit.fluxcd.io/v2, kind: HelmRelease}
+  register: flux_maintenance_inventory
+
+- name: Resolve selected source consumers, descendants and controlling ancestors
+  ansible.builtin.set_fact:
+    flux_maintenance_scope: >-
+      {{ flux_maintenance_inventory.results | map(attribute='resources') | flatten
+         | flux_scope(flux_maintenance_source) }}

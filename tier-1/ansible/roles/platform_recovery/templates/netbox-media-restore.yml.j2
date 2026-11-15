@@ -1,0 +1,78 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: restore-{{ recovery_product.name }}-{{ platform_recovery.plan_sha256[:12] }}
+  namespace: {{ recovery_product.namespace }}
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 18000
+  template:
+    metadata:
+      labels: {recovery.homelab/id: {{ platform_recovery.recovery_id }}}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsUser: {{ recovery_product.media.run_as_user }}
+        runAsGroup: {{ recovery_product.media.run_as_group }}
+        runAsNonRoot: true
+        fsGroup: {{ recovery_product.media.run_as_group }}
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: restore-only-netbox-media
+          image: {{ recovery_product.restic_image | to_json }}
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              restic version > /proof/version
+              test "$(cut -d ' ' -f 2 /proof/version)" = "$RESTIC_VERSION"
+              restic cat config > /proof/repository.json
+              grep -Eq '"id"[[:space:]]*:[[:space:]]*"'"$REPOSITORY_ID"'"' /proof/repository.json
+              restic --no-lock dump "$SNAPSHOT" "$SET_PATH/manifest.json" > /proof/manifest.json
+              printf '%s  %s\n' "$MANIFEST_SHA256" /proof/manifest.json | sha256sum -c -
+              grep -Eq '"schema"[[:space:]]*:[[:space:]]*1([[:space:],}]|$)' /proof/manifest.json
+              grep -Eq '"media_selected"[[:space:]]*:[[:space:]]*true' /proof/manifest.json
+              grep -Eq '"vault_sha256"[[:space:]]*:[[:space:]]*"'"$VAULT_SHA256"'"' /proof/manifest.json
+              restic --no-lock dump "$SNAPSHOT" "$MEDIA_PATH/.control-backup-source" > /proof/source-marker
+              test "$(cat /proof/source-marker)" = "$SOURCE_MARKER"
+              entries="$(find /media -mindepth 1 -maxdepth 1 ! -name lost+found -print -quit)"
+              test -z "$entries"
+              restic --no-lock check --read-data
+              restic --no-lock restore "$SNAPSHOT:$MEDIA_PATH" --target /media --verify
+              links="$(find /media -type l -print -quit)"
+              test -z "$links"
+              test -f "/media/$KNOWN_FILE"
+              printf '%s  %s\n' "$KNOWN_FILE_SHA256" "/media/$KNOWN_FILE" | sha256sum -c -
+              test "$(cat /media/.control-backup-source)" = "$SOURCE_MARKER"
+              printf '%s\n' "$PLAN_SHA256" "$CLAIM_UID" > /media/.platform-recovery-media
+              sync
+          envFrom: [{secretRef: {name: {{ recovery_product.restic_secret }}}}]
+          env:
+            - {name: SNAPSHOT, value: {{ recovery_product.backup_id | to_json }}}
+            - {name: SET_PATH, value: {{ recovery_product.control_backup.set_path | to_json }}}
+            - {name: MEDIA_PATH, value: {{ recovery_product.media.path | to_json }}}
+            - {name: SOURCE_MARKER, value: {{ recovery_product.media.source_marker | to_json }}}
+            - {name: KNOWN_FILE, value: {{ recovery_product.media.known_file | to_json }}}
+            - {name: KNOWN_FILE_SHA256, value: {{ recovery_product.media.known_file_sha256 | to_json }}}
+            - {name: MANIFEST_SHA256, value: {{ recovery_product.control_backup.manifest_sha256 | to_json }}}
+            - {name: VAULT_SHA256, value: {{ recovery_product.control_backup.vault_sha256 | to_json }}}
+            - {name: REPOSITORY_ID, value: {{ recovery_product.control_backup.repository_id | to_json }}}
+            - {name: RESTIC_VERSION, value: {{ recovery_product.restic_version | to_json }}}
+            - {name: RESTIC_CACHE_DIR, value: /cache}
+            - {name: PLAN_SHA256, value: {{ platform_recovery.plan_sha256 | to_json }}}
+            - {name: CLAIM_UID, value: {{ recovery_control_claim_uids[recovery_product.media.claim] | to_json }}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: media, mountPath: /media}
+            - {name: proof, mountPath: /proof}
+            - {name: cache, mountPath: /cache}
+{% if recovery_product.repository_claim is defined %}
+            - {name: repository, mountPath: /repository, readOnly: true}
+{% endif %}
+      volumes:
+        - {name: media, persistentVolumeClaim: {claimName: {{ recovery_product.media.claim }}}}
+        - {name: proof, emptyDir: {medium: Memory}}
+        - {name: cache, emptyDir: {}}
+{% if recovery_product.repository_claim is defined %}
+        - {name: repository, persistentVolumeClaim: {claimName: {{ recovery_product.repository_claim }}}}
+{% endif %}

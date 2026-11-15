@@ -1,0 +1,50 @@
+---
+- name: Load the completed native PostgreSQL backup and original database identity
+  ansible.builtin.include_vars:
+    file: "{{ platform_recovery.workspace }}/{{ recovery_product.inputs }}"
+
+- name: Bind the selected completed physical set to this recovery plan
+  ansible.builtin.assert:
+    that:
+      - postgresql_file_backup_recovery.set_id == recovery_product.backup_id
+      - postgresql_file_backup_target.namespace == recovery_product.namespace
+      - postgresql_file_backup_target.cluster == recovery_product.cnpg_cluster
+      - postgresql_file_backup_target.system_identifier | string == recovery_product.system_identifier | string
+
+- name: Render the existing guarded physical-restore and pg_basebackup contract
+  ansible.builtin.include_role:
+    name: postgresql_file_backup
+    tasks_from: recovery
+
+- name: Apply the selected read-only source and new block-storage target
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    state: present
+    src: "{{ postgresql_file_backup_output }}/{{ item }}.yml"
+  loop: [restore-source, restore-cluster]
+
+- name: Require the actual recovered PostgreSQL system identifier and ready instance
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: postgresql.cnpg.io/v1
+    kind: Cluster
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ postgresql_file_backup_target.cluster }}"
+  register: recovery_cnpg_result
+  until: >-
+    recovery_cnpg_result.resources | length == 1 and
+    recovery_cnpg_result.resources[0].status.readyInstances | default(0) | int == 1 and
+    recovery_cnpg_result.resources[0].status.systemID | default('') | string == recovery_product.system_identifier | string
+  retries: 720
+  delay: 5
+
+- name: Retain the observed PostgreSQL cluster identity
+  ansible.builtin.set_fact:
+    recovery_native_receipt:
+      kind: Cluster
+      uid: "{{ recovery_cnpg_result.resources[0].metadata.uid }}"
+      system_identifier: "{{ recovery_cnpg_result.resources[0].status.systemID }}"

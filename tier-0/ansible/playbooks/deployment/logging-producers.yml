@@ -1,7 +1,18 @@
 ---
 # Shared owns the implementation; this tier owns hosts, streams, keys and cursors.
+- name: Select Tier 0 producers from existing inventory without opening host connections
+  hosts: all
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Read the central catalog on the controller
+      ansible.builtin.include_role:
+        name: log_forwarder
+        tasks_from: catalog
+      run_once: true
+
 - name: Configure approved Tier 0 logging producers
-  hosts: logging_producers
+  hosts: "{{ hostvars['localhost'].log_forwarder_selected_pattern | default('logging_producers') }}"
   become: true
   serial: 1
   roles:

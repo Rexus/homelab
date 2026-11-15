@@ -1,0 +1,46 @@
+---
+- name: Resolve the configured intake target from the producer
+  ansible.builtin.getent:
+    database: ahostsv4
+    key: "{{ hostvars.localhost.logging_run.target }}"
+
+- name: Select the receiver owning the configured target
+  ansible.builtin.set_fact:
+    logging_workflow_test_receivers: []
+
+- name: Match the current target to an existing receiver without assuming failover or replication
+  ansible.builtin.set_fact:
+    logging_workflow_test_receivers: "{{ logging_workflow_test_receivers + [item] }}"
+  loop: "{{ hostvars.localhost.logging_run.receivers }}"
+  when: hostvars[item].logging_workflow_receiver_address in ansible_facts.getent_ahostsv4
+
+- name: Require a declared direct receiver for automated acceptance
+  ansible.builtin.assert:
+    that: logging_workflow_test_receivers | length == 1
+    fail_msg: The target must resolve to one configured receiver; a custom load balancer needs its separately qualified acceptance test.
+
+- name: Verify the selected native forwarding units
+  ansible.builtin.command:
+    argv: [systemctl, is-active, "log-forwarder-{{ stream.name }}.service"]
+  changed_when: false
+  loop: "{{ log_forwarder_streams }}"
+  loop_control:
+    loop_var: stream
+
+- name: Exercise the actual TLS ingestion path of each selected stream
+  ansible.builtin.include_tasks: verify-stream.yml
+  loop: "{{ log_forwarder_streams }}"
+  loop_control:
+    loop_var: stream
+
+- name: Report the independent monitoring coverage accurately
+  ansible.builtin.debug:
+    msg: >-
+      TLS ingestion passed for {{ inventory_hostname }}.
+      {{ 'Journal streams passed native capture-to-record forwarding.'
+         if log_forwarder_streams | selectattr('input', 'equalto', 'journal') | list | length > 0 else '' }}
+      {{ 'Explicit file streams require a real application event for their separate file-capture acceptance.'
+         if log_forwarder_streams | selectattr('input', 'equalto', 'files') | list | length > 0 else '' }}
+      {{ 'An external heartbeat endpoint is configured; confirm missed-heartbeat alerts in that service.'
+         if log_forwarder_watchdog_url | default('') | length > 0
+         else 'Local service, queue and certificate checks run. Independent missed-heartbeat alerting is not configured.' }}

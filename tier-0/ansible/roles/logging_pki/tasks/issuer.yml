@@ -1,0 +1,110 @@
+---
+- name: Validate the established issuer and bounded enrollment inputs
+  ansible.builtin.assert:
+    that:
+      - openxpki_activate_runtime | default(false) | bool
+      - openxpki_managed_cli | default(false) | bool
+      - openxpki_configuration_sha256 is match('^[a-f0-9]{64}$')
+      - openxpki_package_versions['libopenxpki-perl'] | length > 0
+      - logging_pki_realm is match('^[a-z][a-z0-9_-]+$')
+      - logging_pki_public_directory is match('^/')
+      - logging_pki_workspace is match('^/')
+      - logging_pki_workspace not in ['/', '/tmp', '/var', '/home']
+      - "'/../' not in logging_pki_workspace"
+      - logging_pki_generation is match('^[a-zA-Z0-9_-]{1,64}$')
+      - logging_pki_wait_attempts | int >= 1
+      - logging_pki_wait_attempts | int <= 120
+      - logging_pki_wait_seconds | int >= 1
+      - logging_pki_wait_seconds | int <= 30
+      - logging_authority_requests | length > 0
+      - logging_authority_requests | map(attribute='name') | unique | length == logging_authority_requests | length
+    fail_msg: >-
+      Use the active pinned infrastructure issuer with openxpki_activate_runtime and
+      openxpki_managed_cli enabled in its accepted issuer inputs, plus an absolute controller output directory.
+
+- name: Read the established runtime binding
+  ansible.builtin.slurp:
+    src: "{{ openxpki_data_mount }}/deployment.json"
+  register: logging_pki_binding
+  no_log: true
+
+- name: Match the original configuration and package binding
+  ansible.builtin.assert:
+    that:
+      - (logging_pki_binding.content | b64decode | from_json).configuration_sha256 == openxpki_configuration_sha256
+      - (logging_pki_binding.content | b64decode | from_json).package_versions == openxpki_package_versions
+  no_log: true
+
+- name: Check the installed native CLI package version
+  ansible.builtin.command:
+    argv: [dpkg-query, --show, '--showformat=${Version}', libopenxpki-perl]
+  register: logging_pki_package
+  changed_when: false
+
+- name: Require the accepted native package
+  ansible.builtin.assert:
+    that: logging_pki_package.stdout == openxpki_package_versions['libopenxpki-perl']
+
+- name: Inspect original public trust identities
+  community.crypto.x509_certificate_info:
+    path: "{{ item }}"
+    valid_at:
+      now: '+0s'
+  loop: ["{{ logging_pki_root }}", "{{ logging_pki_issuer }}"]
+  register: logging_pki_trust
+
+- name: Require the pinned valid root and issuer
+  ansible.builtin.assert:
+    that:
+      - logging_pki_trust.results[0].fingerprints.sha256 | lower == openxpki_root_fingerprint | lower
+      - logging_pki_trust.results[1].fingerprints.sha256 | lower == openxpki_issuer_fingerprint | lower
+      - logging_pki_trust.results[0].valid_at.now
+      - logging_pki_trust.results[1].valid_at.now
+      - "'CA:TRUE' in logging_pki_trust.results[0].basic_constraints"
+      - "'CA:TRUE' in logging_pki_trust.results[1].basic_constraints"
+
+- name: Prepare the private issuer enrollment workspace
+  ansible.builtin.file:
+    path: "{{ logging_pki_workspace }}"
+    state: directory
+    owner: "{{ logging_pki_user }}"
+    group: "{{ logging_pki_group }}"
+    mode: '0700'
+
+- name: Install the bounded native CLI adapter on the issuer
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ logging_pki_workspace }}/{{ item }}"
+    owner: "{{ logging_pki_user }}"
+    group: "{{ logging_pki_group }}"
+    mode: '0500'
+  loop: [enroll.py, native.py]
+
+- name: Prepare the controller public handoff directory
+  ansible.builtin.file:
+    path: "{{ logging_pki_public_directory }}"
+    state: directory
+    mode: '0700'
+  delegate_to: localhost
+  become: false
+
+- name: Enroll each approved logging identity
+  ansible.builtin.include_tasks: request.yml
+  loop: "{{ logging_authority_requests }}"
+  loop_control:
+    loop_var: request
+
+- name: Report enrollment state and the native approval actor
+  ansible.builtin.debug:
+    msg: >-
+      {{ logging_pki_enrollments | default([]) }}.
+      Pending workflows require a separate RA Operator in the OpenXPKI portal.
+      Rerun the same enrollment command after approval to retrieve the verified public material.
+
+- name: Require issued and verified material for every requested logging identity
+  ansible.builtin.assert:
+    that: logging_pki_verified | sort == logging_authority_requests | map(attribute='name') | sort
+    fail_msg: >-
+      Enrollment is pending. A separate RA Operator must approve the printed workflow IDs
+      in the configured OpenXPKI portal. Rerun the same logging command after approval.
+      Certificate deployment can continue when every requested identity is verified.

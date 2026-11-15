@@ -16,19 +16,19 @@ Tier 0 producers, including the receiver OS, use the same authenticated intake.
 The producer aggregate retains each source's tier ownership; the outer box scopes the retention service.
 
 **Design:** [security logging](../../01-architecture/11-operations/01-protected-logging.md).
-**Prerequisites:** accepted [receiver/archive integration](../../03-deployment/stage-02-logging/README.md)
+**Prerequisites:** accepted [receiver/archive integration](../../03-deployment/stage-03-logging/README.md)
 and recorded failure, retention, access and recovery contracts.
 
 In **`<prefix>-tier-0/`**, [receiver VM inputs](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example),
 [receiver configuration](../../../tier-0/ansible/group_vars/syslog.yml.example) and the
-[receiver recipe](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml) own `log-1` and local intake.
+[receiver workflow](../../../tier-0/ansible/playbooks/deployment/logging-workflow.yml) own `log-1` and local intake.
 [Archive inputs](../../../tier-0/ansible/group_vars/logging_archive.yml.example) and the
 [archive recipe](../../../tier-0/ansible/playbooks/deployment/logging-archive.yml) own checkpoint publication;
 [backup inputs](../../../tier-0/ansible/group_vars/logging_backup.yml.example) and the
 [backup recipe](../../../tier-0/ansible/playbooks/deployment/logging-backup.yml) own the independent pull job.
-NAS permissions/snapshots and the external watchdog are commissioned prerequisites.
-[Optional second intake](../../03-deployment/stage-02-logging/step-14b-redundant-intake.md),
-[retention locks](../../03-deployment/stage-02-logging/step-15b-retention-lock.md) and
+NAS permissions/snapshots remain commissioned prerequisites. External source heartbeats are optional until their independent monitor exists.
+[Optional second intake](../../03-deployment/stage-03-logging/step-6b-redundant-intake.md),
+[retention locks](../../03-deployment/stage-03-logging/step-7b-retention-lock.md) and
 [approved search projections](../../03-deployment/stage-08-observability/step-14b-protected-log-search.md)
 retain their separate selection and acceptance contracts.
 
@@ -190,39 +190,45 @@ This verifies readability, not live-collector HA or protection against every phy
 
 ## How is receiver configuration reapplied?
 
-**Work from:** the **Tier 0 repository root** on the approved execution host.
-**Prerequisites:** existing inventory, local `syslog.yml`, approved TLS files, the original data-volume binding
-and independent recovery. Review the failure/queue budget before any source or queue change.
+**Work in:** **`<prefix>-tier-0/`** on the approved bootstrap/controller.
 
-1. Edit `ansible/group_vars/syslog.yml` and its accepted source catalogue. Preserve the
-   existing inventory host keys, data mount/UUID, producer identities and queue state.
-2. Reconcile the supported existing receiver configuration:
+1. Edit **`ansible/group_vars/syslog.yml`** for receiver/storage/authority settings and
+   **`ansible/group_vars/logging_producers.yml`** for the selected hosts and streams.
+   Keep existing data UUIDs, issued stream names, keys and queue/cursor state.
+2. Reapply the selected workflow without Terraform:
 
-   Run from **`<prefix>-tier-0/`** on the protected execution host.
+   Run in **`<prefix>-tier-0/`**:
 
    ```bash
-   bash scripts/deploy.sh syslog --recipe maintenance
+   bash scripts/deploy.sh syslog --ansible-only
    ```
 
-3. Repeat the health, known-source-event and denied-source checks above before widening scope.
+   It reuses the protected workspace and existing setup addresses, resumes any CA approval,
+   extends the source bindings, and reconciles receiver/producer configuration.
+3. Repeat the automated retained-event check:
 
-This reconciles the baseline and [isolated receiver](../../08-reference/syslog-receiver.md)
-serially. It does not upgrade packages, delete evidence/queues, change retention or
-prove HA. Drain backlogs and preserve persist files before source/queue changes;
-remove retired firewall rules deliberately. Product operations remain project-owned procedures.
-Tier 1 search-index maintenance never grants authority to alter Tier 0 evidence.
+   Run in **`<prefix>-tier-0/`**:
 
-The [pipeline recipes](../../08-reference/logging-pipeline.md#ownership-and-entry-points)
-reconcile producers, trust, NAS publication and independent backup separately.
-Reapply the owning recipe for reviewed configuration changes; authority operations
-run only on the protected signing controller. Jobs never prune or delete evidence.
-Check `security-log-archive.timer`, `security-log-backup.timer` and producer health
-timers as well as the independently observed dead-man status. A recent checkpoint
-ping does not certify completion of NAS snapshots or a separate backup.
+   ```bash
+   bash scripts/deploy.sh syslog --ansible-only --playbook deployment/logging-verify.yml
+   ```
 
-**Expected:** only the supported receiver/baseline configuration changes; Terraform is skipped.
-**Stop/rollback:** a failed run may have applied earlier tasks. Preserve diagnostics and restore
-reviewed configuration through independent access; never clear persist files or evidence to force a retry.
+**Expected:** configured journal sources reach the active receiver with their exact certificate/source
+binding. Explicit file-stream tests cover TLS ingestion; qualify capture with a real application event.
+No new keys, directory prompts or per-host configuration files are required for routine retry.
+
+The [authority guide](../../03-deployment/stage-03-logging/procedures/producer-trust.md) covers
+renewal, external issuance and encrypted credential/Vault custody. Existing direct TLS handoffs can
+still use the explicit `deployment/foundation-logging.yml` receiver recipe; preserve that original
+trust and path selection until a reviewed cutover.
+
+Reapply [NAS/backup recipes](../../08-reference/logging-pipeline.md#ownership-and-entry-points)
+separately. Source health checks without an external URL provide local checks only, with no
+independent missed-heartbeat alert. Archive/backup pings and NAS snapshots have separate contracts.
+A recent ping does not prove HA or independent recoverability.
+
+**Stop/rollback:** retain diagnostics and restore reviewed inputs through independent access.
+Never clear data, queues, cursors or original authority material to force a retry.
 
 <a id="nas-backup-restoration"></a>
 

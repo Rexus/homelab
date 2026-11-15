@@ -1,5 +1,5 @@
 ---
-# Contract and examples: docs/03-deployment/stage-03-trust/step-1b-usb-hsm.md
+# Contract and examples: docs/03-deployment/stage-02-trust/step-1b-usb-hsm.md
 hsm_provider: ""
 hsm_provider_driver: "{{ {'picohsm': 'opensc', 'yubihsm2': 'yubihsm'}.get(hsm_provider, hsm_provider) }}"
 hsm_provider_custody_ready: false

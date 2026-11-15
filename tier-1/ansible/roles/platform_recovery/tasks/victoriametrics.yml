@@ -1,0 +1,53 @@
+---
+- name: Bind the selected metrics data claim before native restoration
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ recovery_product.claim }}"
+  register: recovery_metrics_claim
+
+- name: Require this plan's bound metrics target
+  ansible.builtin.assert:
+    that:
+      - recovery_metrics_claim.resources | length == 1
+      - recovery_metrics_claim.resources[0].status.phase == 'Bound'
+      - recovery_metrics_claim.resources[0].metadata.annotations.get('recovery.homelab/plan-sha256', '') == platform_recovery.plan_sha256
+
+- name: Render the native interruptible VictoriaMetrics restore against its selected empty claim
+  ansible.builtin.set_fact:
+    recovery_job:
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: "restore-{{ recovery_product.name }}-{{ platform_recovery.recovery_id }}"
+        namespace: "{{ recovery_product.namespace }}"
+      spec:
+        backoffLimit: 0
+        activeDeadlineSeconds: 14400
+        template:
+          metadata: {labels: {recovery.homelab/id: "{{ platform_recovery.recovery_id }}"}}
+          spec:
+            restartPolicy: Never
+            automountServiceAccountToken: false
+            initContainers:
+              - name: require-empty-metrics-target
+                image: "{{ recovery_product.python_image }}"
+                command: [python3, -c, "import os; assert not any(entry.name != 'lost+found' for entry in os.scandir('/data')), 'Restore requires an empty target' "]
+                securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+                volumeMounts: [{name: data, mountPath: /data, readOnly: true}]
+            containers:
+              - name: native-vmrestore
+                image: "{{ recovery_product.image }}"
+                args: ["-src={{ recovery_product.backup_id }}", -storageDataPath=/data]
+                env: [{name: RECOVERY_PVC_UID, value: "{{ recovery_metrics_claim.resources[0].metadata.uid }}"}]
+                envFrom: [{secretRef: {name: "{{ recovery_product.credentials_secret }}"}}]
+                volumeMounts: [{name: data, mountPath: /data}]
+            volumes:
+              - {name: data, persistentVolumeClaim: {claimName: "{{ recovery_product.claim }}"}}
+
+- name: Restore the selected vmbackup dataset while the actual instance is stopped
+  ansible.builtin.include_tasks: native-job.yml

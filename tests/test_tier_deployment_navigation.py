@@ -265,7 +265,7 @@ class DeploymentNavigation(TierRepositoryTestCase):
                 with self.subTest(tree=str(deployment), owner=root.parent.name):
                     content = root.read_text(encoding="utf-8")
                     numbers = [number for number, _, _ in steps(content)]
-                    counts = [10, 18, 16, 15, 19, 23, 22, 13, 15, 21, 7]
+                    counts = [10, 18, 15, 8, 19, 23, 22, 13, 15, 21, 7]
                     self.assertEqual(numbers, list(range(1, counts[index] + 1)),
                                      "Every operator action must remain on the numbered owner route")
                     if index < len(roots) - 1:
@@ -315,7 +315,7 @@ class DeploymentNavigation(TierRepositoryTestCase):
     def test_verified_worker_is_routed_after_the_issuer_with_real_installation_inputs(self):
         for deployment in self.deployment_roots():
             intake_root = deployment / "stage-01-software-intake"
-            trust = deployment / "stage-03-trust/README.md"
+            trust = deployment / "stage-02-trust/README.md"
             worker = trust.parent / "step-15b-verified-intake.md"
             consumers = trust.parent / "step-15b-verified-consumers.md"
             self.assertTrue(worker.is_file())
@@ -332,8 +332,9 @@ class DeploymentNavigation(TierRepositoryTestCase):
             install = re.search(r"(?m)^bash scripts/deploy\.sh intake\s*$", text)
             self.assertIsNotNone(install, "Worker path needs the real combined VM/service installer")
             prerequisite_links = list(links(worker, text[:install.start()]))
-            self.assertIn((deployment / "stage-02-logging/README.md").resolve(),
-                          [link.target for link in prerequisite_links])
+            prerequisites = text.split('**Before starting:**', 1)[1].split('**Host:**', 1)[0]
+            self.assertIn('persistent local journal', prerequisites)
+            self.assertNotIn('complete [Stage 3', prerequisites)
             self.assertTrue(any(link.target == trust.resolve() and
                                 step_at(trust.read_text(), anchors(trust.read_text()).get(link.fragment, -1)) == 14
                                 for link in prerequisite_links), "Issuer acceptance must precede worker installation")

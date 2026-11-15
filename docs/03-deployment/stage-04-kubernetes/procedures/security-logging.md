@@ -49,11 +49,11 @@ require the bootstrapped API/CNI and independently issued node credentials.
 
 - For installation in Steps 4–6: working cluster API/CNI, approved image access, independent DNS/time and an
   execution host outside the cluster; no directory, Vault or hosted delivery dependency.
-- Existing [protected Tier 0 intake](../../stage-02-logging/procedures/receiver.md), its trusted
+- Existing [protected Tier 0 intake](../../stage-03-logging/procedures/receiver.md), its trusted
   server identity and network access from each receiver-observed node/NAT address.
 - Before applying collectors: independently issued **client-auth leaf** certificate and matching private key
   per node, plus the public receiver/client CA bundle. Obtain these through the
-  [independent producer authority](../../stage-02-logging/procedures/producer-trust.md) or an
+  [selected logging authority](../../stage-03-logging/procedures/producer-trust.md) or an
   accepted equivalent. The role generates no certificates, keys or tokens.
 - Native `kubernetes.core`, `ansible.utils` and `community.crypto` collections;
   Helm, `kubernetes`, `jsonpatch`, PyYAML, `netaddr` and `cryptography` on the execution host.
@@ -241,7 +241,7 @@ collector starts; Talos's first hop is not a durable acknowledged queue. Set
 ## Step 4: Enroll node streams
 
 Merge the rendered `receiver-sources.yml` entries into Tier 0's existing
-catalogue, then use the [receiver procedure](../../stage-02-logging/procedures/receiver.md).
+catalogue, then use the [receiver procedure](../../stage-03-logging/procedures/receiver.md).
 **Do not load that partial file as replacement extra-vars for the whole source
 catalogue.** Preserve other producers. Confirm node/NAT origins, CN and exact
 certificate subjects; narrow network rules for these observed addresses.
@@ -318,7 +318,7 @@ Application metrics/OTLP follow their own deployment path, not this syslog outpu
 | Pod logs | Emit a unique marker from a disposable pod on each node; confirm raw CRI line and source-file metadata at intake |
 | Authentication | Receiver records expected peer CN/IP; wrong client/subject/origin is rejected, and wrong receiver name/CA fails at the collector |
 | Outage/restart | Interrupt only the test destination; observe bounded backlog, resume, restart and account for gaps/duplicates |
-| Custody | Continue Stage 2 evidence/checkpoint/archive checks; TCP acceptance is not an archive commit receipt |
+| Custody | Continue Stage 3 evidence/checkpoint/archive checks; TCP acceptance is not an archive commit receipt |
 
 Collectors preserve raw lines rather than selecting a single JSON message field.
 RFC5424 app names distinguish `talos`, `kube-audit` and `kube-pods`; structured

@@ -52,7 +52,7 @@ the prefix if customized. Each README is a developer-owned starter template.
 Track completed deployment paths and options in `<prefix>-architecture/deployments.md`.
 
 The [deployment checklist](docs/06-paths/tier-0/README.md#deployment-order) leads
-from foundation prerequisites through software intake, protected logging, trust, Kubernetes, identity,
+from foundation prerequisites through software intake, trust, protected logging, Kubernetes, identity,
 shared services and controlled automation. Each capability has a numbered deployment path.
 Use `<prefix>-architecture/docs/README.md` for selected design and evidence links,
 and `deployments.md` beside its root README for completed paths and options. These lead to the `docs/auto-docs/` manual;
@@ -94,7 +94,7 @@ README/prose differences are omitted; project documents stay protected.
 | Back up or recover a VM, host or platform | [Operations and recovery](docs/05-operations/README.md) |
 | Find implementation files | [Automation layout](docs/04-development/code-layout.md) |
 | Handle secrets | [Secret strategy](docs/05-operations/03-cryptography/secret-handling.md) |
-| Deploy private PKI and public HTTPS | [Software-backed PKI](docs/03-deployment/stage-03-trust/procedures/software-pki.md) |
+| Deploy private PKI and public HTTPS | [Software-backed PKI](docs/03-deployment/stage-02-trust/procedures/software-pki.md) |
 
 ## Repository Structure
 

@@ -46,7 +46,7 @@
       - item is match('^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')
       - >-
         item not in ['default', 'kube-system', 'kube-public', 'kube-node-lease', 'flux-system',
-          'delivery-promotion', 'cert-manager', 'ingress-system', 'csi-nfs', 'ceph-csi-rbd',
+          'delivery-promotion', 'delivery-promotion-authority', 'cert-manager', 'ingress-system', 'csi-nfs', 'ceph-csi-rbd',
           'cnpg-system', 'databases', 'delivery', 'spinnaker', 'harbor', 'argocd', 'observability',
           'netdata', 'operations', 'gitlab', 'gitlab-runner', 'ci-jobs', 'cattle-system', 'security-logging']
       - item not in cluster_platform_flux_additional_platform_namespaces

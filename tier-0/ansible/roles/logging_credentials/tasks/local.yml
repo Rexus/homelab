@@ -1,0 +1,148 @@
+---
+- name: Inspect original logging ciphertext, unlock file and authority key
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+    get_checksum: false
+    get_mime: false
+    get_attributes: false
+  loop:
+    - "{{ logging_credentials_file }}"
+    - "{{ logging_credentials_password_file }}"
+    - "{{ logging_credentials_authority_key_file }}"
+  register: logging_credentials_original_files
+
+- name: Refuse partial credential recovery before creating or changing files
+  ansible.builtin.assert:
+    quiet: true
+    that:
+      - not (item.stat.islnk | default(false))
+      - not item.stat.exists or item.stat.isreg | default(false)
+      - not item.stat.exists or item.stat.uid == logging_credentials_controller_uid.stdout | int
+      - not item.stat.exists or item.stat.mode == '0600'
+      - >-
+        not logging_credentials_original_files.results[0].stat.exists
+        or logging_credentials_original_files.results[1].stat.exists
+      - >-
+        logging_credentials_original_files.results[0].stat.exists
+        or logging_credentials_operation == 'initialize'
+      - >-
+        logging_credentials_original_files.results[0].stat.exists
+        or not logging_credentials_original_files.results[2].stat.exists
+        or (logging_credentials_seed | length > 0)
+    fail_msg: >-
+      Restore the original ciphertext and its separately stored unlock file. An existing authority key
+      requires its retained passphrase; initialization never generates a replacement for an existing key.
+  loop: "{{ logging_credentials_original_files.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Prepare private logging recovery directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0700'
+  loop:
+    - "{{ logging_credentials_workspace }}"
+    - "{{ logging_credentials_directory }}"
+    - "{{ logging_credentials_password_directory }}"
+  when: logging_credentials_operation == 'initialize'
+
+- name: Create only the missing independent encrypted logging input
+  when: not logging_credentials_original_files.results[0].stat.exists
+  block:
+    - name: Acquire the logging credential initialization lock
+      ansible.builtin.command:
+        argv: [mkdir, '--mode=0700', '--', "{{ logging_credentials_directory }}/.initialize-lock"]
+      changed_when: true
+
+    - name: Initialize under exclusive local custody
+      block:
+        - name: Select the retained legacy passphrase or generate one for a new authority
+          ansible.builtin.set_fact:
+            logging_credentials_document:
+              version: 1
+              secrets: >-
+                {{ logging_credentials_seed if logging_credentials_seed | length > 0
+                else {'authority_passphrase': lookup('ansible.builtin.password', '/dev/null',
+                length=64, chars=['ascii_letters', 'digits'])} }}
+          no_log: true
+
+        - name: Validate selected initial credentials before persisting anything
+          ansible.builtin.include_tasks: validate.yml
+
+        - name: Verify a retained legacy passphrase against its actual authority key before storing it
+          ansible.builtin.include_tasks: adopt.yml
+          when: logging_credentials_original_files.results[2].stat.exists
+
+        - name: Retain a separate unlock password without replacing an existing file
+          ansible.builtin.copy:
+            dest: "{{ logging_credentials_password_file }}"
+            content: "{{ lookup('ansible.builtin.password', '/dev/null', length=80, chars=['ascii_letters', 'digits']) }}\n"
+            force: false
+            mode: '0600'
+          no_log: true
+          diff: false
+
+        - name: Encrypt YAML from stdin using native Ansible Vault without a plaintext staging file
+          ansible.builtin.command:
+            argv:
+              - "{{ ansible_playbook_python | dirname }}/ansible-vault"
+              - encrypt
+              - --vault-password-file
+              - "{{ logging_credentials_password_file }}"
+              - --output
+              - '-'
+            stdin: "{{ logging_credentials_document | to_nice_yaml }}"
+            stdin_add_newline: false
+          register: logging_credentials_encrypted
+          changed_when: false
+          no_log: true
+
+        - name: Save ciphertext atomically without overwriting retained recovery inputs
+          ansible.builtin.copy:
+            dest: "{{ logging_credentials_file }}"
+            content: "{{ logging_credentials_encrypted.stdout }}\n"
+            decrypt: false
+            force: false
+            mode: '0600'
+          no_log: true
+          diff: false
+      always:
+        - name: Release this operation's initialization lock
+          ansible.builtin.file:
+            path: "{{ logging_credentials_directory }}/.initialize-lock"
+            state: absent
+
+- name: Decrypt the retained input in memory using native Ansible Vault
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_playbook_python | dirname }}/ansible-vault"
+      - view
+      - --vault-password-file
+      - "{{ logging_credentials_password_file }}"
+      - "{{ logging_credentials_file }}"
+  register: logging_credentials_decrypted
+  changed_when: false
+  no_log: true
+
+- name: Require initialization readback to retain exactly the selected original secret
+  ansible.builtin.assert:
+    that:
+      - logging_credentials_decrypted.stdout | from_yaml == logging_credentials_document
+  when: not logging_credentials_original_files.results[0].stat.exists
+  no_log: true
+
+- name: Load only the selected encrypted logging document
+  ansible.builtin.set_fact:
+    logging_credentials_document: "{{ logging_credentials_decrypted.stdout | from_yaml }}"
+  no_log: true
+
+- name: Validate the original credential without accepting rotation through initialization inputs
+  ansible.builtin.include_tasks: validate.yml
+
+- name: Refuse an initial passphrase different from the already retained credential
+  ansible.builtin.assert:
+    that:
+      - logging_credentials_seed | length == 0 or logging_credentials_seed == logging_managed_secrets
+  no_log: true

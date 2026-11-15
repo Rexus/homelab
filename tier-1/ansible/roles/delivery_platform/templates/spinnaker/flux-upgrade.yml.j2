@@ -1,0 +1,54 @@
+{% set current_backup = spinnaker_upgrade_documents | selectattr('kind', 'equalto', 'Job')
+   | selectattr('metadata.name', 'equalto', 'spinnaker-backup-verify') | first %}
+{% set old_pod = current_backup.spec.template.spec %}
+{% set spinnaker_backup_mysql_image = spinnaker_upgrade_mysql_image %}
+{% set spinnaker_backup_redis_image = spinnaker_upgrade_redis_image %}
+{% set verification = lookup('ansible.builtin.template', 'spinnaker/backup-verify-containers.yml.j2') | from_yaml %}
+{% set volumes = namespace(items=[]) %}
+{% for volume in old_pod.volumes if volume.name != 'verify-mysql' %}
+{% set volumes.items = volumes.items + [
+   {'name': 'scripts', 'configMap': {'name': 'spinnaker-upgrade-' ~ spinnaker_flux_upgrade_id ~ '-scripts', 'defaultMode': 360}}
+   if volume.name == 'scripts' else volume] %}
+{% endfor %}
+{% set volumes.items = volumes.items + [{'name': 'verify-mysql', 'emptyDir': {}}] %}
+{% set copy = old_pod.containers | selectattr('name', 'equalto', 'independent-copy') | first %}
+{% set copy = copy | combine({'env': (copy.env | rejectattr('name', 'in', ['BACKUP_RECEIPT_FILE', 'BACKUP_ALLOW_INITIALIZE']) | list)
+   + [{'name': 'BACKUP_RECEIPT_FILE', 'value': '/dev/termination-log'}, {'name': 'BACKUP_ALLOW_INITIALIZE', 'value': 'false'}]}) %}
+{% set pod = old_pod | combine({'volumes': volumes.items, 'containers': [copy],
+   'initContainers': (old_pod.initContainers | rejectattr('name', 'in', ['verify-mysql-import', 'verify-redis-rdb']) | list) + verification}) %}
+{% set job = {'apiVersion': 'batch/v1', 'kind': 'Job', 'metadata': {
+   'name': 'spinnaker-upgrade-backup-' ~ spinnaker_flux_upgrade_id,
+   'namespace': delivery_platform_spinnaker_namespace},
+   'spec': {'backoffLimit': 0, 'activeDeadlineSeconds': 4500, 'template': current_backup.spec.template | combine({'spec': pod})}} %}
+---
+- name: Retain a fenced verified recovery point for this exact Spinnaker upgrade
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    spinnaker_upgrade_namespace: {{ delivery_platform_spinnaker_namespace | to_json }}
+    spinnaker_upgrade_output_root: {{ delivery_platform_output | ansible.builtin.realpath | to_json }}
+    spinnaker_upgrade_component: {{ delivery_platform_flux_component | replace('/', '-') | to_json }}
+    spinnaker_upgrade_component_path: {{ delivery_platform_flux_component | to_json }}
+    spinnaker_upgrade_id: {{ spinnaker_flux_upgrade_id | to_json }}
+    spinnaker_upgrade_source_sha256: {{ delivery_platform_spinnaker_upgrade_from_sha256 | to_json }}
+    spinnaker_upgrade_target_sha256: {{ spinnaker_flux_target_sha256 | to_json }}
+    spinnaker_upgrade_backup_job: {{ job | to_json }}
+    spinnaker_upgrade_expected_data: {{ spinnaker_upgrade_documents | selectattr('kind', 'equalto', 'StatefulSet') | list | to_json }}
+    spinnaker_upgrade_writers: {{ spinnaker_native_ports.keys() | list | to_json }}
+    spinnaker_upgrade_graph_file: {{ (delivery_platform_flux_output ~ '/' ~ delivery_platform_flux_component ~ '/reconciliation.yaml') | to_json }}
+    spinnaker_upgrade_scripts:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: spinnaker-upgrade-{{ spinnaker_flux_upgrade_id }}-scripts
+        namespace: {{ delivery_platform_spinnaker_namespace }}
+      immutable: true
+      data:
+        backup-restic.sh: {{ lookup('ansible.builtin.file', 'spinnaker/backup-restic.sh') | to_json }}
+        filesystem-repository.sh: {{ lookup('ansible.builtin.file', 'spinnaker/filesystem-repository.sh') | to_json }}
+  tasks:
+    - name: Use the native scoped maintenance and backup lifecycle
+      ansible.builtin.include_role:
+        name: delivery_platform
+        tasks_from: spinnaker-upgrade.yml

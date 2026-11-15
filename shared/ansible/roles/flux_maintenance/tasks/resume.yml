@@ -1,0 +1,76 @@
+---
+- name: Validate deliberate handoff of previously suspended recovery resources
+  ansible.builtin.assert:
+    that:
+      - >-
+        flux_maintenance_resume_suspended_uids | difference(
+          flux_maintenance_scope_receipt.resources.values()
+          | selectattr('previous_suspend', 'equalto', true) | map(attribute='uid') | list) | length == 0
+    fail_msg: Only exact retained UIDs captured as suspended can be deliberately handed to active reconciliation.
+
+- name: Require exact completed recovery verification identities before any resource resumes
+  ansible.builtin.assert:
+    that:
+      - item.kind == 'Job'
+      - item.uid | default('') | length > 0
+      - item.namespace | length > 0
+      - item.name | length > 0
+      - item.api_version == 'batch/v1'
+    fail_msg: Supply actual completed verification Job identities and UIDs from the selected recovery run.
+  loop: "{{ flux_maintenance_resume_checks }}"
+
+- name: Verify each recovery result against the current Kubernetes Job
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    namespace: "{{ item.namespace }}"
+    name: "{{ item.name }}"
+  loop: "{{ flux_maintenance_resume_checks }}"
+  register: flux_maintenance_verified
+  failed_when: >-
+    flux_maintenance_verified.resources | length != 1 or
+    flux_maintenance_verified.resources[0].metadata.uid != item.uid or
+    flux_maintenance_verified.resources[0].status.get('conditions', [])
+      | selectattr('type', 'equalto', 'Complete') | selectattr('status', 'equalto', 'True') | list | length != 1 or
+    flux_maintenance_verified.resources[0].status.get('active', 0) | int != 0 or
+    flux_maintenance_verified.resources[0].status.get('conditions', [])
+      | selectattr('type', 'equalto', 'Failed') | selectattr('status', 'equalto', 'True') | list | length != 0
+
+- name: Record the controlled resumption checkpoint before unfencing
+  ansible.builtin.set_fact:
+    flux_maintenance_scope_receipt: "{{ flux_maintenance_scope_receipt | combine({'phase': 'resuming'}) }}"
+
+- name: Preserve the original states through an interrupted resume
+  ansible.builtin.copy:
+    dest: "{{ flux_maintenance_output }}/scope-receipt.json"
+    content: "{{ flux_maintenance_scope_receipt | to_nice_json }}"
+    mode: '0600'
+
+- name: Restore each stopped writer only after verification succeeds
+  ansible.builtin.include_tasks: writer-resource.yml
+  vars:
+    writer_resource: "{{ item.value }}"
+    writer_resume: true
+  loop: "{{ flux_maintenance_scope_receipt.writers | default({}) | dict2items }}"
+  loop_control: {label: "{{ item.key }}"}
+
+- name: Resume previous active resources in native dependency order
+  ansible.builtin.include_tasks: resume-resource.yml
+  vars:
+    scope_resource: "{{ flux_maintenance_scope_receipt.resources[scope_key] }}"
+  loop: "{{ flux_maintenance_scope_receipt.resume_order }}"
+  loop_control: {loop_var: scope_key}
+
+- name: Restore parent management only after every dependency has resumed
+  ansible.builtin.include_tasks: scope-resource.yml
+  vars:
+    scope_resource: "{{ item.value }}"
+    scope_suspend: "{{ item.value.previous_suspend and item.value.uid not in flux_maintenance_resume_suspended_uids }}"
+    # Retain protection for intentional pauses even if a parent declares suspend=false.
+    scope_restore_reconcile: >-
+      {{ not item.value.previous_suspend or item.value.uid in flux_maintenance_resume_suspended_uids }}
+  loop: "{{ flux_maintenance_scope_receipt.resources | dict2items }}"
+  loop_control: {label: "{{ item.key }}"}

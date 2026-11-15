@@ -15,6 +15,8 @@ editor configured without plaintext backup/swap files for secret editing.
 
 ## Tasks
 
+- [How is the independent logging secret generated and migrated?](#logging-secret-custody)
+
 - [Which files can be encrypted?](#which-files-can-be-encrypted)
 - [How are bootstrap passwords injected without a secret file?](#environment-injection)
 - [How is an encrypted secret file created and used?](#encrypted-secret-file)
@@ -193,6 +195,18 @@ Rekey other files deliberately; old encrypted backups still need their old passw
   Reverting the file is insufficient after the service has already changed its account.
 - Keep private keys and independent recovery copies outside Git and CI logs.
   See the [credential operations map](secret-handling.md) for service-specific routes.
+
+<a id="logging-secret-custody"></a>
+
+## How is the independent logging secret generated and migrated?
+
+The independent logging workflow creates its native Ansible Vault encrypted secret and a separate
+private unlock file automatically; repeated runs retain both. The default infrastructure-PKI mode
+keeps signing secrets with the established CA and does not create an unused logging CA password.
+
+Use the [logging custody and KVv2 migration runbook](../../03-deployment/stage-03-logging/procedures/producer-trust.md#secret-custody-and-vault-migration)
+for exact locations, verified migration/readback commands and recovery without Vault.
+It retains the local encrypted recovery copy and rejects a different remote secret or silent fallback.
 
 ## References
 

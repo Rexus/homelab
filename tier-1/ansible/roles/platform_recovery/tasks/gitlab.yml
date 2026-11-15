@@ -1,0 +1,44 @@
+---
+- name: Require the exact retained GitLab CE Toolbox workload
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: Deployment
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ recovery_product.toolbox }}"
+  register: recovery_gitlab_toolbox
+
+- name: Reject another GitLab version or edition before native restore
+  ansible.builtin.assert:
+    that:
+      - recovery_gitlab_toolbox.resources | length == 1
+      - recovery_gitlab_toolbox.resources[0].spec.template.spec.containers[0].image == recovery_product.image
+      - recovery_product.backup_id is match('^[a-zA-Z0-9_.-]+$')
+      - recovery_product.edition == 'ce'
+
+- name: Render a retained native GitLab restore Job from the accepted Toolbox template
+  ansible.builtin.set_fact:
+    recovery_job:
+      apiVersion: batch/v1
+      kind: Job
+      metadata:
+        name: "restore-{{ recovery_product.name }}-{{ platform_recovery.recovery_id }}"
+        namespace: "{{ recovery_product.namespace }}"
+      spec:
+        backoffLimit: 0
+        activeDeadlineSeconds: 14400
+        template: >-
+          {{ recovery_gitlab_toolbox.resources[0].spec.template | combine({'spec':
+             recovery_gitlab_toolbox.resources[0].spec.template.spec | combine({
+               'restartPolicy': 'Never', 'containers': [
+                 recovery_gitlab_toolbox.resources[0].spec.template.spec.containers[0] | combine({
+                   'command': ['/bin/bash', '-ec'],
+                   'args': ['backup-utility --restore -t "$BACKUP_ID"; gitlab-rake gitlab:check SANITIZE=true; gitlab-rake gitlab:doctor:secrets'],
+                   'env': recovery_gitlab_toolbox.resources[0].spec.template.spec.containers[0].env | default([]) + [
+                     {'name': 'BACKUP_ID', 'value': recovery_product.backup_id},
+                     {'name': 'GITLAB_ASSUME_YES', 'value': '1'}]})]})}) }}
+
+- name: Restore native GitLab datasets with database clients and runners stopped
+  ansible.builtin.include_tasks: native-job.yml

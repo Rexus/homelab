@@ -10,7 +10,7 @@
       - syslog_ng_listen_address not in ['0.0.0.0', '127.0.0.1']
       - syslog_ng_tls_port | int > 0 and syslog_ng_tls_port | int < 65536
       - syslog_ng_udp_port | int > 0 and syslog_ng_udp_port | int < 65536
-      - syslog_ng_sources | length > 0
+      - (syslog_ng_effective_sources | default(syslog_ng_sources)) | length > 0
       - syslog_ng_tls_ca_src | length > 0
       - syslog_ng_tls_cert_src | length > 0
       - syslog_ng_tls_key_src | length > 0
@@ -21,7 +21,7 @@
     fail_msg: >-
       The receiver supports EL 10, a dedicated data volume,
       an explicit IPv4 bind address, client catalogue and independent TLS files.
-      Follow docs/03-deployment/stage-02-logging/procedures/receiver.md before installation.
+      Follow docs/03-deployment/stage-03-logging/procedures/receiver.md before installation.
 
 - name: Validate server-owned source namespaces
   ansible.builtin.assert:
@@ -29,7 +29,7 @@
       - item.name is match('^[a-z][a-z0-9_-]{0,62}$')
       - item.address is match('^[0-9.]+$')
       - item.tier in [0, 1, 2]
-  loop: "{{ syslog_ng_sources + syslog_ng_legacy_sources }}"
+  loop: "{{ (syslog_ng_effective_sources | default(syslog_ng_sources)) + syslog_ng_legacy_sources }}"
   loop_control:
     label: "{{ item.name | default('missing source name') }}"
 
@@ -38,7 +38,7 @@
     that:
       - item.tls_dn is match('^[A-Za-z0-9=, ._@/-]+$')
       - ('CN=' ~ item.name) in item.tls_dn.split(',') | map('trim') | list
-  loop: "{{ syslog_ng_sources }}"
+  loop: "{{ (syslog_ng_effective_sources | default(syslog_ng_sources)) }}"
   loop_control:
     label: "{{ item.name }}"
 
@@ -46,8 +46,8 @@
   ansible.builtin.assert:
     that:
       - >-
-        (syslog_ng_sources + syslog_ng_legacy_sources) | map(attribute='name') | unique | length ==
-        (syslog_ng_sources + syslog_ng_legacy_sources) | length
+        ((syslog_ng_effective_sources | default(syslog_ng_sources)) + syslog_ng_legacy_sources) | map(attribute='name') | unique | length ==
+        ((syslog_ng_effective_sources | default(syslog_ng_sources)) + syslog_ng_legacy_sources) | length
       - >-
         syslog_ng_legacy_sources | map(attribute='address') | unique | length ==
         syslog_ng_legacy_sources | length

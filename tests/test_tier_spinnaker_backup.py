@@ -30,8 +30,10 @@ class RepositoryStorageInputs(unittest.TestCase):
         self.assertEqual(example["delivery_platform_spinnaker_backup_backend"], "filesystem")
         guide = (UPSTREAM / "docs/03-deployment/stage-07-delivery/step-2b-spinnaker.md").read_text()
         diagram = guide.split("```mermaid", 1)[1].split("```", 1)[0]
-        self.assertIn(example["delivery_platform_spinnaker_backup_filesystem_claim"], diagram)
-        self.assertIn("Existing NAS / backup file area", diagram)
+        self.assertIn("Existing NAS", diagram)
+        self.assertIn("Independent restic repository", diagram)
+        self.assertIn("`filesystem_claim`", guide)
+        self.assertIn("`delivery_platform_spinnaker_backup_`", guide)
         self.assertNotIn("S3-compatible", diagram)
 
 
@@ -148,6 +150,15 @@ class FilesystemBackup(unittest.TestCase):
         (self.staged / "redis.rdb").unlink()
         self.assertNotEqual(self.backup().returncode, 0)
         self.assertEqual(json.loads(self.restic("snapshots", "--json").stdout) or [], [])
+
+    def test_upgrade_cannot_initialize_a_missing_independent_repository(self):
+        missing = self.work / "missing-independent-repository"
+        result = self.backup(BACKUP_BACKEND="s3", BACKUP_ALLOW_INITIALIZE="false",
+            RESTIC_REPOSITORY=str(missing), RESTIC_CACERT="/etc/ssl/certs/ca-certificates.crt")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("lifecycle backup cannot initialize", result.stderr)
+        self.assertFalse((missing / "config").exists())
+        self.assertTrue((self.staged / "mysql.sql.gz").exists())
 
     def test_missing_mount_config_and_symlink_escape_never_initialize_or_fall_back(self):
         # Even a valid repository and marker inside an ordinary directory must fail the mount check.

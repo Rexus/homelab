@@ -1,0 +1,180 @@
+{
+  "version": 1,
+  "scope": "tier1",
+  "recovery_id": "restore-2026-01",
+  "package": {
+    "directory": "/srv/custody/tier1-package",
+    "manifest_sha256": "REPLACE_WITH_ACCEPTED_MANIFEST_SHA256",
+    "artifact_lock_sha256": "REPLACE_WITH_ACCEPTED_ARTIFACT_LOCK_SHA256",
+    "sources": {
+      "platform": "REPLACE_WITH_ACCEPTED_BOOTSTRAP_COMMIT",
+      "tier1-platform": "REPLACE_WITH_ACCEPTED_PLATFORM_COMMIT",
+      "tier1-applications": "REPLACE_WITH_ACCEPTED_APPLICATION_COMMIT"
+    }
+  },
+  "automation": {
+    "tier-1": {
+      "directory": "/srv/custody/homelab-tier-1",
+      "commit": "REPLACE_WITH_RETAINED_AUTOMATION_COMMIT",
+      "private_files": [
+        {"path": "ansible/inventory/recovery.yml", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "ansible/inventory/hosts.yml", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "ansible/group_vars/talos.yml", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "terraform/deployments/kubernetes/terraform.tfvars", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/recovery-git.yml", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": ".env.local", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/registry-auth.json", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/source-identity", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/source-known-hosts", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/bootstrap-source.yml", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/platform-source.yml", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/application-source.yml", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/bootstrap.agekey", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/platform.agekey", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/applications.agekey", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/bootstrap-recovery.yml", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/recovery-resources.yml", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/restore-engines.yml", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "secrets/harbor-retained.yml", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": ".terraform/state/talos/terraform.tfstate", "sha256": "REPLACE_WITH_SHA256"}
+      ]
+    },
+    "shared": {
+      "directory": "/srv/custody/homelab-shared",
+      "commit": "REPLACE_WITH_RETAINED_SHARED_COMMIT",
+      "private_files": [
+        {"path": "config/platform.tfvars", "sha256": "REPLACE_WITH_SHA256"},
+        {"path": "templates/proxmox-catalog.tfvars", "sha256": "REPLACE_WITH_SHA256"}
+      ]
+    }
+  },
+  "inventory": "tier-1/ansible/inventory/recovery.yml",
+  "recovery_git_inputs": "tier-1/secrets/recovery-git.yml",
+  "artifact_supply": [
+    {"kind": "oci", "path": "images/velero.tar", "digest": "REPLACE_WITH_IMAGE_MANIFEST_SHA256",
+     "destination": "recovery.internal.example.com/velero", "auth_file": "tier-1/secrets/registry-auth.json"}
+  ],
+  "virtual_machines": [],
+  "clusters": [
+    {
+      "tier": 1,
+      "mode": "clean",
+      "kubeconfig": "tier-1/secrets/talos/kubeconfig",
+      "context": "tier1-recovery",
+      "api_server": "https://192.0.2.10:6443",
+      "previous_namespace_uid": "REPLACE_WITH_ORIGINAL_KUBE_SYSTEM_UID",
+      "canary_sha256": "REPLACE_WITH_RETAINED_DECRYPTED_CANARY_SHA256",
+      "bootstrap_inputs": "tier-1/secrets/bootstrap-recovery.yml",
+      "provider_environment": "tier-1/.env.local",
+      "bootstrap_images": [
+        "factory.talos.dev/installer/REPLACE_WITH_ACCEPTED_SCHEMATIC:REPLACE_WITH_TALOS_VERSION",
+        "ghcr.io/siderolabs/kubelet:REPLACE_WITH_KUBERNETES_VERSION",
+        "registry.k8s.io/kube-apiserver:REPLACE_WITH_KUBERNETES_VERSION",
+        "registry.k8s.io/kube-controller-manager:REPLACE_WITH_KUBERNETES_VERSION",
+        "registry.k8s.io/kube-scheduler:REPLACE_WITH_KUBERNETES_VERSION",
+        "registry.k8s.io/etcd:REPLACE_WITH_ACCEPTED_ETCD_VERSION"
+      ],
+      "registry_mirrors": {
+        "factory.talos.dev": "recovery.internal.example.com",
+        "ghcr.io": "recovery.internal.example.com",
+        "registry.k8s.io": "recovery.internal.example.com",
+        "docker.io": "recovery.internal.example.com"
+      },
+      "source_age_keys": {
+        "platform": "tier-1/secrets/bootstrap.agekey",
+        "tier1-platform": "tier-1/secrets/platform.agekey",
+        "tier1-applications": "tier-1/secrets/applications.agekey"
+      },
+      "helm_releases": [],
+      "recovery_bridge": "vmbr9",
+      "nodes": [
+        {"name": "pctl-1", "node": "pve01", "vmid": 1101},
+        {"name": "pctl-2", "node": "pve02", "vmid": 1102},
+        {"name": "pctl-3", "node": "pve03", "vmid": 1103}
+      ],
+      "restore_resources": "tier-1/secrets/recovery-resources.yml",
+      "restore_engines": "tier-1/secrets/restore-engines.yml",
+      "restore_engine_health": [{"namespace": "velero", "name": "velero"}],
+      "suspend_roots": ["platform", "tier1-platform", "tier1-applications"]
+    }
+  ],
+  "products": [
+    {
+      "tier": 1,
+      "kind": "harbor",
+      "name": "harbor",
+      "namespace": "harbor",
+      "namespace_uid": "new",
+      "backup_id": "harbor-2026-01-01",
+      "backup_uid": "new",
+      "backup_spec_sha256": "REPLACE_WITH_CANONICAL_NATIVE_BACKUP_SPEC_SHA256",
+      "secrets_file": "tier-1/secrets/harbor-retained.yml",
+      "data_claims": [
+        "data-harbor-redis-0",
+        "data-harbor-trivy-0",
+        "database-data-harbor-database-0",
+        "harbor-jobservice",
+        "harbor-registry"
+      ],
+      "writers": [
+        {"kind": "Deployment", "name": "harbor-core"},
+        {"kind": "Deployment", "name": "harbor-jobservice"},
+        {"kind": "Deployment", "name": "harbor-registry"},
+        {"kind": "Deployment", "name": "harbor-portal"},
+        {"kind": "StatefulSet", "name": "harbor-redis"},
+        {"kind": "StatefulSet", "name": "harbor-database"},
+        {"kind": "StatefulSet", "name": "harbor-trivy"}
+      ],
+      "verification_workloads": [
+        {"kind": "StatefulSet", "name": "harbor-database", "replicas": 1},
+        {"kind": "StatefulSet", "name": "harbor-redis", "replicas": 1},
+        {"kind": "Deployment", "name": "harbor-registry", "replicas": 1},
+        {"kind": "Deployment", "name": "harbor-portal", "replicas": 1},
+        {"kind": "Deployment", "name": "harbor-core", "replicas": 1}
+      ],
+      "python_image": "recovery.internal.example.com/python@sha256:REPLACE_WITH_RETAINED_DIGEST",
+      "verification_labels": {"recovery.homelab/product": "harbor"},
+      "verification_ca_secret": "recovery-ca",
+      "verification_headers_secret": "recovery-reader",
+      "checks": [
+        {"url": "https://registry.internal.example.com/v2/retained/manifests/accepted", "status": 200,
+         "authenticated": true, "content_sha256": "REPLACE_WITH_RETAINED_MANIFEST_CONTENT_SHA256"},
+        {"url": "https://registry.internal.example.com/v2/restricted/tags/list", "status": 401}
+      ]
+    }
+  ],
+  "cutover": {
+    "resume_roots": ["platform", "tier1-platform", "tier1-applications"],
+    "sources": {
+      "platform": {
+        "url": "ssh://git@git.internal.example.com/platform/bootstrap.git",
+        "ref": "refs/heads/recovery-inputs", "secret_name": "platform-git",
+        "identity_file": "tier-1/secrets/source-identity", "known_hosts_file": "tier-1/secrets/source-known-hosts",
+        "secret_file": "tier-1/secrets/bootstrap-source.yml"
+      },
+      "tier1-platform": {
+        "url": "ssh://git@git.internal.example.com/platform/tier1.git",
+        "ref": "refs/heads/recovery-inputs", "secret_name": "tier1-platform-git",
+        "identity_file": "tier-1/secrets/source-identity", "known_hosts_file": "tier-1/secrets/source-known-hosts",
+        "secret_file": "tier-1/secrets/platform-source.yml"
+      },
+      "tier1-applications": {
+        "url": "ssh://git@git.internal.example.com/applications/tier1.git",
+        "ref": "refs/heads/delivery", "secret_name": "application-git",
+        "identity_file": "tier-1/secrets/source-identity", "known_hosts_file": "tier-1/secrets/source-known-hosts",
+        "secret_file": "tier-1/secrets/application-source.yml"
+      }
+    },
+    "health_checks": [
+      {"api_version": "apps/v1", "kind": "Deployment", "namespace": "harbor", "name": "harbor-core"}
+    ],
+    "virtual_machines": [
+      {"node": "pve01", "vmid": 1101,
+       "network": [{"name": "net0", "configuration": "virtio=02:00:00:00:13:00,bridge=app,firewall=1"}]},
+      {"node": "pve02", "vmid": 1102,
+       "network": [{"name": "net0", "configuration": "virtio=02:00:00:00:13:01,bridge=app,firewall=1"}]},
+      {"node": "pve03", "vmid": 1103,
+       "network": [{"name": "net0", "configuration": "virtio=02:00:00:00:13:02,bridge=app,firewall=1"}]}
+    ]
+  }
+}

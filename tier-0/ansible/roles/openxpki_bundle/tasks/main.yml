@@ -107,6 +107,14 @@
 - name: Apply restrictive site policy through native configuration
   ansible.builtin.import_tasks: policy.yml
 
+- name: Include independently approved logging leaf profiles in the immutable bundle
+  ansible.builtin.include_role:
+    name: logging_pki
+    tasks_from: profiles
+  vars:
+    logging_pki_profile_directory: >-
+      {{ openxpki_bundle_directory }}/bundle/config.d/realm/{{ openxpki_bundle_realm }}/profile
+
 - name: Prepare authenticated native administrative access
   ansible.builtin.import_tasks: cli.yml
 

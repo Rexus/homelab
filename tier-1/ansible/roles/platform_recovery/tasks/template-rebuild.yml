@@ -1,0 +1,105 @@
+---
+- name: Prepare private recovery publication outputs
+  ansible.builtin.file:
+    path: "{{ platform_recovery.workspace }}/tier-0/secrets"
+    state: directory
+    mode: '0700'
+
+- name: Retain the original consumer references while publication updates an evidence copy
+  ansible.builtin.copy:
+    src: "{{ platform_recovery.workspace }}/shared/templates/proxmox-catalog.tfvars"
+    dest: "{{ platform_recovery.workspace }}/tier-0/secrets/template-consumer-catalog.tfvars"
+    force: false
+    mode: '0600'
+
+- name: Load the retained Tier 0 publication catalog
+  ansible.builtin.include_vars:
+    file: "{{ platform_recovery.workspace }}/{{ platform_recovery.template_rebuild.catalog }}"
+    name: recovery_template_catalog
+
+- name: Require one independently locked image asset for every retained template
+  ansible.builtin.assert:
+    that:
+      - recovery_template_catalog.templates.keys() | sort == platform_recovery.template_rebuild.assets.keys() | sort
+    fail_msg: Retain the complete selected template catalog and its exact image files before rebuilding clusters.
+
+- name: Inspect the actual retained image bytes before publishing
+  ansible.builtin.stat:
+    path: "{{ platform_recovery.package_directory }}/artifacts/{{ platform_recovery.template_rebuild.assets[item.key] }}"
+    checksum_algorithm: sha256
+    get_checksum: true
+  loop: "{{ recovery_template_catalog.templates | dict2items }}"
+  register: recovery_template_assets
+
+- name: Bind each native publication to its independently accepted source checksum
+  ansible.builtin.assert:
+    that:
+      - item.stat.isreg | default(false)
+      - item.stat.checksum == item.item.value.sha256
+  loop: "{{ recovery_template_assets.results }}"
+
+- name: Prepare the working publication catalog without changing the retained original
+  ansible.builtin.set_fact:
+    recovery_template_builds: {}
+
+- name: Resolve each image path to the independently verified local asset
+  ansible.builtin.set_fact:
+    recovery_template_builds: >-
+      {{ recovery_template_builds | combine({item.key: item.value | combine({
+        'image_path': platform_recovery.package_directory ~ '/artifacts/' ~ platform_recovery.template_rebuild.assets[item.key]})}) }}
+  loop: "{{ recovery_template_catalog.templates | dict2items }}"
+
+- name: Write the recovery publication inputs in the private working copy
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/tier-0/secrets/template-recovery.yml"
+    mode: '0600'
+    content: "{{ recovery_template_catalog | combine({'templates': recovery_template_builds}) | to_nice_yaml }}"
+
+- name: Plan publication through the existing native template entry point
+  ansible.builtin.command:
+    argv: [bash, scripts/proxmox-templates.sh, plan, --env-file,
+           "{{ platform_recovery.workspace }}/{{ platform_recovery.template_rebuild.provider_environment }}"]
+    chdir: "{{ platform_recovery.workspace }}/tier-0"
+  environment:
+    TEMPLATE_CATALOG_FILE: "{{ platform_recovery.workspace }}/tier-0/secrets/template-recovery.yml"
+    TEMPLATE_SHARED_CATALOG_FILE: "{{ platform_recovery.workspace }}/tier-0/secrets/template-consumer-catalog.tfvars"
+    TEMPLATE_RUNTIME_MODE: check
+  changed_when: true
+
+- name: Inspect the exact saved template publication plan before applying it
+  ansible.builtin.command:
+    argv: [terraform, "-chdir={{ platform_recovery.workspace }}/tier-0/terraform/deployments/templates",
+           show, -json, "{{ platform_recovery.workspace }}/tier-0/.terraform/plans/proxmox-templates.tfplan"]
+  register: recovery_template_plan
+  environment:
+    TF_DATA_DIR: "{{ platform_recovery.workspace }}/tier-0/.terraform/data/proxmox-templates"
+  changed_when: false
+  no_log: true
+
+- name: Refuse destructive template publication in platform recovery
+  ansible.builtin.assert:
+    that:
+      - >-
+        (recovery_template_plan.stdout | from_json).get('resource_changes', [])
+          | map(attribute='change.actions') | flatten | select('equalto', 'delete') | list | length == 0
+    fail_msg: The template plan contains deletion or replacement. Preserve state and correct the accepted catalog.
+
+- name: Apply and verify the native template publication before cluster cloning
+  ansible.builtin.command:
+    argv: [bash, scripts/proxmox-templates.sh, "{{ item }}", --env-file,
+           "{{ platform_recovery.workspace }}/{{ platform_recovery.template_rebuild.provider_environment }}"]
+    chdir: "{{ platform_recovery.workspace }}/tier-0"
+  environment:
+    TEMPLATE_CATALOG_FILE: "{{ platform_recovery.workspace }}/tier-0/secrets/template-recovery.yml"
+    TEMPLATE_SHARED_CATALOG_FILE: "{{ platform_recovery.workspace }}/tier-0/secrets/template-consumer-catalog.tfvars"
+    TEMPLATE_RUNTIME_MODE: check
+  loop: [apply, verify]
+  changed_when: item == 'apply'
+
+- name: Retain the actual completed template reconstruction boundary
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/templates.json"
+    mode: '0600'
+    content: >-
+      {{ {'plan_sha256': platform_recovery.plan_sha256,
+          'templates': recovery_template_builds | dict2items | map(attribute='value.vm_id') | list} | to_nice_json }}

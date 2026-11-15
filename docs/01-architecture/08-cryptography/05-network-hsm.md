@@ -93,7 +93,7 @@ application's state. Conversely, restoring application state is insufficient whe
 original key identity or partition credentials are unavailable. The recovery set must
 cover both sides independently of the failed service.
 
-The [network HSM procedure](../../03-deployment/stage-03-trust/step-1c-network-hsm.md)
+The [network HSM procedure](../../03-deployment/stage-02-trust/step-1c-network-hsm.md)
 owns installation and acceptance steps.
 
 ## References

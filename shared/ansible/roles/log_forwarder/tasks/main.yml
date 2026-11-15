@@ -1,4 +1,7 @@
 ---
+- name: Resolve tier-owned producer inputs and retained identities
+  ansible.builtin.import_tasks: inputs.yml
+
 - name: Validate the producer contract
   ansible.builtin.assert:
     that:
@@ -30,9 +33,15 @@
   loop_control:
     loop_var: stream
 
+- name: Validate optional independent health reporting before changing the producer
+  ansible.builtin.import_tasks: watchdog-inputs.yml
+
 - name: Prepare native keys and public certificate requests
   ansible.builtin.import_tasks: requests.yml
 
 - name: Install independent native forwarding instances
   ansible.builtin.import_tasks: install.yml
   when: log_forwarder_mode == 'install'
+
+- name: Describe the effective producer and public handoff for the owning workflow
+  ansible.builtin.import_tasks: result.yml

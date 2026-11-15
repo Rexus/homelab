@@ -64,7 +64,7 @@ Tier 0 retains separate control-service delivery and infrastructure authority; t
 
 Read the Tier 1 row as cooperating services. Source control retains reviewed definitions;
 build jobs read those definitions and publish versioned candidates. A delivery controller
-reads approved release intent and changes only its authorized application targets.
+separates release decisions from continuous reconciliation of authorized targets.
 The sequence below follows those handoffs rather than the map's placement order.
 
 Tier 0 separately accepts sources; source access does not transfer control authority.
@@ -87,30 +87,32 @@ infrastructure changes, not an installed self-service request API.
 ## Application delivery
 
 This sequence shows the handoffs between reviewed definitions, build outputs and an
-existing runtime. The selected release policy decides what is approved; exact triggers
-depend on GitOps reconciliation or pipeline orchestration.
+existing runtime. Release orchestration coordinates the decision to advance a candidate;
+reconciliation makes the accepted state real and maintains it.
 
 ```mermaid
+%%{init: {"fontFamily":"Arial, sans-serif","themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px"}}}%%
 sequenceDiagram
-  participant Build as Build job
-  participant Delivery as Scoped delivery controller
-  participant Runtime as Application runtime
-  participant Source as Reviewed source
-  participant Registry as Artifact registry
-  Build->>Source: Read selected revision
-  Build->>Build: Build and test
-  Build->>Registry: Publish candidate with version identity
-  Build-->>Source: Report build and test result
-  Delivery->>Source: Read approved release intent
-  Delivery->>Delivery: Apply target release policy
-  Delivery->>Runtime: Apply scoped application change
-  Runtime->>Registry: Retrieve the approved image
-  Registry-->>Runtime: Identified image content
-  Runtime-->>Delivery: Rollout status
+  participant Release as Release workflow
+  participant Reconcile as Reconciliation
+  participant Runtime as Runtime
+  participant State as Accepted state
+  rect rgba(230,160,100,0.16)
+    Release->>Release: Evaluate candidate / evidence<br/>Obtain required approval
+    Release->>State: Publish the approved<br/>target change
+  end
+  rect rgba(100,145,190,0.14)
+    Reconcile->>State: Read accepted revision
+    Reconcile->>Runtime: Apply scoped change<br/>after dependency gates
+    Runtime-->>Reconcile: Observed revision / health
+    Release->>Reconcile: Verify exact revision<br/>and release outcome
+    Reconcile-->>Release: Converged or blocked / evidence
+  end
 ```
 
-*Figure: Builds publish candidates; approved release intent drives scoped deployment,
-and the runtime retrieves the selected artifact independently of the controller.*
+*Figure: Release orchestration authorizes a candidate produced by the build process; reconciliation
+applies and maintains the accepted state. The runtime retrieves its identified artifact through
+[artifact supply](01-artifact-supply.md). Release acceptance checks application behavior beyond controller health.*
 
 <a id="domain-boundaries"></a>
 
@@ -121,8 +123,8 @@ source review accepts definitions; a build produces a candidate; release policy 
 particular version for a particular target. Registry storage and a successful build do not
 collapse those decisions into one approval.
 
-The runtime retrieves the identified artifact from its approved supply path. The controller
-uses target credentials to apply the release and observe rollout status. Operators use that
+The runtime retrieves the identified artifact from its approved supply path. The reconciler
+uses target credentials to apply the accepted state and observe rollout status. Operators use that
 status, service telemetry and recovery evidence to decide whether the release is acceptable.
 Application rollback still needs the application's own data compatibility contract.
 
@@ -133,10 +135,11 @@ Infrastructure changes belong to [Hosting](../04-hosting/02-provisioning.md).
 
 ## Design choices
 
-The selected [Tier 1 ownership](flux-ownership.md) combines Spinnaker release approval/promotion
-with independent Flux platform/application reconciliation. Tier 0 retains its own Flux installation.
-[Controller patterns](02-controllers.md) preserves Argo CD and direct Spinnaker alternatives with
-one writer per object. [Approval controls](approval-controls.md) records the free-edition limits.
+Separate [release orchestration and desired-state reconciliation](02-controllers.md). The first
+coordinates requests, evidence, approval and promotion. The second continuously corrects drift,
+orders components by dependency readiness and reports the result. One suite or several products
+can implement these roles; each managed object still has one active writer.
+[Approval controls](approval-controls.md) define the authority and immutable change boundary.
 
 Then select [artifact supply](01-artifact-supply.md): an existing compatible registry or
 an independently operated registry, with distribution acceleration only where justified.
@@ -165,3 +168,5 @@ its onward path through Observability to [Stage 9: Development](../../03-deploym
 **Operate:** [Delivery and development](../../05-operations/05-delivery.md).
 The [support map](../../08-reference/implementation-support.md) distinguishes supplied installers
 from required existing interfaces and project integrations.
+The [selected delivery implementation](../../08-reference/tier-1-delivery.md) maps these architectural
+roles to the chosen products, their configuration and verification limits.

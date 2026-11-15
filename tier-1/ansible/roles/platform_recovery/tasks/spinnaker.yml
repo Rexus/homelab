@@ -1,0 +1,9 @@
+---
+- name: Restore one persistent database volume at a time
+  ansible.builtin.include_tasks: spinnaker-volume.yml
+  loop: [mysql, redis]
+  loop_control:
+    loop_var: recovery_database
+
+- name: Terminalize restored executions with native queue processing disabled
+  ansible.builtin.include_tasks: spinnaker-fence.yml

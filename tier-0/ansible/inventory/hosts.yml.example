@@ -78,6 +78,9 @@ all:
         #   hsm_proxy_ingress_backend_port: 8443
     crypto_admin:
       hosts: {}
+      # Optional ceremony administration guest from the hsm setup.
+      # hosts:
+      #   cadm-1: {}
     infrastructure_runner:
       hosts:
         iac-1: {}

@@ -1,0 +1,42 @@
+---
+- name: Inspect selected writer objects before preserving their previous state
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    context: "{{ flux_maintenance_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: "{{ item.api_version }}"
+    kind: "{{ item.kind }}"
+    namespace: "{{ item.namespace }}"
+    name: "{{ item.name }}"
+  loop: "{{ flux_maintenance_writers }}"
+  register: flux_maintenance_writer_objects
+
+- name: Require each writer to exist before any writer mutation
+  ansible.builtin.assert:
+    that: item.resources | length == 1
+  loop: "{{ flux_maintenance_writer_objects.results }}"
+  loop_control: {label: "{{ item.item.kind }}/{{ item.item.name }}"}
+
+- name: Retain selected writer identities and original replica or suspension values
+  ansible.builtin.set_fact:
+    flux_maintenance_scope_receipt: >-
+      {{ flux_maintenance_scope_receipt | combine({'writers':
+        {(item.resources[0].kind ~ '/' ~ item.resources[0].metadata.namespace ~ '/' ~ item.resources[0].metadata.name):
+          (item.resources[0] | flux_writer(flux_maintenance_scope_receipt))}
+        | combine(flux_maintenance_scope_receipt.writers | default({}))}) }}
+  loop: "{{ flux_maintenance_writer_objects.results }}"
+  loop_control: {label: "{{ item.item.kind }}/{{ item.item.name }}"}
+
+- name: Persist writer recovery values before stopping any writer
+  ansible.builtin.copy:
+    dest: "{{ flux_maintenance_output }}/scope-receipt.json"
+    content: "{{ flux_maintenance_scope_receipt | to_nice_json }}"
+    mode: '0600'
+
+- name: Stop and drain each selected application writer
+  ansible.builtin.include_tasks: writer-resource.yml
+  vars:
+    writer_resource: "{{ item.value }}"
+    writer_resume: false
+  loop: "{{ flux_maintenance_scope_receipt.writers | dict2items }}"
+  loop_control: {label: "{{ item.key }}"}

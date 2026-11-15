@@ -164,6 +164,7 @@ class Observability(TierRepositoryTestCase):
                                 cwd=tier, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         for path in ("ansible/inventory/hosts.yml", "ansible/group_vars/syslog.yml",
+                     "ansible/group_vars/logging_producers.yml",
                      "terraform/deployments/syslog/terraform.tfvars"):
             self.assertTrue((tier / path).is_file(), path)
         inventory = yaml.safe_load((tier / "ansible/inventory/hosts.yml").read_text())
@@ -192,13 +193,13 @@ class Observability(TierRepositoryTestCase):
                              "not independent querying or alerts", "separate SigNoZ/ClickHouse"):
                 self.assertIn(expected, telemetry)
             foundation = (docs / "03-deployment/foundation/README.md").read_text()
-            self.assertIn("Stage 2: Protected logging", foundation)
+            self.assertIn("Stage 3: Protected logging", foundation)
             later = (docs / "03-deployment/stage-08-observability/README.md").read_text()
             self.assertIn("forged ownership and cross-application access", later)
-            logging_stage = (docs / "03-deployment/stage-02-logging/README.md").read_text()
-            self.assertIn("declared durability limits", logging_stage)
+            logging_stage = (docs / "03-deployment/stage-03-logging/README.md").read_text()
+            self.assertIn("uncheckpointed-tail and duplicate/loss limits", logging_stage)
             self.assertIn("independent encrypted backups", logging_stage)
-            self.assertIn("lossless HA", logging_stage)
+            self.assertIn("neither a shared VIP nor sender failover or replicated archive commitment", logging_stage)
 
     def test_early_collection_and_offline_recovery_contracts_are_published(self):
         self.generate()
@@ -211,9 +212,12 @@ class Observability(TierRepositoryTestCase):
                 self.assertIn(expected, logging)
             read_boundaries = (docs / "01-architecture/11-operations/03-observability.md").read_text()
             self.assertIn("no retention or backup authority", read_boundaries)
-            procedure = (docs / "03-deployment/stage-02-logging/README.md").read_text()
-            self.assertIn("before PKI and FreeIPA", procedure)
-            self.assertIn("Only the log-data volume and offline kit survive", procedure)
+            procedure = (docs / "03-deployment/stage-03-logging/README.md").read_text()
+            self.assertIn("network logging starts after certificate issuance", procedure)
+            self.assertIn("persistent local host logs during PKI bootstrap", procedure)
+            self.assertIn("attached data disk", procedure)
+            self.assertIn("keys and public request/issuance receipts", procedure)
+            self.assertIn("separate unlock file", procedure)
             operations = (docs / "05-operations/06-resilience/protected-logging.md").read_text()
             self.assertIn("no-journal-replay", operations)
             self.assertIn("never let reindexing modify originals", operations)
@@ -241,9 +245,9 @@ class Observability(TierRepositoryTestCase):
             self.assertIn("One person holding several roles is acceptable", design)
             self.assertIn("not evidence of WORM enforcement", design)
             self.assertIn("## Review triggers", design)
-            stage = docs / "03-deployment/stage-02-logging"
+            stage = docs / "03-deployment/stage-03-logging"
             overview = (stage / "README.md").read_text()
-            for option in ("step-15a-nas-archive.md", "step-15b-retention-lock.md"):
+            for option in ("step-7a-nas-archive.md", "step-7b-retention-lock.md"):
                 self.assertIn(option, overview)
                 self.assertIn(option, design)
                 content = (stage / option).read_text()

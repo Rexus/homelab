@@ -1,0 +1,3 @@
+---
+- name: Restore the selected Netdata history volumes and streaming identity
+  ansible.builtin.include_tasks: velero.yml

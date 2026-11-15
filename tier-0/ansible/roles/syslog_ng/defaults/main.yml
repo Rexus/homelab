@@ -1,5 +1,5 @@
 ---
-# Stage 2 receiver contract: docs/08-reference/syslog-receiver.md
+# Protected logging receiver contract: docs/08-reference/syslog-receiver.md
 syslog_ng_data_mount: /srv/security-logging
 syslog_ng_data_device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
 syslog_ng_data_fstype: xfs
@@ -10,6 +10,8 @@ syslog_ng_listen_address: "{{ ansible_host }}"
 syslog_ng_tls_port: 6514
 syslog_ng_udp_port: 514
 syslog_ng_sources: []
+syslog_ng_enrolled_sources: null
+syslog_ng_effective_sources: "{{ syslog_ng_sources if syslog_ng_enrolled_sources is none else syslog_ng_enrolled_sources }}"
 syslog_ng_legacy_sources: []
 syslog_ng_tls_ca_src: "{{ lookup('ansible.builtin.env', 'SYSLOG_NG_TLS_CA_FILE') }}"
 syslog_ng_tls_cert_src: "{{ lookup('ansible.builtin.env', 'SYSLOG_NG_TLS_CERT_FILE') }}"

@@ -1,7 +1,7 @@
 # OpenXPKI runtime inputs
 
 Tier 0 owns the issuer host, configuration, database and signing authority.
-The [deployment guide](../03-deployment/stage-03-trust/procedures/issuer.md) owns execution;
+The [deployment guide](../03-deployment/stage-02-trust/procedures/issuer.md) owns execution;
 the [CA design](../01-architecture/08-cryptography/01-certificate-authority.md) owns trust boundaries.
 
 ## Contents
@@ -85,7 +85,7 @@ necessary; copying a live data directory is not a qualified CA backup.
 
 ## Production configuration bundle
 
-The [software PKI builder](../03-deployment/stage-03-trust/procedures/software-pki.md)
+The [software PKI builder](../03-deployment/stage-02-trust/procedures/software-pki.md)
 supplies a pinned native policy starting point. Its input example defines
 suffixes, independent password-hash identities and publication URLs. Review and
 qualify the resulting artifact with the selected package/schema combination.
@@ -102,7 +102,7 @@ contains these paths at its root, with all imports/symlinks resolved within the 
 | `config.d/system/` | Native backend settings, exactly the selected production realm, protected CLI and logging configuration |
 | `config.d/realm/<realm>/` | Complete crypto/provider settings, independent local authentication, roles/ACLs, workflows and restrictive leaf profiles |
 | `client.d/` | Matching current frontend/service configuration, Unix sockets and independent local authentication |
-| `log.conf` | Product logging configuration; add its actual journal/file outputs to [Tier 0 security streams](../03-deployment/stage-02-logging/procedures/sources.md#3-extend-coverage), then verify CA events on the already-tested Stage 2 path |
+| `log.conf` | Product logging configuration; add its actual journal/file outputs to [Tier 0 security streams](../03-deployment/stage-03-logging/procedures/sources.md#3-extend-coverage), then verify CA events on the already-tested Stage 3 path |
 | `schemas/backend.sql`, `schemas/frontend.sql` | Unmodified MariaDB schemas from the same approved configuration/package combination |
 
 The role supplies only backend database credentials and frontend database/session

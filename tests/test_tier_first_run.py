@@ -14,7 +14,7 @@ import unittest
 
 import yaml
 
-from tier_repo_test_support import UPSTREAM
+from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 
 def load(relative):
@@ -76,67 +76,64 @@ class NativeFirstRun(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertNotIn('No inventory was parsed', result.stderr)
 
-    def test_documented_logging_commands_load_global_setup_and_host_inputs(self):
-        docs = (UPSTREAM / 'docs/03-deployment/stage-02-logging/procedures/sources.md').read_text()
-        blocks = re.findall(r'```bash\n(.*?)```', docs, re.S)
-        inputs = next(block for block in blocks if 'logging_inputs=' in block)
-        commands = [block for block in blocks if 'ansible-playbook "${logging_inputs[@]}"' in block]
+    def test_documented_logging_catalog_reuses_global_setup_and_inventory_without_host_files(self):
+        docs = (UPSTREAM / 'docs/03-deployment/stage-03-logging/README.md').read_text()
+        catalog = next(yaml.safe_load(block) for block in re.findall(r'```yaml\n(.*?)```', docs, re.S)
+                       if 'logging_producer_hosts:' in block)
         inventory = self.root / 'ansible/inventory'
         variables = self.root / 'ansible/group_vars'
-        hosts = inventory / 'host_vars'
-        for directory in (inventory, variables, hosts):
+        recipes = self.root / 'ansible/playbooks/deployment'
+        for directory in (inventory, variables, recipes):
             directory.mkdir(parents=True)
         receiver_inventory = load('tier-0/ansible/inventory/hosts.yml.example')
-        receiver_inventory['all']['hosts'] = {'recovery': {}}
         (inventory / 'hosts.yml').write_text(yaml.safe_dump(receiver_inventory))
-        for name in ('all', 'syslog', 'foundation', 'logging_producers', 'logging_archive', 'logging_backup'):
+        for name in ('all', 'syslog', 'foundation'):
             (variables / f'{name}.yml').write_text(
                 (UPSTREAM / f'tier-0/ansible/group_vars/{name}.yml.example').read_text())
-        producer_values = yaml.safe_load((variables / 'logging_producers.yml').read_text())
-        producer_values['log_forwarder_peer'] = 'logs.accepted.example'
-        (variables / 'logging_producers.yml').write_text(yaml.safe_dump(producer_values))
-        for name in ('log-1', 'ca-1', 'recovery'):
-            (hosts / f'{name}.yml').write_text(yaml.safe_dump({
-                'ansible_user': name + '-operator', 'log_forwarder_streams': [{'name': name + '-os'}],
-                **({'ansible_host': '192.0.2.20'} if name == 'recovery' else {})}))
-        verify = self.root / 'inputs.yml'
-        expected_ips = {'recovery': '192.0.2.20'}
+        (variables / 'logging_producers.yml').write_text(yaml.safe_dump(catalog))
+        expected_ips = {}
         for setup in ('syslog', 'foundation'):
             expected_ips.update(yaml.safe_load((variables / f'{setup}.yml').read_text())['platform_host_ips'])
-        verify.write_text(yaml.safe_dump([{'hosts': 'all', 'gather_facts': False,
-            'vars': {'expected_ips': expected_ips}, 'tasks': [{
-            'ansible.builtin.assert': {'that': [
-                "ansible_user == inventory_hostname ~ '-operator'", "platform_domain == 'corp.example.com'",
-                "ansible_host == expected_ips[inventory_hostname]",
-                "inventory_hostname != 'log-1' or (inventory_hostname in groups['foundation_logging'] "
-                "and inventory_hostname in groups['logging_producers'])",
-                "log_forwarder_peer is not defined or log_forwarder_target == 'logs.accepted.example'",
-                "log_forwarder_streams[0].name == inventory_hostname ~ '-os'"]}}]}]))
-        # Keep the real documented arguments; replace only the infrastructure play with local assertions.
-        cases = [(inputs + command, f'{host}\nansible/group_vars/{setup}.yml\n{self.root}/public\n',
-                  'ansible/playbooks/deployment/logging-producers.yml')
-                 for host, setup in (('log-1', 'syslog'), ('ca-1', 'foundation')) for command in commands]
-        installation = (UPSTREAM / 'docs/03-deployment/stage-02-logging/README.md').read_text()
-        first_producer = [block for block in re.findall(r'```bash\n(.*?)```', installation, re.S)
-                          if 'ansible/playbooks/deployment/logging-producers.yml --limit log-1' in block]
-        self.assertEqual(len(first_producer), 2, 'First-source preparation and installation stay executable in-page')
-        for block in first_producer:
-            self.assertIn('-e @ansible/group_vars/all.yml -e @ansible/group_vars/syslog.yml', block)
-            self.assertIn('-e @ansible/inventory/host_vars/log-1.yml', block)
-            cases.append((block, f'{self.root}/requests\n',
-                          'ansible/playbooks/deployment/logging-producers.yml'))
-        archive = (UPSTREAM / 'docs/03-deployment/stage-02-logging/step-15a-nas-archive.md').read_text()
-        for variable, host, recipe in (('LOGGING_COLLECTOR', 'log-1', 'logging-archive'),
-                                       ('LOGGING_RECOVERY_HOST', 'recovery', 'logging-backup')):
-            block = next(block for block in re.findall(r'```bash\n(.*?)```', archive, re.S)
-                         if f':?Select one' in block and f'${{{variable}' in block)
-            cases.append((block, host + '\n', f'ansible/playbooks/deployment/{recipe}.yml'))
-        for script, answers, recipe in cases:
-            result = subprocess.run(['bash', '-eu', '-c', script.replace(recipe, str(verify))],
-                                    input=answers, cwd=self.root, env=self.env,
-                                    capture_output=True, text=True, timeout=30)
+        verify = recipes / 'inputs.yml'
+        assertions = [
+            "groups.logging_workflow_producers | sort == ['ca-1', 'log-1', 'pve01']",
+            "hostvars['log-1'].ansible_host == expected_ips['log-1']",
+            "hostvars['ca-1'].ansible_host == expected_ips['ca-1']",
+            "hostvars['pve01'].ansible_host == 'pve01.' ~ platform_internal_domain",
+            "hostvars['pve01'].ansible_user == ansible_user",
+            "hostvars['ca-1'].ansible_user == ansible_user",
+            "hostvars['log-1'].log_forwarder_streams[0].name == 'log-1-os'",
+            "hostvars['ca-1'].log_forwarder_streams[0].name == 'ca-1-os'",
+            "log_forwarder_peer == 'logs.' ~ platform_internal_domain",
+            "logging_run.target == log_forwarder_peer",
+            "logging_run.requests == logging_run.workspace ~ '/requests'",
+        ]
+        verify.write_text(yaml.safe_dump([{
+            'hosts': 'localhost', 'connection': 'local', 'gather_facts': False, 'become': False,
+            'vars': {'expected_ips': expected_ips, 'logging_workflow_repository': str(self.root),
+                     'logging_workflow_workspace': str(self.root / 'private-workspace'),
+                     'logging_workflow_issuer': 'provided'},
+            'tasks': [{'ansible.builtin.include_role': {'name': 'logging_workflow'}},
+                      {'ansible.builtin.assert': {'that': assertions}}],
+        }], sort_keys=False))
+        # Only controller-side input resolution runs. Guest execution and issuance
+        # are covered by the workflow's native integration suite, not SSH doubles.
+        # The real custody boundary requires this directory to be outside the repo.
+        workspace = self.root.parent / f'{self.root.name}-logging-custody'
+        self.addCleanup(lambda: shutil.rmtree(workspace, ignore_errors=True))
+        for action in ('prepare', 'prepare', 'verify'):
+            result = subprocess.run([
+                'ansible-playbook', '-i', str(inventory / 'hosts.yml'), str(verify),
+                '-e', f'@{variables / "all.yml"}', '-e', f'logging_workflow_action={action}',
+                '-e', f'logging_workflow_workspace={workspace}',
+            ], cwd=self.root, env=dict(self.env, ANSIBLE_SSH_EXECUTABLE='/bin/false',
+                ANSIBLE_ROLES_PATH=os.pathsep.join([str(UPSTREAM / 'tier-0/ansible/roles'),
+                                                  str(UPSTREAM / 'shared/ansible/roles')])),
+                capture_output=True, text=True, timeout=60)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertEqual(result.stdout.count('"All assertions passed"'), 1)
+            self.assertNotIn('UNREACHABLE', result.stdout)
+        self.assertFalse((inventory / 'host_vars').exists())
+        self.assertEqual({path.name for path in workspace.iterdir()}, {'requests', 'public', 'receivers'})
 
     def test_native_download_and_cache_validation_follow_the_selected_proxy(self):
         requests = []
@@ -249,3 +246,22 @@ if name == 'ipa':
 
 if __name__ == '__main__':
     unittest.main()
+
+
+@unittest.skipUnless(os.name != 'nt' and shutil.which('bash'), 'Requires Linux/WSL Bash')
+class LoggingInputInitialization(TierRepositoryTestCase):
+    def test_syslog_initialization_creates_the_catalog_and_preserves_local_edits(self):
+        self.generate()
+        repo = self.root / 'verify-tier-0'
+        catalog = repo / 'ansible/group_vars/logging_producers.yml'
+        for iteration in range(2):
+            result = subprocess.run(['bash', 'scripts/init-local-files.sh', '--setup', 'syslog'],
+                                    cwd=repo, capture_output=True, text=True, timeout=45)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertTrue(catalog.is_file())
+            if iteration == 0:
+                self.assertIn('logging_producer_hosts', yaml.safe_load(catalog.read_text()))
+                catalog.write_text('logging_producer_hosts: {existing-host: {}}\n')
+            else:
+                self.assertEqual(catalog.read_text(), 'logging_producer_hosts: {existing-host: {}}\n')
+        self.assertFalse((repo / 'ansible/inventory/host_vars/log-1.yml').exists())

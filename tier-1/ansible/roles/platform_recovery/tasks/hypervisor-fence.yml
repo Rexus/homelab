@@ -1,0 +1,57 @@
+---
+- name: Select only recovered VMIDs for native hypervisor supervision fencing
+  ansible.builtin.set_fact:
+    recovery_selected_vmids: >-
+      {{ (platform_recovery.virtual_machines | map(attribute='vmid') | list) +
+         (platform_recovery.clusters | map(attribute='nodes') | flatten | map(attribute='vmid') | list) }}
+    recovery_hypervisor: "{{ platform_recovery.clusters[0].nodes[0].node }}"
+
+- name: Inspect surviving native HA resource configuration before guest reconstruction
+  ansible.builtin.command:
+    argv: [pvesh, get, /cluster/ha/resources, --output-format, json]
+  delegate_to: "{{ recovery_hypervisor }}"
+  become: true
+  register: recovery_ha_configuration
+  changed_when: false
+
+- name: Select native HA resources by exact accepted VMID
+  ansible.builtin.set_fact:
+    recovery_ha_resources: >-
+      {{ recovery_ha_configuration.stdout | from_json
+        | selectattr('sid', 'in', recovery_selected_vmids | map('string') | map('regex_replace', '^', 'vm:') | list) | list }}
+
+- name: Require active or ignored original HA intent for the selected running reconstruction
+  ansible.builtin.assert:
+    that:
+      - item.state | default('started') in ['started', 'enabled', 'ignored']
+    fail_msg: The selected native HA resource has stopped intent. Select its intended running recovery policy before mutation.
+  loop: "{{ recovery_ha_resources }}"
+
+- name: Preserve native HA configuration before altering supervision
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/proxmox-ha.json"
+    force: false
+    mode: '0600'
+    content: "{{ {'plan_sha256': platform_recovery.plan_sha256, 'resources': recovery_ha_resources} | to_nice_json }}"
+
+- name: Suspend native HA supervision only for the selected recovered guests
+  ansible.builtin.command:
+    argv: [ha-manager, set, "{{ item.sid }}", --state, ignored]
+  delegate_to: "{{ recovery_hypervisor }}"
+  become: true
+  loop: "{{ recovery_ha_resources }}"
+  changed_when: item.state | default('started') != 'ignored'
+
+- name: Wait until the native manager releases all selected guest supervision
+  ansible.builtin.command:
+    argv: [pvesh, get, /cluster/ha/status/manager_status, --output-format, json]
+  delegate_to: "{{ recovery_hypervisor }}"
+  become: true
+  register: recovery_ha_release
+  changed_when: false
+  until: >-
+    (recovery_ha_release.stdout | from_json).manager_status.service_status.keys() | list
+      | intersect(recovery_ha_resources | map(attribute='sid') | list) | length == 0
+  retries: 60
+  delay: 5
+  when: recovery_ha_resources | length > 0

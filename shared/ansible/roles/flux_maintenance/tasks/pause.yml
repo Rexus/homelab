@@ -1,0 +1,62 @@
+---
+- name: Check for a previous interrupted or completed suspension receipt
+  ansible.builtin.stat:
+    path: "{{ flux_maintenance_output }}/scope-receipt.json"
+  register: flux_maintenance_scope_file
+
+- name: Load the retained previous states for an interrupted suspension
+  ansible.builtin.set_fact:
+    flux_maintenance_previous_scope: >-
+      {{ lookup('ansible.builtin.file', flux_maintenance_output ~ '/scope-receipt.json') | from_json
+         if flux_maintenance_scope_file.stat.exists else {} }}
+
+- name: Capture original states before changing any reconciliation resource
+  ansible.builtin.set_fact:
+    flux_maintenance_scope_receipt: >-
+      {{ flux_maintenance_scope | flux_scope_receipt(flux_maintenance_previous_scope,
+         flux_maintenance_operation_id, flux_maintenance_source_uid) }}
+
+- name: Retain the original source ownership policy alongside its UID-bound scope
+  ansible.builtin.set_fact:
+    flux_maintenance_scope_receipt: >-
+      {{ flux_maintenance_scope_receipt | combine({'previous_source':
+         flux_maintenance_previous_scope.get('previous_source', flux_maintenance_record_sources[flux_maintenance_source])
+         if flux_maintenance_previous_scope.get('phase') != 'resumed'
+         else flux_maintenance_record_sources[flux_maintenance_source]}) }}
+
+- name: Persist original UID-bound states before any fence mutation
+  ansible.builtin.copy:
+    dest: "{{ flux_maintenance_output }}/scope-receipt.json"
+    content: "{{ flux_maintenance_scope_receipt | to_nice_json }}"
+    mode: '0600'
+
+- name: Suspend owners before their descendants and wait for each operation to drain
+  ansible.builtin.include_tasks: scope-resource.yml
+  vars:
+    scope_resource: "{{ flux_maintenance_scope_receipt.resources[scope_key] }}"
+    scope_suspend: true
+  loop: "{{ flux_maintenance_scope_receipt.suspend_order }}"
+  loop_control: {loop_var: scope_key}
+
+- name: Reinspect the inventory after all parent operations have drained
+  ansible.builtin.include_tasks: scope.yml
+
+- name: Reject new descendants created while the previous parent operation was draining
+  ansible.builtin.assert:
+    that:
+      - flux_maintenance_scope | flux_scope_validate(flux_maintenance_scope_receipt, flux_maintenance_source_uid, false)
+    fail_msg: Rerun suspend to capture newly discovered children. Existing fences and original states remain retained.
+
+- name: Stop explicitly selected application writers before allowing product restoration
+  ansible.builtin.include_tasks: writers.yml
+  when: flux_maintenance_writers | length > 0
+
+- name: Record a verified drained reconciliation scope
+  ansible.builtin.set_fact:
+    flux_maintenance_scope_receipt: "{{ flux_maintenance_scope_receipt | combine({'phase': 'paused'}) }}"
+
+- name: Persist the completed scoped pause
+  ansible.builtin.copy:
+    dest: "{{ flux_maintenance_output }}/scope-receipt.json"
+    content: "{{ flux_maintenance_scope_receipt | to_nice_json }}"
+    mode: '0600'

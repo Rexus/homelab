@@ -107,7 +107,8 @@ package policy, then verify retrieval and bypass denial. Keep the accepted endpo
 For recurring APT signature/hash failures, use the [diagnostic runbook](../../05-operations/02-software-intake/apt-refresh.md).
 A successful normal refresh needs no permanent `No-Cache` or pipelining override.
 
-Select [Stage 3, option 15b](../stage-03-trust/README.md#15b-verified-repository-and-artifact-publication-optional)
-when protected logging and the issuer are accepted. That installer owns setup registration, worker inputs,
+Select [Stage 2, option 15b](../stage-02-trust/README.md#15b-verified-repository-and-artifact-publication-optional)
+when the issuer is accepted, retaining persistent local audit records until Stage 3 enrollment.
+That installer owns setup registration, worker inputs,
 VM/disks, service setup and consumer cutover; no later-stage service is needed.
-If Stage 3 is already accepted, the option can be deployed directly from that numbered decision point.
+If Stage 2 is already accepted, the option can be deployed directly from that numbered decision point.

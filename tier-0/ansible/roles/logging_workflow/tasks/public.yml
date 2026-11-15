@@ -1,0 +1,36 @@
+---
+- name: Inspect the complete public certificate handoff
+  community.crypto.x509_certificate_info:
+    path: "{{ logging_run.public }}/{{ request.name }}.pem"
+    valid_at:
+      now: '+0s'
+  register: logging_workflow_leaf
+
+- name: Require the requested key identity DNS SAN and exact leaf powers
+  ansible.builtin.assert:
+    that:
+      - logging_workflow_leaf.valid_at.now
+      - "logging_workflow_leaf.subject == {'commonName': request.name}"
+      - logging_workflow_leaf.public_key_fingerprints.sha256 == request.key_sha256
+      - logging_workflow_leaf.basic_constraints == ['CA:FALSE']
+      - logging_workflow_leaf.basic_constraints_critical
+      - logging_workflow_leaf.extended_key_usage == [logging_workflow_leaf_purpose]
+      - logging_workflow_leaf.subject_alt_name | default([], true) | sort == request.san | default([]) | sort
+    fail_msg: Issued material differs from the accepted logging CSR; keep installed trust unchanged.
+  vars:
+    logging_workflow_leaf_purpose: "{{ 'TLS Web Server Authentication' if request.profile == 'server' else 'TLS Web Client Authentication' }}"
+
+- name: Verify native chain signatures revocation and purpose before any installation
+  ansible.builtin.command:
+    argv:
+      - openssl
+      - verify
+      - -CAfile
+      - "{{ logging_run.public }}/ca.pem"
+      - -CRLfile
+      - "{{ logging_run.public }}/revoked.pem"
+      - -crl_check
+      - -purpose
+      - "{{ 'sslserver' if request.profile == 'server' else 'sslclient' }}"
+      - "{{ logging_run.public }}/{{ request.name }}.pem"
+  changed_when: false

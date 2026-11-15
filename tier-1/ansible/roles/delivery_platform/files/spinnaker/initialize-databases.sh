@@ -7,6 +7,15 @@ case "${SPINNAKER_DATABASE_ACTION:-initialize}" in
     for service in clouddriver echo fiat front50 orca; do
       mysql --host=spinnaker-mysql --user=root --ssl-mode=VERIFY_IDENTITY --ssl-ca=/roots/platform.crt \
         --database="$service" --execute='SELECT 1' >/dev/null
+      for account in service migrate; do
+        credential="/credentials/$service-password"
+        if [ "$account" = migrate ]; then credential="/credentials/$service-migration-password"; fi
+        password=$(cat "$credential")
+        test -n "$password"
+        MYSQL_PWD="$password" mysql --host=spinnaker-mysql --user="${service}_$account" \
+          --ssl-mode=VERIFY_IDENTITY --ssl-ca=/roots/platform.crt \
+          --database="$service" --execute='SELECT 1' >/dev/null
+      done
     done
     exit 0
     ;;

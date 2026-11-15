@@ -1,0 +1,6 @@
+---
+- name: Collect the selected producer's exact public stream requests
+  ansible.builtin.include_tasks: producer-request.yml
+  loop: "{{ hostvars[producer].log_forwarder_streams }}"
+  loop_control:
+    loop_var: stream

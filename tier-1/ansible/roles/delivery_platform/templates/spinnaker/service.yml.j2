@@ -46,7 +46,8 @@ kubernetes:
         READ: {{ spinnaker_native_identity_groups | to_json }}
         WRITE: {{ ([delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_writer_group]
                    if delivery_platform_spinnaker_delivery_mode == 'direct' else
-                   [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_promotion_executor_group]
+                   [delivery_platform_spinnaker_admin_group, delivery_platform_spinnaker_promotion_executor_group,
+                    delivery_platform_spinnaker_promotion_requester_group]
                    if namespace == delivery_platform_spinnaker_promotion_namespace else
                    [delivery_platform_spinnaker_admin_group]) | to_json }}
 {% endfor %}
@@ -55,6 +56,17 @@ artifacts:
     enabled: true
     accounts: [{name: approved-http}]
 {% elif spinnaker_native_service == 'orca' %}
+{% if delivery_platform_spinnaker_delivery_mode == 'flux' %}
+# Orca 2026.3.2 exposes requester-controlled HTTP through webhook stages and the
+# fromUrl/jsonFromUrl/yamlFromUrl/propertiesFromUrl expression helpers. Promotions
+# use native Jobs and local expressions, with release API calls in the isolated authority.
+webhook:
+  stage: {enabled: false}
+  allowedRequestsEnabled: true
+  allowedRequests: []
+user-configured-url-restrictions:
+  allowed-hostnames-regex: ''
+{% endif %}
 executionRepository:
   sql: {enabled: true}
   redis: {enabled: false}

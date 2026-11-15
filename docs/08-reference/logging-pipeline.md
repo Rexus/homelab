@@ -1,9 +1,9 @@
 # Logging integration contract
 
-The NAS main path supplies host forwarding, independent producer trust, create-only
+The NAS main path supplies host forwarding, PKI-bound producer identities, create-only
 checkpoints, audited filesystem views and an independently executed encrypted backup.
 It does not supply replicated intake, NAS firmware administration or a search service.
-Start with [Stage 2](../03-deployment/stage-02-logging/README.md), not these implementation details.
+Start with [Stage 3](../03-deployment/stage-03-logging/README.md), not these implementation details.
 
 ## Contents
 
@@ -21,6 +21,9 @@ Start with [Stage 2](../03-deployment/stage-02-logging/README.md), not these imp
 | Each tier | `ansible/playbooks/deployment/logging-producers.yml`, local inventory/group/host vars | Select host streams and run Shared's role |
 | Shared | `ansible/roles/log_forwarder/` | Stateless native rsyslog/journal/file configuration; no inventory or signing key |
 | Shared | `ansible/roles/data_volume/` | Guarded guest filesystem/mount execution; device, UUID and resource/state ownership stay tier-local |
+| Tier 0 | `ansible/playbooks/deployment/logging-workflow.yml`, `ansible/roles/logging_workflow/` | Combined syslog initialization, setup/catalog reuse, public request/source derivation, certificate handoff and retained-event acceptance |
+| Tier 0 | `ansible/roles/logging_pki/` | Native infrastructure issuer request/resume, independent approval and verified public chain/CRL; fresh bundle profiles |
+| Tier 0 | `ansible/playbooks/deployment/logging-secrets.yml`, `ansible/roles/logging_credentials/` | Independent authority Ansible Vault custody and explicit verified KVv2 migration; no issuer/producers changed |
 | Tier 0 | `ansible/playbooks/deployment/logging-authority.yml`, `ansible/roles/logging_authority/` | Protected controller signing/renewal, cumulative CRL; public CSR approval, no producer key export |
 | Tier 0 | `ansible/playbooks/deployment/logging-archive.yml`, `ansible/roles/logging_archive/` | NAS mount, create-only publication, source/copy health, application copies, read-audit rules |
 | Tier 0 | `ansible/playbooks/deployment/logging-backup.yml`, `ansible/roles/logging_backup/` | Separate `logging_recovery` host, read-only NAS identity, guarded local repository preparation or adopted mount, encrypted restic backup and identity checks |
@@ -96,7 +99,9 @@ Exact defaults live with the named role; local overrides are ignored tier vars.
 | Prefix | Required selection |
 | --- | --- |
 | `log_forwarder_` | Per-host stream name/kind/input/files, receiver address/exact peer, public/request directories, queue and journal budgets |
-| `logging_authority_` | Protected directory/passphrase, reviewed CSR fingerprints/profile/SAN, revocation serials; explicit first initialization |
+| `logging_workflow_` | Owning setup/catalog reuse, protected workspace, infrastructure/independent/provided issuer, request/ACL derivation and retained-event acceptance |
+| `logging_authority_` | Explicit independent issuer/legacy handoff and cumulative revocations; the combined workflow derives requests and retains its encrypted credential |
+| `logging_credentials_` | Native Ansible Vault recovery custody and explicit verified KVv2 migration; no secret rotation/fallback on loss |
 | `logging_archive_` | Encrypted SMB source, independent marker, restricted credential file, snapshot contract, required source identities, free-space/lag/batch budgets, external dead-man URL; optional application source/group map |
 | `logging_backup_` | Independent host, explicit local repository device/path/fstype/UUID or adopted commissioned mount, free-space reserve, read-only NAS source/marker/credential, separately held password file and schedule/dead-man URL; explicit repository initialization |
 

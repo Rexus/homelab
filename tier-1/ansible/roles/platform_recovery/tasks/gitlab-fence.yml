@@ -1,0 +1,56 @@
+---
+- name: Observe the restored GitLab namespace before native trigger fencing
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Namespace
+    name: "{{ recovery_product.namespace }}"
+  register: recovery_gitlab_fence_namespace
+
+- name: Require the same recovery-owned namespace before GitLab API writes
+  ansible.builtin.assert:
+    that:
+      - recovery_gitlab_fence_namespace.resources | length == 1
+      - recovery_gitlab_fence_namespace.resources[0].metadata.uid == recorded_namespace.uid
+      - recorded_namespace.plan_sha256 == platform_recovery.plan_sha256
+      - recovery_gitlab_fence_namespace.resources[0].metadata.annotations.get('recovery.homelab/plan-sha256', '') == platform_recovery.plan_sha256
+  vars:
+    recorded_namespace: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-namespace.json') | from_json }}"
+
+- name: Prepare the controller-only native GitLab fencing contract
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-gitlab-fence-inputs.json"
+    mode: '0600'
+    content: >-
+      {{ {'workspace': platform_recovery.workspace, 'plan_sha256': platform_recovery.plan_sha256,
+          'namespace_uid': recovery_gitlab_fence_namespace.resources[0].metadata.uid,
+          'product': recovery_product} | to_nice_json }}
+  no_log: true
+  when: platform_recovery.phase != 'verify'
+
+- name: Require the retained GitLab fencing input during a read-only recovery audit
+  ansible.builtin.assert:
+    that:
+      - retained_inputs.workspace == platform_recovery.workspace
+      - retained_inputs.plan_sha256 == platform_recovery.plan_sha256
+      - retained_inputs.namespace_uid == recovery_gitlab_fence_namespace.resources[0].metadata.uid
+      - retained_inputs.product == recovery_product
+  vars:
+    retained_inputs: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-gitlab-fence-inputs.json') | from_json }}"
+  no_log: true
+  when: platform_recovery.phase == 'verify'
+
+- name: Fence restored GitLab runners schedules webhooks and stale pipelines through the native API
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_playbook_python }}"
+      - "{{ role_path }}/files/gitlab_recovery_fence.py"
+      - --config
+      - "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-gitlab-fence-inputs.json"
+      - --operation
+      - "{{ recovery_gitlab_fence_operation | default('verify' if platform_recovery.phase == 'verify' else 'fence') }}"
+  register: recovery_gitlab_fence_result
+  changed_when: recovery_gitlab_fence_result.rc == 0 and (recovery_gitlab_fence_result.stdout | from_json).changed | bool
+  no_log: true

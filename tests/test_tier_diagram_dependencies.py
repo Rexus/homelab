@@ -129,9 +129,9 @@ class DiagramDependencies(unittest.TestCase):
         for tier in (1, 0):
             self.assertRegex(code, rf'subgraph T{tier}\["[^\n]+\n    direction LR')
         normalized = code.replace("<br/>", " ")
-        for edge in ('PF -- "Read separate sources" --> Release', 'PF -- "Scoped reconciliation" --> Platform',
-                     'D -- "Approved app Git change" --> Release',
-                     'F -- "Read approved inputs" --> Approved', 'F -- "Scoped changes" --> Control'):
+        for edge in ('PF -- "Read state" --> Release', 'PF -- "Apply state" --> Platform',
+                     'D -- "Promote app" --> Release',
+                     'F -- "Read state" --> Approved', 'F -- "Apply state" --> Control'):
             self.assertIn(edge, normalized)
         for destination, controller, provider in (("Platform", "PF", "Release"), ("Control", "F", "Approved")):
             positions = [re.search(rf'(?m)^\s+{name}\["', code).start()

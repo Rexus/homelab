@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fence-{{ recovery_product.name }}-{{ platform_recovery.recovery_id }}
+  namespace: {{ recovery_product.namespace }}
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: orca, recovery.homelab/id: {{ platform_recovery.recovery_id }}}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 999, runAsGroup: 999, runAsNonRoot: true, fsGroup: 999, seccompProfile: {type: RuntimeDefault}}
+      initContainers:
+        - name: enumerate-native-sql-executions
+          image: {{ recovery_product.mysql.image | to_json }}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          command: [sh, -ec]
+          args:
+            - >-
+              mysql --host=spinnaker-mysql --user=root --ssl-mode=VERIFY_IDENTITY
+              --ssl-ca=/roots/platform.crt --batch --skip-column-names
+              --execute="SELECT 'PIPELINE', id FROM orca.pipelines UNION ALL SELECT 'ORCHESTRATION', id FROM orca.orchestrations"
+              > /work/executions.tsv
+          env:
+            - name: MYSQL_PWD
+              valueFrom: {secretKeyRef: {name: spinnaker-mysql-root, key: password}}
+          volumeMounts:
+            - {name: roots, mountPath: /roots, readOnly: true}
+            - {name: work, mountPath: /work}
+      containers:
+        - name: native-force-cancel
+          image: {{ recovery_product.python_image | to_json }}
+          command: [python3, /scripts/spinnaker_fence.py]
+          env:
+            - {name: ORCA_URL, value: {{ recovery_product.orca_url | to_json }}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: scripts, mountPath: /scripts, readOnly: true}
+            - {name: roots, mountPath: /roots, readOnly: true}
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+            - {name: work, mountPath: /work, readOnly: true}
+      volumes:
+        - {name: roots, configMap: {name: spinnaker-roots}}
+        - {name: scripts, configMap: {name: spinnaker-recovery-fence}}
+        - {name: credentials, secret: {secretName: {{ recovery_product.admin_headers_secret }}}}
+        - {name: work, emptyDir: {}}

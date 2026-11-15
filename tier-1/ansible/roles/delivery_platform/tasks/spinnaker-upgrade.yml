@@ -1,0 +1,252 @@
+---
+- name: Require the exact target and retained source for this native maintenance operation
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_kubeconfig | length > 0
+      - delivery_platform_context | length > 0
+      - spinnaker_upgrade_id is match('^[a-f0-9]{20}$')
+      - spinnaker_upgrade_source_sha256 is match('^[a-f0-9]{64}$')
+      - spinnaker_upgrade_target_sha256 is match('^[a-f0-9]{64}$')
+      - spinnaker_upgrade_source_sha256 != spinnaker_upgrade_target_sha256
+      - spinnaker_upgrade_expected_data | length == 2
+      - spinnaker_upgrade_operation | default('backup') in ['backup', 'apply']
+    fail_msg: Run the generated upgrade play with the explicit current kubeconfig/context and retained private input files.
+
+- name: Resolve the durable upgrade record directory
+  ansible.builtin.set_fact:
+    spinnaker_upgrade_output: "{{ spinnaker_upgrade_output_root | default(delivery_platform_output) }}/upgrade-{{ spinnaker_upgrade_id }}"
+
+- name: Prepare the private upgrade receipt directory
+  ansible.builtin.file:
+    path: "{{ spinnaker_upgrade_output }}"
+    state: directory
+    mode: '0700'
+
+- name: Inspect an existing independently verified upgrade checkpoint
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: ConfigMap
+    namespace: "{{ spinnaker_upgrade_namespace }}"
+    name: "spinnaker-upgrade-{{ spinnaker_upgrade_id }}"
+  register: spinnaker_upgrade_receipt
+
+- name: Select the scheduled backup writer for this namespace
+  ansible.builtin.set_fact:
+    spinnaker_upgrade_native_writers:
+      - {api_version: batch/v1, kind: CronJob, name: spinnaker-backup, namespace: "{{ spinnaker_upgrade_namespace }}"}
+
+- name: Select every native application writer in the accepted installation
+  ansible.builtin.set_fact:
+    spinnaker_upgrade_native_writers: >-
+      {{ spinnaker_upgrade_native_writers + [{'api_version': 'apps/v1', 'kind': 'Deployment',
+         'namespace': spinnaker_upgrade_namespace, 'name': item}] }}
+  loop: "{{ spinnaker_upgrade_writers }}"
+
+- name: Capture and suspend the exact native reconciliation scope and application writers
+  ansible.builtin.include_role:
+    name: flux_maintenance
+  vars:
+    flux_maintenance_action: apply
+    flux_maintenance_operation: suspend
+    flux_maintenance_source: tier1-platform
+    flux_maintenance_kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    flux_maintenance_context: "{{ delivery_platform_context }}"
+    flux_maintenance_approved: true
+    flux_maintenance_output: "{{ spinnaker_upgrade_output }}"
+    flux_maintenance_writers: "{{ spinnaker_upgrade_native_writers }}"
+  when: spinnaker_upgrade_receipt.resources | length == 0
+
+- name: Inspect the actual current data-service templates before backing them up
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: StatefulSet
+    name: "{{ item.metadata.name }}"
+    namespace: "{{ spinnaker_upgrade_namespace }}"
+  loop: "{{ spinnaker_upgrade_expected_data }}"
+  loop_control: {label: "{{ item.metadata.name }}"}
+  register: spinnaker_upgrade_live_data
+  when: spinnaker_upgrade_receipt.resources | length == 0
+
+- name: Refuse backup with substituted runtime images configuration or credentials
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+      - item.resources[0].spec.template.spec.containers[0].image == item.item.spec.template.spec.containers[0].image
+      - item.resources[0].spec.template.spec.containers[0].get('env', []) == item.item.spec.template.spec.containers[0].get('env', [])
+      - item.resources[0].spec.template.spec.containers[0].get('args', []) == item.item.spec.template.spec.containers[0].get('args', [])
+      - item.resources[0].spec.template.spec.containers[0].volumeMounts == item.item.spec.template.spec.containers[0].volumeMounts
+      - item.resources[0].spec.template.spec.volumes | map(attribute='name') | list == item.item.spec.template.spec.volumes | map(attribute='name') | list
+      - item.resources[0].spec.template.spec.volumes | selectattr('configMap', 'defined') | map(attribute='configMap.name') | list == item.item.spec.template.spec.volumes | selectattr('configMap', 'defined') | map(attribute='configMap.name') | list
+      - item.resources[0].spec.template.spec.volumes | selectattr('secret', 'defined') | map(attribute='secret.secretName') | list == item.item.spec.template.spec.volumes | selectattr('secret', 'defined') | map(attribute='secret.secretName') | list
+      - item.resources[0].spec.volumeClaimTemplates | map(attribute='metadata.name') | list == item.item.spec.volumeClaimTemplates | map(attribute='metadata.name') | list
+      - item.resources[0].status.readyReplicas | default(0) | int == 1
+    fail_msg: The current data runtime differs from the accepted installation. Recover the correct source manifest before changing persistence.
+  loop: "{{ spinnaker_upgrade_live_data.results | default([]) }}"
+  loop_control: {label: "{{ item.item.metadata.name }}"}
+  when: spinnaker_upgrade_receipt.resources | length == 0
+
+- name: Inspect a backup attempt interrupted before its immutable recovery receipt
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ spinnaker_upgrade_namespace }}"
+    name: "{{ spinnaker_upgrade_backup_job.metadata.name }}"
+  register: spinnaker_upgrade_previous_backup
+  when: spinnaker_upgrade_receipt.resources | length == 0
+
+- name: Retain failed backup evidence before a safe native retry
+  ansible.builtin.copy:
+    dest: "{{ spinnaker_upgrade_output }}/failed-backup-{{ spinnaker_upgrade_previous_backup.resources[0].metadata.uid }}.json"
+    content: "{{ spinnaker_upgrade_previous_backup.resources[0] | to_nice_json }}"
+    mode: '0600'
+  when:
+    - spinnaker_upgrade_receipt.resources | length == 0
+    - spinnaker_upgrade_previous_backup.resources | default([]) | length == 1
+    - spinnaker_upgrade_previous_backup.resources[0].get('status', {}).get('failed', 0) | int > 0
+
+- name: Release only a terminal failed backup attempt while keeping original data and fences
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ spinnaker_upgrade_namespace }}"
+    name: "{{ spinnaker_upgrade_backup_job.metadata.name }}"
+    state: absent
+    wait: true
+    wait_timeout: 300
+  when:
+    - spinnaker_upgrade_receipt.resources | length == 0
+    - spinnaker_upgrade_previous_backup.resources | default([]) | length == 1
+    - spinnaker_upgrade_previous_backup.resources[0].get('status', {}).get('failed', 0) | int > 0
+    - spinnaker_upgrade_previous_backup.resources[0].get('status', {}).get('active', 0) | int == 0
+
+- name: Publish only the isolated native-backup script and accepted-current backup Job
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition: "{{ [spinnaker_upgrade_scripts, spinnaker_upgrade_backup_job] }}"
+  when: spinnaker_upgrade_receipt.resources | length == 0
+
+- name: Wait for the accepted native backup and isolated verification Job to complete
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ spinnaker_upgrade_namespace }}"
+    name: "{{ spinnaker_upgrade_backup_job.metadata.name }}"
+  register: spinnaker_upgrade_backup_state
+  failed_when: >-
+    spinnaker_upgrade_backup_state.resources | length != 1 or
+    spinnaker_upgrade_backup_state.resources[0].get('status', {}).get('failed', 0) | int > 0
+  until: spinnaker_upgrade_backup_state.resources[0].get('status', {}).get('succeeded', 0) | int == 1
+  retries: 300
+  delay: 15
+
+- name: Read the exact export snapshot identity from the completed backup Pod
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Pod
+    namespace: "{{ spinnaker_upgrade_namespace }}"
+    label_selectors: ["batch.kubernetes.io/job-name={{ spinnaker_upgrade_backup_job.metadata.name }}"]
+  register: spinnaker_upgrade_backup_pods
+
+- name: Require a successful native import verification and independently read-back snapshot
+  ansible.builtin.assert:
+    that:
+      - spinnaker_upgrade_backup_pods.resources | length == 1
+      - spinnaker_upgrade_backup_pods.resources[0].status.phase == 'Succeeded'
+      - spinnaker_upgrade_backup_pods.resources[0].metadata.ownerReferences[0].uid == spinnaker_upgrade_backup_state.resources[0].metadata.uid
+      - >-
+        spinnaker_upgrade_backup_pods.resources[0].status.initContainerStatuses |
+        selectattr('name', 'in', ['verify-mysql-import', 'verify-redis-rdb']) |
+        selectattr('state.terminated.exitCode', 'defined') | selectattr('state.terminated.exitCode', 'equalto', 0) |
+        list | length == 2
+      - >-
+        (spinnaker_upgrade_backup_pods.resources[0].status.containerStatuses |
+         selectattr('name', 'equalto', 'independent-copy') | first).state.terminated.exitCode == 0
+      - >-
+        (spinnaker_upgrade_backup_pods.resources[0].status.containerStatuses |
+         selectattr('name', 'equalto', 'independent-copy') | first).state.terminated.message | trim is match('^[a-f0-9]{64}$')
+    fail_msg: Backup/import/read-back evidence is incomplete. Reconciliation and application writers remain fenced.
+
+- name: Bind the verified recovery point to this source and target before any persistence change
+  ansible.builtin.set_fact:
+    spinnaker_upgrade_verified_data:
+      source-sha256: "{{ spinnaker_upgrade_source_sha256 }}"
+      target-sha256: "{{ spinnaker_upgrade_target_sha256 }}"
+      verification: native-import-and-independent-readback-v1
+      snapshot: >-
+        {{ (spinnaker_upgrade_backup_pods.resources[0].status.containerStatuses |
+            selectattr('name', 'equalto', 'independent-copy') | first).state.terminated.message | trim }}
+      backup-job-uid: "{{ spinnaker_upgrade_backup_state.resources[0].metadata.uid }}"
+      backup-pod-uid: "{{ spinnaker_upgrade_backup_pods.resources[0].metadata.uid }}"
+      source-commit: >-
+        {{ spinnaker_upgrade_receipt.resources[0].data['source-commit']
+           if spinnaker_upgrade_receipt.resources | length > 0 else
+           flux_maintenance_record_sources['tier1-platform'].commit }}
+
+- name: Require the observed configuration revision retained with the recovery point
+  ansible.builtin.assert:
+    that:
+      - spinnaker_upgrade_verified_data['source-commit'] is match('^([a-f0-9]{40}|[a-f0-9]{64})$')
+
+- name: Reject a retry that cannot revalidate its original immutable checkpoint
+  ansible.builtin.assert:
+    that:
+      - spinnaker_upgrade_receipt.resources[0].immutable | default(false) | bool
+      - spinnaker_upgrade_receipt.resources[0].data == spinnaker_upgrade_verified_data
+    fail_msg: The retained upgrade checkpoint cannot be verified against its original completed native backup.
+  when: spinnaker_upgrade_receipt.resources | length > 0
+
+- name: Publish the immutable gate receipt only after native restoration and read-back checks
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "spinnaker-upgrade-{{ spinnaker_upgrade_id }}"
+        namespace: "{{ spinnaker_upgrade_namespace }}"
+      immutable: true
+      data: "{{ spinnaker_upgrade_verified_data }}"
+  when: spinnaker_upgrade_receipt.resources | length == 0
+
+- name: Retain the verified backup identity beside the original maintenance scope receipt
+  ansible.builtin.copy:
+    dest: "{{ spinnaker_upgrade_output }}/verified-backup.json"
+    content: "{{ spinnaker_upgrade_verified_data | to_nice_json }}"
+    mode: '0600'
+
+- name: Show the recovery point required for controlled source advancement and scoped resumption
+  ansible.builtin.debug:
+    msg:
+      receipt: "{{ spinnaker_upgrade_output }}/verified-backup.json"
+      scope: "{{ spinnaker_upgrade_output }}/scope-receipt.json"
+      snapshot: "{{ spinnaker_upgrade_verified_data.snapshot }}"
+      target_sha256: "{{ spinnaker_upgrade_target_sha256 }}"
+      backup_job_name: "{{ spinnaker_upgrade_backup_job.metadata.name }}"
+      backup_job_uid: "{{ spinnaker_upgrade_backup_state.resources[0].metadata.uid }}"
+      next: Stage the reviewed source while paused and resume this retained maintenance scope with the completed backup Job UID as its resume check.
+
+- name: Stage the accepted graph while fenced and resume only its verified scope
+  ansible.builtin.include_tasks: spinnaker-upgrade-stage.yml
+  when: spinnaker_upgrade_operation | default('backup') == 'apply'

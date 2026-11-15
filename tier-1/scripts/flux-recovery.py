@@ -46,11 +46,13 @@ def assignment(values):
 
 
 def confined(root, relative):
-    path = (root / relative).resolve()
-    if Path(relative).is_absolute() or not path.is_relative_to(root.resolve()) or path == root.resolve():
+    candidate = root / relative
+    if any(part.is_symlink() for part in (candidate, *candidate.parents)):
+        raise ValueError("Recovery entries must be ordinary files without linked path components.")
+    path = candidate.resolve()
+    if (Path(relative).is_absolute() or '..' in Path(relative).parts or
+            not path.is_relative_to(root.resolve()) or path == root.resolve()):
         raise ValueError("Recovery entry escapes its package directory.")
-    if path.is_symlink():
-        raise ValueError("Recovery entries must be ordinary files.")
     return path
 
 
@@ -213,11 +215,20 @@ def main():
     restore.add_argument("--output", type=Path, required=True)
     restore.add_argument("--expect-lock", required=True)
     restore.add_argument("--application-branch", default="delivery")
+    run = commands.add_parser("run", help="Execute the accepted Ansible recovery plan and recheck checkpoints")
+    run.add_argument("--plan", type=Path, required=True)
+    run.add_argument("--expect-plan", required=True)
+    run.add_argument("--workspace", type=Path, required=True)
+    run.add_argument("--phase", choices=["restore", "resume"], default="restore")
     args = parser.parse_args()
     try:
         if args.command == "restore" and not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9._/-]*", args.application_branch):
             raise ValueError("Invalid application delivery branch.")
-        {"export": export_package, "verify": verify_package, "restore": restore_repositories}[args.command](args)
+        if args.command == "run":
+            from flux_recovery_run import run_recovery
+            run_recovery(args, verify_package)
+        else:
+            {"export": export_package, "verify": verify_package, "restore": restore_repositories}[args.command](args)
     except (ValueError, KeyError, OSError, subprocess.SubprocessError, yaml.YAMLError) as error:
         parser.exit(1, f"Recovery package rejected: {type(error).__name__}. Check source revisions, encryption and artifact checksums.\n")
 

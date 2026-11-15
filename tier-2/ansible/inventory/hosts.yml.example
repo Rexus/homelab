@@ -27,6 +27,8 @@ all:
       hosts:
         cache-1: {}
         cache-2: {}
+        # Optional replica from the cache setup.
+        # cache-3: {}
     lab:
       hosts:
         lab-1: {}

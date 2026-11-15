@@ -16,9 +16,22 @@ flux_maintenance_artifact_lock_sha256: REPLACE_WITH_INDEPENDENTLY_APPROVED_ARTIF
 flux_maintenance_health_checks: []
 # Use affected Flux Kustomizations and/or HelmReleases, never an unrelated existing healthy resource.
 # - {api_version: kustomize.toolkit.fluxcd.io/v1, kind: Kustomization, name: platform-base-flux2-release, namespace: flux-system, condition: Ready}
-# Applications stay fenced during recovery; accept both only after actual product recovery/cancellation.
-flux_maintenance_data_restored: false
-flux_maintenance_executions_fenced: false
+# A source revision affects all its consumers. The role retains their exact original pause states.
+# Resume requires actual completed restore/verification Jobs, not a restored/fenced boolean.
+flux_maintenance_resume_checks: []
+# - api_version: batch/v1
+#   kind: Job
+#   namespace: REPLACE_WITH_PRODUCT_NAMESPACE
+#   name: REPLACE_WITH_COMPLETED_VERIFICATION_JOB
+#   uid: REPLACE_WITH_OBSERVED_JOB_UID
+
+# Stop only explicitly selected writers owned by this source's live Flux inventory.
+flux_maintenance_writers: []
+# - {api_version: apps/v1, kind: Deployment, namespace: REPLACE_WITH_NAMESPACE, name: REPLACE_WITH_WRITER}
+
+# Normally empty: activate an initially paused new recovery/graph resource only by its retained UID.
+# Intentionally suspended resources remain suspended otherwise.
+flux_maintenance_resume_suspended_uids: []
 # Required only for an approved bootstrap `platform` advance/resume.
 # Retain the accepted cluster_platform_flux_canary_sha256 value from bootstrap inputs.
 flux_maintenance_canary_sha256: ""

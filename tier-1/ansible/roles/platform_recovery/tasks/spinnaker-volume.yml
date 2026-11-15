@@ -1,0 +1,67 @@
+---
+- name: Inspect the selected database claim before trusting a previous restore Job
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: PersistentVolumeClaim
+    name: "{{ recovery_product[recovery_database].claim }}"
+    namespace: "{{ recovery_product.namespace }}"
+  register: recovery_database_claim
+
+- name: Require the independently selected clean claim identity
+  ansible.builtin.assert:
+    that:
+      - recovery_database_claim.resources | length == 1
+      - recovery_product[recovery_database].claim_uid == 'new' or recovery_database_claim.resources[0].metadata.uid == recovery_product[recovery_database].claim_uid
+      - recovery_database_claim.resources[0].metadata.annotations.get('recovery.homelab/plan-sha256', '') == platform_recovery.plan_sha256
+
+- name: Inspect the retained data-claim checkpoint before any restoration
+  ansible.builtin.stat:
+    path: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-{{ recovery_database }}-claim.json"
+  register: recovery_claim_checkpoint
+
+- name: Inspect any native restore that could refer to an earlier data claim
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: batch/v1
+    kind: Job
+    namespace: "{{ recovery_product.namespace }}"
+    name: "restore-{{ recovery_product.name }}-{{ recovery_database }}-{{ platform_recovery.recovery_id }}"
+  register: recovery_claim_previous_job
+
+- name: Refuse completed-job reuse when its original claim checkpoint is missing
+  ansible.builtin.assert:
+    that:
+      - recovery_claim_checkpoint.stat.exists or recovery_claim_previous_job.resources | length == 0
+    fail_msg: Retain the restore Job and claim. A missing original claim receipt cannot be recreated from a reused claim name.
+
+- name: Require the exact previously commissioned claim on every retry
+  ansible.builtin.assert:
+    that:
+      - recorded.uid == recovery_database_claim.resources[0].metadata.uid
+      - recorded.plan_sha256 == platform_recovery.plan_sha256
+      - recorded.namespace_uid == recovery_namespace.resources[0].metadata.uid
+  vars:
+    recorded: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-' ~ recovery_database ~ '-claim.json') | from_json }}"
+  when: recovery_claim_checkpoint.stat.exists
+
+- name: Preserve the actual owned claim UID before starting its first restore
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-{{ recovery_database }}-claim.json"
+    force: false
+    mode: '0600'
+    content: >-
+      {{ {'plan_sha256': platform_recovery.plan_sha256,
+          'uid': recovery_database_claim.resources[0].metadata.uid,
+          'namespace_uid': recovery_namespace.resources[0].metadata.uid} | to_nice_json }}
+
+- name: Render the retained native SQL or RDB restore with a single data claim
+  ansible.builtin.set_fact:
+    recovery_job: "{{ lookup('ansible.builtin.template', 'spinnaker-restore.yml.j2') | from_yaml }}"
+
+- name: Execute and verify the individual database restore
+  ansible.builtin.include_tasks: native-job.yml

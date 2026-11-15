@@ -1,5 +1,5 @@
 #!/bin/sh
-# Native CLI probes; the external dead-man check detects failure or a stopped host/timer.
+# Native local probes and an optional independently monitored heartbeat.
 set -eu
 {% for stream in log_forwarder_streams %}
 systemctl is-active --quiet 'log-forwarder-{{ stream.name }}.service'
@@ -10,4 +10,7 @@ test "$free" -ge '{{ log_forwarder_min_free_bytes | int }}'
 openssl x509 -in '{{ log_forwarder_config }}/{{ stream.name }}/client.pem' -checkend 86400 -noout
 openssl verify -CAfile '{{ log_forwarder_config }}/{{ stream.name }}/ca.pem' -CRLfile '{{ log_forwarder_config }}/{{ stream.name }}/revoked.pem' -crl_check -purpose sslclient '{{ log_forwarder_config }}/{{ stream.name }}/client.pem'
 {% endfor %}
-curl --fail --silent --show-error --max-time 20 --config '{{ log_forwarder_config }}/watchdog.curl'
+if test -s '{{ log_forwarder_config }}/watchdog.curl'; then
+    curl --fail --silent --show-error --output /dev/null --proto '=https' --max-time 20 \
+        --config '{{ log_forwarder_config }}/watchdog.curl'
+fi

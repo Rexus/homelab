@@ -11,8 +11,8 @@ After completing a deployment or option, check its entry in the shared
 | --- | --- | --- | --- |
 | Foundation prerequisites | Record hosts, networks, templates, provisioning access and independent recovery | Pending review | [Foundation](${docs}/03-deployment/foundation/README.md) |
 | 1: Software intake | Record approved sources, early proxy/cache, later repository/OCI services and target-tier patch authority | Pending review | [Software intake](${docs}/03-deployment/stage-01-software-intake/README.md) |
-| 2: Protected logging | Record collector deployment, protected evidence, offline inspection and selected failure contract | Pending review | [Logging](${docs}/03-deployment/stage-02-logging/README.md) |
-| 3: Cryptographic trust | Record root custody and issuer selection | Pending review | [Trust](${docs}/03-deployment/stage-03-trust/README.md) |
+| 2: Cryptographic trust | Record root custody and issuer selection | Pending review | [Trust](${docs}/03-deployment/stage-02-trust/README.md) |
+| 3: Protected logging | Record collector deployment, protected evidence, offline inspection and selected failure contract | Pending review | [Logging](${docs}/03-deployment/stage-03-logging/README.md) |
 | 4: Kubernetes | Record the cluster owner, bootstrap, add-ons, audit forwarding and recovery | Pending review | [Kubernetes](${docs}/03-deployment/stage-04-kubernetes/README.md) |
 | 5: Identity | Record directory, federation and OIDC integration on the accepted cluster | Pending review | [Identity](${docs}/03-deployment/stage-05-identity/README.md) |
 | 6: Secrets | Record secret storage, auditing, unseal/recovery and supporting control integrations | Pending review | [Secrets](${docs}/03-deployment/stage-06-secrets/README.md), [monitoring](${docs}/03-deployment/stage-06-secrets/procedures/independent-monitoring.md) |
@@ -28,7 +28,7 @@ to locate reference IaC. Each local procedure records its working repository and
 repository-relative input/code paths, including any Shared helper it calls.
 
 Add local instructions under the relevant capability folder, such as
-`stage-03-trust/`. Its README explains numbered steps with diagrams and the
+`stage-02-trust/`. Its README explains numbered steps with diagrams and the
 resulting design. Keep options beside it, for example `step-1b-usb-hsm.md`, stating
 the decision, changed deployment and return point. Link upstream procedures instead
 of copying them.

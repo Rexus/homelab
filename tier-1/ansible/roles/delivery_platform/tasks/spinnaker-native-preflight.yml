@@ -25,7 +25,7 @@
       - item | length <= 63
       - >-
         item not in ['default', 'kube-system', 'kube-public', 'kube-node-lease', 'flux-system',
-          'cert-manager', 'cnpg-system', 'vault', 'keycloak', 'freeipa', 'netbox', 'headlamp',
+          'cert-manager', 'cnpg-system', 'vault', 'keycloak', 'freeipa', 'netbox', 'headlamp', 'delivery-promotion-authority',
           delivery_platform_spinnaker_namespace, delivery_platform_spinnaker_ingress_namespace,
           delivery_platform_spinnaker_promotion_namespace]
   loop: "{{ delivery_platform_spinnaker_destinations }}"

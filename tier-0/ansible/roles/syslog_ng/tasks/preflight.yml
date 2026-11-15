@@ -15,6 +15,7 @@
       - syslog_ng_root_facts | length == 1
       - syslog_ng_effective_data_uuid | length > 0
       - syslog_ng_data_uuid == '' or syslog_ng_effective_data_uuid == syslog_ng_data_uuid
+      - syslog_ng_workflow_data_uuid | default('') == '' or syslog_ng_effective_data_uuid == syslog_ng_workflow_data_uuid
       - syslog_ng_data_facts[0].uuid == syslog_ng_effective_data_uuid
       - syslog_ng_data_facts[0].uuid != syslog_ng_root_facts[0].uuid
       - syslog_ng_data_facts[0].device != syslog_ng_root_facts[0].device

@@ -98,7 +98,7 @@ Complete each linked workflow once; the managed-publication actions then continu
 The Proxmox host guide routes the host choices below during action **2**; do not repeat them here.
 Finish storage/firewall actions **3–4** afterward.
 HA enrollment and failure testing need a disposable guest later in this Foundation path; cluster membership
-alone does not establish HA. Retain persistent local host logs from first boot until Stage 2 can collect them.
+alone does not establish HA. Retain persistent local host logs from first boot until Stage 3 can collect them.
 Object storage is needed before its first consuming application, not for these initial steps.
 If the gateway guide already applied the policy, use the firewall guide's acceptance checks;
 do not rebuild the same rules.
@@ -351,8 +351,10 @@ Continue at Foundation ready below; critical HA guests retain their native recov
 Continue to **[Stage 1: Software intake](../stage-01-software-intake/README.md)**.
 The cache is the next deployment in the main track and runs from **Tier 2**; stay on
 the bootstrap host and change repository as the stage directs. After that stage,
-return to Tier 0 for **[Stage 2: Protected logging](../stage-02-logging/README.md)**.
-Neither capability waits for FreeIPA or Kubernetes.
+return to Tier 0 for **[Stage 2: Cryptographic trust](../stage-02-trust/README.md)**, then
+**[Stage 3: Protected logging](../stage-03-logging/README.md)**.
+Retain persistent local host records and independent recovery custody until protected forwarding is accepted.
+These capabilities do not wait for FreeIPA or Kubernetes.
 
 This completes the compute portion of the
 [reference platform](../../01-architecture/03-reference-platform.md#service-placement).

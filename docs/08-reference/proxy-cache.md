@@ -170,8 +170,8 @@ HTTP status, proxy result and error code. URL 06-paths/queries, headers and cred
 `TCP_DENIED` records an access decision; CONNECT success is not scanning or package approval.
 Keep diagnostics restricted separately; they are not the sanitized event interface.
 
-After Stage 2 is accepted, commission each cache's streams through the
-[logging-source procedure](../03-deployment/stage-02-logging/procedures/sources.md).
+After Stage 3 is accepted, commission each cache's streams through the
+[logging-source procedure](../03-deployment/stage-03-logging/procedures/sources.md).
 In the owning Tier 2 `ansible/host_vars/<host>.yml`, retain its security journal and add its proxy file stream:
 
 ```yaml

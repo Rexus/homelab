@@ -16,6 +16,9 @@ spec:
   prune: false
   deletionPolicy: Orphan
   force: false
+{% if stage.suspend | default(false) | bool %}
+  suspend: true
+{% endif %}
   wait: {{ stage.wait | default(false) | bool | lower }}
   decryption:
     provider: sops

@@ -1,0 +1,134 @@
+{% set data = recovery_product[recovery_database] %}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: restore-{{ recovery_product.name }}-{{ recovery_database }}-{{ platform_recovery.recovery_id }}
+  namespace: {{ recovery_product.namespace }}
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 3600
+  template:
+    metadata: {labels: {recovery.homelab/id: {{ platform_recovery.recovery_id }}}}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 999, runAsGroup: 999, runAsNonRoot: true, fsGroup: 999, seccompProfile: {type: RuntimeDefault}}
+      initContainers:
+        - name: retrieve-exact-native-backup
+          image: {{ recovery_product.restic_image | to_json }}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          command: [sh, -ec]
+          args:
+            - >-
+              restic --no-lock restore "$SNAPSHOT" --verify --target /staging --include "$BACKUP_PATH"
+          envFrom: [{secretRef: {name: {{ recovery_product.restic_secret }}}}]
+          env:
+            - {name: SNAPSHOT, value: {{ recovery_product.backup_id | to_json }}}
+            - {name: BACKUP_PATH, value: {{ data.path | to_json }}}
+            - {name: RESTIC_CACHE_DIR, value: /cache}
+          volumeMounts:
+            - {name: staging, mountPath: /staging}
+            - {name: cache, mountPath: /cache}
+{% if recovery_product.repository_claim is defined %}
+            - {name: repository, mountPath: /repository, readOnly: true}
+{% endif %}
+      containers:
+        - name: restore-native-{{ recovery_database }}
+          image: {{ data.image | to_json }}
+          command: [{{ '/bin/bash' if recovery_database == 'mysql' else '/bin/sh' }}, -ec]
+          args:
+            - |
+{% if recovery_database == 'mysql' %}
+              set -o pipefail
+{% endif %}
+              printf '%s  %s\n' "$BACKUP_SHA256" "/staging/$BACKUP_PATH" | sha256sum --check --strict
+              test -z "$(find /data -mindepth 1 -maxdepth 1 ! -name lost+found -print -quit)"
+{% if recovery_database == 'mysql' %}
+              docker-entrypoint.sh mysqld --datadir=/data --skip-networking --socket=/tmp/restore.sock --pid-file=/tmp/restore.pid &
+              server=$!
+              trap 'kill -TERM "$server" 2>/dev/null || true; wait "$server" || true' EXIT
+              ready=0
+              for attempt in $(seq 1 180); do
+                if test -r /tmp/restore.pid && test "$(cat /tmp/restore.pid)" = "$server" &&
+                   test "$(mysql --socket=/tmp/restore.sock --user=root --batch --skip-column-names -e 'SELECT 1' 2>/dev/null)" = 1; then
+                  ready=1
+                  break
+                fi
+                kill -0 "$server"
+                sleep 2
+              done
+              test "$ready" = 1
+              gzip -dc "/staging/$BACKUP_PATH" | mysql --socket=/tmp/restore.sock --user=root
+              test "$(mysql --socket=/tmp/restore.sock --user=root --batch --skip-column-names -e "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name IN ('clouddriver','echo','fiat','front50','orca')")" = 5
+              mysqlcheck --socket=/tmp/restore.sock --user=root --databases clouddriver echo fiat front50 orca
+              for service in clouddriver echo fiat front50 orca; do
+                password="$(cat "/credentials/$service-password")"
+                migration="$(cat "/credentials/$service-migration-password")"
+                case "$password:$migration" in *[!a-zA-Z0-9:]* | :* | *:) exit 1 ;; esac
+                mysql --socket=/tmp/restore.sock --user=root <<SQL
+              CREATE USER IF NOT EXISTS '${service}_service'@'%' IDENTIFIED BY '$password' REQUIRE SSL;
+              ALTER USER '${service}_service'@'%' IDENTIFIED BY '$password' REQUIRE SSL;
+              CREATE USER IF NOT EXISTS '${service}_migrate'@'%' IDENTIFIED BY '$migration' REQUIRE SSL;
+              ALTER USER '${service}_migrate'@'%' IDENTIFIED BY '$migration' REQUIRE SSL;
+              GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, EXECUTE, SHOW VIEW ON \`$service\`.* TO '${service}_service'@'%';
+              GRANT ALL PRIVILEGES ON \`$service\`.* TO '${service}_migrate'@'%';
+              SQL
+              done
+              mysqladmin --socket=/tmp/restore.sock --user=root shutdown
+              wait "$server"
+              trap - EXIT
+{% else %}
+              redis-check-rdb "/staging/$BACKUP_PATH"
+              cp "/staging/$BACKUP_PATH" /data/dump.rdb
+              redis-check-rdb /data/dump.rdb
+              redis-server --dir /data --dbfilename dump.rdb --appendonly no --port 0 --unixsocket /tmp/restore.sock --daemonize yes
+              redis-cli -s /tmp/restore.sock CONFIG SET appendonly yes
+              ready=0
+              for attempt in $(seq 1 300); do
+                if redis-cli -s /tmp/restore.sock INFO persistence | tr -d '\r' | grep -qx 'aof_rewrite_in_progress:0'; then ready=1; break; fi
+                sleep 1
+              done
+              test "$ready" = 1
+              redis-cli -s /tmp/restore.sock INFO persistence | tr -d '\r' | grep -qx 'aof_last_bgrewrite_status:ok'
+              redis-cli -s /tmp/restore.sock SHUTDOWN SAVE
+{% endif %}
+              printf '%s\n' "$RECOVERY_ID" > /data/.delivery-restored
+              sync
+          env:
+            - {name: BACKUP_PATH, value: {{ data.path | regex_replace('^/', '') | to_json }}}
+            - {name: BACKUP_SHA256, value: {{ data.sha256 | to_json }}}
+            - {name: RECOVERY_ID, value: {{ platform_recovery.recovery_id | to_json }}}
+            - {name: RECOVERY_PVC_UID, value: {{ recovery_database_claim.resources[0].metadata.uid | to_json }}}
+{% if recovery_database == 'mysql' %}
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom: {secretKeyRef: {name: spinnaker-mysql-root, key: password}}
+            - {name: MYSQL_ROOT_HOST, value: '%'}
+            - name: MYSQL_PWD
+              valueFrom: {secretKeyRef: {name: spinnaker-mysql-root, key: password}}
+{% endif %}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: staging, mountPath: /staging, readOnly: true}
+{% if recovery_database == 'mysql' %}
+            - {name: credentials, mountPath: /credentials, readOnly: true}
+{% endif %}
+      volumes:
+        - {name: data, persistentVolumeClaim: {claimName: {{ data.claim }}}}
+        - {name: staging, emptyDir: {}}
+        - {name: cache, emptyDir: {}}
+{% if recovery_database == 'mysql' %}
+        - name: credentials
+          projected:
+            sources:
+{% for service in ['clouddriver', 'echo', 'fiat', 'front50', 'orca'] %}
+              - secret:
+                  name: spinnaker-{{ service }}-db
+                  items:
+                    - {key: password, path: {{ service }}-password}
+                    - {key: migration-password, path: {{ service }}-migration-password}
+{% endfor %}
+{% endif %}
+{% if recovery_product.repository_claim is defined %}
+        - {name: repository, persistentVolumeClaim: {claimName: {{ recovery_product.repository_claim }}}}
+{% endif %}

@@ -2,8 +2,10 @@
 
 **Selected path:** independent Tier 1 Flux installs platform services; Spinnaker promotes application
 Git. Start at [Stage 7](../README.md). Existing installations first complete
-[explicit adoption](flux-adoption.md). The [ownership figure](../../../01-architecture/10-delivery/flux-ownership.md#figure-tier1-flux-ownership)
+[explicit adoption](flux-adoption.md). The [selected ownership figure](../../../08-reference/tier-1-delivery.md#figure-tier1-flux-ownership)
 shows the resulting boundary, including independent maintenance and recovery.
+
+**Working repository:** `<prefix>-tier-1/`, from the authorized independent execution host.
 
 ## Contents
 
@@ -23,7 +25,7 @@ kubeconfig/context only. Retain initial Git/chart/image supply reachable before 
 
 1. Create/accept the private bootstrap/platform Git project and an entirely different application
    delivery project. Give Flux read credentials for each source; give the promotion bot write rights
-   only in the application project. Commission [CE branch permissions and roles](../../../01-architecture/10-delivery/approval-controls.md).
+   only in the application project. Commission [CE branch permissions and roles](../../../08-reference/spinnaker-approval.md).
 2. Check out the approved platform source independently. `clusters/tier1/bootstrap` contains RBAC and
    the SOPS canary only. The selected platform root contains `platform-base` and enabled service graphs.
    Exports must enter the actual checked-out source, not an untracked sibling assumed to be deployed.
@@ -85,6 +87,12 @@ Never publish the plaintext canary version or include moving source refs/Flux He
 If Stage 7 Step 1 already accepted this runtime and base reconciliation, retain those inputs,
 source receipts and credentials and continue at service rendering below. Do not create/bootstrap
 another cluster or repeat ownership transfer for every product.
+
+For a recovery rebuild, follow the independently retained recovery contract. The recovery bootstrap
+installs `platform`, `tier1-platform` and `tier1-applications` suspended and verifies their live pause
+before data work. It fetches the immutable bootstrap source; controlled platform resumption checks
+the accepted canary hash. Normal bootstrap below still requires immediate canary reconciliation.
+[Independent recovery workflow](../../../05-operations/06-resilience/recovery/tier-1-products.md).
 
 Complete [the platform-cluster lifecycle](platform-cluster.md), including saved-plan review,
 credential export, capacity and independent API access. In **Tier 1's local
@@ -160,9 +168,22 @@ Use `delivery_platform_flux_component: platform/artifact-registry` for a Harbor-
 the default `platform/delivery` would replace that component graph rather than append another product.
 Keep the controller and registry input profiles and root entries separate.
 
-For Spinnaker set `delivery_platform_spinnaker_delivery_mode: flux` and a deliberate
-`delivery_platform_spinnaker_lifecycle` (`fresh`, `adopt`, `upgrade` or `recover`). Retain stable
-credentials, the job revision and [native TLS/backup contracts](../step-2b-spinnaker.md).
+For Spinnaker set `delivery_platform_spinnaker_delivery_mode: flux` and select
+`delivery_platform_spinnaker_lifecycle` from the table. Retain stable credentials, the job revision
+and native TLS/backup inputs.
+[Native contracts](../step-2b-spinnaker.md).
+
+| Select | Before publishing the platform revision |
+| --- | --- |
+| `fresh` | Accept empty MySQL/Redis claims. Each read-only guard mounts one claim and runs before persistence starts; the claims may attach on different nodes |
+| `adopt` | Preserve the existing namespace, claims, credentials and product versions. The guards use authenticated SQL/Redis service connections; retain the Envoy TLS/SAN path and verify service/migration users |
+| `upgrade` | Retain the accepted current manifest and checksum before rendering. Follow the dedicated upgrade runbook to obtain the independently verified backup before advancing the source |
+| `recover` | Use the recovery workflow's accepted restore identity. Guards check exact per-claim markers and product data; application replicas stay zero and ingress absent until verified cutover |
+
+[Existing-owner adoption](flux-adoption.md),
+[upgrade runbook](../../../05-operations/05-delivery.md#upgrade-spinnaker),
+[product recovery](../../../05-operations/06-resilience/recovery/tier-1-products.md).
+
 `delivery_platform_manage_secrets: true` supplies the export's retained private Secret map;
 `delivery_platform_flux_secret_data` supplies already base64-encoded binary TLS/PKCS12 values.
 Select `delivery_platform_flux_secret_owner: retained`, or explicitly select `generated` with an
@@ -193,7 +214,9 @@ until data restore is accepted. Job revision changes are reviewed actions, not a
    and `storageNamespace`; platform HelmRelease objects remain in `flux-system`.
 2. Complete manual signed approval/publication. Store the approved commit and artifact bundle in
    independent custody with a receipt; do not rely on the new GitLab/Harbor to hold its sole copy.
-3. Use [the external maintenance playbook](../../../05-operations/05-delivery.md#advance-an-approved-platform-revision)
+3. For a Spinnaker upgrade, use the dedicated backup/staging entry point before source advancement.
+   [Upgrade runbook](../../../05-operations/05-delivery.md#upgrade-spinnaker).
+   For other platform changes, use [the external maintenance playbook](../../../05-operations/05-delivery.md#advance-an-approved-platform-revision)
    to advance `tier1-platform` to that exact
    commit. Bootstrap `platform` keeps its immutable revision unless an explicit bootstrap change is
    approved. Application promotions have no access to either operation.
@@ -212,7 +235,12 @@ receipts must match the reviewed change before the maintenance operation.
 
 ## Promotion and acceptance
 
-### 1. Configure and render promotion inputs
+The authority holds application Git/signing credentials in `delivery-promotion-authority`.
+Spinnaker creates secretless clients in `delivery-promotion`. The approval sequence shows the
+preview, judgment and authority checks.
+[Approval sequence and limits](../../../08-reference/spinnaker-approval.md).
+
+### 1. Initialize and edit the policy
 
 Run from **`<prefix>-tier-1/`**.
 
@@ -220,71 +248,122 @@ Run from **`<prefix>-tier-1/`**.
 bash scripts/init-local-files.sh --setup delivery-promotions
 ```
 
-Edit `ansible/group_vars/delivery_promotion.yml`. Match `delivery_promotion_application_namespaces`
-and `delivery_promotion_kustomization_path` to the cluster's approved application source. Set the
-separate application repository, exact target/chart/image pins, real digest-pinned worker image,
-judgment roles, egress and accepted bypass limits. Set `delivery_promotion_flux_output` to the absolute
-private platform checkout's `clusters/tier1` directory and fill its SOPS age recipients.
-Build and independently retain the worker using `scripts/promotion/Dockerfile` and its approved base.
-The input example describes the build context and required Git, OpenSSH, Python and CA contents.
+Edit `ansible/group_vars/delivery_promotion.yml` using the refreshed example.
 
-Run from **`<prefix>-tier-1/`** with those completed inputs.
+| Set | Expected input |
+| --- | --- |
+| Application repository, branch, manifest and target | Separate application project and exact allowed namespace/resource |
+| `delivery_promotion_application_namespaces`, `delivery_promotion_kustomization_path` | Match the cluster's approved application source |
+| Chart/image pins and `delivery_promotion_worker_image` | Real accepted versions and worker `registry/image@sha256:…` |
+| Requester, approver, executor and admin roles | Match native Fiat application/account permissions; requesters use their requester role |
+| `delivery_promotion_reader_role` | Match the native Spinnaker reader group, default `tier1-delivery-readers`; the authority's Gate service identity belongs to this group |
+| `delivery_promotion_authority_gate_url`, `delivery_promotion_authority_fiat_url` | Verified HTTPS endpoints; native Fiat defaults to `https://fiat.spinnaker.svc.cluster.local:7003` |
+| `delivery_promotion_authority_ca_file` | Controller-local public CA file validating the authority's service certificate |
+| `delivery_promotion_egress` | Client DNS destinations; authority HTTPS access is rendered automatically |
+| `delivery_promotion_authority_egress` | Actual DNS, Kubernetes API, application Git, Gate and Fiat destinations/ports |
+| `delivery_promotion_flux_output`, `delivery_promotion_flux_sops_age_recipients` | Absolute private platform checkout `clusters/tier1` directory and accepted age recipients |
+
+Record the three `delivery_promotion_controls_accepted` limits after reviewing the approval contract.
+Build the worker from `scripts/promotion/Dockerfile` using an approved base with Git, OpenSSH, Python
+and private Git CA trust. Retain that image independently. Preserve stable pipeline IDs during adoption.
+
+### 1a. Adopt the current pipeline template after refresh
+
+For an existing generated collection, refresh updates the worker and roles while preserving the
+project-owned `pipelines/flux-promotion.yml.j2`. Compare that file before rendering or adopting the
+new authority. A preserved credential-bearing template needs the secretless client changes to work
+with the new admission and credential-retirement controls.
+[Current upstream template](../../../../tier-1/pipelines/flux-promotion.yml.j2).
+
+From **`<prefix>-tier-1/`**, enter the updated upstream kit checkout, such as `/srv/src/homelab`.
 
 ```bash
-ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
-  ansible/playbooks/deployment/delivery-promotions.yml \
-  -e @ansible/group_vars/delivery_promotion.yml -e delivery_promotion_action=render
+read -r -p 'Updated upstream checkout (e.g. /srv/src/homelab): ' PROMOTION_UPSTREAM
+git diff --no-index -- "$PROMOTION_UPSTREAM/tier-1/pipelines/flux-promotion.yml.j2" pipelines/flux-promotion.yml.j2
 ```
 
-Expect private `secrets/delivery-promotion/` containing `promote.json`, `rollback.json`,
-`promotion-resources.yml` and an `application-source/` tree. Git and SOPS are checked before export.
+Git returns status `1` when differences are present. Merge the current client Job structure into
+the project template. Keep its integration stages and stable pipeline IDs, and adopt the authority
+URL, execution ID, approval ticket/instructions, projected token/public CA and secretless Job volumes.
+Remove the old Git/signing Secret mounts and client-side publication commands. Review both rendered
+promote/rollback definitions in Step 3 before import/adoption. Fresh generated collections already
+include the current template and continue with Step 2.
 
-### 2. Publish platform permissions and the initial application
+### 2. Supply retained encrypted credentials
 
-Review the exported `platform/delivery-promotion` component, add `delivery-promotion` to
-`clusters/tier1/platform/kustomization.yaml`, then approve/reconcile its platform revision above.
-Provision `delivery-promotion-git` (`username`, `password`) and `delivery-promotion-signing`
-(`key`, retained SSH Ed25519) through the selected encrypted Secret owner in `delivery-promotion`.
-Require worker policy and its platform-owned HelmRepository, when selected, before application use.
-
-In **the separate application Git project**, review and copy the files under
-`secrets/delivery-promotion/application-source/` into their matching repository-relative paths.
-The default seed creates `clusters/tier1/applications/kustomization.yaml` and
-`clusters/tier1/applications/example/helmrelease.json`. For an existing application index, merge its
-resource entry with the accepted entries. Publish the reviewed seed on the protected delivery branch
-through the existing signed-commit process and record its full commit SHA.
-
-Application reconciliation starts suspended. Use the independent maintenance input with
-`flux_maintenance_operation: resume`, `flux_maintenance_source: tier1-applications` and that exact
-SHA as `flux_maintenance_revision`. Complete its data and execution checks before setting the two
-acceptance flags `flux_maintenance_data_restored` and `flux_maintenance_executions_fenced` to `true`.
-Match `flux_maintenance_application_branch` to the actual protected branch, set
-`flux_maintenance_approved: true` for this reviewed resumption and select the application's actual
-workload in `flux_maintenance_health_checks`. For the fresh stateless reference, data acceptance
-records that there is no retained application state to restore. Existing applications require their
-actual recovery checks.
-Render/review and apply through the linked maintenance procedure before running a promotion.
-[Maintenance and resumption](../../../05-operations/05-delivery.md#suspend-and-recover-applications).
-
-### 3. Import and qualify the pipelines
-
-Retain stable pipeline IDs and supply authenticated Gate headers in an encrypted private
-`secrets/delivery-promotion.yml` input using `delivery_promotion_gate_headers`. Set the actual
-`delivery_promotion_gate_url` and trusted `delivery_promotion_gate_ca_path` in the local inputs.
-Create the encrypted file from **`<prefix>-tier-1/`**.
+From **`<prefix>-tier-1/`**, create the private input or edit its existing encrypted version.
 
 ```bash
 ansible-vault create secrets/delivery-promotion.yml
 ```
 
-Enter the header map below using the operator's accepted Gate session cookie, then save the file.
+Set `delivery_promotion_credentials` to a mapping of **exact Secret names to `stringData` mappings**.
+The defaults below follow `delivery_promotion_git_secret`, `delivery_promotion_signing_secret` and
+`delivery_promotion_authority_secret` when those names are customized.
 
-```yaml
-delivery_promotion_gate_headers:
-  Cookie: REPLACE_WITH_AUTHENTICATED_GATE_SESSION_COOKIE
+| Mapping key | Required fields |
+| --- | --- |
+| `delivery-promotion-git` | `username`, `password` for the separate application-project bot |
+| `delivery-promotion-signing` | `key`, the retained SSH Ed25519 private signing key |
+| `delivery-promotion-authority` | `ticket-key` with at least 32 independent random bytes, `gate-headers.json`, `gate-ca.pem`, `fiat-ca.pem`, `tls.crt`, `tls.key` |
+
+`gate-headers.json` contains JSON authentication headers for a service identity in
+`delivery_promotion_reader_role`, matching the native Spinnaker reader group. The promotion
+application grants this group `READ` only. Its certificate authorities validate Gate and Fiat.
+The authority TLS certificate must cover the service name in `delivery_promotion_authority_url`.
+Retain all three credential sets
+in independent custody. Reuse accepted material during recovery.
+
+In the same encrypted input, set `delivery_promotion_gate_headers` for the operator's Gate import
+session. Set its HTTPS URL and public CA through `delivery_promotion_gate_url` and
+`delivery_promotion_gate_ca_path` in the local group vars. The operator can update application/pipeline
+definitions, while the authority service uses its scoped read identity.
+
+### 3. Render and publish the authority and application
+
+Run from **`<prefix>-tier-1/`**.
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/delivery-promotions.yml \
+  -e @ansible/group_vars/delivery_promotion.yml \
+  -e @secrets/delivery-promotion.yml --ask-vault-pass -e delivery_promotion_action=render
 ```
 
-Run from **`<prefix>-tier-1/`** after the application and worker resources are accepted.
+Expect private `secrets/delivery-promotion/` artifacts containing `promote.json`, `rollback.json`,
+`promotion-resources.yml` and `application-source/`. The platform export encrypts the three authority
+Secrets with SOPS. Review only encrypted Secret documents into the private platform source.
+
+For an existing credential-bearing promotion path, run the `adopt` command in Step 4 **before
+publishing the replacement**. It applies the Gate execution fence first. If the new authority is
+pending, keep that fence, publish the reviewed resources below, then rerun `adopt`.
+
+Publish the updated native Spinnaker payload as well as the promotion component. For an existing
+installation, use its retained `adopt` lifecycle inputs in the service-rendering step. This deploys
+the Orca HTTP restrictions and automatic configuration hashes required by adoption's rollout check.
+[Render the native service payload](#render-services-into-the-platform-source).
+
+Review `platform/delivery-promotion`, add `delivery-promotion` to
+`clusters/tier1/platform/kustomization.yaml`, and approve/reconcile that platform revision through the
+preceding platform-maintenance step. Verify the authority Deployment, Secrets, admission policy and
+binding, scoped RBAC, trusted HTTPS and network-policy paths before opening release execution.
+Verify `spinnaker-authenticated-identity` is bound to the Gate Ingress and strips caller-supplied
+`X-Spinnaker-User`, `X-Spinnaker-Accounts`, `X-Spinnaker-User-Origin` and `X-Spinnaker-Anonymous`.
+Keep direct Gate access confined to the accepted ingress/private service policies.
+Common/service configuration hashes automatically roll native service Pods. Adoption also waits for
+the hardened Orca `deny-user-http-v1` profile and complete replica convergence before reopening.
+The worker policy and platform-owned HelmRepository must be ready for the selected application.
+
+In **the separate application Git project**, copy the reviewed files under
+`secrets/delivery-promotion/application-source/` to their matching repository paths. Merge an existing
+Kustomize index with its accepted entries. Publish the seed through the established signed-commit
+process and retain its full SHA. Application reconciliation starts suspended. Resume that accepted
+revision using the scoped maintenance workflow and its data/execution checks.
+[Maintenance and resumption](../../../05-operations/05-delivery.md#suspend-and-recover-applications).
+
+### 4. Import or adopt pipelines
+
+For a **fresh installation**, run from **`<prefix>-tier-1/`** after authority/application acceptance.
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
@@ -293,28 +372,51 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   -e @secrets/delivery-promotion.yml --ask-vault-pass -e delivery_promotion_action=import
 ```
 
-Expect the representative application's permissions and stable promotion/rollback definitions in
-Gate. Present the exact digest/configuration diff before judgment and require the intended Flux
-revision and target health. The Run Job account is confined to `delivery-promotion`; adoption also
-revokes old direct application RoleBindings/token Secrets. Complete both positive and denial checks
-below before normal delivery. Subsequent import, update and rollback use the operating guide.
-[Promotion operations](../../../05-operations/05-delivery.md#operate-promotions-and-pipeline-definitions).
+For an **existing Job-mounted credential path**, also set the adoption fields in
+`ansible/group_vars/delivery_promotion.yml` and the encrypted input.
+
+| Set | Find it in |
+| --- | --- |
+| `delivery_promotion_kubeconfig`, `delivery_promotion_context` | Retained Tier 1 administrator kubeconfig and selected context |
+| `delivery_promotion_gitlab_url`, `delivery_promotion_gitlab_ca_path` | Existing GitLab CE endpoint and its trusted CA |
+| `delivery_promotion_retired_token_id` | Old bot personal access token ID in GitLab, such as `42` |
+| `delivery_promotion_gitlab_headers` | Encrypted administrator API headers used to inspect/revoke that old token |
+
+Use replacement bot/ticket credentials. Keep ordinary execution fenced until the replacement
+authority is ready. Run from **`<prefix>-tier-1/`**.
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/deployment/delivery-promotions.yml \
+  -e @ansible/group_vars/delivery_promotion.yml \
+  -e @secrets/delivery-promotion.yml --ask-vault-pass -e delivery_promotion_action=adopt
+```
+
+Adoption verifies the authority/hardened Orca rollouts, revokes and verifies the old GitLab CE token,
+stops old Jobs and orphan Pods, removes their Git/signing Secrets from `delivery-promotion`, then
+restores the intended application permissions. On failure,
+correct the reported condition and rerun `adopt` with the same retained inputs. The fence remains.
+Complete the existing platform handoff's direct-deploy RoleBinding/token revocation as well.
+
+### 5. Qualify the release path
 
 | Live scenario | Required evidence |
 | --- | --- |
-| Fresh bootstrap | Only bootstrap networking/Flux installed imperatively; Flux owns all selected releases including itself |
-| Existing adoption | Preserved Helm histories, storage, known data and stable credentials; old writer/tokens denied |
-| Approval | Authorized continuation and denied UI/API judgment, pipeline edit and direct Git bypass attempts; documented admin limits |
-| Promotion | Exact approved digest/config/diff; expected-head concurrency check; intended Flux revision and relevant workload/Helm health |
-| Retry/supersession | No duplicate release from retry; conflicting or superseded change cannot report success |
-| Drift | Approved reversible workload change corrected by Flux, including Helm drift correction |
-| Upgrade/rollback | Controlled Flux self-upgrade and product/schema gate; approved compatible Git rollback |
-| Spinnaker outage | External authorized platform/source maintenance succeeds while promotion remains fenced |
-| GitLab/Harbor outage | Independent configuration, keys and pinned artifacts actually retrievable; no empty fallback deployment |
-| Full recovery | Tier 0 first, Tier 1 rebuild, explicit data restoration and known-content checks before triggers/runners resume |
+| Fresh bootstrap | Flux owns selected releases after bootstrap; authority HTTPS/admission/RBAC and all required egress paths work |
+| Existing adoption | Data/credentials retained; Gate fence observed; retired token, old Jobs/orphan Pods and old namespace Secrets removed |
+| Approval | Authorized continuation succeeds; requester UI/API patches, restarts and unapproved execution fail at publication |
+| Gate identity | Forged `X-Spinnaker-*` identity/account headers through the ingress cannot impersonate an approver or select privileged accounts |
+| Credential access | Arbitrary client Secret volumes/env imports and authority-account/namespace selection denied by the installed API server |
+| Exact operation | Changed digest/configuration/target/diff/policy, execution identity or expired ticket denied |
+| Retry/concurrency | Exact candidate retry observes; changed delivery head requires fresh judgment; supersession fails |
+| Promotion | Accepted signed candidate and exact Flux revision/target health recorded |
+| Drift and upgrade | Scoped drift correction and accepted backup/data-compatibility gates exercised |
+| Service outage/recovery | Independent inputs/artifacts retrieved; product restoration verified before triggers/runners resume |
 
-Record live results and transition exceptions in `<prefix>-architecture/deployments.md`. Render/unit
-checks, Kubernetes Ready and recreated PVCs do not prove approval controls or full recovery.
+The authorization tests use mocked Gate/Fiat responses and real local Git compare-and-swap. Rendered
+admission resources require live API-server denial tests. Record those results, administrator limits
+and any self-approval role overlap in `<prefix>-architecture/deployments.md`.
+[Promotion operations](../../../05-operations/05-delivery.md#operate-promotions-and-pipeline-definitions).
 
 ## Recovery and stop conditions
 
@@ -324,6 +426,11 @@ derived from accepted configuration. Select the product's recovery lifecycle, re
 data/consumer fences, then retain that exact revision in a verified custody package. Do not point an
 empty replacement cluster at a historical fresh-install payload and expect a later restore to undo
 its initialization. Reconcile only guarded prerequisites until native data restoration is accepted.
+
+For the [accepted-plan recovery coordinator](../../../05-operations/06-resilience/recovery/platform-recovery-contract.md),
+Spinnaker's final accepted payload uses `adopt`. The coordinator restores and verifies data with roots
+paused, then checks the operating consumers and normal Git ownership before network cutover.
+The standalone `recover` rendering keeps consumers at zero and does not activate the recovered service.
 
 Suspend applications through external maintenance, fence webhooks/runners/stale executions and retain
 data/keys before repairs. Do not clear completed Jobs to force migrations, rotate stable passwords,

@@ -1,0 +1,17 @@
+---
+- name: Load the original plan-bound native HA configuration
+  ansible.builtin.set_fact:
+    recovery_original_ha: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/proxmox-ha.json') | from_json }}"
+
+- name: Require the retained original HA configuration for this operation
+  ansible.builtin.assert:
+    that:
+      - recovery_original_ha.plan_sha256 == platform_recovery.plan_sha256
+
+- name: Restore original native HA supervision after verified service and NIC cutover
+  ansible.builtin.command:
+    argv: [ha-manager, set, "{{ item.sid }}", --state, "{{ item.state | default('started') }}"]
+  delegate_to: "{{ recovery_hypervisor }}"
+  become: true
+  loop: "{{ recovery_original_ha.resources }}"
+  changed_when: item.state | default('started') != 'ignored'

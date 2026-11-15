@@ -1,0 +1,33 @@
+---
+# Parse only the address subtree. Other setup fields can contain guest-only Jinja expressions.
+- name: Read only the selected setup address map on the controller
+  ansible.builtin.set_fact:
+    logging_workflow_host_addresses: >-
+      {{ (lookup('ansible.builtin.file', logging_workflow_repository ~ '/ansible/group_vars/' ~
+         producer.value.setup ~ '.yml') | from_yaml).get('platform_host_ips', {})
+         if producer.value.setup is defined else {} }}
+  no_log: true
+
+- name: Locate the optional address environment overlay
+  ansible.builtin.set_fact:
+    logging_workflow_host_overlay_files: >-
+      {{ query('ansible.builtin.first_found', {'files': [logging_workflow_repository ~ '/ansible/group_vars/' ~
+         producer.value.setup ~ '.' ~ (platform_environment | default('prod')) ~ '.yml'], 'skip': true})
+         if producer.value.setup is defined else [] }}
+
+- name: Merge only the selected environment's address map
+  ansible.builtin.set_fact:
+    logging_workflow_host_addresses: >-
+      {{ logging_workflow_host_addresses | combine((lookup('ansible.builtin.file', item) | from_yaml)
+         .get('platform_host_ips', {})) }}
+  loop: "{{ logging_workflow_host_overlay_files }}"
+  no_log: true
+
+- name: Reuse a declared setup's exact guest address
+  ansible.builtin.add_host:
+    name: "{{ producer.key }}"
+    groups: logging_workflow_producers
+    ansible_host: >-
+      {{ logging_workflow_host_addresses[producer.key]
+         if logging_workflow_host_addresses.get(producer.key, 'dhcp') != 'dhcp'
+         else hostvars[producer.key].ansible_host | default(producer.key) }}

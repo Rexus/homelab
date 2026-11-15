@@ -7,7 +7,6 @@
       - log_forwarder_peer is not match('^[0-9.]+$')
       - log_forwarder_port | int > 0
       - log_forwarder_port | int < 65536
-      - log_forwarder_watchdog_url is match('^https://[A-Za-z0-9./_?=&:%-]+$')
 
 - name: Preserve existing logger service ownership
   ansible.builtin.service_facts:
@@ -122,5 +121,5 @@
     state: started
   loop: "{{ log_forwarder_streams }}"
 
-- name: Install independently observed producer health checks
+- name: Install local producer health checks and the optional independent watchdog
   ansible.builtin.import_tasks: health.yml

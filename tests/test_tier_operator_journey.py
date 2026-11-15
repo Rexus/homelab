@@ -21,17 +21,22 @@ class OperatorJourney(TierRepositoryTestCase):
             handoff = host.split("### Step 6:", 1)[1].split("## Platform guides", 1)[0]
             self.assertIn("../README.md", handoff)
             self.assertIn("stage-01-software-intake/README.md", foundation)
-            self.assertIn("stage-02-logging/README.md", foundation)
+            self.assertIn("stage-03-logging/README.md", foundation)
             self.assertNotIn("freeipa.md", handoff)
             network = (docs / "03-deployment/foundation/network/unifi.md").read_text()
             for expected in ("## Step 1: Bring up the network", "switch alone is not", "controller",
                              "native/untagged", "control_cluster"):
                 self.assertIn(expected.lower(), network.lower())
-            for relative in ("README.md", "procedures/receiver.md"):
-                logging = (docs / "03-deployment/stage-02-logging" / relative).read_text()
-                self.assertIn("software-pki.md#decisions-and-recovery-kit", logging)
-                self.assertIn("client-auth", logging)
-                self.assertIn("independent producer authority", logging)
+            logging_root = docs / "03-deployment/stage-03-logging"
+            logging = (logging_root / "README.md").read_text()
+            self.assertIn("../stage-02-trust/README.md", logging)
+            self.assertIn("persistent local host logs during PKI bootstrap", logging)
+            self.assertIn("No `host_vars` file is required", logging)
+            authority = (logging_root / "procedures/producer-trust.md").read_text()
+            for contract in ('`infrastructure`, main', '`independent`', '`provided`',
+                             'logging_client', 'logging_server', 'cannot approve its own request',
+                             'does not authorize certificate installation', 'ansible-vault.password'):
+                self.assertIn(contract, authority)
 
     def test_service_walkthroughs_initialize_edit_then_deploy_with_optional_preview(self):
         self.generate()
@@ -189,5 +194,5 @@ class OperatorJourney(TierRepositoryTestCase):
             self.assertIn("../bootstrap/README.md", entry)
             bootstrap = (docs / "03-deployment/foundation/bootstrap/README.md").read_text()
             self.assertIn(relative + "#step-1-trust-the-bootstrap-ca", bootstrap)
-            trust = (docs / "03-deployment/stage-03-trust/README.md").read_text()
+            trust = (docs / "03-deployment/stage-02-trust/README.md").read_text()
             self.assertIn(relative + "#step-2-adopt-the-platform-pki", trust)

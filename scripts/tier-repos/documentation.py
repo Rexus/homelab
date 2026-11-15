@@ -80,8 +80,9 @@ def tier_readme(writer, tier, prefix, setups):
         "```\n\n"
         f"Follow the [cluster procedure]({docs}/03-deployment/stage-04-kubernetes/procedures/talos-terraform.md)\n"
         "to configure, plan, deploy and verify. Cluster manifests are starters, not installed services.\n"
-        f"Record the [delivery choice]({docs}/01-architecture/10-delivery/02-controllers.md) separately;\n"
-        "Tier 1 does not inherit Tier 0 Flux automatically.\n"
+        f"Review the [delivery roles]({docs}/01-architecture/10-delivery/02-controllers.md), then record\n"
+        f"the [selected implementation]({docs}/08-reference/tier-1-delivery.md) separately.\n"
+        "Each tier retains independent reconciliation and recovery authority.\n"
     )
     if tier == "tier-0":
         prerequisites = (
@@ -107,12 +108,14 @@ def tier_readme(writer, tier, prefix, setups):
             f"or intentional [boot-disk replacement]({docs}/05-operations/01-hosting/templates/template-disk.md).\n\n"
             f"Accept [Stage 1: software intake]({docs}/03-deployment/stage-01-software-intake/README.md) first,\n"
             "using existing approved supply or the Tier 2 proxy/cache path.\n\n"
-            f"Deploy [Stage 2: protected logging]({docs}/03-deployment/stage-02-logging/README.md), Steps 1-16,\n"
+            f"Complete [Stage 2: cryptographic trust]({docs}/03-deployment/stage-02-trust/README.md),\n"
+            "retaining persistent local journal/audit records and independent recovery custody.\n\n"
+            f"Then deploy [Stage 3: protected logging]({docs}/03-deployment/stage-03-logging/README.md), Steps 1-8,\n"
             "outside Kubernetes with this repository's `syslog` setup. The supplied code\n"
-            "provisions receiver VMs/disks and installs the isolated receiver after\n"
-            "storage/TLS preparation. Separate logging recipes configure producers, NAS checkpoints\n"
-            "and independent backups; NAS custody and live acceptance remain explicit gates.\n\n"
-            f"After logging, complete [trust]({docs}/03-deployment/stage-03-trust/README.md) before the cluster.\n"
+            "provisions receiver VMs/disks, prepares storage and certificate requests, and configures\n"
+            "the receiver and selected producers after approval. Separate retention recipes configure\n"
+            "NAS checkpoints and independent backups; NAS custody and live acceptance remain explicit gates.\n\n"
+            "Accept protected forwarding before continuing to the cluster.\n"
             "**Kubernetes control cluster.** Initialize its Tier 0 inputs:\n\n"
             f"Run from `{repo_prefix}-tier-0/`.\n\n"
             "```bash\n"
@@ -131,13 +134,10 @@ def tier_readme(writer, tier, prefix, setups):
             "uses explicit CSR/pause and signed-certificate completion phases; offline signing remains separate.\n"
         )
     elif tier == "tier-1":
-        prerequisites = prerequisites.replace(
-            "Tier 1 does not inherit Tier 0 Flux automatically.\n",
-            "Fresh Tier 1 selects independent Flux for platform/application reconciliation and Spinnaker\n"
-            "for application Git promotion. Existing installations require explicit ownership adoption.\n"
-        )
         prerequisites += (
-            f"\nAfter [Delivery]({docs}/03-deployment/stage-07-delivery/README.md) and Observability,\n"
+            "Fresh Tier 1 selects independent Flux for platform/application reconciliation and Spinnaker\n"
+            "for application Git promotion. Existing installations require explicit ownership adoption.\n\n"
+            f"After [Delivery]({docs}/03-deployment/stage-07-delivery/README.md) and Observability,\n"
             f"follow [Stage 9: Development platform]({docs}/03-deployment/stage-09-development/README.md).\n"
             "Its native renderer exports GitLab and on-demand Kubernetes job runners for Tier 1 Flux.\n"
             "Stage 9 provisions the dedicated data-service VMs before installing GitLab.\n"
@@ -161,6 +161,7 @@ def shared_readme(writer, prefix):
 def copy_documentation(writer, prefix, upstream):
     documents = sorted((upstream / "docs").rglob("*.md"))
     assets = ("08-reference/diagrams/palette.json", "02-conventions/vmid-convention.svg",
+              "08-reference/diagrams/render-vmid.cjs",
               "08-reference/diagrams/identity-operations.svg", "08-reference/diagrams/cache-services.svg",
               "08-reference/diagrams/protected-logging.svg",
               "08-reference/diagrams/logging-receivers.svg",

@@ -120,7 +120,7 @@ On a trusted recovery system with **encrypted working storage**, outside Git:
    `platform_host_ips.ca-1` in `ansible/group_vars/foundation.yml`. Retain the other
    host entries; do not run Terraform or the identity recipe against this recovery map.
 2. Prepare the exact approved Debian runtime and dedicated data/mysql mounts using
-   [issuer installation](../../03-deployment/stage-03-trust/procedures/issuer.md#step-2-install-the-runtime).
+   [issuer installation](../../03-deployment/stage-02-trust/procedures/issuer.md#step-2-install-the-runtime).
    Initialize the empty schema once; keep activation **false**. Create no issuer key,
    token or certificate and preserve the original immutable bundle/binding. [3]
    The normal installer prepares storage; the restore recipe only checks existing mounts.

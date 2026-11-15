@@ -6,8 +6,8 @@ Link acceptance evidence from the [platform record](docs/README.md).
 
 ## Contents
 
-[Foundation](#foundation) · [Software Intake](#1-software-intake) · [Logging](#2-protected-logging) ·
-[Trust](#3-trust) · [Kubernetes](#4-kubernetes) · [Identity](#5-identity) · [Secrets](#6-secrets) ·
+[Foundation](#foundation) · [Software Intake](#1-software-intake) · [Trust](#2-trust) ·
+[Logging](#3-protected-logging) · [Kubernetes](#4-kubernetes) · [Identity](#5-identity) · [Secrets](#6-secrets) ·
 [Delivery](#7-delivery) · [Observability](#8-observability) · [Development](#9-development-platform) ·
 [Lab Environments](#10-lab-environments)
 
@@ -43,35 +43,35 @@ Bootstrap and host consumers: [Tier 0](../${repo_prefix}-tier-0/README.md).
 - [ ] Bootstrap consumer configured — [Steps 10–13](docs/auto-docs/03-deployment/stage-01-software-intake/README.md#step-10-configure-bootstrap-intake).
 - [ ] Proxmox update access configured — [Steps 14–16](docs/auto-docs/03-deployment/stage-01-software-intake/README.md#step-14-configure-proxmox-update-inputs).
 
-## 2. Protected Logging
-
-Run from [Tier 0](../${repo_prefix}-tier-0/README.md).
-
-- [ ] Log host and guarded storage ready — [Steps 1–4](docs/auto-docs/03-deployment/stage-02-logging/README.md).
-- [ ] Reviewed receiver/producer identities signed — [Steps 5–10](docs/auto-docs/03-deployment/stage-02-logging/README.md#step-5-configure-the-first-producer).
-  - [ ] **Path 9a:** independent authority initialized, or **9b:** original authority reused.
-- [ ] Receiver and first source verified; existing Linux coverage extended — [Steps 11–13](docs/auto-docs/03-deployment/stage-02-logging/README.md#step-11-install-the-receiver).
-- [ ] Receiver topology selected — [Step 14](docs/auto-docs/03-deployment/stage-02-logging/README.md#step-14-select-the-receiver-topology).
-  - [ ] **Path 14a:** single receiver retained, or **14b:** [redundant intake](docs/auto-docs/03-deployment/stage-02-logging/step-14b-redundant-intake.md) qualified.
-- [ ] Retention configured — [Step 15](docs/auto-docs/03-deployment/stage-02-logging/README.md#step-15-protect-retained-records).
-  - [ ] **Path 15a:** NAS checkpoints and independent backup configured — [NAS archive](docs/auto-docs/03-deployment/stage-02-logging/step-15a-nas-archive.md).
-  - [ ] **Alternative or addition 15b:** retention-locked object archive — [Locked storage](docs/auto-docs/03-deployment/stage-02-logging/step-15b-retention-lock.md).
-- [ ] Failure and independent restore accepted — [Step 16](docs/auto-docs/03-deployment/stage-02-logging/README.md#step-16-verify-recovery-and-record-completion).
-
-## 3. Trust
+## 2. Trust
 
 Run from [Tier 0](../${repo_prefix}-tier-0/README.md); offline signing remains manual.
 
-- [ ] Root custody established — [Steps 1-6](docs/auto-docs/03-deployment/stage-03-trust/README.md#step-1-prepare-issuer-and-key-custody).
-  - [ ] Software custody selected — [Software PKI](docs/auto-docs/03-deployment/stage-03-trust/procedures/software-pki.md).
-  - [ ] **Alternative:** USB HSM hosts and provider commissioned — [USB HSM](docs/auto-docs/03-deployment/stage-03-trust/step-1b-usb-hsm.md).
-    - [ ] **Option:** restricted PKCS#11 remoting and every original key verified — [Native remoting](docs/auto-docs/03-deployment/stage-03-trust/procedures/pkcs11-remoting.md).
-  - [ ] **Alternative:** network HSM integrated — [Network HSM](docs/auto-docs/03-deployment/stage-03-trust/step-1c-network-hsm.md).
-  - [ ] **Alternative:** single USB HSM with offline backup — [Single USB](docs/auto-docs/03-deployment/stage-03-trust/step-1d-single-usb.md).
-- [ ] Infrastructure issuer deployed and signed — [Steps 7-14](docs/auto-docs/03-deployment/stage-03-trust/README.md#step-7-provision-the-issuer-and-attached-storage).
+- [ ] Root custody established — [Steps 1-6](docs/auto-docs/03-deployment/stage-02-trust/README.md#step-1-prepare-issuer-and-key-custody).
+  - [ ] Software custody selected — [Software PKI](docs/auto-docs/03-deployment/stage-02-trust/procedures/software-pki.md).
+  - [ ] **Alternative:** USB HSM hosts and provider commissioned — [USB HSM](docs/auto-docs/03-deployment/stage-02-trust/step-1b-usb-hsm.md).
+    - [ ] **Option:** restricted PKCS#11 remoting and every original key verified — [Native remoting](docs/auto-docs/03-deployment/stage-02-trust/procedures/pkcs11-remoting.md).
+  - [ ] **Alternative:** network HSM integrated — [Network HSM](docs/auto-docs/03-deployment/stage-02-trust/step-1c-network-hsm.md).
+  - [ ] **Alternative:** single USB HSM with offline backup — [Single USB](docs/auto-docs/03-deployment/stage-02-trust/step-1d-single-usb.md).
+- [ ] Infrastructure issuer deployed and signed — [Steps 7-14](docs/auto-docs/03-deployment/stage-02-trust/README.md#step-7-provision-the-issuer-and-attached-storage).
 - [ ] **Option 15a:** Proxmox API certificates moved to platform PKI — [Transition](docs/auto-docs/05-operations/01-hosting/proxmox-tls.md#step-2-adopt-the-platform-pki).
-- [ ] **Option 15b:** verified intake deployed in [Tier 1](../${repo_prefix}-tier-1/README.md) — [Installer](docs/auto-docs/03-deployment/stage-03-trust/step-15b-verified-intake.md).
-  - [ ] Consumers switched to selected accepted repositories — [Consumer guide](docs/auto-docs/03-deployment/stage-03-trust/step-15b-verified-consumers.md).
+- [ ] **Option 15b:** verified intake deployed in [Tier 1](../${repo_prefix}-tier-1/README.md) — [Installer](docs/auto-docs/03-deployment/stage-02-trust/step-15b-verified-intake.md).
+  - [ ] Consumers switched to selected accepted repositories — [Consumer guide](docs/auto-docs/03-deployment/stage-02-trust/step-15b-verified-consumers.md).
+
+## 3. Protected Logging
+
+Run from [Tier 0](../${repo_prefix}-tier-0/README.md).
+
+- [ ] Receiver VM, storage and producer catalog configured — [Steps 1-3](docs/auto-docs/03-deployment/stage-03-logging/README.md).
+- [ ] Selected authority enrolled and approved identities installed — [Step 4](docs/auto-docs/03-deployment/stage-03-logging/README.md#step-4-deploy-and-approve-certificates).
+  - [ ] Infrastructure PKI used, or independent/provided authority recorded.
+- [ ] Selected sources pass retained-event acceptance; monitoring gaps recorded — [Step 5](docs/auto-docs/03-deployment/stage-03-logging/README.md#step-5-verify-collection).
+- [ ] Receiver topology selected — [Step 6](docs/auto-docs/03-deployment/stage-03-logging/README.md#step-6-select-receiver-topology).
+  - [ ] **6a:** single receiver, or **6b:** [additional intake](docs/auto-docs/03-deployment/stage-03-logging/step-6b-redundant-intake.md) with qualified routing.
+- [ ] Retention configured — [Step 7](docs/auto-docs/03-deployment/stage-03-logging/README.md#step-7-protect-retained-records).
+  - [ ] **7a:** [NAS archive and independent backup](docs/auto-docs/03-deployment/stage-03-logging/step-7a-nas-archive.md).
+  - [ ] **7b, alternative/addition:** [locked retention](docs/auto-docs/03-deployment/stage-03-logging/step-7b-retention-lock.md).
+- [ ] Failure/restore evidence and protected credential recovery recorded — [Step 8](docs/auto-docs/03-deployment/stage-03-logging/README.md#step-8-record-recovery-and-completion).
 
 ## 4. Kubernetes
 

@@ -1,0 +1,355 @@
+---
+- name: Inspect the exact OpenSearch data claims before starting recovery nodes
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ item }}"
+  loop: "{{ recovery_product.data_claims }}"
+  register: recovery_search_claims
+
+- name: Require owned data claims before native search startup
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+      - item.resources[0].metadata.annotations.get('recovery.homelab/plan-sha256', '') == platform_recovery.plan_sha256
+      - recovery_product.claim_uids[item.item] == 'new' or recovery_product.claim_uids[item.item] == item.resources[0].metadata.uid
+  loop: "{{ recovery_search_claims.results }}"
+
+- name: Capture the actual native search data identities
+  ansible.builtin.set_fact:
+    recovery_search_claim_identities: >-
+      {{ recovery_search_claims.results | map(attribute='resources') | flatten | map(attribute='metadata')
+        | map('dict2items') | map('selectattr', 'key', 'in', ['name', 'namespace', 'uid'])
+        | map('list') | map('items2dict') | list }}
+
+- name: Inspect the original search claim checkpoint
+  ansible.builtin.stat:
+    path: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-search-claims.json"
+  register: recovery_search_claim_checkpoint
+
+- name: Require the same claim generations on every search recovery retry
+  ansible.builtin.assert:
+    that:
+      - recorded.plan_sha256 == platform_recovery.plan_sha256
+      - recorded.claims == recovery_search_claim_identities
+  vars:
+    recorded: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-search-claims.json') | from_json }}"
+  when: recovery_search_claim_checkpoint.stat.exists
+
+- name: Preserve search claim ownership before nodes can initialize local state
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-search-claims.json"
+    force: false
+    mode: '0600'
+    content: "{{ {'plan_sha256': platform_recovery.plan_sha256, 'claims': recovery_search_claim_identities} | to_nice_json }}"
+
+- name: Inspect only the selected native search StatefulSets
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: StatefulSet
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ item.name }}"
+  loop: "{{ recovery_product.restore_workloads }}"
+  register: recovery_search_workloads
+
+- name: Require stopped search nodes owned by this accepted recovery plan
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+      - item.resources[0].spec.replicas | int == 0
+      - item.resources[0].metadata.annotations.get('recovery.homelab/plan-sha256', '') == platform_recovery.plan_sha256
+  loop: "{{ recovery_search_workloads.results }}"
+
+- name: Resolve the native search data claims referenced by the selected node templates
+  ansible.builtin.set_fact:
+    recovery_search_referenced_claims: >-
+      {% set claims = namespace(items=[]) -%}
+      {% for observed in recovery_search_workloads.results -%}
+      {% set workload = observed.resources[0] -%}
+      {% for volume in workload.spec.template.spec.volumes | default([]) -%}
+      {% if volume.persistentVolumeClaim is defined -%}
+      {% set claims.items = claims.items + [volume.persistentVolumeClaim.claimName] -%}
+      {% endif -%}
+      {% endfor -%}
+      {% for claim in workload.spec.volumeClaimTemplates | default([]) -%}
+      {% for ordinal in range(0, observed.item.replicas | int) -%}
+      {% set claims.items = claims.items + [claim.metadata.name ~ '-' ~ workload.metadata.name ~ '-' ~ (ordinal | string)] -%}
+      {% endfor -%}
+      {% endfor -%}
+      {% endfor -%}
+      {{ claims.items | unique | list }}
+
+- name: Reject search node templates that mount unchecked data
+  ansible.builtin.assert:
+    that:
+      - >-
+        (recovery_search_referenced_claims | from_yaml if recovery_search_referenced_claims is string else
+         recovery_search_referenced_claims) | sort == recovery_product.data_claims | sort
+
+- name: Start only selected search StatefulSets while ingestion remains fenced
+  kubernetes.core.k8s_scale:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: StatefulSet
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ item.name }}"
+    replicas: "{{ item.replicas }}"
+    wait: false
+  loop: "{{ recovery_product.restore_workloads }}"
+
+- name: Require the actual selected search node generations to be ready
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: StatefulSet
+    namespace: "{{ recovery_product.namespace }}"
+    name: "{{ item.name }}"
+  loop: "{{ recovery_product.restore_workloads }}"
+  register: recovery_search_ready
+  until: >-
+    recovery_search_ready.resources | length == 1 and
+    recovery_search_ready.resources[0].status.observedGeneration | default(0) | int >= recovery_search_ready.resources[0].metadata.generation | int and
+    recovery_search_ready.resources[0].status.replicas | default(0) | int == item.replicas | int and
+    recovery_search_ready.resources[0].status.updatedReplicas | default(0) | int == item.replicas | int and
+    recovery_search_ready.resources[0].status.readyReplicas | default(0) | int == item.replicas | int
+  retries: "{{ recovery_health_retries | default(180) }}"
+  delay: "{{ recovery_health_delay | default(5) }}"
+
+- name: Require authenticated HTTPS readiness from the isolated search cluster
+  ansible.builtin.uri:
+    url: "{{ recovery_product.url }}/_cluster/health?wait_for_status=yellow&timeout=10s"
+    method: GET
+    client_cert: "{{ platform_recovery.workspace }}/{{ recovery_product.client_cert }}"
+    client_key: "{{ platform_recovery.workspace }}/{{ recovery_product.client_key }}"
+    ca_path: "{{ platform_recovery.workspace }}/{{ recovery_product.ca_path }}"
+    validate_certs: true
+    use_proxy: false
+    return_content: true
+    timeout: 15
+  register: recovery_search_health
+  until: >-
+    recovery_search_health.status | default(0) == 200 and
+    recovery_search_health.json.status | default('red') in ['yellow', 'green'] and
+    not recovery_search_health.json.timed_out | default(true) | bool
+  retries: "{{ recovery_health_retries | default(180) }}"
+  delay: "{{ recovery_health_delay | default(5) }}"
+  no_log: true
+
+- name: Load the independently retained native readonly repository specification
+  ansible.builtin.set_fact:
+    recovery_search_repository: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/' ~ recovery_product.repository_spec_file) | from_yaml }}"
+  no_log: true
+
+- name: Require readonly snapshot access before native repository registration
+  ansible.builtin.assert:
+    that:
+      - recovery_search_repository.type | length > 0
+      - recovery_search_repository.settings.readonly is sameas true
+  no_log: true
+
+- name: Register the native readonly snapshot repository on the recovered cluster
+  ansible.builtin.uri:
+    url: "{{ recovery_product.url }}/_snapshot/{{ recovery_product.repository }}"
+    method: PUT
+    body_format: json
+    body: "{{ recovery_search_repository }}"
+    client_cert: "{{ platform_recovery.workspace }}/{{ recovery_product.client_cert }}"
+    client_key: "{{ platform_recovery.workspace }}/{{ recovery_product.client_key }}"
+    ca_path: "{{ platform_recovery.workspace }}/{{ recovery_product.ca_path }}"
+    validate_certs: true
+    use_proxy: false
+    return_content: true
+    timeout: 120
+  register: recovery_search_registered
+  failed_when: not recovery_search_registered.json.acknowledged | default(false) | bool
+  no_log: true
+
+- name: Read the exact native search snapshot with independently retained administrator credentials
+  ansible.builtin.uri:
+    url: "{{ recovery_product.url }}/_snapshot/{{ recovery_product.repository }}/{{ recovery_product.backup_id }}"
+    method: GET
+    client_cert: "{{ platform_recovery.workspace }}/{{ recovery_product.client_cert }}"
+    client_key: "{{ platform_recovery.workspace }}/{{ recovery_product.client_key }}"
+    ca_path: "{{ platform_recovery.workspace }}/{{ recovery_product.ca_path }}"
+    validate_certs: true
+    use_proxy: false
+    return_content: true
+  register: recovery_search_snapshot
+  no_log: true
+
+- name: Require the native snapshot UUID, complete shards and selected index scope
+  ansible.builtin.assert:
+    that:
+      - recovery_search_snapshot.json.snapshots | length == 1
+      - recovery_search_snapshot.json.snapshots[0].uuid == recovery_product.backup_uid
+      - recovery_search_snapshot.json.snapshots[0].state == 'SUCCESS'
+      - recovery_product.indices | difference(recovery_search_snapshot.json.snapshots[0].indices) | length == 0
+      - recovery_search_snapshot.json.snapshots[0].shards.failed == 0
+
+- name: Inspect the completed native search snapshot checkpoint
+  ansible.builtin.stat:
+    path: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-search-snapshot.json"
+  register: recovery_search_snapshot_checkpoint
+
+- name: Read current native index identities before trusting a completed recovery
+  ansible.builtin.uri:
+    url: "{{ recovery_product.url }}/_cat/indices/{{ recovery_product.indices | join(',') }}?format=json&h=index,uuid"
+    method: GET
+    client_cert: "{{ platform_recovery.workspace }}/{{ recovery_product.client_cert }}"
+    client_key: "{{ platform_recovery.workspace }}/{{ recovery_product.client_key }}"
+    ca_path: "{{ platform_recovery.workspace }}/{{ recovery_product.ca_path }}"
+    validate_certs: true
+    use_proxy: false
+    return_content: true
+    status_code: [200, 404]
+  register: recovery_search_current_indices
+  no_log: true
+  when: recovery_search_snapshot_checkpoint.stat.exists
+
+- name: Require the original completed snapshot and native index generations after node restarts
+  ansible.builtin.assert:
+    that:
+      - recorded.plan_sha256 == platform_recovery.plan_sha256
+      - recorded.backup_uid == recovery_product.backup_uid
+      - recorded.claims == recovery_search_claim_identities
+      - recovery_search_current_indices.status == 200
+      - recorded.indices == recovery_search_current_indices.json | sort(attribute='index')
+  vars:
+    recorded: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/' ~ recovery_product.name ~ '-search-snapshot.json') | from_json }}"
+  when: recovery_search_snapshot_checkpoint.stat.exists
+
+- name: Inspect actual native shard recovery before submitting or repeating a restore
+  ansible.builtin.uri:
+    url: "{{ recovery_product.url }}/{{ recovery_product.indices | join(',') }}/_recovery?active_only=false&detailed=true"
+    method: GET
+    client_cert: "{{ platform_recovery.workspace }}/{{ recovery_product.client_cert }}"
+    client_key: "{{ platform_recovery.workspace }}/{{ recovery_product.client_key }}"
+    ca_path: "{{ platform_recovery.workspace }}/{{ recovery_product.ca_path }}"
+    validate_certs: true
+    use_proxy: false
+    return_content: true
+    status_code: [200, 404]
+  register: recovery_search_previous
+  no_log: true
+
+- name: Reject existing indices without matching native snapshot recovery evidence
+  ansible.builtin.assert:
+    that:
+      - >-
+        recovery_search_previous.status == 404 or
+        (recovery_search_previous.json.keys() | list | sort == recovery_product.indices | sort and
+         recovery_search_previous.json | dict2items | map(attribute='value.shards') | flatten | length > 0)
+    fail_msg: Existing search indices do not have this native recovery scope. Keep the target isolated.
+
+- name: Verify retained snapshot identity on each initially restored primary shard
+  ansible.builtin.assert:
+    that:
+      - item.type == 'SNAPSHOT'
+      - item.source.repository == recovery_product.repository
+      - item.source.snapshot == recovery_product.backup_id
+  loop: "{{ recovery_search_previous.json | default({}) | dict2items | map(attribute='value.shards') | flatten | selectattr('primary', 'equalto', true) | list if recovery_search_previous.status == 200 else [] }}"
+  when: not recovery_search_snapshot_checkpoint.stat.exists
+
+- name: Require primary-shard provenance before adopting an unjournaled native restoration
+  ansible.builtin.assert:
+    that:
+      - item.value.shards | selectattr('primary', 'equalto', true) | list | length > 0
+  loop: "{{ recovery_search_previous.json | default({}) | dict2items if recovery_search_previous.status == 200 else [] }}"
+  when: not recovery_search_snapshot_checkpoint.stat.exists
+
+- name: Submit native snapshot restoration with security/global state excluded
+  ansible.builtin.uri:
+    url: "{{ recovery_product.url }}/_snapshot/{{ recovery_product.repository }}/{{ recovery_product.backup_id }}/_restore?wait_for_completion=true"
+    method: POST
+    body_format: json
+    body:
+      indices: "{{ recovery_product.indices | join(',') }}"
+      include_global_state: false
+      include_aliases: true
+      partial: false
+    client_cert: "{{ platform_recovery.workspace }}/{{ recovery_product.client_cert }}"
+    client_key: "{{ platform_recovery.workspace }}/{{ recovery_product.client_key }}"
+    ca_path: "{{ platform_recovery.workspace }}/{{ recovery_product.ca_path }}"
+    validate_certs: true
+    use_proxy: false
+    return_content: true
+    timeout: 14400
+  register: recovery_search_result
+  no_log: true
+  when: recovery_search_previous.status == 404
+
+- name: Require native successful shard restoration
+  ansible.builtin.assert:
+    that:
+      - recovery_search_result.json.snapshot.shards.failed == 0
+      - recovery_search_result.json.snapshot.shards.successful == recovery_search_result.json.snapshot.shards.total
+  when: recovery_search_previous.status == 404
+
+- name: Reobserve native shard completion on initial and interrupted runs
+  ansible.builtin.uri:
+    url: "{{ recovery_product.url }}/{{ recovery_product.indices | join(',') }}/_recovery?active_only=false&detailed=true"
+    method: GET
+    client_cert: "{{ platform_recovery.workspace }}/{{ recovery_product.client_cert }}"
+    client_key: "{{ platform_recovery.workspace }}/{{ recovery_product.client_key }}"
+    ca_path: "{{ platform_recovery.workspace }}/{{ recovery_product.ca_path }}"
+    validate_certs: true
+    use_proxy: false
+    return_content: true
+  register: recovery_search_completed
+  until: >-
+    recovery_search_completed.json.keys() | list | sort == recovery_product.indices | sort and
+    recovery_search_completed.json | dict2items | map(attribute='value.shards') | flatten | length > 0 and
+    recovery_search_completed.json | dict2items | map(attribute='value.shards') | flatten
+      | rejectattr('stage', 'equalto', 'DONE') | list | length == 0
+  retries: 720
+  delay: 5
+  no_log: true
+
+- name: Record actual native index UUIDs after successful shard restoration
+  ansible.builtin.uri:
+    url: "{{ recovery_product.url }}/_cat/indices/{{ recovery_product.indices | join(',') }}?format=json&h=index,uuid"
+    method: GET
+    client_cert: "{{ platform_recovery.workspace }}/{{ recovery_product.client_cert }}"
+    client_key: "{{ platform_recovery.workspace }}/{{ recovery_product.client_key }}"
+    ca_path: "{{ platform_recovery.workspace }}/{{ recovery_product.ca_path }}"
+    validate_certs: true
+    use_proxy: false
+    return_content: true
+  register: recovery_search_final_indices
+  no_log: true
+
+- name: Require every restored native index to have a stable identity
+  ansible.builtin.assert:
+    that:
+      - recovery_search_final_indices.json | map(attribute='index') | list | sort == recovery_product.indices | sort
+      - recovery_search_final_indices.json | map(attribute='uuid') | select('equalto', '') | list | length == 0
+      - recovery_search_final_indices.json | map(attribute='uuid') | select('equalto', '_na_') | list | length == 0
+
+- name: Preserve completed native snapshot provenance across later node restarts
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/{{ recovery_product.name }}-search-snapshot.json"
+    force: false
+    mode: '0600'
+    content: >-
+      {{ {'plan_sha256': platform_recovery.plan_sha256, 'backup_uid': recovery_product.backup_uid,
+          'claims': recovery_search_claim_identities,
+          'indices': recovery_search_final_indices.json | sort(attribute='index')} | to_nice_json }}
+
+- name: Retain the exact search recovery identity
+  ansible.builtin.set_fact:
+    recovery_native_receipt:
+      kind: OpenSearchSnapshot
+      backup: "{{ recovery_product.backup_id }}"
+      uuid: "{{ recovery_product.backup_uid }}"
+      indices: "{{ recovery_search_final_indices.json | sort(attribute='index') }}"

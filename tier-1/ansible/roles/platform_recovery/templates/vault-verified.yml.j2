@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: verify-{{ recovery_product.name }}-raft-{{ platform_recovery.plan_sha256[:12] }}
+  namespace: {{ recovery_product.namespace }}
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 300
+  template:
+    metadata:
+      labels: {recovery.homelab/id: {{ platform_recovery.recovery_id }}}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 100, runAsGroup: 1000, runAsNonRoot: true, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: verify-original-unsealed-cluster
+          image: {{ recovery_product.vault.image | to_json }}
+          command: [/bin/sh, -ec]
+          args:
+            - |
+              vault status -format=json > /tmp/status.json
+              grep -Eq '"cluster_id"[[:space:]]*:[[:space:]]*"'"$EXPECTED_CLUSTER_ID"'"' /tmp/status.json
+          env:
+            - {name: VAULT_ADDR, value: {{ recovery_product.vault.leader_api_addr | to_json }}}
+            - {name: VAULT_TLS_SERVER_NAME, value: {{ recovery_product.vault.tls_server_name | to_json }}}
+            - {name: VAULT_CACERT, value: /tls/ca.crt}
+            - {name: EXPECTED_CLUSTER_ID, value: {{ recovery_product.vault.cluster_id | to_json }}}
+            - {name: RECOVERY_CLAIM_UIDS, value: {{ recovery_control_claim_uids | to_json | to_json }}}
+          securityContext: {allowPrivilegeEscalation: false, capabilities: {drop: [ALL]}}
+          volumeMounts: [{name: tls, mountPath: /tls, readOnly: true}]
+      volumes:
+        - name: tls
+          secret:
+            secretName: {{ recovery_product.vault.tls_secret }}
+            items: [{key: ca.crt, path: ca.crt}]

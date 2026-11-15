@@ -26,6 +26,7 @@
         'url': observed.get('spec', {}).get('url'),
         'commit': artifact.split(':')[-1] if artifact is match('^.*:([a-f0-9]{40}|[a-f0-9]{64})$') else none,
         'ref': observed.get('spec', {}).get('ref', {}),
+        'reconcile': observed.get('metadata', {}).get('annotations', {}).get('kustomize.toolkit.fluxcd.io/reconcile'),
         'ready': source_ready | bool, 'missing': item.resources | length == 0}}) }}
   vars:
     observed: "{{ item.resources | first | default({}) }}"
@@ -57,26 +58,77 @@
     - flux_maintenance_operation == 'resume'
     - flux_maintenance_source != 'tier1-applications'
 
-- name: Validate the actual independently staged recovery package before advancing a source
-  ansible.builtin.include_tasks: custody.yml
-  when: flux_maintenance_operation in ['advance', 'recover']
+- name: Capture the source identity used to bind private maintenance receipts
+  ansible.builtin.set_fact:
+    flux_maintenance_source_uid: "{{ selected_source.metadata.uid }}"
+  vars:
+    selected_source: "{{ (flux_maintenance_sources.results | selectattr('item', 'equalto', flux_maintenance_source) | first).resources[0] }}"
 
-- name: Fence reconciliation before selecting recovery configuration or a branch to resume
-  kubernetes.core.k8s:
+- name: Inspect the actual selected reconciliation relationships before mutation
+  ansible.builtin.include_tasks: scope.yml
+
+- name: Require an active root and controlling ancestors before advancing an active source
+  ansible.builtin.assert:
+    that:
+      - not item.value.previous_suspend | bool
+    fail_msg: The selected root or its controlling parent is suspended. Complete scoped suspension and use stage-paused explicitly.
+  loop: "{{ flux_maintenance_scope.resources | dict2items }}"
+  loop_control: {label: "{{ item.key }}"}
+  when:
+    - flux_maintenance_operation == 'advance'
+    - item.key == flux_maintenance_scope.root or item.value.control_only | bool
+
+- name: Suspend and retain the actual live reconciliation scope
+  ansible.builtin.include_tasks: pause.yml
+  when: flux_maintenance_operation == 'suspend'
+
+- name: Verify the complete retained pause before selecting a revision or resuming
+  ansible.builtin.include_tasks: verify-paused.yml
+  when: flux_maintenance_operation in ['stage-paused', 'recover', 'resume']
+
+- name: Validate the independently retained recovery package before selecting any revision
+  ansible.builtin.include_tasks: custody.yml
+  when: flux_maintenance_operation in ['advance', 'stage-paused', 'recover']
+
+- name: Refresh live relationships after custody verification before changing any source
+  ansible.builtin.include_tasks: scope.yml
+  when: flux_maintenance_operation in ['advance', 'stage-paused', 'recover']
+
+- name: Recheck active roots and ancestors immediately before an active source advance
+  ansible.builtin.assert:
+    that: not item.value.previous_suspend | bool
+    fail_msg: A controlling reconciliation paused during custody verification. Use a complete paused scope before staging.
+  loop: "{{ flux_maintenance_scope.resources | dict2items }}"
+  loop_control: {label: "{{ item.key }}"}
+  when:
+    - flux_maintenance_operation == 'advance'
+    - item.key == flux_maintenance_scope.root or item.value.control_only | bool
+
+- name: Reverify the retained pause immediately before staging a source revision
+  ansible.builtin.include_tasks: verify-paused.yml
+  when: flux_maintenance_operation in ['stage-paused', 'recover']
+
+- name: Refresh source status versions without accepting a concurrent ref or identity change
+  kubernetes.core.k8s_info:
     kubeconfig: "{{ flux_maintenance_kubeconfig }}"
     context: "{{ flux_maintenance_context | default(omit, true) }}"
     validate_certs: true
-    merge_type: [merge]
-    definition:
-      apiVersion: kustomize.toolkit.fluxcd.io/v1
-      kind: Kustomization
-      metadata: {name: "{{ flux_maintenance_source }}", namespace: flux-system}
-      spec: {suspend: true}
-  when: >-
-    flux_maintenance_operation in ['suspend', 'recover'] or
-    (flux_maintenance_operation == 'resume' and flux_maintenance_source == 'tier1-applications')
+    api_version: source.toolkit.fluxcd.io/v1
+    kind: GitRepository
+    name: "{{ flux_maintenance_source }}"
+    namespace: flux-system
+  register: flux_maintenance_source_live
+  when: flux_maintenance_operation in ['advance', 'stage-paused', 'recover', 'resume']
 
-- name: Pin the authorized source to the exact retained revision
+- name: Require the original selected source identity and ref before an authorized source patch
+  ansible.builtin.assert:
+    that:
+      - flux_maintenance_source_live.resources | length == 1
+      - flux_maintenance_source_live.resources[0].metadata.uid == flux_maintenance_source_uid
+      - flux_maintenance_source_live.resources[0].spec.ref == flux_maintenance_record_sources[flux_maintenance_source].ref
+  when: flux_maintenance_operation in ['advance', 'stage-paused', 'recover', 'resume']
+
+- name: Pin only the authorized source after maintenance preconditions pass
   kubernetes.core.k8s_json_patch:
     kubeconfig: "{{ flux_maintenance_kubeconfig }}"
     context: "{{ flux_maintenance_context | default(omit, true) }}"
@@ -85,33 +137,12 @@
     kind: GitRepository
     name: "{{ flux_maintenance_source }}"
     namespace: flux-system
-    patch:
-      - op: test
-        path: /metadata/resourceVersion
-        value: "{{ selected_source.metadata.resourceVersion }}"
-      - op: add
-        path: /spec/ref
-        value: {commit: "{{ flux_maintenance_revision }}"}
+    patch: "{{ selected_source | flux_ref_patch({'commit': flux_maintenance_revision}) }}"
   vars:
-    selected_source: "{{ (flux_maintenance_sources.results | selectattr('item', 'equalto', flux_maintenance_source) | first).resources[0] }}"
-  when: flux_maintenance_operation in ['advance', 'recover']
+    selected_source: "{{ flux_maintenance_source_live.resources[0] }}"
+  when: flux_maintenance_operation in ['advance', 'stage-paused', 'recover']
 
-- name: Resume the selected non-application reconciliation path
-  kubernetes.core.k8s:
-    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
-    context: "{{ flux_maintenance_context | default(omit, true) }}"
-    validate_certs: true
-    merge_type: [merge]
-    definition:
-      apiVersion: kustomize.toolkit.fluxcd.io/v1
-      kind: Kustomization
-      metadata: {name: "{{ flux_maintenance_source }}", namespace: flux-system}
-      spec: {suspend: false}
-  when:
-    - flux_maintenance_operation == 'resume'
-    - flux_maintenance_source != 'tier1-applications'
-
-- name: Restore the protected application branch only after recovery acceptance
+- name: Restore the protected application branch while the verified scope remains paused
   kubernetes.core.k8s_json_patch:
     kubeconfig: "{{ flux_maintenance_kubeconfig }}"
     context: "{{ flux_maintenance_context | default(omit, true) }}"
@@ -120,60 +151,14 @@
     kind: GitRepository
     name: tier1-applications
     namespace: flux-system
-    patch:
-      - op: test
-        path: /metadata/resourceVersion
-        value: "{{ selected_source.metadata.resourceVersion }}"
-      - op: add
-        path: /spec/ref
-        value: {branch: "{{ flux_maintenance_application_branch }}"}
+    patch: "{{ selected_source | flux_ref_patch({'branch': flux_maintenance_application_branch}) }}"
   vars:
-    selected_source: "{{ (flux_maintenance_sources.results | selectattr('item', 'equalto', 'tier1-applications') | first).resources[0] }}"
+    selected_source: "{{ flux_maintenance_source_live.resources[0] }}"
   when:
     - flux_maintenance_operation == 'resume'
     - flux_maintenance_source == 'tier1-applications'
 
-- name: Require the exact accepted branch head before allowing restored applications to reconcile
-  ansible.builtin.include_role:
-    name: cluster_platform
-    tasks_from: health.yml
-  vars:
-    cluster_platform_kubeconfig: "{{ flux_maintenance_kubeconfig }}"
-    cluster_platform_context: "{{ flux_maintenance_context }}"
-    cluster_platform_health:
-      api_version: source.toolkit.fluxcd.io/v1
-      kind: GitRepository
-      name: tier1-applications
-      namespace: flux-system
-      condition: Ready
-      revision: "{{ flux_maintenance_revision }}"
-    cluster_platform_health_retries: "{{ flux_maintenance_retries }}"
-    cluster_platform_health_delay: "{{ flux_maintenance_delay }}"
-  when:
-    - flux_maintenance_operation == 'resume'
-    - flux_maintenance_source == 'tier1-applications'
-
-- name: Resume applications only after their branch, data and execution gates pass
-  kubernetes.core.k8s:
-    kubeconfig: "{{ flux_maintenance_kubeconfig }}"
-    context: "{{ flux_maintenance_context | default(omit, true) }}"
-    validate_certs: true
-    merge_type: [merge]
-    definition:
-      apiVersion: kustomize.toolkit.fluxcd.io/v1
-      kind: Kustomization
-      metadata: {name: tier1-applications, namespace: flux-system}
-      spec: {suspend: false}
-  when:
-    - flux_maintenance_operation == 'resume'
-    - flux_maintenance_source == 'tier1-applications'
-
-- name: Require the exact source and selected resource health after an approved platform update
-  ansible.builtin.include_tasks: health.yml
-  when: >-
-    flux_maintenance_operation in ['advance', 'resume']
-
-- name: Require the retained source revision while recovery reconciliation stays fenced
+- name: Verify the exact source revision while staged or resumed consumers remain fenced
   ansible.builtin.include_role:
     name: cluster_platform
     tasks_from: health.yml
@@ -189,7 +174,40 @@
       namespace: flux-system
       condition: Ready
       revision: "{{ flux_maintenance_effective_revision }}"
-  when: flux_maintenance_operation == 'recover'
+  when: flux_maintenance_operation in ['stage-paused', 'recover', 'resume']
+
+- name: Record a staged revision while retaining all prior suspension states
+  ansible.builtin.copy:
+    dest: "{{ flux_maintenance_output }}/scope-receipt.json"
+    content: "{{ flux_maintenance_scope_receipt | combine({'phase': 'staged', 'staged_revision': flux_maintenance_revision}) | to_nice_json }}"
+    mode: '0600'
+  when: flux_maintenance_operation in ['stage-paused', 'recover']
+
+- name: Resume the selected scope with failure fencing
+  block:
+    - name: Resume only after native verification checks pass
+      ansible.builtin.include_tasks: resume.yml
+
+    - name: Require exact source and selected resource health before completing resumption
+      ansible.builtin.include_tasks: health.yml
+
+    - name: Retain the completed resumption checkpoint after all health checks pass
+      ansible.builtin.copy:
+        dest: "{{ flux_maintenance_output }}/scope-receipt.json"
+        content: "{{ flux_maintenance_scope_receipt | combine({'phase': 'resumed'}) | to_nice_json }}"
+        mode: '0600'
+  rescue:
+    - name: Reestablish scoped reconciliation and writer fences after a failed recovery gate
+      ansible.builtin.include_tasks: refence.yml
+
+    - name: Report the failed recovery gate with the selected scope left fenced
+      ansible.builtin.fail:
+        msg: Recovery resumption failed. Inspect the native failure and retained scope receipt, then rerun after correcting its verification or health gate.
+  when: flux_maintenance_operation == 'resume'
+
+- name: Require exact source and selected resource health after active maintenance
+  ansible.builtin.include_tasks: health.yml
+  when: flux_maintenance_operation == 'advance'
 
 - name: Retain the accepted update record after successful health gates
   ansible.builtin.copy:
@@ -201,7 +219,8 @@
             if flux_maintenance_operation in ['inspect', 'suspend'] else flux_maintenance_effective_revision,
           'requested_commit': flux_maintenance_revision,
           'reconciled': flux_maintenance_operation in ['advance', 'resume'],
-          'suspended': none if flux_maintenance_operation == 'inspect' else flux_maintenance_operation in ['suspend', 'recover'],
+          'suspended': none if flux_maintenance_operation == 'inspect' else flux_maintenance_operation in ['suspend', 'recover', 'stage-paused'],
           'previous_sources': flux_maintenance_record_sources,
+          'resume_suspended_uids': flux_maintenance_resume_suspended_uids,
           'recovery_directory': flux_maintenance_recovery_directory} | to_nice_json }}
     mode: '0600'

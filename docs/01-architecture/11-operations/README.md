@@ -168,7 +168,7 @@ selected inventory, cluster interfaces and supporting services.
 
 ## Realization
 
-Implementation procedures: [foundational logging](../../03-deployment/stage-02-logging/README.md),
+Implementation procedures: [foundational logging](../../03-deployment/stage-03-logging/README.md),
 [independent monitoring](../../03-deployment/stage-08-observability/step-13-infrastructure-monitoring.md),
 [Observability](../../03-deployment/stage-08-observability/README.md),
 [operational tools](../../03-deployment/stage-06-secrets/README.md#step-2-add-operational-tools)

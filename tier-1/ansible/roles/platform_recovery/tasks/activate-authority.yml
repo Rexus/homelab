@@ -1,0 +1,61 @@
+---
+- name: Require the reconciled source to retain the newly approved ticket identity
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_tier1.kubeconfig }}"
+    context: "{{ recovery_tier1.context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Secret
+    namespace: delivery-promotion-authority
+    name: "{{ recovery_authority_secret.metadata.name }}"
+  register: recovery_authority_final_secret
+  no_log: true
+
+- name: Reject a source revision that restores the obsolete ticket epoch
+  ansible.builtin.assert:
+    that:
+      - recovery_authority_final_secret.resources | length == 1
+      - recovery_authority_final_secret.resources[0].data['ticket-key'] | b64decode | hash('sha256') == platform_recovery.promotion_authority.new_ticket_key_sha256
+    fail_msg: The accepted payload must retain the newly approved recovery ticket key.
+  no_log: true
+
+- name: Start the new authority epoch after restored source ownership and workload checks
+  kubernetes.core.k8s:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_tier1.kubeconfig }}"
+    context: "{{ recovery_tier1.context }}"
+    validate_certs: true
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata: {name: delivery-promotion-authority, namespace: delivery-promotion-authority}
+      spec:
+        replicas: 1
+        strategy: {type: Recreate, rollingUpdate: null}
+        template:
+          metadata:
+            annotations:
+              recovery.homelab/ticket-key-sha256: "{{ platform_recovery.promotion_authority.new_ticket_key_sha256 }}"
+
+- name: Verify one ready new-generation authority with no overlapping old epoch
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_tier1.kubeconfig }}"
+    context: "{{ recovery_tier1.context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: Deployment
+    namespace: delivery-promotion-authority
+    name: delivery-promotion-authority
+  register: recovery_authority_rollout
+  until: >-
+    recovery_authority_rollout.resources | length == 1 and
+    recovery_authority_rollout.resources[0].status.observedGeneration | default(0) | int >=
+      recovery_authority_rollout.resources[0].metadata.generation | int and
+    recovery_authority_rollout.resources[0].status.updatedReplicas | default(0) | int == 1 and
+    recovery_authority_rollout.resources[0].status.replicas | default(0) | int == 1 and
+    recovery_authority_rollout.resources[0].status.availableReplicas | default(0) | int == 1 and
+    recovery_authority_rollout.resources[0].status.readyReplicas | default(0) | int == 1 and
+    recovery_authority_rollout.resources[0].spec.template.metadata.annotations['recovery.homelab/ticket-key-sha256'] ==
+      platform_recovery.promotion_authority.new_ticket_key_sha256
+  retries: 120
+  delay: 5

@@ -7,9 +7,10 @@ Approved IDs and titles come from the [shared template catalog](../../08-referen
 loaded by the shared helper; only workload selections and service tags belong here.
 
 The first optional Tier 1 deployment is
-[Stage 3, option 15b: verified software intake](../../03-deployment/stage-03-trust/README.md#15b-verified-repository-and-artifact-publication-optional),
-after logging and trust are accepted. Complete its worker and selected consumer cutover before
-leaving Stage 3; it needs no Tier 1 cluster. The main platform runtime arrives at
+[Stage 2, option 15b: verified software intake](../../03-deployment/stage-02-trust/README.md#15b-verified-repository-and-artifact-publication-optional),
+after issuer acceptance, with persistent local journal/audit records and independent recovery custody.
+Stage 3 then enrolls those streams in protected logging. Complete its worker and selected consumer cutover before
+leaving Stage 2; it needs no Tier 1 cluster. The main platform runtime arrives at
 [Delivery](../../03-deployment/stage-07-delivery/README.md), followed by Observability
 and the [Development platform](../../03-deployment/stage-09-development/README.md).
 Public edge and ordinary outbound caches belong to [Tier 2](../tier-2/README.md).
@@ -61,7 +62,8 @@ workload-user access to Tier 0 credentials. For VM mobility, confirm the
 | Shared prerequisites | [Shared services](../../08-reference/implementation-support.md) |
 | Create the platform cluster | [Tier 1 Kubernetes](../../03-deployment/stage-07-delivery/procedures/platform-cluster.md) |
 | Cluster choices and readiness | [Common cluster foundation](../../03-deployment/stage-04-kubernetes/procedures/kubernetes.md) |
-| Flux sources, promotion authority and alternatives | [Tier 1 ownership](../../01-architecture/10-delivery/flux-ownership.md) |
+| Reconciliation, dependency readiness and release workflow responsibilities | [Logical delivery roles](../../01-architecture/10-delivery/02-controllers.md) |
+| Selected Flux sources, promotion authority and alternatives | [Tier 1 implementation](../../08-reference/tier-1-delivery.md) |
 | Platform maintenance without Spinnaker | [External maintenance and custody](../../05-operations/05-delivery.md) |
 | Whole Tier 1 loss | [Independent rebuild and product recovery](../../05-operations/06-resilience/recovery/tier-1-products.md#rebuild-tier-1-without-its-services) |
 | Ownership and privileged execution | [Infrastructure control](../../01-architecture/04-hosting/02-provisioning.md) |

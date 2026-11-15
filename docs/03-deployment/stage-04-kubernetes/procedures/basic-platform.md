@@ -418,7 +418,7 @@ Never place signing-root keys in this input. [4]
 
 For certificate bootstrap before Vault, an **imported trusted leaf certificate**
 and its matching leaf key are a valid explicit prerequisite. An independent
-operator obtains the leaf from the accepted Stage 3 issuance procedure and
+operator obtains the leaf from the accepted Stage 2 issuance procedure and
 imports a native `kubernetes.io/tls` Secret (`tls.crt`, `tls.key`, and the required
 chain) in the consuming application's namespace before enabling its TLS listener.
 Record renewal and recovery ownership there. No CA private key enters the
@@ -426,7 +426,7 @@ cluster; this role rejects CA and self-signed ClusterIssuer specifications.
 The installer does not issue/import Vault's leaf or install an OpenXPKI ACME
 adapter. Keep those prerequisites explicit in the consumer's installation inputs.
 
-The commented ACME example in the inputs uses the existing qualified Stage 3
+The commented ACME example in the inputs uses the existing qualified Stage 2
 adapter; installing cert-manager does not implement or approve that adapter.
 Enable `cluster_platform_certificate_dns_names` for a retained issuance probe.
 HTTP-01 requires reachable port 80 and matching DNS: install ingress first in

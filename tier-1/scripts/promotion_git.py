@@ -1,6 +1,5 @@
 """Construct a reviewable, deterministic application-only Git promotion."""
 
-import base64
 import copy
 import hashlib
 import json
@@ -44,7 +43,7 @@ def validate_policy(policy):
     require(policy["target"]["namespace"] in policy["application_namespaces"],
             "Target must be in the bootstrap-approved application namespace list")
     require(policy["target"]["namespace"] not in
-            ("flux-system", "spinnaker", "delivery-promotion", "kube-system", "default"),
+            ("flux-system", "spinnaker", "delivery-promotion", "delivery-promotion-authority", "kube-system", "default"),
             "Use a dedicated application namespace")
 
 
@@ -161,11 +160,3 @@ class Repository:
             require(self.head(policy["branch"]) == plan["candidate"],
                     "Git compare-and-swap failed; delivery branch changed or push was rejected")
         return "published"
-
-
-def encode_plan(plan):
-    return base64.b64encode(canonical(plan).encode()).decode("ascii")
-
-
-def decode_plan(value):
-    return json.loads(base64.b64decode(value, validate=True))

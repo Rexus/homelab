@@ -20,7 +20,7 @@ class PkiBundle(TierRepositoryTestCase):
     def test_documented_controller_commands_resolve_roles_in_a_fresh_shell(self):
         self.generate()
         guides = (
-            ('tier-0', 'stage-03-trust/procedures/software-pki.md', 'openxpki-bundle.yml'),
+            ('tier-0', 'stage-02-trust/README.md', 'openxpki-bundle.yml'),
             ('tier-2', 'stage-10-lab-environments/step-4b-public-https.md', 'public-certificate-schedule.yml'),
         )
         for collection, prefix, docs in (
@@ -85,7 +85,8 @@ class PkiBundle(TierRepositoryTestCase):
                     'approver-test': dict(role='RA Operator', digest=digest),
                 },
             )
-            environment = dict(os.environ, ANSIBLE_ROLES_PATH=str(UPSTREAM / 'tier-0/ansible/roles'))
+            environment = dict(os.environ, ANSIBLE_CONFIG=str(UPSTREAM / 'tier-0/ansible/ansible.cfg'))
+            environment.pop('ANSIBLE_ROLES_PATH', None)
             def run(inputs):
                 parameters = root / 'inputs.yml'
                 parameters.write_text(yaml.safe_dump(inputs))
@@ -110,7 +111,13 @@ class PkiBundle(TierRepositoryTestCase):
             self.assertEqual(profile['extensions']['basic_constraints']['ca'], 0)
             self.assertNotIn('ocsp', profile['extensions']['authority_info_access'])
             self.assertEqual(sorted(path.name for path in (realm / 'profile').glob('*.yaml')),
-                             ['default.yaml', 'tls_server.yaml'])
+                             ['default.yaml', 'logging_client.yaml', 'logging_server.yaml', 'tls_server.yaml'])
+            for kind, eku in [('client', 'client_auth'), ('server', 'server_auth')]:
+                logging_profile = read(realm / f'profile/logging_{kind}.yaml')
+                self.assertEqual(logging_profile['key']['generate'], 'client')
+                self.assertEqual(logging_profile['validity']['notafter'], '+000030')
+                self.assertEqual(logging_profile['extensions']['basic_constraints'], {'critical': 1, 'ca': 0})
+                self.assertEqual(logging_profile['extensions']['extended_key_usage'], {'critical': 0, eku: 1})
             workflow = read(realm / 'workflow/def/certificate_signing_request_v2.yaml')
             self.assertEqual(workflow['action']['approve_csr']['param']['check_creator'], 1)
             self.assertEqual(workflow['condition']['acl_can_approve']['param']['condition2'],

@@ -13,7 +13,7 @@ class DeploymentPaths(TierRepositoryTestCase):
         # These contracts follow executable actions and their prerequisites rather
         # than forcing all capabilities into the former three-phase outline.
         required = {
-            3: {2: 'init-local-files.sh --setup foundation', 3: 'terraform/deployments/foundation/terraform.tfvars',
+            2: {2: 'init-local-files.sh --setup foundation', 3: 'terraform/deployments/foundation/terraform.tfvars',
                 6: 'openxpki-bundle.yml', 7: 'deploy.sh foundation --terraform-only',
                 9: 'deployment/openxpki.yml', 10: 'deployment/openxpki-key.yml',
                 11: 'offline', 12: 'deployment/openxpki-certificates.yml', 14: 'recovery'},
@@ -79,7 +79,7 @@ class DeploymentPaths(TierRepositoryTestCase):
 
     def test_capability_names_have_unique_numbers_and_federation_belongs_to_identity(self):
         self.generate()
-        expected = ["stage-01-software-intake", "stage-02-logging", "stage-03-trust", "stage-04-kubernetes",
+        expected = ["stage-01-software-intake", "stage-02-trust", "stage-03-logging", "stage-04-kubernetes",
                     "stage-05-identity", "stage-06-secrets",
                     "stage-07-delivery", "stage-08-observability", "stage-09-development", "stage-10-lab-environments"]
         for docs in (UPSTREAM / "docs", self.root / "verify-architecture/docs/auto-docs"):
@@ -117,12 +117,12 @@ class DeploymentPaths(TierRepositoryTestCase):
             self.assertTrue(foundation.startswith("# Foundation and prerequisites"))
             self.assertIn("not a numbered capability stage", foundation)
             self.assertNotIn("## Step 4: Establish protected logging", foundation)
-            self.assertIn("stage-02-logging/README.md", foundation)
+            self.assertIn("stage-03-logging/README.md", foundation)
             stages = sorted(root.glob("stage-*/README.md"), key=lambda path: int(path.parent.name.split("-")[1]))
             self.assertEqual(stages[0].parent.name, "stage-01-software-intake")
             self.assertFalse((root / "stage-01-foundation").exists())
             expected_steps = {
-                "stage-02-logging/README.md": [str(number) for number in range(1, 17)],
+                "stage-03-logging/README.md": [str(number) for number in range(1, 9)],
                 "stage-06-secrets/procedures/independent-monitoring.md": ["1", "2", "3"],
                 "stage-08-observability/README.md": [str(number) for number in range(1, 16)],
                 "stage-10-lab-environments/step-5b-telemetry.md": [str(number) for number in range(1, 9)],
@@ -135,55 +135,61 @@ class DeploymentPaths(TierRepositoryTestCase):
                 self.assertIn("```mermaid", content, relative)
                 # A step can refer to a result figure introduced earlier; action
                 # numbering must not force a duplicate diagram for the same topology.
-                if relative not in ("stage-02-logging/README.md", "stage-08-observability/README.md",
+                if relative not in ("stage-03-logging/README.md", "stage-08-observability/README.md",
                                     "stage-10-lab-environments/step-5b-telemetry.md"):
                     for section in sections:
                         if "```mermaid" not in section:
                             self.assertRegex(section, r"\]\(#figure-[^)]+\)", relative)
-                self.assertRegex(content, r"\*\*Working repositor(?:y|ies):\*\*", relative)
-                self.assertIn("**Prerequisites:**", content, relative)
-            logging = stages[1].read_text()
+                self.assertRegex(content, r"\*\*(?:Working repositor(?:y|ies)|Work in):\*\*", relative)
+                self.assertRegex(content, r"\*\*(?:Prerequisites|Before starting):\*\*", relative)
+            logging = stages[2].read_text()
             headings = list(re.finditer(r"(?m)^## Step (\d+):", logging))
             actions = {int(heading[1]): logging[heading.end():
                        headings[index + 1].start() if index + 1 < len(headings) else len(logging)]
                        for index, heading in enumerate(headings)}
             executable = {number: "\n".join(re.findall(r"```bash\n(.*?)```", action, re.S))
                           for number, action in actions.items()}
+            prose = {number: ' '.join(action.split()) for number, action in actions.items()}
             required_commands = {
                 1: "bash scripts/init-local-files.sh --setup syslog",
-                3: "bash scripts/deploy.sh syslog --terraform-only",
-                4: "--ansible-only --playbook deployment/logging-storage.yml",
-                6: "ansible/playbooks/deployment/logging-receiver-request.yml",
-                7: "log_forwarder_mode=prepare",
-                8: "community.crypto.openssl_csr_info",
-                9: "ansible/playbooks/deployment/logging-authority.yml",
-                11: "bash scripts/deploy.sh syslog --ansible-only",
-                12: "ansible/playbooks/deployment/logging-producers.yml",
+                4: "bash scripts/deploy.sh syslog",
+                5: "bash scripts/deploy.sh syslog --ansible-only --playbook deployment/logging-verify.yml",
             }
             for number, command in required_commands.items():
                 self.assertIn(command, executable[number], f"Logging action {number}")
-            for field in ("terraform/deployments/syslog/terraform.tfvars", "syslog_ng_data_device"):
+            for field in ("terraform/deployments/syslog/terraform.tfvars", "syslog_ng_data_uuid",
+                          "logging_workflow_receiver_options"):
                 self.assertIn(field, actions[2])
-            self.assertIn("syslog_ng_sources:", actions[10])
-            self.assertIn("SYSLOG_NG_TLS_CERT_FILE", executable[10])
-            self.assertNotIn("log_forwarder_mode=prepare", executable[12])
-            self.assertIn("logging-acceptance-event-001", executable[12])
-            self.assertNotIn("logging-authority.yml", "\n".join(executable[n] for n in range(1, 9)))
-            self.assertNotRegex("\n".join(executable[n] for n in range(1, 11)),
-                                r"(?m)^bash scripts/deploy\.sh syslog --ansible-only\s*$")
-            authority_choices = re.split(r"(?m)^### 9[ab][.:] ", actions[9])
-            self.assertEqual(len(authority_choices), 3)
-            self.assertIn("logging_authority_initialize=true", authority_choices[1])
-            self.assertNotIn("logging_authority_initialize=true", authority_choices[2])
-            self.assertIn("logging-authority.yml", authority_choices[2])
-            self.assertEqual(re.findall(r"(?m)^### (\d+[a-z])[.:] ", logging), ["9a", "9b"])
+            for field in ("logging_producers.yml", "logging_producer_hosts:", "setup: foundation",
+                          "watchdog_url", "No duplicate IP"):
+                self.assertIn(field, actions[3])
+            for meaning in ("pending approval", "separate RA Operator", "workflow IDs", "rerun the same command",
+                            "retains the keys", "issuer.yml", "foundation.yml", "--auto-approve"):
+                self.assertIn(meaning, prose[4])
+            self.assertIn("Producer private keys stay on their hosts", actions[4])
+            self.assertIn("run creates receiver key directories", actions[4])
+            self.assertIn("certificate CN", actions[5])
+            self.assertIn("source address", actions[5])
+            self.assertIn("server-owned stream name", actions[5])
+            self.assertIn("real application event", prose[5])
+            self.assertIn("port-open check alone is not acceptance", actions[5])
+            normal_commands = "\n".join(executable.values())
+            self.assertNotRegex(normal_commands, r"(?m)^\s*(?:read|ssh|scp|openssl)\s")
+            for manual_step in ("logging-authority.yml", "logging-receiver-request.yml",
+                                "host_vars/", "SYSLOG_NG_TLS_CERT_FILE", "openssl_csr_info"):
+                self.assertNotIn(manual_step, normal_commands)
             self.assertEqual(re.findall(r"(?m)^\| \*\*(\d+[a-z]):", logging),
-                             ["14a", "14b", "15a", "15b"])
-            self.assertEqual(len(figure_sources(stages[1])), 3)
-            self.assertIn("baseline", actions[4])
+                             ["6a", "6b", "7a", "7b"])
+            self.assertEqual(len(figure_sources(stages[2])), 4)
+            self.assertIn("neither a shared VIP", actions[6])
+            for field in ("step-7a-nas-archive.md", "step-7b-retention-lock.md", "backup policy",
+                          "uncheckpointed-tail", "duplicate/loss limits"):
+                self.assertIn(field, actions[7])
+            for recovery in ("fault/restore drill", "keys and public request/issuance receipts",
+                             "separate unlock file", "early local logs", "measured recovery limits"):
+                self.assertIn(recovery, actions[8])
             self.assertIn("sources.md", logging)
-            self.assertIn("step-15a-nas-archive.md", logging)
-            self.assertIn("declared durability limits", logging)
+            self.assertIn("producer-trust.md", logging)
 
     def test_every_runnable_root_has_a_capability_and_walkthrough(self):
         self.generate()
@@ -207,14 +213,14 @@ class DeploymentPaths(TierRepositoryTestCase):
             self.assertEqual(len(entries), len(expected))
             self.assertRegex(
                 capability_map,
-                r"(?m)^\| Tier 1 \| `intake` \| Stage 3[^\n]+"
-                r"\(stage-03-trust/step-15b-verified-intake\.md\) \|$",
+                r"(?m)^\| Tier 1 \| `intake` \| Stage 2[^\n]+"
+                r"\(stage-02-trust/step-15b-verified-intake\.md\) \|$",
             )
             self.assertIn("never rename state roots", index)
             support = (docs / "08-reference/implementation-support.md").read_text()
             detailed = support.split("## Detailed coverage", 1)[1]
             row = next(line for line in detailed.splitlines() if "| Verified repository/artifact supply |" in line)
-            self.assertRegex(row, r"^\| 3\b", "Reference coverage must place verified intake after trust/logging")
+            self.assertRegex(row, r"^\| 2\b", "Reference coverage must place verified intake after issuance")
 
     def test_kubernetes_is_a_complete_reader_path_before_identity_consumers(self):
         self.generate()

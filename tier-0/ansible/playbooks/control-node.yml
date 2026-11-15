@@ -61,6 +61,10 @@
       vault-seal: [community.hashi_vault, community.general]
       logging-authority: [community.crypto]
       logging-receiver-request: [community.crypto]
+      logging-secrets: >-
+        {{ (['community.hashi_vault'] if logging_credentials_backend | default(
+           logging_workflow_credential_backend | default('ansible_vault')) == 'hashicorp_vault' else [])
+           + (['community.crypto'] if logging_credentials_seed | default({}) | length > 0 else []) }}
       openxpki-bundle: [community.crypto]
       openbao-signing: [community.crypto, community.general]
       infrastructure-monitoring: [community.general, ansible.posix, containers.podman]
@@ -72,7 +76,9 @@
       cluster-endpoint: [community.general, ansible.posix, ansible.utils]
       host-security: [community.general, ansible.posix, ansible.utils]
       foundation: [community.general, ansible.posix, freeipa.ansible_freeipa, ansible.mariadb, community.crypto]
-      syslog: [community.general, ansible.posix, community.crypto]
+      syslog: >-
+        {{ ['community.general', 'ansible.posix', 'community.crypto'] +
+           (['community.hashi_vault'] if logging_workflow_credential_backend | default('ansible_vault') == 'hashicorp_vault' else []) }}
       vault: [community.general, ansible.posix, community.crypto]
       infrastructure-runner: [community.general, ansible.posix]
       hsm: [community.general, ansible.posix, community.crypto]

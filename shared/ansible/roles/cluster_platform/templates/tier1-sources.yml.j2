@@ -10,6 +10,7 @@
     kind: Kustomization
     metadata: {name: tier1-platform, namespace: flux-system}
     spec:
+      suspend: {{ cluster_platform_flux_recovery | bool | lower }}
       interval: 5m
       retryInterval: 1m
       timeout: 10m
@@ -41,7 +42,7 @@
       serviceAccountName: application-reconciler
       dependsOn: [{name: platform}]
       path: {{ cluster_platform_flux_application_path | to_json }}
-      suspend: {{ cluster_platform_flux_applications_suspended | bool | lower }}
+      suspend: {{ (cluster_platform_flux_recovery | bool or cluster_platform_flux_applications_suspended | bool) | lower }}
       prune: true
       deletionPolicy: Orphan
       wait: true

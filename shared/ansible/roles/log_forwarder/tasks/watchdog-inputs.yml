@@ -1,0 +1,23 @@
+---
+- name: Validate HTTPS and typed optional watchdog settings without disclosing the URL
+  ansible.builtin.assert:
+    that:
+      - log_forwarder_watchdog_required is boolean
+      - log_forwarder_watchdog_disable is boolean
+      - log_forwarder_watchdog_url is string
+      - log_forwarder_watchdog_url | length == 0 or log_forwarder_watchdog_url is match('^https://[A-Za-z0-9./_?=&:%+-]+$')
+      - log_forwarder_watchdog_url | length == 0 or (log_forwarder_watchdog_url | ansible.builtin.urlsplit('hostname') | default('', true) | length > 0)
+    fail_msg: >-
+      Supply an HTTPS watchdog URL when required. Set watchdog_disable only with an empty URL
+      to deliberately retire a previously commissioned external check.
+  no_log: true
+
+- name: Require an endpoint when independent monitoring is selected
+  ansible.builtin.assert:
+    that:
+      - not log_forwarder_watchdog_required or log_forwarder_watchdog_url | length > 0
+      - not log_forwarder_watchdog_disable or log_forwarder_watchdog_url | length == 0
+    fail_msg: >-
+      Set this host's watchdog_url to its independent monitoring service's HTTPS heartbeat endpoint,
+      or set log_forwarder_watchdog_required=false for local health checks. Deliberate retirement
+      uses log_forwarder_watchdog_disable=true together with an empty URL.

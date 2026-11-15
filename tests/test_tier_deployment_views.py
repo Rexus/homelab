@@ -301,10 +301,10 @@ class DeploymentViews(unittest.TestCase):
     def test_deployment_resource_views_account_for_the_selected_starter_hosts(self):
         # Each row expands an actual input/inventory selection, not a second guest catalogue.
         cases = [
-            ("stage-02-logging/README.md", 1, "tier-0", "syslog", ["foundation_logging"]),
-            ("stage-03-trust/README.md", 0, "tier-0", "foundation",
+            ("stage-03-logging/README.md", 1, "tier-0", "syslog", ["foundation_logging"]),
+            ("stage-02-trust/README.md", 0, "tier-0", "foundation",
              ["issuing_ca", "identity_primary", "identity_replicas"]),
-            ("stage-03-trust/step-1b-usb-hsm.md", 0, "tier-0", "hsm", ["hsm_gateways"]),
+            ("stage-02-trust/step-1b-usb-hsm.md", 0, "tier-0", "hsm", ["hsm_gateways"]),
             ("stage-05-identity/README.md", 0, "tier-0", "foundation",
              ["issuing_ca", "identity_primary", "identity_replicas"]),
             ("stage-04-kubernetes/README.md", 0, "tier-0", "kubernetes", ["talos_control_plane"]),

@@ -1,0 +1,20 @@
+---
+- name: Require the retained logging authority credential schema
+  ansible.builtin.assert:
+    that:
+      - logging_credentials_document is mapping
+      - logging_credentials_document.keys() | sort == ['secrets', 'version']
+      - logging_credentials_document.version is integer
+      - logging_credentials_document.version == 1
+      - logging_credentials_document.secrets is mapping
+      - logging_credentials_document.secrets.keys() | list == ['authority_passphrase']
+      - logging_credentials_document.secrets.authority_passphrase is string
+      - logging_credentials_document.secrets.authority_passphrase | length >= 20
+      - logging_credentials_document.secrets.authority_passphrase | length <= 1024
+    fail_msg: Recover the original version 1 logging authority credential; this role never rotates or replaces it.
+  no_log: true
+
+- name: Publish only the protected logging credential mapping to the caller
+  ansible.builtin.set_fact:
+    logging_managed_secrets: "{{ logging_credentials_document.secrets }}"
+  no_log: true

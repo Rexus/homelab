@@ -91,7 +91,7 @@ maps that listener to its fixed scope.
 `<prefix>-tier-1` owns the existing authenticated ingestion and search workloads.
 Original evidence, NAS retention and backup authority remain in Tier 0.
 
-**Prerequisites:** accepted [logging checkpoints](../stage-02-logging/step-15a-nas-archive.md),
+**Prerequisites:** accepted [logging checkpoints](../stage-03-logging/step-7a-nas-archive.md),
 an approved source catalogue, and [projection ingestion](procedures/observability-platform.md#approved-search-projections).
 The figure shows the Kubernetes path. Dedicated VMs use the supplied `observability_vm_log_scopes`
 projection listener and reader policy instead of Kubernetes chart inputs; reconcile the accepted
@@ -139,7 +139,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
   ansible/playbooks/deployment/logging-archive.yml
 ```
 
-The Stage 2 archive/mount is already commissioned. This reapply adds the selected projection;
+The Stage 3 archive/mount is already commissioned. This reapply adds the selected projection;
 it does not create a new archive or repeat its storage preparation.
 Only newly checkpointed records enter a newly added scope. Historical backfill requires a separately reviewed
 offline export; never reset the original checkpoint cursor to create a search copy.

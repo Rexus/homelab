@@ -108,7 +108,7 @@ relevant authority, capacity and failure boundaries.
 | 7. [Software intake](07-software-intake/README.md) | How external software reaches consumers through controlled sources |
 | 8. [Cryptography and secrets](08-cryptography/README.md) | Cryptographic trust and Secrets: certificates, protected keys and credential custody |
 | 9. [Identity](09-identity/README.md) | How users sign in and services authorize their requests |
-| 10. [Delivery and development](10-delivery/README.md) | Delivery and the Development platform: reviewed code, builds and approved releases |
+| 10. [Delivery and development](10-delivery/README.md) | Reviewed code and builds, release orchestration, authorization and desired-state reconciliation |
 | 11. [Operations and resilience](11-operations/README.md) | How owners observe, investigate and recover their services |
 
 ## How the platform works together

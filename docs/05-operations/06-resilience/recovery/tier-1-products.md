@@ -22,38 +22,21 @@ In the larger loss scenario first restore independent Tier 0 access, trust, iden
 original infrastructure state and its own Flux/control services. Reuse mechanisms, never Tier 0
 credentials or Flux in Tier 1. A surviving hypervisor does not imply any service data survives.
 
-1. Retrieve the accepted-revision custody package, three Git bundles, pinned chart/image/tool files,
-   original Terraform state, private inputs, source credentials, SOPS keys and product backup IDs.
-   Verify checksums and that bundles contain the accepted commits before provisioning. Use
-   [external custody/maintenance](../../05-delivery.md#prepare-independent-custody); the recovery
-   host and sources must work without GitLab/Harbor/Spinnaker/runners.
-2. Fence old controllers, GitLab webhooks, runners, scheduled pipelines, promotion bot credentials
-   and stale Orca executions. [Serve the verified bundles from the recovered bootstrap host](../../05-delivery.md#serve-accepted-recovery-sources)
-   with separate read-only source keys and pinned SSH host trust. Load retained image/chart files
-   through accepted independent supply; the Git server does not provide registry pulls.
-3. Recreate Tier 1 VMs/cluster through original inputs/state and independent artifacts. Do not
-   initialize empty state over surviving resources. Use the
-   [bootstrap procedure](../../../03-deployment/stage-07-delivery/procedures/flux-platform.md)
-   with retained immutable bootstrap, canary and separate Tier 1 keys. Before enabling platform
-   reconciliation, externally approve a recovery revision derived from the accepted platform commit,
-   with product recovery lifecycles and initialization/consumer fences; retain its verified package.
-   A historic fresh-install payload is not safe recovery configuration for empty replacement volumes.
-   Keep applications suspended from bootstrap. Once its source objects exist, external operation
-   `recover` pins the accepted application commit and retains suspension.
-4. Reconcile only dependencies/controllers and retained storage needed for recovery. Hold consumers,
-   schema initialization and fresh-install Jobs until product restore is accepted. Use a reviewed
-   recovery lifecycle/payload; never select `fresh` against data intended for restoration.
-   A PVC/PV declaration restores no contents.
-5. Restore each complete product dataset with the native procedure below. Spinnaker needs all five
-   SQL schemas, Redis recovery point, stable keystore/OIDC/dependency credentials, backup repository
-   identity and pipeline definitions. Git alone does not restore those databases/queues. Keep triggers
-   and stale executions fenced; cancellation/review and bot credential control are explicit actions.
-6. Require exact accepted revisions, affected resource/Job health, known contents, TLS/SSO and denied
-   access. Reimport approved pipelines with stable IDs while triggers remain off. Verify recovery
-   configuration/artifacts remain retrievable with GitLab/Harbor down.
-7. Use external maintenance `resume` for applications only after actual data restoration and execution
-   fencing are accepted. Enable delivery triggers and CI individually after verification. Record lost
-   data, RPO/RTO, source/custody receipts and each resumed writer.
+For a prepared native backup set, run the [accepted recovery-plan workflow](platform-recovery-contract.md).
+It coordinates retained configuration retrieval, isolated VM restore, actual scope/writer fences,
+native product restoration and UID-gated resumption. The native dataset requirements below remain
+the product recovery contract. Review the automation's stated backend and startup-evidence limits
+before choosing that route.
+
+1. Retrieve the accepted independent recovery package, original state, private inputs, native backups
+   and custody material. [Prepare independent custody](../../05-delivery.md#prepare-independent-custody)
+   before an outage; hosted Git, registries and runners cannot provide their only recovery supply.
+2. Select every deployed product and its prerequisites from the table below. Prepare the checksum-bound
+   [recovery input contract](platform-recovery-contract.md#1-prepare-the-retained-recovery-inputs), including the
+   exact recovery-safe source payload. A historic fresh-install payload must not initialize replacement data.
+3. Follow the [automated restore and explicit cutover](platform-recovery-contract.md#3-run-restoration).
+   That entry point constructs isolated targets, invokes native restores, verifies operation/volume UIDs
+   and content, and coordinates resumption. Retain its receipts and separately measured RPO/RTO.
 
 Platform maintenance remains possible during a Spinnaker outage. A GitLab/Harbor installation cannot
 hold its sole reinstall source, image or key. A backup/mirror is usable only after custody,
@@ -66,9 +49,9 @@ prove data restoration, and Git rollback does not reverse product schema migrati
 
 1. Identify the original installed product/variant and its independently recorded backup IDs.
 2. Select its native recovery row below; confirm every listed dataset exists before creating targets.
-3. Follow [target guards and acceptance](#guard-the-target-and-validate). Target provisioning,
-   native product restoration and cutover remain operator procedures, not automatic effects of
-   reinstalling charts.
+3. Use the [automated recovery contract](platform-recovery-contract.md) for implemented adapters;
+   use the linked native procedure for an explicitly listed unsupported variant. Reinstalling charts
+   alone performs neither native data restoration nor verified cutover.
 
 The control backup role does not back up arbitrary Tier 1 PVCs. Product-supported datasets and
 operator procedures remain authoritative; use the selected installed variant, not another product's
@@ -84,6 +67,8 @@ backup format. The table identifies data that must be present before a restore c
 | OpenSearch / `observability_platform` | Native index snapshots, mappings/templates and independently held security configuration | [Snapshot restore][7] into a compatible isolated cluster, source repository read-only; restrict index scope/global-state restore and restore security through its own procedure |
 | Argo CD, if selected / `delivery_platform` | Native export, encrypted repository/cluster credentials and declarative application definitions | [Argo CD recovery][8]; keep application reconciliation/destinations blocked until reviewed |
 | Spinnaker, if selected / `delivery_platform` | Native five-schema SQL dump and Redis RDB in independently stored restic snapshots, retained service/keystore/OIDC credentials and declarative pipeline/target inputs | [Native recovery](../../../03-deployment/stage-07-delivery/step-2b-spinnaker.md#maintenance-and-recovery); fence triggers, restore matching SQL/Redis and identities on an isolated target before permitting executions; custom overlays retain their own runbook |
+| Tier 0 Kubernetes Vault Raft / `vault-raft` prerequisite | Original native control-backup snapshot, cluster/version/tool records, data/audit claims, original token and attending Shamir quorum | [Controller-only custody and native recovery inputs](control-product-inputs.md#4a-add-the-vault-product); human collection precedes the approved unattended restore; other seal variants require a separate adapter |
+| Tier 0 NetBox media / `netbox-media` prerequisite | Original media subtree/marker, known-file checksum, native restic set and UID/GID, paired CNPG database point | [Native media recovery inputs](control-product-inputs.md#4b-add-the-netbox-media-product); one new plan-owned media claim, separate `cnpg-files` database entry and paired application checks |
 | Netdata / `observability_platform` | Selected historical-data volumes and streaming/claim credentials | Restore qualified volume backups to the same product version or explicitly record history loss; verify streaming and access scopes |
 
 The Grafana CNPG cluster is not `netbox-db` or `keycloak-db`: reuse the native recovery mechanism,

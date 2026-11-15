@@ -26,8 +26,9 @@ Its rows remain unverified until an authorized operator records real results.
    records. Check a box only after its pass condition is demonstrated. Never place raw
    logs, credentials or keys in Git.
 
-The order is API trust, early logging, then Initial Trust. PKI must not be used as a
-prerequisite for the logging path that records its own bootstrap ceremony.
+The fresh-install order is API trust, software intake, infrastructure PKI, then protected network logging.
+Retain persistent local journal/audit records during trust bootstrap and keep independently held ceremony records.
+Stage 3 enrolls the retained host logs with the accepted infrastructure CA; no circular network-logging prerequisite applies.
 
 ## Software intake
 
@@ -37,7 +38,7 @@ and automatic patch rollout remain separate integrations.
 **Procedure:** [Stage 1](../docs/03-deployment/stage-01-software-intake/README.md) and
 [existing-cache migration](../docs/03-deployment/stage-01-software-intake/step-2b-adopt-update.md#3-reconcile-the-existing-cache).
 The first five checks cover the basic route; the remaining checks apply to the selected
-[verified extension](../docs/03-deployment/stage-03-trust/step-15b-verified-intake.md). None qualify patch rollout.
+[verified extension](../docs/03-deployment/stage-02-trust/step-15b-verified-intake.md). None qualify patch rollout.
 
 - [ ] **INTAKE-1: Real network enforcement.** From every selected subnet, approve actual sources and
   redirects; deny another source, a forbidden client and direct WAN bypass. Check HTTP and CONNECT,
@@ -51,7 +52,7 @@ The first five checks cover the basic route; the remaining checks apply to the s
 - [ ] **INTAKE-4: Availability and recovery.** Fail Squid/its VM and test actual VIP takeover, then
   rebuild a cache without recovering its disposable data. Qualify host placement and outage limits;
   boot-1's independent tools/artifacts must remain usable without the pair.
-- [ ] **INTAKE-5: Protected decisions.** After Stage 2 commissioning, retain each cache's security
+- [ ] **INTAKE-5: Protected decisions.** After Stage 3 commissioning, retain each cache's security
   journal/access stream in Tier 0. Verify scoped reads and queued delivery through a logging outage;
   repeat with OpenSearch unavailable. Do not interpret later search availability as durable custody.
 - [ ] **INTAKE-6: Real repository fixtures.** On the selected EL10/Debian worker, acquire a small
@@ -140,7 +141,7 @@ envelope, accepted-event boundary, queue limits and any source-side gaps explici
 **Implementation:** the selected software-first path is supplied; package/runtime and
 security behavior still need live qualification. Hardware custody, internal automated
 ACME and public edge HTTPS are separate selections, not hidden bootstrap requirements.
-**Procedures:** [software PKI](../docs/03-deployment/stage-03-trust/procedures/software-pki.md),
+**Procedures:** [software PKI](../docs/03-deployment/stage-02-trust/procedures/software-pki.md),
 [CA operations](../docs/05-operations/03-cryptography/certificate-authority.md).
 **Coverage and variants:** [CA implementation checklist](ca-implementation.md).
 
@@ -169,7 +170,7 @@ ACME and public edge HTTPS are separate selections, not hidden bootstrap require
   explicitly CA-enabled replica. Pass when both hosts issue under the same expected identity
   CA, directory/DNS replication work and loss of either host is tolerated. Two healthy VMs
   or LDAP replication alone do not prove this. This extends trust in Stage 5; it is not
-  a prerequisite for accepting the independent Stage 3 issuer.
+  a prerequisite for accepting the independent Stage 2 issuer.
 
 ## 4. Development platform and CI handover
 

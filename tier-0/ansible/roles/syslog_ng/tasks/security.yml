@@ -56,7 +56,7 @@
     permanent: true
     immediate: true
     state: enabled
-  loop: "{{ syslog_ng_sources }}"
+  loop: "{{ (syslog_ng_effective_sources | default(syslog_ng_sources)) }}"
   when: syslog_ng_manage_firewall
 
 - name: Allow only explicitly accepted legacy UDP producer addresses

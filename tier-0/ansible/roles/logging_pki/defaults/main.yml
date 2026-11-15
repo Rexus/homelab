@@ -1,0 +1,24 @@
+---
+# Runs on the established OpenXPKI issuer. Request CSR paths and public output are controller-local.
+# Fresh openxpki_bundle builds include both logging profiles before accepting the archive checksum.
+# Existing issuers need a separately qualified configuration upgrade that preserves their deployment
+# binding, database, signing/DataVault state and CLI identity before this enrollment adapter runs.
+# The runtime installer rejects a changed archive checksum during ordinary reconciliation.
+logging_authority_requests: []
+logging_pki_issuer_host: "{{ groups.get('issuing_ca', []) | first | default('') }}"
+logging_pki_realm: "{{ openxpki_realm | default('infrastructure') }}"
+logging_pki_workspace: "{{ logging_authority_directory }}"
+logging_pki_public_directory: "{{ logging_authority_directory }}/public"
+logging_pki_user: openxpki
+logging_pki_group: openxpki
+logging_pki_cli: /usr/bin/oxi
+logging_pki_cli_version: OpenXPKI Community Edition v3.34.0
+logging_pki_cli_auth_key: "{{ openxpki_data_mount }}/keys/cli.pem"
+logging_pki_root: "{{ openxpki_data_mount }}/identity/root.pem"
+logging_pki_issuer: "{{ openxpki_data_mount }}/identity/issuer.pem"
+logging_pki_wait_attempts: 1
+logging_pki_wait_seconds: 5
+# An intentional new request generation permits renewal after the old certificate was issued.
+# Routine retries retain the same generation and native workflow lock.
+logging_pki_generation: initial
+logging_pki_profile_directory: ""

@@ -279,7 +279,7 @@ unset VAULT_TOKEN
 ```
 
 Before returning to the main stage, enroll `/var/log/vault/audit.log` as a dedicated security file stream
-through [Stage 2 forwarding](../stage-02-logging/procedures/sources.md). Test allowed and denied operations at intake,
+through [Stage 3 forwarding](../stage-03-logging/procedures/sources.md). Test allowed and denied operations at intake,
 qualify [human SSO](../stage-05-identity/procedures/service-sso.md), and commission
 [scheduled independent snapshots](../../05-operations/06-resilience/backups/control-applications.md#configure-and-schedule).
 Complete an [isolated restore](../../05-operations/06-resilience/recovery/vault.md) before accepting recovery.
@@ -308,7 +308,7 @@ with the security docs instead of extending this deployment guide:
 
 - [Vault HSM hardening options](../../01-architecture/08-cryptography/06-vault-seal.md)
 - [HSM getting started](../../01-architecture/08-cryptography/03-hsm-selection.md)
-- [USB HSM active-active blueprint](../stage-03-trust/step-1b-usb-hsm.md)
+- [USB HSM active-active blueprint](../stage-02-trust/step-1b-usb-hsm.md)
 
 ## Read more
 

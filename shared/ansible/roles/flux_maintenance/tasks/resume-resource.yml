@@ -1,0 +1,22 @@
+---
+- name: Restore the original suspension value with parent-write protection retained
+  ansible.builtin.include_tasks: scope-resource.yml
+  vars:
+    scope_suspend: "{{ scope_resource.previous_suspend and scope_resource.uid not in flux_maintenance_resume_suspended_uids }}"
+
+- name: Wait for the resumed dependency's current readiness before allowing its dependents
+  ansible.builtin.include_role:
+    name: cluster_platform
+    tasks_from: health.yml
+  vars:
+    cluster_platform_kubeconfig: "{{ flux_maintenance_kubeconfig }}"
+    cluster_platform_context: "{{ flux_maintenance_context }}"
+    cluster_platform_health_retries: "{{ flux_maintenance_retries }}"
+    cluster_platform_health_delay: "{{ flux_maintenance_delay }}"
+    cluster_platform_health:
+      api_version: "{{ scope_resource.api_version }}"
+      kind: "{{ scope_resource.kind }}"
+      name: "{{ scope_resource.name }}"
+      namespace: "{{ scope_resource.namespace }}"
+      condition: Ready
+  when: not scope_resource.previous_suspend | bool or scope_resource.uid in flux_maintenance_resume_suspended_uids

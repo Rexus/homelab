@@ -1,3 +1,4 @@
+{% set admitted_sources = syslog_ng_enrolled_sources if syslog_ng_enrolled_sources is defined and syslog_ng_enrolled_sources is not none else syslog_ng_sources %}
 @version: 4.2
 # Network-only instance: the OS logger retains its own sockets, config and unit.
 options {
@@ -17,7 +18,7 @@ source s_tls {
             key-file("{{ syslog_ng_config_dir }}/tls/key.pem")
             peer-verify(required-trusted)
             ssl-options(no-sslv2, no-sslv3, no-tlsv1, no-tlsv11)
-            trusted-dn({% for source in syslog_ng_sources %}"{{ source.tls_dn }}"{{ ', ' if not loop.last else '' }}{% endfor %})
+            trusted-dn({% for source in admitted_sources %}"{{ source.tls_dn }}"{{ ', ' if not loop.last else '' }}{% endfor %})
         )
     );
 };
@@ -31,7 +32,7 @@ source s_udp {
 # Normalization is best effort. RAWMSG remains authoritative even on parser errors.
 parser p_syslog { syslog-parser(template("${RAWMSG}") flags(syslog-protocol) drop-invalid(no)); };
 
-{% for transport, sources in [('tls', syslog_ng_sources), ('udp', syslog_ng_legacy_sources)] %}
+{% for transport, sources in [('tls', admitted_sources), ('udp', syslog_ng_legacy_sources)] %}
 {% for source in sources %}
 filter f_{{ source.name }} {
     netmask("{{ source.address }}/32")

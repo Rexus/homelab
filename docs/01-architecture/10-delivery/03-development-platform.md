@@ -53,10 +53,10 @@ Tier 1 database, cache and repository VMs plus scoped object storage. Tier 1 own
 the application and its data; the storage owner retains object-storage administration.
 The VM-hosted source-control variant satisfies the same service and recovery boundaries.
 
-General CI uses a Tier 1 runner manager and ephemeral job pods. Selected application delivery
-uses independent Tier 1 Flux and Spinnaker promotion; Tier 0 keeps its own Flux,
-independently recoverable source trust and bootstrap keys. Their release behavior
-is explained in [controller patterns](02-controllers.md), rather than repeated here.
+General CI uses a Tier 1 runner manager and ephemeral job pods. Application delivery separates
+release orchestration from desired-state reconciliation. Tier 0 keeps independent control-service
+reconciliation, source trust and bootstrap keys. Their release behavior
+is explained in [release orchestration and reconciliation](02-controllers.md), rather than repeated here.
 
 Infrastructure CI uses a separate Tier 0 runner VM with original tier-local inventory
 and state. Its direct trusted CI path is an explicit opt-in described below.
@@ -124,7 +124,7 @@ trusted GitLab control plane. The opt-in must be recorded and reviewed when acce
 hosting or organizational ownership changes. Use a separately authorizing executor
 instead when Tier 1 administrators must not hold that trust.
 
-Ordinary CI, Argo CD and Spinnaker never receive infrastructure credentials.
+Ordinary CI and application delivery components never receive infrastructure credentials.
 Future lab users submit bounded request data to a trusted dispatcher; their code,
 Terraform/providers, hooks and job definitions are not executed on the privileged runner.
 

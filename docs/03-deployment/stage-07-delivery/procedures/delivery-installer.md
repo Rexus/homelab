@@ -274,10 +274,11 @@ Set `RESTIC_BINARY` to the pinned native restic executable (or put it on `PATH`)
 to run real repository backup/restore and failure tests. Filesystem tests use an
 existing local tmpfs mount and test actual Ansible storage assertions with API fixtures;
 they do not mount or verify a live NAS. Optional
-`SPINNAKER_CRD_CACHE` holds `cert-manager.yaml` (released CRDs) and `traefik.yaml`
-(ServersTransport CRD); the test module records their exact revisions/checksums.
-It enables strict custom-resource validation without network downloads. Missing
-native executables, schema libraries or optional caches produce explicit skips.
+`SPINNAKER_CRD_CACHE` holds `cert-manager.yaml`, `traefik.yaml` (ServersTransport) and
+`traefik-middlewares.yaml` ([Middleware from chart v42.1.3](https://github.com/traefik/traefik-helm-chart/blob/v42.1.3/traefik/crds/traefik.io_middlewares.yaml)).
+The test module records their exact revisions/checksums. An unset cache omits custom-resource
+validation; a declared cache must contain every pinned file. Native tools and schema libraries
+remain required for the corresponding checks. Tests do not download dependencies.
 
 An optional `SPINNAKER_UPSTREAM_CACHE=/absolute/reviewed/spinnaker` checkout must
 match the central pinned revision and unmodified `spinnaker-kustomize/` files.

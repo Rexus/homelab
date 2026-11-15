@@ -16,7 +16,7 @@ the telemetry gateways and metrics backend, not postponed to an optional later s
 Netdata provides live diagnostics for hosts and Kubernetes; infrastructure monitoring
 includes Proxmox, hardware sensors, storage and network health, not only applications.
 
-Earlier [Security Logging and Audit](../stage-02-logging/README.md) preserves Tier 0
+Earlier [Security Logging and Audit](../stage-03-logging/README.md) preserves Tier 0
 evidence. Observability adds diagnosis and scoped queries; it cannot modify that evidence
 or administer Tier 0.
 
@@ -591,7 +591,7 @@ separately, then continue to [Stage 9](../stage-09-development/README.md).
 | Tier 1 | [clusters/tier1/platform/observability/](../../../tier-1/clusters/tier1/platform/observability) | Empty controller-integration starter; choose one reconciler |
 | Tier 1 | [terraform/deployments/kubernetes/](../../../tier-1/terraform/deployments/kubernetes) | Existing cluster and separately sized workers |
 | Tier 1 | [terraform/deployments/observability/](../../../tier-1/terraform/deployments/observability) | Explicit VM alternative only |
-| Tier 0 | [protected logging](../stage-02-logging/README.md) | Original evidence and approved export boundary |
+| Tier 0 | [protected logging](../stage-03-logging/README.md) | Original evidence and approved export boundary |
 | Tier 0 | [logging-export playbook](../../../tier-0/ansible/playbooks/deployment/logging-export.yml) | Scoped native Collector; only approved read-only copies cross into search |
 | Tier 0 | [independent monitoring](../stage-06-secrets/procedures/independent-monitoring.md) | Independent Netdata, local pollers/credentials, critical alerts and approved metric export |
 

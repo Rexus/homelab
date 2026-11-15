@@ -221,7 +221,7 @@ Test cross-tenant isolation using hostile labels and direct API queries, not onl
 
 ## Realization
 
-[Security Logging and Audit](../../03-deployment/stage-02-logging/README.md) comes first.
+[Security Logging and Audit](../../03-deployment/stage-03-logging/README.md) comes first.
 [Independent monitoring](../../03-deployment/stage-08-observability/step-13-infrastructure-monitoring.md)
 keeps foundation visibility outside cluster outages.
 [Observability deployment](../../03-deployment/stage-08-observability/README.md)

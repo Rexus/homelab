@@ -11,7 +11,7 @@ const { chromium } = require(process.env.DIAGRAM_PLAYWRIGHT || 'playwright');
   const figures = ['protected-logging', 'logging-receivers', 'logging-sender-routing', 'logging-shared-endpoint']
     .map(name => ({ name, svg: fs.readFileSync(path.join(__dirname, `${name}.svg`), 'utf8') }));
   for (const file of ['README.md']) {
-    const text = fs.readFileSync(path.join(docs, '03-deployment/stage-02-logging', file), 'utf8');
+    const text = fs.readFileSync(path.join(docs, '03-deployment/stage-03-logging', file), 'utf8');
     let index = 0;
     for (const match of text.matchAll(/```mermaid\r?\n([\s\S]*?)```/g)) {
       figures.push({ name: `${file.replace('.md', '')}-${++index}`, code: match[1] });

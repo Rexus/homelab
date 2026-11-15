@@ -1,0 +1,67 @@
+---
+# Contract: kind=netbox-media, tier=0, media.claim is the only data_claims entry.
+# claim_uids binds that PVC. backup_id is the full native control_backup restic ID.
+# media has path, source_marker, known_file, known_file_sha256, run_as_user/group.
+# control_backup has set_path, manifest_sha256, vault_sha256 and repository_id.
+# restic_image/restic_version select the retained original tool. restic_secret
+# contains RESTIC_REPOSITORY and RESTIC_PASSWORD or RESTIC_PASSWORD_FILE. The
+# optional repository_claim is mounted read-only at /repository. A CSI-backed new
+# PVC is supported through the same native file restore, without restoring SQL,
+# configuration, other claims or application workloads from a namespace backup.
+- name: Require exact independently retained NetBox media scope
+  ansible.builtin.assert:
+    that:
+      - recovery_product.tier == 0
+      - recovery_product.backup_id is match('^[a-f0-9]{64}$')
+      - recovery_product.data_claims == [recovery_product.media.claim]
+      - recovery_product.claim_uids.keys() | list == [recovery_product.media.claim]
+      - recovery_product.restic_image is search('@sha256:[a-f0-9]{64}$')
+      - recovery_product.restic_version is match('^[0-9]+\.[0-9]+\.[0-9]+$')
+      - recovery_product.media.path is match('^/[A-Za-z0-9_./-]+$')
+      - "'..' not in recovery_product.media.path.split('/')"
+      - recovery_product.control_backup.set_path is match('^/[A-Za-z0-9_./-]+$')
+      - "'..' not in recovery_product.control_backup.set_path.split('/')"
+      - recovery_product.media.known_file is match('^[A-Za-z0-9_./-]+$')
+      - "'..' not in recovery_product.media.known_file.split('/')"
+      - not recovery_product.media.known_file.startswith('/')
+      - recovery_product.media.known_file_sha256 is match('^[a-f0-9]{64}$')
+      - recovery_product.media.source_marker is match('^[A-Za-z0-9_-]{16,128}$')
+      - recovery_product.control_backup.manifest_sha256 is match('^[a-f0-9]{64}$')
+      - recovery_product.control_backup.vault_sha256 is match('^[a-f0-9]{64}$')
+      - recovery_product.control_backup.repository_id is match('^[a-f0-9]{64}$')
+      - recovery_product.media.run_as_user is integer
+      - recovery_product.media.run_as_group is integer
+      - recovery_product.media.run_as_user | int > 0
+      - recovery_product.media.run_as_group | int > 0
+      - recovery_product.repository_claim | default('') != recovery_product.media.claim
+      - recovery_product.media.known_file not in ['.control-backup-source', '.platform-recovery-media']
+    fail_msg: Select only the retained media root, its original control_backup manifest, one new PVC and known media evidence.
+
+- name: Bind the actual target media claim before a native restore can start
+  ansible.builtin.set_fact:
+    recovery_control_claim_uids: {}
+
+- name: Require the same newly commissioned media PVC on every retry
+  ansible.builtin.include_tasks: control-claim.yml
+  vars:
+    recovery_control_claim: "{{ recovery_product.media.claim }}"
+
+- name: Render a native restic restore of only the accepted media subtree
+  ansible.builtin.set_fact:
+    recovery_job: "{{ lookup('ansible.builtin.template', 'netbox-media-restore.yml.j2') | from_yaml }}"
+
+- name: Restore and read back media with the existing UID-bound native Job journal
+  ansible.builtin.include_tasks: native-job.yml
+
+- name: Release the completed media restore Pod before starting application consumers
+  kubernetes.core.k8s:
+    kubeconfig: "{{ recovery_kubeconfig }}"
+    context: "{{ recovery_context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Pod
+    namespace: "{{ recovery_product.namespace }}"
+    label_selectors: ["batch.kubernetes.io/controller-uid={{ recovery_native_receipt.uid }}"]
+    state: absent
+    wait: true
+    wait_timeout: 300

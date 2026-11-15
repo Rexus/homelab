@@ -6,11 +6,13 @@
     Example 2203 is a Tier 2 Kubernetes worker, instance 03. T values 0-2 are the security tiers,
     3 is Lab, 4 is Clients, 5-8 are reserved and 9 is Templates. C0 is reserved across Tier 0,
     Tier 1, Tier 2, Lab and Clients. Categories are 1 Kubernetes control plane, 2 Kubernetes workers,
-    3 Infrastructure services, 4 Network/Edge, 5 Observability/protected logging, 6 Bootstrap/Automation
+    3 Identity, trust and core services, 4 Network/Edge, 5 Observability/protected logging,
+    6 Administration and automation
     and 7-9 Other/Reserved. Tier 0 has an implicit leading 0 and uses the same formula for every category.
-    Tier 0 ranges are control planes 100–199, workers 200–299, infrastructure 300–399, network services 400–499,
-    logging 500–599 and bootstrap/automation 600–699. Control-plane starters retain 101, 102 and 103.
-    The bootstrap host boot-1 uses 601. Template IDs in 9xxx follow independent catalog allocations
+    Tier 0 ranges are control planes 100–199, workers 200–299, identity/trust/core services 300–399,
+    network services 400–499, logging 500–599 and administration/automation 600–699.
+    Control-plane starters retain 101, 102 and 103. The issuer ca-1 uses 311 and bootstrap host boot-1 uses 601.
+    Categories describe function, not importance or deployment order. Template IDs in 9xxx follow independent catalog allocations
     outside the guest role-category scheme.</desc>
   <style>
     text { font-family: Arial, sans-serif; fill: #1f2937; font-size: 20px; }
@@ -61,7 +63,7 @@
   <text x="556" y="466" class="digit">2</text><text x="668" y="466">Kubernetes workers</text>
   <path class="rule" d="M32 478H520 M556 478H1048"/>
   <text x="32" y="502" class="digit">3</text><text x="144" y="502">Lab / Development</text>
-  <text x="556" y="502" class="digit">3</text><text x="668" y="502">Infrastructure services</text>
+  <text x="556" y="502" class="digit">3</text><text x="668" y="502">Identity, trust and core services</text>
   <path class="rule" d="M32 514H520 M556 514H1048"/>
   <text x="32" y="538" class="digit">4</text><text x="144" y="538">Clients</text>
   <text x="556" y="538" class="digit">4</text><text x="668" y="538">Network / Edge</text>
@@ -70,12 +72,12 @@
   <text x="556" y="574" class="digit">5</text><text x="668" y="574">Observability / protected logging</text>
   <path class="rule" d="M32 586H520 M556 586H1048"/>
   <text x="32" y="610" class="digit">9</text><text x="144" y="610">Templates</text>
-  <text x="556" y="610" class="digit">6</text><text x="668" y="610">Bootstrap / Automation</text>
+  <text x="556" y="610" class="digit">6</text><text x="668" y="610">Administration and automation</text>
   <path class="rule" d="M556 622H1048"/>
   <text x="556" y="646" class="digit">7–9</text><text x="668" y="646">Other / Reserved</text>
 
   <text x="32" y="687">NN 00–99 gives all 100 slots per category. C0 is reserved for T0, T1, T2, Lab and Clients.</text>
-  <text x="32" y="720" class="muted">Tier 0 has an implicit leading 0. Control planes 100–199 · Workers 200–299 · Infrastructure 300–399</text>
-  <text x="32" y="750" class="muted">Network 400–499 · Logging 500–599 · Bootstrap 600–699 · Control-plane starters 101–103 · boot-1 = 601</text>
+  <text x="32" y="720" class="muted">Tier 0 omits T. Control planes 100–199 · Workers 200–299 · Identity/trust/core 300–399</text>
+  <text x="32" y="750" class="muted">Network 400–499 · Logging 500–599 · Administration 600–699 · ca-1 = 311 · boot-1 = 601</text>
   <text x="32" y="783" class="muted">3xxx / 4xxx are allocation groups. 9xxx follows an independent template catalog outside role categories.</text>
 </svg>

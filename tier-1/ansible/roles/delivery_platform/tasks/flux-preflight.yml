@@ -48,9 +48,12 @@
         not delivery_platform_spinnaker_backup_filesystem_initialize | bool
       - >-
         delivery_platform_spinnaker_lifecycle != 'recover' or
-        delivery_platform_spinnaker_recovery_id is match('^[A-Za-z0-9_-]{16,64}$')
-      - >-
-        delivery_platform_spinnaker_lifecycle != 'recover' or
-        delivery_platform_spinnaker_recovery_fenced | bool
-    fail_msg: Select the data lifecycle explicitly. Recovery requires restored data and fenced triggers/executions.
+        delivery_platform_spinnaker_recovery_id is match('^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$')
+    fail_msg: Select the data lifecycle explicitly. Recovery requires an accepted restore identity and verified product data before consumers can start.
   when: delivery_platform_controller == 'spinnaker'
+
+- name: Load the accepted current installation before rendering an upgrade
+  ansible.builtin.include_tasks: spinnaker-upgrade-inputs.yml
+  when:
+    - delivery_platform_controller == 'spinnaker'
+    - delivery_platform_spinnaker_lifecycle == 'upgrade'

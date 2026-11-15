@@ -184,11 +184,11 @@ realize the distinct roles in the trust hierarchy rather than replacing one anot
 An existing independently operated CA, another qualified issuer or Enterprise native
 ACME can satisfy the same outward contract. Selecting one changes the integration,
 not tier ownership or root custody. The reference OS/package exception and Community
-boundaries belong to the [issuer deployment contract](../../03-deployment/stage-03-trust/procedures/issuer.md).
+boundaries belong to the [issuer deployment contract](../../03-deployment/stage-02-trust/procedures/issuer.md).
 The [support map](../../08-reference/implementation-support.md) records installer coverage;
 [CA operations](../../05-operations/03-cryptography/certificate-authority.md) owns maintenance evidence.
 
-Follow [Cryptographic trust](../../03-deployment/stage-03-trust/README.md) for installation
+Follow [Cryptographic trust](../../03-deployment/stage-02-trust/README.md) for installation
 and [cryptographic trust operations](../../05-operations/03-cryptography/README.md) for ongoing tasks.
 
 ## References

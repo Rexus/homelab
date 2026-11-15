@@ -108,7 +108,7 @@ without the secret service or an optional signing API:
 | Secrets | HashiCorp Vault with default Shamir unseal and independently held shares; an HSM-backed issuer does not require an HSM-backed Vault seal |
 | Shared signing | Optional remote key access or signing API for explicit consumers; PKI, application signing and seal keys retain distinct identities and permissions |
 
-The [Trust stage](../../03-deployment/stage-03-trust/README.md) owns installation order
+The [Trust stage](../../03-deployment/stage-02-trust/README.md) owns installation order
 and qualification; shared interfaces are added only for a selected consumer need.
 Device initialization, key creation and wrapped-key recovery are controlled custody
 operations; ordinary deployment preserves keys.
@@ -176,19 +176,19 @@ replicated application state does not back up HSM keys. A single-node learning A
 
 ## Implementation
 
-Stage 3 provisions hosts and native USB attachment through the owning Terraform root.
+Stage 2 provisions hosts and native USB attachment through the owning Terraform root.
 The [provider role](../../../tier-0/ansible/roles/hsm_provider) installs selected middleware,
 checks device identity and binds an inactive issuer to its original key. Physical commissioning,
 approved SDK supply and offline custody remain prerequisites.
 
-The [USB deployment](../../03-deployment/stage-03-trust/step-1b-usb-hsm.md) owns remoting;
+The [USB deployment](../../03-deployment/stage-02-trust/step-1b-usb-hsm.md) owns remoting;
 the [Secrets stage](../../03-deployment/stage-06-secrets/README.md) owns the optional signing API.
 HashiCorp Vault remains the reference secret store. Its Enterprise PKCS#11 seal/managed-key
 features are separate from the open-source API option; see [seal choices](06-vault-seal.md).
 No implicit product migration, key replication or generic load-balancer HA is supplied.
 
-Follow the [USB provider pool](../../03-deployment/stage-03-trust/step-1b-usb-hsm.md) or
-[single-device issuer](../../03-deployment/stage-03-trust/step-1d-single-usb.md) procedure
+Follow the [USB provider pool](../../03-deployment/stage-02-trust/step-1b-usb-hsm.md) or
+[single-device issuer](../../03-deployment/stage-02-trust/step-1d-single-usb.md) procedure
 for the selected arrangement. [Hardware custody and recovery](../../05-operations/03-cryptography/usb-hsm.md)
 owns subsequent operation.
 

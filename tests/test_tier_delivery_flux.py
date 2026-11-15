@@ -116,43 +116,70 @@ class DeliveryFlux(TierRepositoryTestCase):
         self.assertEqual(renderer["vars"]["flux_payload_source_name"], "tier1-platform")
         self.assertFalse(any("kubernetes.core.k8s" in task for task in tasks))
 
-    def test_data_guard_retains_claim_identity_and_requires_an_explicit_recovery_marker(self):
+    def test_data_guards_keep_each_single_node_claim_separate_and_require_recovery_identity(self):
         environment = Environment(undefined=StrictUndefined, trim_blocks=True)
         environment.filters["to_json"] = json.dumps
         environment.filters["hash"] = lambda value, algorithm: hashlib.new(algorithm, value.encode()).hexdigest()
+        environment.globals["lookup"] = lambda _, path: environment.from_string(
+            (ROLE / "templates" / path).read_text()).render(
+                delivery_platform_software=yaml.safe_load((ROLE / "files/software.yml").read_text()))
         template = environment.from_string((ROLE / "templates/spinnaker/flux-data-guard.yml.j2").read_text())
-        for lifecycle in ("fresh", "adopt", "recover"):
-            guard = yaml.safe_load(template.render(
+        for lifecycle in ("fresh", "adopt", "upgrade", "recover"):
+            guards = list(yaml.safe_load_all(template.render(
                 delivery_platform_spinnaker_namespace="spinnaker", delivery_platform_spinnaker_lifecycle=lifecycle,
                 delivery_platform_spinnaker_job_revision="1", delivery_platform_spinnaker_recovery_id="accepted-recovery",
-                delivery_platform_software=yaml.safe_load((ROLE / "files/software.yml").read_text())))
-            self.assertNotIn("ttlSecondsAfterFinished", guard["spec"])
-            pod = guard["spec"]["template"]["spec"]
-            self.assertEqual({volume["persistentVolumeClaim"]["claimName"] for volume in pod["volumes"]},
-                             {"data-spinnaker-mysql-0", "data-spinnaker-redis-0"})
-            script = pod["containers"][0]["args"][0]
-            self.assertEqual("Fresh initialization requires empty" in script, lifecycle == "fresh")
-            self.assertEqual(".delivery-restored" in script, lifecycle == "recover")
-            if os.name != "nt" and shutil.which("sh"):
-                mounts = Path(self.temp.name) / lifecycle
-                for name in ("mysql", "redis"):
-                    (mounts / name).mkdir(parents=True)
-                script = re.sub(r"(?<![\w/])/(mysql|redis)\b",
-                                lambda match: str(mounts / match.group(1)), script)
-                run = lambda: subprocess.run(["sh", "-ec", script], capture_output=True, text=True,
-                                             env=dict(os.environ, RECOVERY_ID="accepted-recovery"))
-                empty = run()
-                self.assertEqual(empty.returncode == 0, lifecycle == "fresh", empty.stderr)
-                (mounts / "mysql/mysql").mkdir()
-                (mounts / "redis/appendonlydir").mkdir()
-                if lifecycle == "recover":
-                    for name in ("mysql", "redis"):
-                        (mounts / name / ".delivery-restored").write_text("accepted-recovery")
-                existing = run()
-                self.assertEqual(existing.returncode == 0, lifecycle != "fresh", existing.stderr)
-                if lifecycle == "recover":
-                    (mounts / "mysql/.delivery-restored").write_text("unaccepted-recovery")
-                    self.assertNotEqual(run().returncode, 0)
+                delivery_platform_software=yaml.safe_load((ROLE / "files/software.yml").read_text()))))
+            self.assertEqual(len(guards), 2)
+            # Scheduling model only. Real CSI attachment still needs multi-node cluster qualification.
+            attachment_nodes = {"data-spinnaker-mysql-0": {"worker-a"},
+                                "data-spinnaker-redis-0": {"worker-b"}}
+            for guard in guards:
+                self.assertNotIn("ttlSecondsAfterFinished", guard["spec"])
+                pod = guard["spec"]["template"]["spec"]
+                claims = [volume["persistentVolumeClaim"]["claimName"] for volume in pod["volumes"]
+                          if "persistentVolumeClaim" in volume]
+                self.assertEqual(len(claims), 1 if lifecycle in ("fresh", "recover") else 0)
+                if claims:
+                    eligible = set.intersection(*(attachment_nodes[claim] for claim in claims))
+                    self.assertTrue(eligible, "A guard cannot require attachment on both worker nodes")
+                script = pod["containers"][0]["args"][0]
+                self.assertEqual("Fresh initialization requires an empty" in script, lifecycle == "fresh")
+                self.assertEqual(".delivery-restored" in script, lifecycle == "recover")
+                if lifecycle in ("adopt", "upgrade"):
+                    self.assertIn("--ssl-mode=VERIFY_IDENTITY" if "mysql" in guard["metadata"]["name"]
+                                  else "redis-cli -h 127.0.0.1 -p 16379", script)
+                    if "redis" in guard["metadata"]["name"]:
+                        self.assertEqual(pod["initContainers"][0]["name"], "redis-tls")
+                        self.assertEqual(pod["initContainers"][0]["restartPolicy"], "Always")
+                if os.name != "nt" and shutil.which("sh") and lifecycle in ("fresh", "recover"):
+                    product = pod["containers"][0]["name"].removeprefix("verify-")
+                    mount = Path(self.temp.name) / lifecycle / product
+                    mount.mkdir(parents=True)
+                    script = script.replace("/data", str(mount))
+                    tools = Path(self.temp.name) / "tools"
+                    tools.mkdir(exist_ok=True)
+                    checker = tools / "redis-check-rdb"
+                    checker.write_text("#!/bin/sh\ntest \"$(cat \"$1\")\" = validated-rdb-fixture\n")
+                    checker.chmod(0o755)
+                    run = lambda: subprocess.run(["sh", "-ec", script], capture_output=True, text=True,
+                        env=dict(os.environ, RECOVERY_ID="accepted-recovery", PATH=str(tools) + os.pathsep + os.environ["PATH"]))
+                    empty = run()
+                    self.assertEqual(empty.returncode == 0, lifecycle == "fresh", empty.stderr)
+                    (mount / "mysql").mkdir()
+                    (mount / "auto.cnf").write_text("accepted-mysql-identity")
+                    (mount / "dump.rdb").write_text("validated-rdb-fixture")
+                    (mount / ".delivery-restored").write_text("accepted-recovery")
+                    self.assertEqual(run().returncode == 0, lifecycle != "fresh")
+                    if lifecycle == "recover":
+                        (mount / ".delivery-restored").write_text("unaccepted-recovery")
+                        self.assertNotEqual(run().returncode, 0)
+        original = dict(delivery_platform_spinnaker_namespace="spinnaker", delivery_platform_spinnaker_lifecycle="fresh",
+            delivery_platform_spinnaker_job_revision="1", delivery_platform_spinnaker_recovery_id="",
+            delivery_platform_software=yaml.safe_load((ROLE / "files/software.yml").read_text()))
+        first = list(yaml.safe_load_all(template.render(original, delivery_platform_spinnaker_render="accepted-runtime")))
+        changed = list(yaml.safe_load_all(template.render(original, delivery_platform_spinnaker_render="changed-runtime")))
+        self.assertNotEqual(first[0]["metadata"]["name"], changed[0]["metadata"]["name"],
+                            "A completed fresh guard must never authorize a changed database runtime")
 
     def test_flux_accounts_and_fiat_use_the_promotion_roles_and_application_permissions(self):
         inputs = yaml.safe_load((ROLE / "defaults/main.yml").read_text())
@@ -171,7 +198,9 @@ class DeliveryFlux(TierRepositoryTestCase):
         clouddriver = yaml.safe_load(template.render(inputs, spinnaker_native_service="clouddriver"))
         accounts = {item["name"]: item for item in clouddriver["kubernetes"]["accounts"]}
         self.assertEqual(accounts["delivery-promotion"]["permissions"]["WRITE"],
-                         [groups[0], promotion["delivery_promotion_executor_role"]])
+                         [groups[0], promotion["delivery_promotion_executor_role"],
+                          promotion["delivery_promotion_requester_role"]])
+        self.assertNotIn("delivery-promotion-authority", accounts)
         self.assertTrue(all(account["serviceAccount"] for account in accounts.values()))
         self.assertFalse(accounts["app"]["onlySpinnakerManaged"])
         fiat = yaml.safe_load(template.render(inputs, spinnaker_native_service="fiat"))
@@ -217,14 +246,30 @@ class DeliveryFlux(TierRepositoryTestCase):
         client.write_text('#!/bin/sh\nprintf "%s\\n" "$*" >> "$SQL_LOG"\n')
         client.chmod(0o700)
         log = Path(self.temp.name) / "sql.log"
-        result = subprocess.run(["sh", str(ROLE / "files/spinnaker/initialize-databases.sh")],
+        credentials = Path(self.temp.name) / "credentials"
+        credentials.mkdir()
+        for service in SERVICES:
+            for filename in (f"{service}-password", f"{service}-migration-password"):
+                (credentials / filename).write_text("retained-credential")
+        script = Path(self.temp.name) / "verify-databases.sh"
+        script.write_text((ROLE / "files/spinnaker/initialize-databases.sh").read_text()
+                          .replace("/credentials", str(credentials)))
+        result = subprocess.run(["sh", str(script)],
                                 env=dict(os.environ, PATH=str(tools) + os.pathsep + os.environ["PATH"],
                                          SQL_LOG=str(log), SPINNAKER_DATABASE_ACTION="verify"),
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         calls = log.read_text()
-        self.assertEqual(calls.count("--execute=SELECT 1"), 5)
+        self.assertEqual(calls.count("--execute=SELECT 1"), 15)
         self.assertFalse(any(statement in calls for statement in ("CREATE", "ALTER", "GRANT")))
+        for service in SERVICES:
+            self.assertIn(f"--user={service}_service", calls)
+            self.assertIn(f"--user={service}_migrate", calls)
+        (credentials / "front50-migration-password").unlink()
+        denied = subprocess.run(["sh", str(script)],
+            env=dict(os.environ, PATH=str(tools) + os.pathsep + os.environ["PATH"],
+                     SQL_LOG=str(log), SPINNAKER_DATABASE_ACTION="verify"), capture_output=True, text=True)
+        self.assertNotEqual(denied.returncode, 0)
 
     @unittest.skipUnless(NATIVE_FLUX and kubernetes_validate, "Requires native Flux tools and kubernetes-validate schemas")
     def test_staged_source_and_generated_render_preserve_data_and_encrypt_secret_material(self):
@@ -281,12 +326,16 @@ class DeliveryFlux(TierRepositoryTestCase):
     @unittest.skipUnless(NATIVE_FLUX, "Requires native Ansible, Helm, Kustomize, SOPS and age")
     def test_recovery_fences_executors_and_publication_until_explicit_data_restoration(self):
         inputs = self.fixture(delivery_platform_spinnaker_lifecycle="recover",
-                              delivery_platform_spinnaker_recovery_id="offline-accepted-recovery-01",
-                              delivery_platform_spinnaker_recovery_fenced=True)
-        _, _, resources = self.render(inputs)
+                              delivery_platform_spinnaker_recovery_id="offline-accepted-recovery-01")
+        _, graph, resources = self.render(inputs)
+        nodes = {node["metadata"]["name"]: node for node in graph}
+        prefix = "platform-delivery-spinnaker"
+        self.assertEqual(nodes[f"{prefix}-persistence"]["spec"]["dependsOn"],
+                         [{"name": f"{prefix}-data-guard"}])
+        self.assertEqual(len(resources[f"{prefix}-data-guard"]), 2)
         objects = [obj for stage in resources.values() for obj in stage]
         deployments = {obj["metadata"]["name"]: obj for obj in objects if obj["kind"] == "Deployment"}
-        self.assertTrue(all(deployments[name]["spec"]["replicas"] == 0 for name in ("echo", "orca", "gate")))
+        self.assertTrue(all(item["spec"]["replicas"] == 0 for item in deployments.values()))
         self.assertFalse(any(obj["kind"] == "Ingress" for obj in objects))
         cron = next(obj for obj in objects if obj["kind"] == "CronJob")
         self.assertTrue(cron["spec"]["suspend"])
@@ -295,6 +344,66 @@ class DeliveryFlux(TierRepositoryTestCase):
         database = next(obj for obj in objects if obj["kind"] == "Job" and obj["metadata"]["name"].startswith("spinnaker-databases-"))
         env = database["spec"]["template"]["spec"]["containers"][0]["env"]
         self.assertIn({"name": "SPINNAKER_DATABASE_ACTION", "value": "verify"}, env)
+
+    @unittest.skipUnless(NATIVE_FLUX, "Requires native Ansible, Helm, Kustomize, SOPS and age")
+    def test_database_image_upgrade_is_gated_before_config_and_uses_accepted_current_backup_tools(self):
+        inputs = self.fixture()
+        self.render(inputs)
+        current = Path(self.temp.name) / "accepted-current.yml"
+        current.write_bytes((Path(inputs["delivery_platform_output"]) / "spinnaker-manifests.yml").read_bytes())
+        current_software = yaml.safe_load((ROLE / "files/software.yml").read_text())
+        proposed = dict(current_software, mysql_image="docker.io/library/mysql:8.4.12")
+        inputs.update(delivery_platform_spinnaker_lifecycle="upgrade", delivery_platform_software=proposed,
+                      delivery_platform_spinnaker_upgrade_from=str(current),
+                      delivery_platform_spinnaker_upgrade_from_sha256=hashlib.sha256(current.read_bytes()).hexdigest())
+        _, graph, resources = self.render(inputs)
+        nodes = {node["metadata"]["name"]: node for node in graph}
+        prefix = "platform-delivery-spinnaker"
+        self.assertEqual(nodes[f"{prefix}-preupgrade-backup"]["spec"]["dependsOn"],
+                         [{"name": "platform-delivery-inputs"}])
+        self.assertEqual(nodes[f"{prefix}-prerequisites"]["spec"]["dependsOn"],
+                         [{"name": f"{prefix}-preupgrade-backup"}])
+        persistence = resources[f"{prefix}-persistence"]
+        mysql = next(obj for obj in persistence if obj["metadata"]["name"] == "spinnaker-mysql")
+        self.assertEqual(mysql["spec"]["template"]["spec"]["containers"][0]["image"], proposed["mysql_image"])
+        play = yaml.safe_load((Path(inputs["delivery_platform_output"]) / "spinnaker-flux-upgrade.yml").read_text())[0]
+        backup = play["vars"]["spinnaker_upgrade_backup_job"]
+        pod = backup["spec"]["template"]["spec"]
+        init = {container["name"]: container for container in pod["initContainers"]}
+        self.assertEqual(init["mysql"]["image"], current_software["mysql_image"])
+        self.assertEqual(init["verify-mysql-import"]["image"], current_software["mysql_image"])
+        self.assertEqual(init["verify-redis-rdb"]["image"], current_software["redis_image"])
+        self.assertEqual(pod["containers"][0]["image"], current_software["restic_image"])
+        self.assertFalse(any(volume.get("persistentVolumeClaim", {}).get("claimName") in
+                             ("data-spinnaker-mysql-0", "data-spinnaker-redis-0") for volume in pod["volumes"]))
+        script = play["vars"]["spinnaker_upgrade_scripts"]["data"]["backup-restic.sh"]
+        self.assertIn('restore "$snapshot" --target "$verification" --verify', script)
+        self.assertIn("sha256sum", script)
+        gate = resources[f"{prefix}-preupgrade-backup"][0]
+        guard = gate["spec"]["template"]["spec"]["containers"][0]
+        self.assertEqual(guard["image"], current_software["mysql_image"])
+        directory = Path(self.temp.name) / "gate-receipt"
+        directory.mkdir()
+        run = lambda: subprocess.run(["sh", "-ec", guard["args"][0].replace("/receipt", str(directory))],
+            env=dict(os.environ, **{entry["name"]: entry["value"] for entry in guard["env"]}),
+            capture_output=True, text=True)
+        self.assertNotEqual(run().returncode, 0, "Missing backup must prevent any target rollout")
+        accepted = {"source-sha256": inputs["delivery_platform_spinnaker_upgrade_from_sha256"],
+                    "target-sha256": play["vars"]["spinnaker_upgrade_target_sha256"],
+                    "verification": "native-import-and-independent-readback-v1", "snapshot": "a" * 64,
+                    "backup-job-uid": "accepted-job", "backup-pod-uid": "accepted-pod"}
+        for name, value in accepted.items():
+            (directory / name).write_text(value)
+        self.assertEqual(run().returncode, 0)
+        for name in ("source-sha256", "target-sha256", "verification", "snapshot"):
+            (directory / name).write_text("unaccepted")
+            self.assertNotEqual(run().returncode, 0, name)
+            (directory / name).write_text(accepted[name])
+        for field, value in (("delivery_platform_spinnaker_upgrade_from_sha256", "0" * 64),
+                             ("delivery_platform_software", dict(proposed, mysql_image="docker.io/library/mysql:9.0.0"))):
+            refused = delivery.DeliveryPlatform.run_role(self, UPSTREAM / "tier-1", dict(inputs, **{field: value}),
+                                                         {"CONTROL_NODE_COLLECTIONS_MODE": "check"}, timeout=180)
+            self.assertNotEqual(refused.returncode, 0, refused.stdout + refused.stderr)
 
 
 if __name__ == "__main__":

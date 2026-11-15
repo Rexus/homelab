@@ -1,0 +1,11 @@
+---
+logging_workflow_action: apply
+logging_workflow_issuer: infrastructure
+logging_workflow_repository: "{{ (playbook_dir ~ '/../../..') | realpath }}"
+logging_workflow_workspace: >-
+  {{ lookup('ansible.builtin.env', 'HOME') }}/.local/share/{{ logging_workflow_repository | basename }}/logging/{{ platform_environment | default('prod') }}
+logging_workflow_receiver_options: {}
+logging_workflow_credential_backend: ansible_vault
+logging_workflow_credential_operation: initialize
+logging_workflow_issuer_setup: issuer
+logging_workflow_generation: initial

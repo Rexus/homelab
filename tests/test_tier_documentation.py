@@ -21,6 +21,40 @@ PROJECT_DOCS = (
 
 
 class RepositoryDocumentation(TierRepositoryTestCase):
+    def test_delivery_roles_stay_logical_and_selected_products_have_a_separate_reference(self):
+        self.generate()
+        manual = self.root / 'verify-architecture/docs/auto-docs'
+        for name in ('README.md', '02-controllers.md', 'approval-controls.md'):
+            document = manual / '01-architecture/10-delivery' / name
+            content = document.read_text(encoding='utf-8')
+            logical = content.split('## Realization', 1)[0].split('## Selected implementation', 1)[0]
+            for product in ('Spinnaker', 'Flux', 'Argo CD'):
+                self.assertNotIn(product, logical, name)
+            self.assertIn('```mermaid', logical)
+        roles = (manual / '01-architecture/10-delivery/02-controllers.md').read_text(encoding='utf-8')
+        for capability in ('Release orchestration', 'Desired-state reconciliation', 'Dependency ordering',
+                           'Change authorization', 'Infrastructure lifecycle and bootstrap'):
+            self.assertIn(capability, roles)
+        implementation = (manual / '08-reference/tier-1-delivery.md').read_text(encoding='utf-8')
+        for product in ('Spinnaker', 'Flux Kustomizations and HelmReleases', 'Terraform and Ansible'):
+            self.assertIn(product, implementation)
+        tier1 = (self.root / 'verify-tier-1/README.md').read_text(encoding='utf-8')
+        self.assertIn('Fresh Tier 1 selects independent Flux', tier1)
+        self.assertIn('Existing installations require explicit ownership adoption', tier1)
+        approval = (manual / '08-reference/spinnaker-approval.md').read_text(encoding='utf-8')
+        for control in ('TokenReview', 'ValidatingAdmissionPolicy', 'lastModified.user',
+                        'compare-and-swap', 'self-approval', '42da7f83e7db090429bfa3f2fddeff34f0b124a7'):
+            self.assertIn(control, approval)
+        record = self.root / 'verify-architecture/README.md'
+        authored = ('# Project delivery record\n\n[Accepted ownership]('
+                    'docs/auto-docs/01-architecture/10-delivery/flux-ownership.md#three-source-contracts)\n')
+        record.write_text(authored, encoding='utf-8')
+        self.generate('--refresh')
+        self.assertEqual(record.read_text(encoding='utf-8'), authored)
+        compatibility = (manual / '01-architecture/10-delivery/flux-ownership.md').read_text(encoding='utf-8')
+        self.assertIn('Compatibility copy', compatibility)
+        self.assertIn('08-reference/tier-1-delivery.md#three-source-contracts', compatibility)
+
     def test_generated_storage_design_distinguishes_capability_api_and_hosting(self):
         self.generate()
         docs = self.root / "verify-architecture/docs/auto-docs"
@@ -244,8 +278,11 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("Templates before VMs", tier0)
         self.assertIn("capability deployment checklist", tier0)
         self.assertIn("03-deployment/foundation/README.md", tier0)
-        self.assertIn("03-deployment/stage-02-logging/README.md", tier0)
-        self.assertIn("03-deployment/stage-03-trust/README.md", tier0)
+        self.assertIn("03-deployment/stage-03-logging/README.md", tier0)
+        self.assertIn("03-deployment/stage-02-trust/README.md", tier0)
+        self.assertIn('Steps 1-8', tier0)
+        self.assertLess(tier0.index('Stage 2: cryptographic trust'), tier0.index('Stage 3: protected logging'))
+        self.assertIn('receiver and selected producers after approval', tier0)
         self.assertIn("FreeIPA runs on two dedicated VMs", tier0)
         self.assertIn("Keycloak is a later service in this cluster", tier0)
         self.assertIn("03-deployment/stage-04-kubernetes/procedures/talos-terraform.md", tier0)
@@ -353,7 +390,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertIn(f"**{step}:", tier0)
         bootstrap = (architecture / "03-deployment/README.md").read_text()
         self.assertIn("foundation/README.md", bootstrap)
-        self.assertIn("stage-02-logging/README.md", bootstrap)
+        self.assertIn("stage-03-logging/README.md", bootstrap)
         self.assertIn("Terraform / OpenTofu", bootstrap)
         self.assertIn("Current wrappers call `terraform`", bootstrap)
         foundation = (architecture / "03-deployment/stage-04-kubernetes/procedures/kubernetes.md").read_text()
@@ -381,13 +418,14 @@ class RepositoryDocumentation(TierRepositoryTestCase):
             self.assertGreaterEqual(len(steps), 2)
             self.assertEqual(steps, [str(n) for n in range(1, len(steps) + 1)])
             self.assertRegex(content, r'```mermaid|!\[[^\]]+\]\([^\)]+\.svg\)', str(stage))
-            for expected in ("architecture/", "**Prerequisites:**"):
+            for expected in ("architecture/",):
                 self.assertIn(expected, content, stage)
+            self.assertRegex(content, r'\*\*(?:Prerequisites|Before starting):\*\*', str(stage))
             self.assertRegex(content, r"(?m)^(?:\*\*(?:Result|Expected):\*\*|## Expected outcome:)", str(stage))
-            if stage.parent.name == "stage-02-logging":
-                self.assertIn("## Installation order", content)
-                self.assertIn("## Step 16: Verify recovery and record completion", content)
-                self.assertEqual(steps, [str(number) for number in range(1, 17)])
+            if stage.parent.name == "stage-03-logging":
+                self.assertIn("## Follow the deployment", content)
+                self.assertIn("## Step 8: Record recovery and completion", content)
+                self.assertEqual(steps, [str(number) for number in range(1, 9)])
             else:
                 self.assertRegex(content, r"(?m)^## (?:Main path|Installation order|Installation route|Deployment actions)$", stage)
                 if "## Capability available" not in content:
@@ -409,15 +447,15 @@ class RepositoryDocumentation(TierRepositoryTestCase):
                 self.assertIn("Return", text, guide)
                 self.assertRegex(content, rf"\({re.escape(guide.name)}(?:#[^)]*)?\)", str(guide))
                 self.assertIn(f"{stage.parent.name}/{guide.name}", project, guide)
-        intake, logging, trust, cluster, identity, control, delivery, observability, development, workloads = (
+        intake, trust, logging, cluster, identity, control, delivery, observability, development, workloads = (
             stage.read_text(encoding="utf-8") for stage in stages
         )
         foundation = (docs / "03-deployment/foundation/README.md").read_text()
         self.assertIn("bootstrap/README.md", foundation)
         bootstrap = (docs / "03-deployment/foundation/bootstrap/README.md").read_text()
         self.assertIn("not itself a reachable Flux source", " ".join(bootstrap.split()))
-        self.assertIn("## Step 1: Initialize local inputs", logging)
-        self.assertIn("## Step 3: Provision the VM and attached disk", logging)
+        self.assertIn("## Step 1: Initialize inputs", logging)
+        self.assertIn("## Step 4: Deploy and approve certificates", logging)
         self.assertIn("Hardware protection", trust)
         self.assertIn("FreeIPA on dedicated VMs", identity)
         self.assertIn("kubernetes.md#cluster-foundation", cluster)
@@ -442,7 +480,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("# Stage 8: Observability", observability)
         self.assertIn("step-1b-dedicated-vms.md", observability)
         self.assertNotIn("step-2d-telemetry-vm.md", control)
-        hardware = (stages[2].parent / "step-1b-usb-hsm.md").read_text()
+        hardware = (stages[1].parent / "step-1b-usb-hsm.md").read_text()
         self.assertIn("Terraform provisions the selected VMs", hardware)
         self.assertIn("hsm_provider", hardware)
         self.assertIn("native p11-kit/SSH", hardware)
@@ -494,7 +532,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
 
     def test_file_edit_lists_do_not_invoke_an_assumed_editor(self):
         for document in (UPSTREAM / "docs").rglob("*.md"):
-            blocks = re.findall(r"```(?:bash|sh|shell)\n(.*?)```", document.read_text(), re.DOTALL)
+            blocks = re.findall(r"```(?:bash|sh|shell)\n(.*?)```", document.read_text(encoding='utf-8'), re.DOTALL)
             for block in blocks:
                 self.assertNotRegex(block, r"(?m)^\s*(?:sudo\s+)?(?:vi|vim|nano)\s+", str(document))
                 self.assertNotRegex(
@@ -555,7 +593,7 @@ class RepositoryDocumentation(TierRepositoryTestCase):
         self.assertIn("../stage-01-software-intake/README.md", compatibility)
         self.assertIn('<a id="previous-intake-choice"></a>', compatibility)
         self.assertFalse(unreferenced.exists())
-        self.assertTrue((manual / "03-deployment/stage-02-logging/README.md").is_file())
+        self.assertTrue((manual / "03-deployment/stage-03-logging/README.md").is_file())
         self.assertTrue((manual / "03-deployment/stage-10-lab-environments/README.md").is_file())
 
     def test_auto_docs_have_notice_and_project_link_at_every_depth(self):

@@ -328,7 +328,7 @@ Additional sources and public trust are explicit local selections:
 | `baseline_apt_direct_hosts` | Exact internal APT publication hosts bypassing a global proxy |
 
 The [Shared defaults](../../shared/ansible/roles/baseline/defaults/main.yml) own these schemas.
-[Verified consumer deployment](../03-deployment/stage-03-trust/step-15b-verified-consumers.md)
+[Verified consumer deployment](../03-deployment/stage-02-trust/step-15b-verified-consumers.md)
 applies the package/trust subset from the controller without changing guest time, IPv6 or SSH policy.
 
 Shared's [baseline role](../../shared/ansible/roles/baseline/tasks/main.yml) manages

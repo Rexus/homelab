@@ -75,7 +75,7 @@ class SoftwareIntake(TierRepositoryTestCase):
             for expected in ("cache-1", "cache-2", "proxy-cache.md", "**IaC:**", "Harbor",
                              "complete without PKI or a hosted registry", "Harbor belongs to Stage 7"):
                 self.assertIn(expected, capability)
-            self.assertIn("../stage-03-trust/README.md#15b-verified-repository-and-artifact-publication-optional", capability)
+            self.assertIn("../stage-02-trust/README.md#15b-verified-repository-and-artifact-publication-optional", capability)
             foundation = (deployment / "foundation/README.md").read_text()
             self.assertIn("../stage-01-software-intake/README.md", foundation)
             self.assertNotIn("step-3b-outbound-cache.md", foundation)

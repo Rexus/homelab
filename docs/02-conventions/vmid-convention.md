@@ -6,6 +6,7 @@ VMIDs group guests by tier or allocation purpose, category and instance. The ref
 uses **`T C NN`**. Tier 0 omits its leading zero and uses the same categories as the other guest groups.
 This is an allocation convention; ownership, networks and access policy remain separate.
 The [editable SVG](vmid-convention.svg) is the quick reference; the tables below provide searchable detail.
+[Rendering and visual checks](../08-reference/diagrams/vmid-convention-render.md).
 
 ## Contents
 
@@ -54,10 +55,10 @@ Privileged administrative clients retain the authority classification of the sys
 | `0` | Reserved | `000-099` |
 | `1` | Kubernetes control plane | `100-199` |
 | `2` | Kubernetes workers | `200-299` |
-| `3` | Infrastructure services | `300-399` |
+| `3` | Identity, trust and core services | `300-399` |
 | `4` | Network / Edge | `400-499` |
 | `5` | Observability / protected logging | `500-599` |
-| `6` | Bootstrap / Automation | `600-699` |
+| `6` | Administration and automation | `600-699` |
 | `7-9` | Other / Reserved | `700-999` |
 
 IDs below 100 are reserved by Proxmox. [1] Reserving **category `0` in every guest group**
@@ -65,9 +66,23 @@ gives all tiers the same usable categories. For example, `1000-1099` and `2000-2
 are reserved for new allocations too. Tier digit `0` still denotes Tier 0; instance `00` is valid.
 
 All guest groups use **`1000 × T + 100 × C + NN`**. For Tier 0 this becomes
-`100 × C + NN`: control planes use `1xx`, workers `2xx`, infrastructure `3xx`,
-network services `4xx`, protected logging `5xx` and automation `6xx`.
+`100 × C + NN`: control planes use `1xx`, workers `2xx`, identity/trust/core services `3xx`,
+network services `4xx`, protected logging `5xx` and administration/automation `6xx`.
 Every active category has **100 instance slots**. The control-plane starters retain `101`, `102` and `103`.
+
+The **tier describes authority and security impact**; the **category describes the guest's primary function**.
+Category numbers do not rank importance or prescribe deployment order. Identity, PKI and bootstrap
+are all Tier 0 functions, while the issuer is a trust service (`3`) and bootstrap is an administration tool (`6`).
+
+| Category | Use for |
+| --- | --- |
+| **3: Identity, trust and core services** | Directory authorities, PKI issuers, secrets and key-protection services; shared application, data and repository services within their owning tier |
+| **6: Administration and automation** | Bootstrap hosts, infrastructure and CI runners, ceremony administration workstations |
+
+Category `3` does not assign Tier 0 ownership: a Tier 1 Git/data service remains Tier 1, and a lab
+utility remains in its lab allocation group. Classify a Kubernetes node by its runtime role (`1` or `2`);
+applications hosted on that node do not receive separate VMIDs. Use inventory groups and tags for
+the detailed capability and product roles. A setup may contain guests from several categories.
 
 The `9xxx` template range uses its own catalog allocations: its hundreds digit does
 **not** classify the roles of future clones. A generic Linux template can supply any tier
@@ -91,11 +106,15 @@ or role. The [published template catalog](../08-reference/template-catalog.md) r
 | `611` | Tier 0 infrastructure runner, `iac-1` |
 | `621` | Tier 0 optional ceremony administration VM, `cadm-1` |
 | `1101` | Tier 1 control plane, instance 01 |
+| `1301` | Tier 1 development service, `git-1` |
+| `1311-1313` | Tier 1 data services, `db-1`, `kv-1` and `repo-1` |
+| `1321` | Tier 1 verified software intake, `intake-1` |
 | `1501` | Tier 1 observability, instance 01 |
+| `1601` | Tier 1 CI runner, `runner-1`; optional `runner-2` uses `1602` |
 | `2203` | Tier 2 Kubernetes worker, instance 03; illustrative allocation |
 | `2411` | Tier 2 network/edge service, instance 11 |
 | `3101` | Lab control plane, instance 01; owned by Tier 2 |
-| `3301` | Lab infrastructure service, instance 01; owned by Tier 2 |
+| `3301`, `3302` | Lab guest `lab-1` and utility container `util-1`; owned by Tier 2 |
 | `9101` | Template catalog allocation; owned by Tier 0 |
 
 ## Allocation and existing installations

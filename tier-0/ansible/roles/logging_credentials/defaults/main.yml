@@ -1,0 +1,19 @@
+---
+# Controller-only storage for the independent logging authority credential.
+logging_credentials_operation: read
+logging_credentials_backend: ansible_vault
+logging_credentials_workspace: ''
+logging_credentials_repository_name: "{{ lookup('ansible.builtin.env', 'PWD') | basename }}"
+logging_credentials_directory: "{{ logging_credentials_workspace }}/credentials"
+logging_credentials_file: "{{ logging_credentials_directory }}/logging-secrets.vault.yml"
+logging_credentials_password_directory: >-
+  {{ lookup('ansible.builtin.env', 'HOME') }}/.config/{{ logging_credentials_repository_name }}/logging
+logging_credentials_password_file: "{{ logging_credentials_password_directory }}/ansible-vault.password"
+logging_credentials_authority_key_file: "{{ logging_credentials_workspace }}/authority/key.pem"
+# Optional one-time adoption of a retained legacy credential; never replace an existing secret.
+logging_credentials_seed: {}
+logging_credentials_vault_address: "{{ lookup('ansible.builtin.env', 'VAULT_ADDR') }}"
+logging_credentials_vault_ca_file: "{{ lookup('ansible.builtin.env', 'VAULT_CACERT') }}"
+logging_credentials_vault_mount: secret
+logging_credentials_vault_path: ''
+logging_credentials_vault_token: "{{ lookup('ansible.builtin.env', 'VAULT_TOKEN') }}"

@@ -14,6 +14,27 @@
     - {api_version: kustomize.toolkit.fluxcd.io/v1, kind: Kustomization}
   loop_control:
     loop_var: flux_resource
+  when: not cluster_platform_flux_recovery | bool or flux_resource.kind == 'GitRepository'
+
+- name: Verify recovery roots were installed paused before any product reconciliation
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ cluster_platform_kubeconfig }}"
+    context: "{{ cluster_platform_context | default(omit, true) }}"
+    validate_certs: true
+    api_version: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    name: "{{ item }}"
+    namespace: flux-system
+  loop: "{{ ['platform'] + (['tier1-platform', 'tier1-applications'] if cluster_platform_management == 'flux' else []) }}"
+  register: cluster_platform_paused_roots
+  until: >-
+    cluster_platform_paused_roots.resources | default([]) | length == 1 and
+    cluster_platform_paused_roots.resources[0].spec.suspend | default(false) | bool and
+    cluster_platform_paused_roots.resources[0].get('status', {}).get('conditions', [])
+      | selectattr('type', 'equalto', 'Reconciling') | selectattr('status', 'equalto', 'True') | list | length == 0
+  retries: "{{ cluster_platform_health_retries }}"
+  delay: "{{ cluster_platform_health_delay }}"
+  when: cluster_platform_flux_recovery | bool
 
 - name: Require the canary in the current reconciled resource inventory
   ansible.builtin.assert:
@@ -23,6 +44,7 @@
         (cluster_platform_observed.resources[0].status.get('inventory', {}).get('entries', [])
           | map(attribute='id') | list)
     fail_msg: Include the reviewed SOPS-encrypted canary in the selected source, not only a pre-existing Secret.
+  when: not cluster_platform_flux_recovery | bool
 
 - name: Require the expected SOPS-decrypted canary without disclosing Secret data
   kubernetes.core.k8s_info:
@@ -45,3 +67,4 @@
   retries: "{{ cluster_platform_health_retries }}"
   delay: "{{ cluster_platform_health_delay }}"
   no_log: true
+  when: not cluster_platform_flux_recovery | bool

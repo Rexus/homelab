@@ -1,0 +1,61 @@
+---
+- name: Require the independently retained current installation and its accepted checksum
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_spinnaker_upgrade_from is match('^/')
+      - delivery_platform_spinnaker_upgrade_from_sha256 is match('^[a-f0-9]{64}$')
+      - >-
+        delivery_platform_spinnaker_upgrade_from | ansible.builtin.realpath !=
+        (delivery_platform_output ~ '/spinnaker-manifests.yml') | ansible.builtin.realpath
+    fail_msg: Set upgrade_from to the retained CURRENT spinnaker-manifests.yml and upgrade_from_sha256 to its accepted checksum.
+
+- name: Read the accepted current installation before the output directory can be overwritten
+  ansible.builtin.set_fact:
+    spinnaker_upgrade_source: "{{ lookup('ansible.builtin.file', delivery_platform_spinnaker_upgrade_from, rstrip=false) }}"
+  no_log: true
+
+- name: Verify the current installation against its independently accepted digest
+  ansible.builtin.assert:
+    that:
+      - spinnaker_upgrade_source | hash('sha256') == delivery_platform_spinnaker_upgrade_from_sha256
+    fail_msg: The retained current installation differs from the accepted upgrade source checksum.
+
+- name: Resolve current native persistence and backup identities
+  ansible.builtin.set_fact:
+    spinnaker_upgrade_documents: "{{ spinnaker_upgrade_source | from_yaml_all | select('mapping') | list }}"
+  no_log: true
+
+- name: Require the selected current namespace and both native data services
+  ansible.builtin.assert:
+    that:
+      - delivery_platform_spinnaker_namespace in (spinnaker_upgrade_documents | selectattr('kind', 'equalto', 'Namespace') | map(attribute='metadata.name') | list)
+      - >-
+        spinnaker_upgrade_documents | selectattr('kind', 'equalto', 'StatefulSet') |
+        map(attribute='metadata.name') | sort | list == ['spinnaker-mysql', 'spinnaker-redis']
+      - >-
+        spinnaker_upgrade_documents | selectattr('kind', 'equalto', 'Job') |
+        selectattr('metadata.name', 'equalto', 'spinnaker-backup-verify') | list | length == 1
+      - >-
+        spinnaker_upgrade_documents | selectattr('kind', 'equalto', 'StatefulSet') |
+        map(attribute='metadata.namespace') | unique | list == [delivery_platform_spinnaker_namespace]
+    fail_msg: The accepted source must describe this namespace's complete native MySQL, Redis and backup installation.
+
+- name: Retain the current runtime images for native backup and import verification
+  ansible.builtin.set_fact:
+    spinnaker_upgrade_mysql_image: >-
+      {{ (spinnaker_upgrade_documents | selectattr('kind', 'equalto', 'StatefulSet') |
+          selectattr('metadata.name', 'equalto', 'spinnaker-mysql') | first).spec.template.spec.containers[0].image }}
+    spinnaker_upgrade_redis_image: >-
+      {{ (spinnaker_upgrade_documents | selectattr('kind', 'equalto', 'StatefulSet') |
+          selectattr('metadata.name', 'equalto', 'spinnaker-redis') | first).spec.template.spec.containers[0].image }}
+
+- name: Keep database major transitions outside the application upgrade operation
+  ansible.builtin.assert:
+    that:
+      - spinnaker_upgrade_mysql_image is match('^[^\s@]+:8[.]4[.][0-9]+$')
+      - delivery_platform_software.mysql_image is match('^[^\s@]+:8[.]4[.][0-9]+$')
+      - spinnaker_upgrade_redis_image is match('^[^\s@]+:8[.]2[.][0-9]+$')
+      - delivery_platform_software.redis_image is match('^[^\s@]+:8[.]2[.][0-9]+$')
+      - delivery_platform_software.mysql_image.split(':')[-1] is version(spinnaker_upgrade_mysql_image.split(':')[-1], '>=')
+      - delivery_platform_software.redis_image.split(':')[-1] is version(spinnaker_upgrade_redis_image.split(':')[-1], '>=')
+    fail_msg: This lifecycle supports MySQL 8.4 LTS and Redis 8.2 patch transitions. Major or release-series transitions need a separately qualified native migration.

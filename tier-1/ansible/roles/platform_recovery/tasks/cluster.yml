@@ -1,0 +1,248 @@
+---
+- name: Inspect selected cluster VMIDs before any reconstruction
+  ansible.builtin.command:
+    argv: [pvesh, get, /cluster/resources, --type, vm, --output-format, json]
+  delegate_to: "{{ recovery_cluster.nodes[0].node }}"
+  become: true
+  register: recovery_existing_vms
+  changed_when: false
+
+- name: Inspect the native reconstruction checkpoint
+  ansible.builtin.stat:
+    path: "{{ platform_recovery.workspace }}/receipts/tier-{{ recovery_cluster.tier }}-reconstruction.json"
+  register: recovery_reconstruction_checkpoint
+
+- name: Refuse existing cluster VMs before preparing clean working state
+  ansible.builtin.assert:
+    that:
+      - >-
+        recovery_reconstruction_checkpoint.stat.exists or
+        recovery_cluster.nodes | map(attribute='vmid') | list
+          | intersect(recovery_existing_vms.stdout | from_json | map(attribute='vmid') | list) | length == 0
+    fail_msg: Existing cluster VMIDs must be fenced and retired before clean reconstruction. Recovery does not destroy them.
+
+- name: Reconstruct only the accepted absent cluster through native Terraform and Talos entry points
+  ansible.builtin.command:
+    argv: ["{{ ansible_playbook_python }}", "{{ platform_recovery.workspace }}/tier-1/scripts/recovery_talos.py",
+           --inputs, "{{ platform_recovery.workspace }}/recovery-inputs.json", --tier, "{{ recovery_cluster.tier | string }}"]
+  changed_when: true
+  no_log: true
+
+- name: Bind reconstructed Kubernetes credentials to their intended private API
+  ansible.builtin.command:
+    argv: [kubectl, --kubeconfig, "{{ platform_recovery.workspace }}/{{ recovery_cluster.kubeconfig }}",
+           --context, "{{ recovery_cluster.context }}", config, view, --minify, -o, json]
+  register: recovery_kube_identity
+  changed_when: false
+  no_log: true
+
+- name: Reject a different API endpoint before accessing the new cluster
+  ansible.builtin.assert:
+    that:
+      - (recovery_kube_identity.stdout | from_json).clusters[0].cluster.server == recovery_cluster.api_server
+
+- name: Inspect the new native cluster identity before bootstrap
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cluster.kubeconfig }}"
+    context: "{{ recovery_cluster.context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Namespace
+    name: kube-system
+  register: recovery_cluster_identity
+
+- name: Refuse old etcd and workloads under the reconstructed target
+  ansible.builtin.assert:
+    that:
+      - recovery_cluster_identity.resources | length == 1
+      - recovery_cluster_identity.resources[0].metadata.uid != recovery_cluster.previous_namespace_uid
+    fail_msg: The target contains the original cluster identity. Clean reconstruction must not start an old etcd workload set.
+
+- name: Inspect the recorded new cluster identity on every retry
+  ansible.builtin.stat:
+    path: "{{ platform_recovery.workspace }}/receipts/tier-{{ recovery_cluster.tier }}-cluster.json"
+  register: recovery_cluster_receipt
+
+- name: Verify an existing recovery target has not been replaced between stages
+  ansible.builtin.assert:
+    that:
+      - recorded.plan_sha256 == platform_recovery.plan_sha256
+      - recorded.uid == recovery_cluster_identity.resources[0].metadata.uid
+  vars:
+    recorded: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/tier-' ~ recovery_cluster.tier ~ '-cluster.json') | from_json }}"
+  when: recovery_cluster_receipt.stat.exists
+
+- name: Retain the newly observed cluster identity without replacing it
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/tier-{{ recovery_cluster.tier }}-cluster.json"
+    force: false
+    mode: '0600'
+    content: "{{ {'plan_sha256': platform_recovery.plan_sha256, 'uid': recovery_cluster_identity.resources[0].metadata.uid} | to_nice_json }}"
+
+- name: Load the retained recovery-only bootstrap contract
+  ansible.builtin.include_vars:
+    file: "{{ platform_recovery.workspace }}/{{ recovery_cluster.bootstrap_inputs }}"
+    name: recovery_bootstrap_inputs
+
+- name: Require recovery-safe sources and application fences before installing controllers
+  ansible.builtin.assert:
+    that:
+      - recovery_bootstrap_inputs.cluster_platform_action == 'apply'
+      - recovery_bootstrap_inputs.cluster_platform_flux_recovery | default(false) | bool
+      - recovery_cluster.tier == 0 or recovery_bootstrap_inputs.cluster_platform_management == 'flux'
+      - recovery_cluster.tier == 0 or recovery_bootstrap_inputs.cluster_platform_flux_applications_suspended | bool
+    fail_msg: Select the accepted recovery-only payload with applications and initialization held.
+
+- name: Install the retained native bootstrap through the existing tier entry point
+  ansible.builtin.command:
+    argv:
+      - ansible-playbook
+      - -i
+      - localhost,
+      - "{{ platform_recovery.workspace }}/tier-{{ recovery_cluster.tier }}/ansible/playbooks/deployment/cluster-platform.yml"
+      - -e
+      - "@{{ platform_recovery.workspace }}/{{ recovery_cluster.bootstrap_inputs }}"
+      - -e
+      - "{{ {'cluster_platform_kubeconfig': platform_recovery.workspace ~ '/' ~ recovery_cluster.kubeconfig,
+               'cluster_platform_context': recovery_cluster.context} | to_json }}"
+  environment:
+    CONTROL_NODE_COLLECTIONS_MODE: check
+    ANSIBLE_CONFIG: "{{ platform_recovery.workspace }}/tier-{{ recovery_cluster.tier }}/ansible/ansible.cfg"
+  changed_when: true
+
+- name: Suspend the actual selected recovery-only Flux scope before product resources
+  ansible.builtin.include_role:
+    name: flux_maintenance
+  vars:
+    flux_maintenance_action: apply
+    flux_maintenance_operation: suspend
+    flux_maintenance_approved: true
+    flux_maintenance_source: "{{ recovery_root }}"
+    flux_maintenance_revision: "{{ recovery_cluster.package.sources[recovery_root] }}"
+    flux_maintenance_recovery_directory: "{{ recovery_cluster.package.directory }}"
+    flux_maintenance_artifact_lock_sha256: "{{ recovery_cluster.package.artifact_lock_sha256 }}"
+    flux_maintenance_kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cluster.kubeconfig }}"
+    flux_maintenance_context: "{{ recovery_cluster.context }}"
+    flux_maintenance_output: "{{ platform_recovery.workspace }}/receipts/flux-{{ recovery_cluster.tier }}-{{ recovery_root }}"
+  loop: "{{ recovery_cluster.suspend_roots | default(['platform'] if recovery_cluster.tier == 0 else ['platform', 'tier1-platform', 'tier1-applications']) }}"
+  loop_control:
+    loop_var: recovery_root
+
+- name: Verify every recovery root is natively suspended before creating product prerequisites
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cluster.kubeconfig }}"
+    context: "{{ recovery_cluster.context }}"
+    validate_certs: true
+    api_version: kustomize.toolkit.fluxcd.io/v1
+    kind: Kustomization
+    namespace: flux-system
+    name: "{{ item }}"
+  loop: "{{ ['platform'] if recovery_cluster.tier == 0 else ['platform', 'tier1-platform', 'tier1-applications'] }}"
+  register: recovery_native_pauses
+  failed_when: >-
+    recovery_native_pauses.resources | length != 1 or
+    not recovery_native_pauses.resources[0].spec.suspend | default(false) | bool
+
+- name: Inspect retained recovery-only product prerequisites before applying them
+  ansible.builtin.set_fact:
+    recovery_prerequisites: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/' ~ recovery_cluster.restore_resources) | from_yaml_all | select('mapping') | list }}"
+
+- name: Reject initializer Jobs or live consumers in the recovery prerequisites
+  ansible.builtin.assert:
+    that:
+      - item.kind in ['Namespace', 'Secret', 'ConfigMap', 'Service', 'ServiceAccount', 'Role', 'RoleBinding', 'NetworkPolicy', 'PersistentVolumeClaim', 'PersistentVolume', 'StorageClass', 'Deployment', 'StatefulSet', 'Kustomization', 'HelmRelease']
+      - item.kind not in ['Deployment', 'StatefulSet'] or item.spec.replicas | default(1) | int == 0
+      - item.kind not in ['Kustomization', 'HelmRelease'] or item.spec.suspend | default(false) | bool
+    fail_msg: Recovery prerequisites can create storage and stopped consumers. Native restore Jobs are owned by the recovery role.
+  loop: "{{ recovery_prerequisites }}"
+  no_log: true
+
+- name: Inspect whether this target's native prerequisites were already commissioned
+  ansible.builtin.stat:
+    path: "{{ platform_recovery.workspace }}/receipts/tier-{{ recovery_cluster.tier }}-prerequisites.json"
+  register: recovery_prerequisite_checkpoint
+
+- name: Inspect declared data claims before the first prerequisite creation
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cluster.kubeconfig }}"
+    context: "{{ recovery_cluster.context }}"
+    validate_certs: true
+    api_version: v1
+    kind: PersistentVolumeClaim
+    namespace: "{{ item.metadata.namespace }}"
+    name: "{{ item.metadata.name }}"
+  loop: "{{ recovery_prerequisites | selectattr('kind', 'equalto', 'PersistentVolumeClaim') | list }}"
+  register: recovery_prior_claims
+
+- name: Reject preexisting data claims before commissioning a new recovery target
+  ansible.builtin.assert:
+    that:
+      - recovery_prerequisite_checkpoint.stat.exists or item.resources | length == 0
+      - >-
+        item.resources | length == 0 or
+        item.resources[0].metadata.annotations.get('recovery.homelab/plan-sha256', '') == platform_recovery.plan_sha256
+    fail_msg: A recovery claim exists without this operation's ownership. Keep it intact and select a clean target.
+  loop: "{{ recovery_prior_claims.results }}"
+
+- name: Bind prerequisite resource ownership to the accepted plan before creation
+  ansible.builtin.set_fact:
+    recovery_owned_prerequisites: []
+
+- name: Add native ownership annotations without altering retained secret material
+  ansible.builtin.set_fact:
+    recovery_owned_prerequisites: >-
+      {{ recovery_owned_prerequisites + [item | combine({'metadata': item.metadata | combine({
+        'annotations': item.metadata.annotations | default({}) | combine({
+          'recovery.homelab/plan-sha256': platform_recovery.plan_sha256})})})] }}
+  loop: "{{ recovery_prerequisites }}"
+  no_log: true
+
+- name: Establish accepted storage, retained credentials and stopped product templates
+  kubernetes.core.k8s:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cluster.kubeconfig }}"
+    context: "{{ recovery_cluster.context }}"
+    validate_certs: true
+    state: present
+    definition: "{{ recovery_owned_prerequisites }}"
+  no_log: true
+
+- name: Persist the completed native prerequisite creation boundary
+  ansible.builtin.copy:
+    dest: "{{ platform_recovery.workspace }}/receipts/tier-{{ recovery_cluster.tier }}-prerequisites.json"
+    force: false
+    mode: '0600'
+    content: "{{ {'plan_sha256': platform_recovery.plan_sha256, 'cluster_uid': recovery_cluster_identity.resources[0].metadata.uid} | to_nice_json }}"
+
+- name: Install native restore engines from independently retained pinned manifests
+  kubernetes.core.k8s:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cluster.kubeconfig }}"
+    context: "{{ recovery_cluster.context }}"
+    validate_certs: true
+    state: present
+    src: "{{ platform_recovery.workspace }}/{{ recovery_cluster.restore_engines }}"
+    wait: true
+    wait_timeout: 900
+  when: recovery_cluster.restore_engines is defined
+
+- name: Require the exact native restore-engine rollout before accessing backup catalogs
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cluster.kubeconfig }}"
+    context: "{{ recovery_cluster.context }}"
+    validate_certs: true
+    api_version: apps/v1
+    kind: "{{ item.kind | default('Deployment') }}"
+    namespace: "{{ item.namespace }}"
+    name: "{{ item.name }}"
+  loop: "{{ recovery_cluster.restore_engine_health | default([]) }}"
+  register: recovery_engine_status
+  until: >-
+    recovery_engine_status.resources | length == 1 and
+    recovery_engine_status.resources[0].status.observedGeneration | default(0) | int >= recovery_engine_status.resources[0].metadata.generation | int and
+    (recovery_engine_status.resources[0].status.updatedReplicas | default(0) | int == recovery_engine_status.resources[0].spec.replicas | int and
+     recovery_engine_status.resources[0].status.availableReplicas | default(0) | int == recovery_engine_status.resources[0].spec.replicas | int
+     if item.kind | default('Deployment') == 'Deployment' else
+     recovery_engine_status.resources[0].status.desiredNumberScheduled | default(0) | int > 0 and
+     recovery_engine_status.resources[0].status.updatedNumberScheduled | default(0) | int == recovery_engine_status.resources[0].status.desiredNumberScheduled | int and
+     recovery_engine_status.resources[0].status.numberReady | default(0) | int == recovery_engine_status.resources[0].status.desiredNumberScheduled | int)
+  retries: 180
+  delay: 5

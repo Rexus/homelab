@@ -12,6 +12,7 @@ Do not enter midway using variables retained from another incident or production
 
 | Task | Procedure |
 | --- | --- |
+| Run a checksum-bound native platform recovery plan | [Automated recovery contract](platform-recovery-contract.md) |
 | Extract encrypted control copies | [Clean file extraction](files.md) |
 | Verify storage custody and provider recovery | [Existing storage contract](../../../03-deployment/foundation/storage/README.md#recovery-and-existing-installations) |
 | Transport original ignored provisioning inputs | [Input custody](input-custody.md) |

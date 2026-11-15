@@ -1,0 +1,27 @@
+---
+- name: Reobserve each completed cluster's actual identity
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ item.kubeconfig }}"
+    context: "{{ item.context }}"
+    validate_certs: true
+    api_version: v1
+    kind: Namespace
+    name: kube-system
+  loop: "{{ platform_recovery.clusters }}"
+  register: recovery_completed_clusters
+
+- name: Require the same native target UID after completed cutover
+  ansible.builtin.assert:
+    that:
+      - item.resources | length == 1
+      - item.resources[0].metadata.uid == recorded.uid
+      - recorded.plan_sha256 == platform_recovery.plan_sha256
+  vars:
+    recorded: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/receipts/tier-' ~ item.item.tier ~ '-cluster.json') | from_json }}"
+  loop: "{{ recovery_completed_clusters.results }}"
+
+- name: Reobserve every completed product and native data operation before content checks
+  ansible.builtin.include_tasks: verify-product-target.yml
+  loop: "{{ platform_recovery.products }}"
+  loop_control:
+    loop_var: recovery_product

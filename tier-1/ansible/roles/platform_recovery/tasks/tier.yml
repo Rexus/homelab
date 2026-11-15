@@ -1,0 +1,15 @@
+---
+- name: Reconstruct this tier's clean cluster and native restore prerequisites
+  ansible.builtin.include_tasks: cluster.yml
+
+- name: Restore this tier's selected products before constructing the next tier
+  ansible.builtin.include_tasks: product.yml
+  loop: "{{ platform_recovery.products | selectattr('tier', 'equalto', recovery_cluster.tier) | list }}"
+  loop_control:
+    loop_var: recovery_product
+
+- name: Verify actual restored content and denied access before the next tier starts
+  ansible.builtin.include_tasks: checks.yml
+  loop: "{{ platform_recovery.products | selectattr('tier', 'equalto', recovery_cluster.tier) | list }}"
+  loop_control:
+    loop_var: recovery_product

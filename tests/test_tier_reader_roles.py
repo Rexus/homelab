@@ -34,7 +34,7 @@ class ReaderRoles(TierRepositoryTestCase):
                 self.assertIn(f"{prefix}-tier-", opening, str(document))
             for relative, owner in (
                 ("../08-reference/proxy-cache.md", "tier-2"),
-                ("stage-03-trust/step-1b-usb-hsm.md", "tier-0"),
+                ("stage-02-trust/step-1b-usb-hsm.md", "tier-0"),
                 ("stage-05-identity/procedures/freeipa.md", "tier-0"),
                 ("stage-06-secrets/step-1b-vault-vm.md", "tier-0"),
                 ("stage-08-observability/step-1b-dedicated-vms.md", "tier-1"),
@@ -180,7 +180,7 @@ class ReaderRoles(TierRepositoryTestCase):
             self.assertIn("Required readiness", deployment)
             self.assertIn("03-deployment/readiness.md", deployment)
             self.assertIn("Selected variant / local procedure", deployment)
-            for stage in ("stage-01-software-intake", "stage-02-logging", "stage-03-trust", "stage-04-kubernetes", "stage-05-identity",
+            for stage in ("stage-01-software-intake", "stage-02-trust", "stage-03-logging", "stage-04-kubernetes", "stage-05-identity",
                           "stage-06-secrets",
                           "stage-07-delivery", "stage-08-observability", "stage-09-development", "stage-10-lab-environments"):
                 self.assertIn(f"{stage}/README.md", deployment)
@@ -189,7 +189,7 @@ class ReaderRoles(TierRepositoryTestCase):
         reference = self.root / "verify-architecture/docs/auto-docs/03-deployment"
         self.assertEqual(sorted((path.parent.name for path in reference.glob("stage-*/README.md")),
                                 key=lambda name: int(name.split("-")[1])),
-                         ["stage-01-software-intake", "stage-02-logging", "stage-03-trust", "stage-04-kubernetes", "stage-05-identity",
+                         ["stage-01-software-intake", "stage-02-trust", "stage-03-logging", "stage-04-kubernetes", "stage-05-identity",
                           "stage-06-secrets",
                           "stage-07-delivery", "stage-08-observability", "stage-09-development", "stage-10-lab-environments"])
         for old in ("stages", "compute", "cryptography", "identity", "network", "delivery", "operations"):

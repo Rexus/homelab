@@ -1,0 +1,104 @@
+---
+- name: Reverify the entire native paused scope before changing its source owner
+  ansible.builtin.include_role:
+    name: flux_maintenance
+  vars:
+    flux_maintenance_action: apply
+    flux_maintenance_operation: stage-paused
+    flux_maintenance_approved: true
+    flux_maintenance_source: "{{ recovery_source_handoff.key }}"
+    flux_maintenance_revision: "{{ recovery_scope_package.sources[recovery_source_handoff.key] }}"
+    flux_maintenance_kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cutover_cluster.kubeconfig }}"
+    flux_maintenance_context: "{{ recovery_cutover_cluster.context }}"
+    flux_maintenance_output: "{{ platform_recovery.workspace }}/receipts/flux-{{ recovery_cutover_cluster.tier }}-{{ recovery_source_handoff.key }}"
+    flux_maintenance_recovery_directory: "{{ recovery_scope_package.directory }}"
+    flux_maintenance_artifact_lock_sha256: "{{ recovery_scope_package.artifact_lock_sha256 }}"
+    flux_maintenance_custody_accepted: true
+
+- name: Verify the accepted ref at the restored native Git owner
+  ansible.builtin.command:
+    argv: [git, ls-remote, --exit-code, "{{ recovery_source_handoff.value.url }}", "{{ recovery_source_handoff.value.ref }}"]
+  environment:
+    GIT_TERMINAL_PROMPT: '0'
+    GIT_SSH_COMMAND: >-
+      ssh -o BatchMode=yes -o StrictHostKeyChecking=yes
+      -o UserKnownHostsFile={{ (platform_recovery.workspace ~ '/' ~ recovery_source_handoff.value.known_hosts_file) | quote }}
+      -i {{ (platform_recovery.workspace ~ '/' ~ recovery_source_handoff.value.identity_file) | quote }}
+  register: recovery_restored_git_ref
+  changed_when: false
+  failed_when: recovery_restored_git_ref.rc not in [0, 2]
+  no_log: true
+
+- name: Restore an explicitly selected accepted ref from its independently retained native bundle
+  ansible.builtin.include_tasks: restore-source-ref.yml
+  when:
+    - recovery_source_handoff.value.ensure_ref | default('verify') == 'restore-with-lease'
+    - recovery_restored_git_ref.stdout.split() | first | default('') != recovery_scope_package.sources[recovery_source_handoff.key]
+
+- name: Reobserve the exact restored ref after any accepted native Git publication
+  ansible.builtin.command:
+    argv: [git, ls-remote, --exit-code, "{{ recovery_source_handoff.value.url }}", "{{ recovery_source_handoff.value.ref }}"]
+  environment:
+    GIT_TERMINAL_PROMPT: '0'
+    GIT_SSH_COMMAND: >-
+      ssh -o BatchMode=yes -o StrictHostKeyChecking=yes
+      -o UserKnownHostsFile={{ (platform_recovery.workspace ~ '/' ~ recovery_source_handoff.value.known_hosts_file) | quote }}
+      -i {{ (platform_recovery.workspace ~ '/' ~ recovery_source_handoff.value.identity_file) | quote }}
+  register: recovery_restored_git_ref
+  changed_when: false
+  no_log: true
+
+- name: Require the restored source to contain the exact accepted recovery head
+  ansible.builtin.assert:
+    that:
+      - recovery_restored_git_ref.stdout.split() | length == 2
+      - recovery_restored_git_ref.stdout.split()[0] == recovery_scope_package.sources[recovery_source_handoff.key]
+    fail_msg: The restored repository does not advertise the accepted ref. Keep delivery fenced and reconcile the native backup and retained bundle.
+
+- name: Load the retained read-only source identity for the restored native Git service
+  ansible.builtin.set_fact:
+    recovery_source_identity: "{{ lookup('ansible.builtin.file', platform_recovery.workspace ~ '/' ~ recovery_source_handoff.value.secret_file) | from_yaml }}"
+  no_log: true
+
+- name: Require an actual source Secret in the selected Flux namespace
+  ansible.builtin.assert:
+    that:
+      - recovery_source_identity.kind == 'Secret'
+      - recovery_source_identity.metadata.namespace == 'flux-system'
+      - recovery_source_identity.metadata.name == recovery_source_handoff.value.secret_name
+  no_log: true
+
+- name: Install the restored native source credentials without changing bootstrap private keys
+  kubernetes.core.k8s:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cutover_cluster.kubeconfig }}"
+    context: "{{ recovery_cutover_cluster.context }}"
+    validate_certs: true
+    state: present
+    definition: "{{ recovery_source_identity }}"
+  no_log: true
+
+- name: Read the exact native source identity immediately before rebinding its owner
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cutover_cluster.kubeconfig }}"
+    context: "{{ recovery_cutover_cluster.context }}"
+    validate_certs: true
+    api_version: source.toolkit.fluxcd.io/v1
+    kind: GitRepository
+    namespace: flux-system
+    name: "{{ recovery_source_handoff.key }}"
+  register: recovery_live_source
+
+- name: Bind the restored source URL and credentials using native compare-and-swap
+  kubernetes.core.k8s_json_patch:
+    kubeconfig: "{{ platform_recovery.workspace }}/{{ recovery_cutover_cluster.kubeconfig }}"
+    context: "{{ recovery_cutover_cluster.context }}"
+    validate_certs: true
+    api_version: source.toolkit.fluxcd.io/v1
+    kind: GitRepository
+    namespace: flux-system
+    name: "{{ recovery_source_handoff.key }}"
+    patch:
+      - {op: test, path: /metadata/uid, value: "{{ recovery_live_source.resources[0].metadata.uid }}"}
+      - {op: test, path: /metadata/resourceVersion, value: "{{ recovery_live_source.resources[0].metadata.resourceVersion }}"}
+      - {op: add, path: /spec/url, value: "{{ recovery_source_handoff.value.url }}"}
+      - {op: add, path: /spec/secretRef, value: {name: "{{ recovery_source_handoff.value.secret_name }}"}}

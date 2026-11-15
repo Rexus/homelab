@@ -1,0 +1,234 @@
+---
+- name: Require an accepted configuration revision and independent artifact custody for source advancement
+  ansible.builtin.assert:
+    that:
+      - spinnaker_upgrade_revision | default('') is match('^([a-f0-9]{40}|[a-f0-9]{64})$')
+      - spinnaker_upgrade_source_checkout | default('') is match('^/')
+      - spinnaker_upgrade_recovery_directory | default('') is match('^/')
+      - spinnaker_upgrade_artifact_lock_sha256 | default('') is match('^[a-f0-9]{64}$')
+      - spinnaker_upgrade_graph_file is match('^/')
+      - spinnaker_upgrade_component_path is match('^[a-z0-9][a-z0-9/-]*$')
+    fail_msg: Apply requires the accepted revision, its checked-out configuration repository and independent recovery/artifact package.
+
+- name: Read the exact accepted local configuration revision
+  ansible.builtin.command:
+    argv: [git, -C, "{{ spinnaker_upgrade_source_checkout }}", rev-parse, HEAD]
+  changed_when: false
+  register: spinnaker_upgrade_checkout_head
+
+- name: Check committed configuration content before installing any graph
+  ansible.builtin.command:
+    argv: [git, -C, "{{ spinnaker_upgrade_source_checkout }}", diff, --exit-code, HEAD, --, clusters/tier1]
+  changed_when: false
+
+- name: Review the complete cluster payload difference against the accepted running revision
+  ansible.builtin.command:
+    argv:
+      - git
+      - -C
+      - "{{ spinnaker_upgrade_source_checkout }}"
+      - diff
+      - --name-only
+      - "{{ spinnaker_upgrade_verified_data['source-commit'] }}"
+      - "{{ spinnaker_upgrade_revision }}"
+      - --
+      - clusters/tier1
+  changed_when: false
+  register: spinnaker_upgrade_changed_paths
+
+- name: Keep this upgrade revision confined to the selected delivery component
+  ansible.builtin.assert:
+    that:
+      - item.startswith('clusters/tier1/' ~ spinnaker_upgrade_component_path ~ '/')
+    fail_msg: The selected revision changes another platform component. Prepare a delivery-only revision or a separately scoped maintenance operation.
+  loop: "{{ spinnaker_upgrade_changed_paths.stdout_lines }}"
+
+- name: Bind the proposed graph to the accepted configuration checkout
+  ansible.builtin.assert:
+    that:
+      - spinnaker_upgrade_checkout_head.stdout == spinnaker_upgrade_revision
+      - (spinnaker_upgrade_graph_file | ansible.builtin.realpath).startswith((spinnaker_upgrade_source_checkout | ansible.builtin.realpath) ~ '/clusters/tier1/')
+
+- name: Read the committed graph directly from the accepted revision
+  ansible.builtin.command:
+    argv:
+      - git
+      - -C
+      - "{{ spinnaker_upgrade_source_checkout }}"
+      - show
+      - "{{ spinnaker_upgrade_revision }}:{{ spinnaker_upgrade_graph_file | ansible.builtin.relpath(spinnaker_upgrade_source_checkout) }}"
+  changed_when: false
+  register: spinnaker_upgrade_accepted_graph
+
+- name: Resolve the accepted reconciliation graph
+  ansible.builtin.set_fact:
+    spinnaker_upgrade_graph: "{{ spinnaker_upgrade_accepted_graph.stdout | from_yaml_all | select('mapping') | list }}"
+
+- name: Require only this component's explicitly selected native reconciliation objects
+  ansible.builtin.assert:
+    that:
+      - item.apiVersion == 'kustomize.toolkit.fluxcd.io/v1'
+      - item.kind == 'Kustomization'
+      - item.metadata.namespace == 'flux-system'
+      - item.metadata.name == spinnaker_upgrade_component or item.metadata.name.startswith(spinnaker_upgrade_component ~ '-')
+      - >-
+        item.spec.sourceRef == {'kind': 'GitRepository', 'name': 'tier1-platform'}
+      - item.spec.serviceAccountName == 'platform-reconciler'
+      - not item.spec.prune | bool
+      - not item.spec.force | bool
+  loop: "{{ spinnaker_upgrade_graph }}"
+  loop_control: {label: "{{ item.metadata.name }}"}
+
+- name: Require the backup gate before any prerequisite or persistence path
+  ansible.builtin.assert:
+    that:
+      - spinnaker_upgrade_graph | selectattr('metadata.name', 'equalto', spinnaker_upgrade_component ~ '-spinnaker-preupgrade-backup') | list | length == 1
+      - >-
+        (spinnaker_upgrade_graph | selectattr('metadata.name', 'equalto', spinnaker_upgrade_component ~
+          '-spinnaker-prerequisites') | first).spec.dependsOn ==
+          [{'name': spinnaker_upgrade_component ~ '-spinnaker-preupgrade-backup'}]
+
+- name: Retain the original pause while staging the accepted source revision
+  ansible.builtin.include_role:
+    name: flux_maintenance
+  vars:
+    flux_maintenance_action: apply
+    flux_maintenance_operation: stage-paused
+    flux_maintenance_source: tier1-platform
+    flux_maintenance_kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    flux_maintenance_context: "{{ delivery_platform_context }}"
+    flux_maintenance_approved: true
+    flux_maintenance_output: "{{ spinnaker_upgrade_output }}"
+    flux_maintenance_revision: "{{ spinnaker_upgrade_revision }}"
+    flux_maintenance_recovery_directory: "{{ spinnaker_upgrade_recovery_directory }}"
+    flux_maintenance_artifact_lock_sha256: "{{ spinnaker_upgrade_artifact_lock_sha256 }}"
+    flux_maintenance_custody_accepted: true
+
+- name: Observe which reviewed graph nodes have not yet been commissioned
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    api_version: "{{ item.apiVersion }}"
+    kind: "{{ item.kind }}"
+    namespace: "{{ item.metadata.namespace }}"
+    name: "{{ item.metadata.name }}"
+  loop: "{{ spinnaker_upgrade_graph }}"
+  loop_control: {label: "{{ item.metadata.name }}"}
+  register: spinnaker_upgrade_graph_before
+
+- name: Inspect the planned graph additions from a previously interrupted installation
+  ansible.builtin.stat:
+    path: "{{ spinnaker_upgrade_output }}/planned-graph-additions.json"
+  register: spinnaker_upgrade_graph_plan
+
+- name: Retain the original set of deliberately new graph nodes across retries
+  ansible.builtin.set_fact:
+    spinnaker_upgrade_new_node_names: >-
+      {{ (lookup('ansible.builtin.file', spinnaker_upgrade_output ~ '/planned-graph-additions.json') | from_json)
+         if spinnaker_upgrade_graph_plan.stat.exists else
+         (spinnaker_upgrade_graph_before.results | selectattr('resources', 'equalto', []) |
+          map(attribute='item.metadata.name') | list) }}
+
+- name: Write intended additions before creating any suspended graph node
+  ansible.builtin.copy:
+    dest: "{{ spinnaker_upgrade_output }}/planned-graph-additions.json"
+    content: "{{ spinnaker_upgrade_new_node_names | to_nice_json }}"
+    mode: '0600'
+    force: false
+
+- name: Install reviewed graph relationships with every affected child still suspended
+  kubernetes.core.k8s:
+    kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    context: "{{ delivery_platform_context }}"
+    validate_certs: true
+    merge_type: [merge]
+    definition: >-
+      {{ item | combine({'metadata': item.metadata | combine({
+           'labels': {'kustomize.toolkit.fluxcd.io/name': 'tier1-platform',
+                      'kustomize.toolkit.fluxcd.io/namespace': 'flux-system'},
+           'annotations': item.metadata.get('annotations', {}) |
+             combine({'kustomize.toolkit.fluxcd.io/reconcile': 'disabled'})}),
+         'spec': item.spec | combine({'suspend': true})}) }}
+  loop: "{{ spinnaker_upgrade_graph }}"
+  loop_control: {label: "{{ item.metadata.name }}"}
+  register: spinnaker_upgrade_installed_graph
+
+- name: Resolve only newly commissioned nodes' deliberate active state
+  ansible.builtin.set_fact:
+    spinnaker_upgrade_new_node_uids: []
+
+- name: Retain deliberate active state only for nodes absent before this graph installation
+  ansible.builtin.set_fact:
+    spinnaker_upgrade_new_node_uids: >-
+      {{ spinnaker_upgrade_new_node_uids | default([]) +
+         ([item.result.metadata.uid] if item.item.metadata.name in spinnaker_upgrade_new_node_names
+           and not item.item.spec.get('suspend', false) else []) }}
+  loop: "{{ spinnaker_upgrade_installed_graph.results }}"
+  loop_control:
+    label: "{{ item.item.metadata.name }}"
+
+- name: Retain the exact commissioned UIDs for an interrupted scoped resume
+  ansible.builtin.copy:
+    dest: "{{ spinnaker_upgrade_output }}/new-graph-uids.json"
+    content: "{{ spinnaker_upgrade_new_node_uids | to_nice_json }}"
+    mode: '0600'
+    force: false
+
+- name: Refuse replaced graph nodes during a retry
+  ansible.builtin.assert:
+    that:
+      - (lookup('ansible.builtin.file', spinnaker_upgrade_output ~ '/new-graph-uids.json') | from_json) | sort == spinnaker_upgrade_new_node_uids | sort
+
+- name: Recapture the updated paused graph while retaining all original suspension and writer states
+  ansible.builtin.include_role:
+    name: flux_maintenance
+  vars:
+    flux_maintenance_action: apply
+    flux_maintenance_operation: suspend
+    flux_maintenance_source: tier1-platform
+    flux_maintenance_kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    flux_maintenance_context: "{{ delivery_platform_context }}"
+    flux_maintenance_approved: true
+    flux_maintenance_output: "{{ spinnaker_upgrade_output }}"
+    flux_maintenance_writers: "{{ spinnaker_upgrade_native_writers }}"
+
+- name: Restore accepted parent-management intent for deliberately activated new graph nodes
+  ansible.builtin.set_fact:
+    flux_maintenance_scope_receipt: >-
+      {{ flux_maintenance_scope_receipt | combine({'resources':
+         flux_maintenance_scope_receipt.resources | combine({graph_key:
+           flux_maintenance_scope_receipt.resources[graph_key] | combine({'previous_reconcile':
+             item.metadata.get('annotations', {}).get('kustomize.toolkit.fluxcd.io/reconcile')})})}) }}
+  vars:
+    graph_key: "Kustomization/flux-system/{{ item.metadata.name }}"
+  loop: "{{ spinnaker_upgrade_graph }}"
+  loop_control: {label: "{{ item.metadata.name }}"}
+  when:
+    - flux_maintenance_scope_receipt.resources[graph_key].uid in spinnaker_upgrade_new_node_uids
+
+- name: Retain the accepted handoff intent through an interrupted native resume
+  ansible.builtin.copy:
+    dest: "{{ spinnaker_upgrade_output }}/scope-receipt.json"
+    content: "{{ flux_maintenance_scope_receipt | to_nice_json }}"
+    mode: '0600'
+
+- name: Resume the reviewed dependency graph only after its exact native backup Job passes
+  ansible.builtin.include_role:
+    name: flux_maintenance
+  vars:
+    flux_maintenance_action: apply
+    flux_maintenance_operation: resume
+    flux_maintenance_source: tier1-platform
+    flux_maintenance_kubeconfig: "{{ delivery_platform_kubeconfig }}"
+    flux_maintenance_context: "{{ delivery_platform_context }}"
+    flux_maintenance_approved: true
+    flux_maintenance_output: "{{ spinnaker_upgrade_output }}"
+    flux_maintenance_revision: "{{ spinnaker_upgrade_revision }}"
+    flux_maintenance_resume_suspended_uids: "{{ spinnaker_upgrade_new_node_uids | default([]) }}"
+    flux_maintenance_resume_checks:
+      - api_version: batch/v1
+        kind: Job
+        namespace: "{{ spinnaker_upgrade_namespace }}"
+        name: "{{ spinnaker_upgrade_backup_job.metadata.name }}"
+        uid: "{{ spinnaker_upgrade_backup_state.resources[0].metadata.uid }}"

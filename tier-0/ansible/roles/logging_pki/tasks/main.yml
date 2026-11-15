@@ -1,0 +1,19 @@
+---
+- name: Require the configured infrastructure issuer inventory host
+  ansible.builtin.assert:
+    that:
+      - logging_pki_issuer_host | length > 0
+      - logging_pki_issuer_host in hostvars
+    fail_msg: Select the established issuing_ca inventory host before logging enrollment.
+
+- name: Enroll on the established authority using its inventory connection
+  ansible.builtin.set_fact:
+    logging_pki_enrollments: []
+    logging_pki_verified: []
+
+- name: Perform native enrollment on the configured issuer
+  ansible.builtin.include_tasks:
+    file: issuer.yml
+    apply:
+      delegate_to: "{{ logging_pki_issuer_host }}"
+      become: true
