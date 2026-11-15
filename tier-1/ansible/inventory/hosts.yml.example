@@ -1,4 +1,8 @@
-# Tier-owned logical hosts. IPs live in setup group vars.
+# Edit host names and group membership here; keep guest entries as host-name: {}.
+# Guest IPs: ansible/group_vars/<setup>.yml under platform_host_ips.
+# Common login/domains: ansible/group_vars/all.yml.
+# Keep inherited ansible_host formulas. Use a per-host override only for an explicit exception.
+# Guide: docs/08-reference/platform-inputs.md#inventory-and-connection-addresses
 all:
   vars:
     # DHCP guests need a resolvable environment-specific DNS name before Ansible runs.

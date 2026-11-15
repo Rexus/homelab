@@ -1,5 +1,8 @@
-# Tier-owned logical hosts. IPs live in setup group vars.
-# Use explicit host-name: {} entries; put addresses in ansible_host or setup group vars.
+# Edit host names and group membership here; keep guest entries as host-name: {}.
+# Guest IPs: ansible/group_vars/<setup>.yml under platform_host_ips.
+# Common login/domains: ansible/group_vars/all.yml.
+# Keep inherited ansible_host formulas. Use a per-host override only for an explicit exception.
+# Guide: docs/08-reference/platform-inputs.md#inventory-and-connection-addresses
 all:
   vars:
     # DHCP guests need a resolvable environment-specific DNS name before Ansible runs.
@@ -11,11 +14,11 @@ all:
       }}
   children:
     hypervisors:
-      hosts: {}
-      # Replace hosts: {} above with a host mapping when managing Proxmox.
-      # hosts:
-      #   pve01:
-      #     ansible_host: pve01.internal.example.com
+      vars:
+        ansible_host: "{{ inventory_hostname }}.{{ platform_internal_domain | default(platform_domain) }}"
+      # Replace pve01 with existing Proxmox node names; internal DNS must resolve them.
+      hosts:
+        pve01: {}
     # Stage 6 managed monitor or accepted existing host; outside observed Kubernetes clusters.
     infrastructure_monitoring:
       hosts: {}

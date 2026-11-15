@@ -98,19 +98,20 @@ Host tasks below use SSH; `.env.local` and the provisioning API token are not us
 ## 2. Register the installed hosts
 
 Edit **`<prefix>-tier-0/ansible/inventory/hosts.yml`**. Under `all.children`, replace
-the empty `hypervisors` entry with the actual host names and management addresses: [1]
+the example `hypervisors.hosts` entries with the actual Proxmox node names: [1]
 
 ```yaml
 hypervisors:
+  vars:
+    ansible_host: "{{ inventory_hostname }}.{{ platform_internal_domain | default(platform_domain) }}"
   hosts:
-    pve01:
-      ansible_host: 10.10.10.11
-    pve02:
-      ansible_host: 10.10.10.12
+    pve01: {}
 ```
 
 Keep only hosts in the selected Proxmox cluster and retain other inventory groups.
 One host is valid. Use existing Proxmox node names; inventory registration does not rename them.
+The group formula connects to `<node>.<platform_internal_domain>` through independent DNS.
+An individual host can override `ansible_host` with an accepted management IP or different FQDN.
 Do not put hypervisors in `guests` or add them to a Terraform guest map.
 
 Keep **Tier 0 `ansible/group_vars/all.yml`** for common configuration. Its default

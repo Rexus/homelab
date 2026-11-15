@@ -145,6 +145,8 @@ prefer tier-local roles. The [recipe map](../05-operations/01-hosting/ansible-re
 ## Inputs and state
 
 Inventory host keys join the two tools; setup vars own IPs and Terraform inputs own hardware.
+The [inventory/address contract](../08-reference/platform-inputs.md#inventory-and-connection-addresses)
+shows which file to edit for an IP, service setting or group-membership change.
 Assign guest IDs using the [VMID convention](../02-conventions/vmid-convention.md).
 `--env NAME` selects that environment's data/state, not another source tree.
 Keep original state and keys when changing code. [Platform inputs](../08-reference/platform-inputs.md)

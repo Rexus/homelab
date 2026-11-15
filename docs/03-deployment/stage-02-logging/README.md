@@ -91,8 +91,11 @@ In **Tier 0 `ansible/inventory/hosts.yml`**, retain this mapping beneath the exi
         log-1: {}
 ```
 
-Use explicit host keys followed by `: {}`. Put an address in `ansible_host` or the setup's
-`platform_host_ips`; do not replace a group or a host's variable mapping with an address string.
+Keep `log-1: {}` as the inventory entry. Set its address in **`ansible/group_vars/syslog.yml`**
+under `platform_host_ips.log-1`; the inherited connection formula reads that map.
+Change inventory when adding/removing hosts or selecting groups. See the
+[inventory/address contract](../../08-reference/platform-inputs.md#inventory-and-connection-addresses)
+for explicit exceptions and direct Ansible commands.
 Preserve `all.vars` and the other groups. Check from **`<prefix>-tier-0/`**:
 
 ```bash

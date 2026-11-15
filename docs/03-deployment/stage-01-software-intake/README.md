@@ -145,6 +145,10 @@ subnet and gateway fields and set them to the prepared network. Do not add a VLA
 
 ## Step 6: Set addresses and cache policy
 
+Keep existing `cache-1: {}` and `cache-2: {}` inventory entries; the inherited connection formula
+reads this IP map. Edit inventory only when selecting different hosts or groups; see the
+[inventory/address contract](../../08-reference/platform-inputs.md#inventory-and-connection-addresses).
+
 Edit **`<prefix>-tier-2/ansible/group_vars/cache.yml`**. Replace these example addresses
 with reserved site values:
 

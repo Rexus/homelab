@@ -11,6 +11,7 @@ each tier owns its specific networks, guest selections and overrides.
 - [VM disk storage](#vm-disk-storage)
 - [Initial guest placement](#initial-guest-placement)
 - [Host and service domains](#host-and-service-domains)
+- [Inventory and connection addresses](#inventory-and-connection-addresses)
 - [Loading and overrides](#loading-and-overrides)
 - [Local SSH access](#local-ssh-access)
 - [OS baseline boundary](#os-baseline-boundary)
@@ -25,7 +26,8 @@ each tier owns its specific networks, guest selections and overrides.
 | Shared `templates/proxmox-catalog.tfvars` | Published image references synchronized by Tier 0 apply; explicit default selection |
 | Tier `terraform/common.tfvars` | Tier-specific `network_zones`, overrides of shared networks, and optional platform overrides |
 | Tier deployment `.tfvars` | Guest hardware and resource selections |
-| Tier Ansible inventory/group vars | Host names, groups, IPs, and service configuration |
+| Tier Ansible inventory | Stable host keys and group membership |
+| Tier Ansible group vars | Guest IP maps, common login/domains and service configuration |
 | Local environment or secret injection | Provider access and local SSH public-key file paths |
 
 Guest IDs follow the [VMID allocation convention](../02-conventions/vmid-convention.md),
@@ -186,6 +188,45 @@ to choose a registered-domain subdomain or a private `.internal` namespace and a
 `.local` collisions with Multicast DNS. The tier examples and
 [Shared baseline defaults](../../shared/ansible/roles/baseline/defaults/main.yml)
 own the executable settings.
+
+## Inventory and connection addresses
+
+**For an existing guest, edit its address and service settings in the setup's group-vars file.**
+Keep its inventory entry, such as `cache-1: {}`, and the inherited `ansible_host` formula.
+Use the group-vars filename named in that setup's guide.
+
+| Change | Edit in the owning tier |
+| --- | --- |
+| Existing guest IP | `ansible/group_vars/<setup>.yml`: `platform_host_ips.<inventory-key>`; retain other entries |
+| Environment-specific guest IP | Selected `ansible/group_vars/<setup>.<env>.yml`: `platform_host_ips` |
+| Common SSH user or domains | `ansible/group_vars/all.yml`, or the selected `all.<env>.yml` overlay |
+| Service configuration | Its setup's `ansible/group_vars/<setup>.yml` |
+| Add a host or select a group | `ansible/inventory/hosts.yml`: logical host keys and membership |
+| Explicit host-specific exception | Existing inventory entry or `ansible/inventory/host_vars/<inventory-key>.yml` |
+
+For example, cache addresses belong in `cache.yml`; receiver addresses belong in `syslog.yml`.
+Keep the same logical key across inventory, the setup's IP map and Terraform guest inputs.
+Adding a new guest requires those corresponding entries; inventory membership alone provisions no VM.
+Inventory is seeded by initialization and preserved during refresh, not regenerated from Terraform state.
+
+The inventory's inherited connection formula selects:
+
+| Guest's `platform_host_ips` entry | SSH destination |
+| --- | --- |
+| An explicit IP | That address |
+| `dhcp` | Generated `platform_fqdn`; independent DNS must already resolve it |
+| No entry | The inventory key; the controller must resolve that name |
+
+Existing Proxmox nodes use the `hypervisors` group's DNS formula instead:
+`<inventory-key>.<platform_internal_domain>`, falling back to `platform_domain` for older inputs.
+An individual `ansible_host` override takes precedence over inherited group settings.
+Use it for a deliberate exception, such as a management IP outside the naming pattern.
+
+`deploy.sh` explicitly loads common, selected setup and environment variable files.
+Direct Ansible commands need the same inputs, as shown in the owning procedure; file names such as
+`syslog.yml` do not imply automatic loading for a differently named inventory group.
+The [host registration guide](../05-operations/01-hosting/README.md#2-register-the-installed-hosts)
+covers existing hypervisors; the [deployment path](../03-deployment/README.md) owns guest setup commands.
 
 ## Loading and overrides
 
