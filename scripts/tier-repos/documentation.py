@@ -162,7 +162,11 @@ def copy_documentation(writer, prefix, upstream):
     documents = sorted((upstream / "docs").rglob("*.md"))
     assets = ("08-reference/diagrams/palette.json", "02-conventions/vmid-convention.svg",
               "08-reference/diagrams/identity-operations.svg", "08-reference/diagrams/cache-services.svg",
-              "08-reference/diagrams/protected-logging.svg", "08-reference/diagrams/lab-ownership.svg",
+              "08-reference/diagrams/protected-logging.svg",
+              "08-reference/diagrams/logging-receivers.svg",
+              "08-reference/diagrams/logging-sender-routing.svg",
+              "08-reference/diagrams/logging-shared-endpoint.svg",
+              "08-reference/diagrams/render-protected-logging.cjs", "08-reference/diagrams/lab-ownership.svg",
               "08-reference/diagrams/verified-intake-placement.svg",
               "08-reference/diagrams/software-intake-context.svg", "08-reference/diagrams/secrets-context.svg",
               "08-reference/diagrams/backup-recovery-context.svg",

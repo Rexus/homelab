@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720" role="img" aria-labelledby="title description">
+  <title id="title">Logging sender routing integration</title>
+  <desc id="description">A future sender integration addresses log-1 and log-2 directly for failover or dual submission. Each receiver has its own local records. Dashed routing is not installed by the current single-target sender; no shared VIP is used.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#627581"/></marker>
+    <style>
+      svg { font: 15px Arial, sans-serif; }
+      text { fill: currentColor; stroke: none; text-anchor: middle; }
+      .tier0 { fill: #c8c8c8; stroke: #707070; color: #262626; }
+      .network { fill: #f4eded; stroke: #9b7378; color: #50383d; }
+      .deploymentGroup { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .boundary { fill: #eef2f6; stroke: #64748b; color: #1f2937; }
+      .control { fill: #e2f3ed; stroke: #397366; color: #173f36; }
+      .runtime { fill: #d9eeec; stroke: #4d7b77; color: #173f3e; }
+      .traffic { fill: #d8cbb9; stroke: #83715a; color: #352a1e; }
+      .actor { fill: #edf0f3; stroke: #697682; color: #293642; }
+      .action { fill: #fcebdc; stroke: #a16c43; color: #5b3921; }
+      .data { fill: #eeeafa; stroke: #78639b; color: #42325d; }
+      .custody { fill: #fff2d1; stroke: #926820; color: #584013; }
+      .tier0, .network, .boundary, .control, .runtime, .traffic, .actor, .action, .data, .custody { stroke-dasharray: none; }
+      .connection { fill: none; stroke: #627581; stroke-width: 1.5; marker-end: url(#arrow); }
+      .manual { stroke-dasharray: 5 4; }
+      .edge-label { fill: #1f2937; font-size: 13px; }
+      .detail { font-size: 13px; }
+    </style>
+  </defs>
+  <g id="T0" class="tier0"><rect x="280" y="20" width="660" height="680"/>
+    <text x="610.0" y="45">Tier 0</text>
+  <g id="Network" class="network"><rect x="300" y="65" width="620" height="610"/>
+    <text x="610.0" y="90">Management Network / management</text>
+  <g id="Receivers" class="deploymentGroup"><rect x="320" y="110" width="580" height="540"/>
+    <text x="610.0" y="135">Logging Services</text>
+  <g id="VM1" class="control"><rect x="350" y="175" width="240" height="95"/>
+    <text x="470.0" y="216.5">log-1</text>
+    <text x="470.0" y="238.5">DNS target / TLS peer</text>
+  </g>
+  <g id="Disk1" class="data"><path d="M650 187 C650 171 870 171 870 187 L870 258 C870 274 650 274 650 258 Z"/><path d="M650 187 C650 203 870 203 870 187" fill="none"/>
+    <text x="760.0" y="219.5">Local records</text>
+    <text x="760.0" y="241.5">Independent disk</text>
+  </g>
+  <path class="connection" data-from="VM1" data-to="Disk1" d="M590 223 L650 223"/>
+  <rect x="593.0" y="190" width="54" height="22" fill="#f8fafc" stroke="none"/>
+    <text x="620" y="205" class="edge-label">Append</text>
+  <g id="VM2" class="control"><rect x="350" y="425" width="240" height="95"/>
+    <text x="470.0" y="466.5">log-2</text>
+    <text x="470.0" y="488.5">DNS target / TLS peer</text>
+  </g>
+  <g id="Disk2" class="data"><path d="M650 437 C650 421 870 421 870 437 L870 508 C870 524 650 524 650 508 Z"/><path d="M650 437 C650 453 870 453 870 437" fill="none"/>
+    <text x="760.0" y="469.5">Local records</text>
+    <text x="760.0" y="491.5">Independent disk</text>
+  </g>
+  <path class="connection" data-from="VM2" data-to="Disk2" d="M590 473 L650 473"/>
+  <rect x="593.0" y="440" width="54" height="22" fill="#f8fafc" stroke="none"/>
+    <text x="620" y="455" class="edge-label">Append</text>
+  </g>
+  </g>
+  </g>
+  <g id="Sender" class="action"><rect x="20" y="285" width="235" height="120"/>
+    <text x="137.5" y="339.0">Sender routing</text>
+    <text x="137.5" y="361.0">Project integration</text>
+  </g>
+  <path class="connection manual" data-from="Sender" data-to="VM1" d="M255 315 L300 315 L300 222 L350 222"/>
+  <rect x="135.0" y="225" width="110" height="22" fill="#f8fafc" stroke="none"/>
+    <text x="190" y="240" class="edge-label">Primary / copy</text>
+  <path class="connection manual" data-from="Sender" data-to="VM2" d="M255 375 L300 375 L300 472 L350 472"/>
+  <rect x="128.0" y="445" width="124" height="22" fill="#f8fafc" stroke="none"/>
+    <text x="190" y="460" class="edge-label">Alternate / copy</text>
+</svg>

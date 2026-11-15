@@ -5,64 +5,14 @@ handoff for the selected failure contract.
 
 <a id="figure-1-independent-receivers"></a>
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":18}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
-flowchart LR
-  Sources["Approved producers / owning tiers<br/>Durable local queues"]
-  subgraph T0["Tier 0"]
-    direction TB
-    subgraph Placement["Management Network / management"]
-      direction LR
-      subgraph PVE1["Proxmox host A"]
-        direction LR
-        VM1["log-1<br/>TLS receiver"]
-        Disk1[("Local data disk / queues")]
-        VM1 --> Disk1
-      end
-      subgraph PVE2["Proxmox host B"]
-        direction LR
-        VM2["log-2 / optional<br/>TLS receiver"]
-        Disk2[("Separate local disk / queues")]
-        VM2 --> Disk2
-      end
-      PVE1 ~~~ PVE2
-    end
-    subgraph Custody["Archive Custody"]
-    direction LR
-    Commit["Required durable handoff<br/>Not installed by adding a VM"]
-    Copies[("Retained copies / independent backup")]
-    Commit --> Copies
-  end
-  end
-  Sources -->|Selected sender routing| VM1
-  Sources -->|Selected alternate routing| VM2
-  VM1 -. Selected durable handoff .-> Commit
-  VM2 -. Selected durable handoff .-> Commit
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef boundary fill:#eef2f6,stroke:#64748b,color:#1f2937
-  classDef actor fill:#edf0f3,stroke:#697682,color:#293642
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  classDef controlHeading fill:#e2f3ed,stroke:#e2f3ed,color:#173f36
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  class PVE1,PVE2 boundary
-  class Sources actor
-  class VM1,VM2 control
-  classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
-  class Disk1,Disk2,Copies data
-  class Custody,Commit custody
-  classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
-  class T0 tier0
-  classDef tier0Heading fill:#c8c8c8,stroke:#c8c8c8,color:#262626
-  classDef network fill:#f4eded,stroke:#9b7378,color:#50383d
-  class Placement network
-```
+![Independent receiver hosts and separate disks; alternate routing needs integration](../../08-reference/diagrams/logging-receivers.svg)
 
 **IaC:** **Figure 1: Independent receivers.** Tier 0 [optional VM definition](../../../tier-0/terraform/deployments/syslog/terraform.tfvars.example),
 [inventory](../../../tier-0/ansible/inventory/hosts.yml.example) and
 [IP map](../../../tier-0/ansible/group_vars/syslog.yml.example).
 Both receivers use the same [receiver recipe](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml);
-sender failover and the stronger durable-handoff contract remain selected integrations.
+`logs` still resolves to `log-1`. The dashed alternate path requires a routing integration;
+adding `log-2` does not install sender failover, a shared VIP or the stronger durable-handoff contract.
 Host A/B remain explicit because this view compares independently placed receivers and their local disks.
 Both guest interfaces use `management`; distinct host placement must be selected and verified.
 
@@ -118,11 +68,63 @@ bash scripts/deploy.sh syslog --ansible-only
 This installs independent
 receivers, not replication or an immutable archive.
 
-Configure supported sender failover/dual submission, persistent queues, durable
-copies and governed retention in project-owned automation. A VIP does not establish
-replication or durable acceptance. Record when senders may release an event.
+Keep the existing `log-1` machine record and `logs` alias from
+[Step 5](README.md#step-5-configure-the-first-producer). Add an A record for
+`log-2.internal.example.com` using its new `platform_host_ips.log-2` address.
+Do not add a second CNAME for `logs`, and do not redirect producers before Step 3's routing is accepted.
 
-## 3. Verify the declared failure contract
+## 3. Select the producer routing
+
+The supplied [sender template](../../../shared/ansible/roles/log_forwarder/templates/sender.conf.j2)
+configures one `log_forwarder_target` and one verified `log_forwarder_peer`. It has no secondary-target
+or dual-output input. The paths below describe **project integrations**, not additional kit installers.
+Keep the current single-target configuration until your chosen routing IaC is implemented and tested.
+
+| Choice | DNS and producer configuration | What changes |
+| --- | --- | --- |
+| **3a: sender failover or dual submission** | Keep separate A records for `log-1` and `log-2`; configure both endpoints and their verified certificate names in the sender integration | Producers switch to the alternate or send independent copies; a shared VIP is unnecessary |
+| **3b: shared VIP** | Keep the machine A records; replace the `logs` CNAME with an A record for the accepted VIP | Producers retain `logs`; the VIP selects the active receiver |
+
+### 3a. Sender-based redundancy
+
+<a id="figure-2-sender-routing"></a>
+
+![Future sender failover or dual submission to separate receiver endpoints](../../08-reference/diagrams/logging-sender-routing.svg)
+
+**Integration:** **Figure 2: Sender routing.** Dashed paths require project-owned sender automation;
+the [current sender](../../../shared/ansible/roles/log_forwarder/templates/sender.conf.j2) installs one destination.
+The [receiver inputs](../../../tier-0/ansible/group_vars/syslog.yml.example) retain separate machine identities.
+
+Choose failover or dual submission explicitly; they have different queue, duplicate and acceptance
+contracts. Match each configured verification name to its certificate SAN. A client with separate
+target/peer settings can connect to a receiver's machine name while verifying `logs`, if its certificate
+contains that service SAN. Keep separate receiver keys; review certificates before changing verified names.
+No DNS record alone distributes or retries events. Continue at Step 4 after qualification.
+
+### 3b. A shared service endpoint
+
+<a id="figure-3-shared-endpoint"></a>
+
+![Future shared VIP keeps the logs service name while selecting a receiver](../../08-reference/diagrams/logging-shared-endpoint.svg)
+
+**Integration:** **Figure 3: Shared service endpoint.** The VIP and dashed routing paths are not
+installed by the [receiver recipe](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml).
+Producers retain the service name in the [single-target sender](../../../shared/ansible/roles/log_forwarder/templates/sender.conf.j2).
+
+Provision and qualify the shared endpoint through your routing IaC before changing DNS. Replace the
+`logs` CNAME with an A record for its VIP; retain the receiver machine records for administration.
+Each receiver needs its own private key and certificate valid for `logs.internal.example.com`.
+Keep `log_forwarder_target` and `log_forwarder_peer` on that service name. Reconnect/revalidate producers
+after the cutover; DNS caching and existing connections can delay their move.
+
+A TCP balancer is a separate compatible integration only when it preserves the producer's TLS identity
+and the observed source address required by `syslog_ng_sources`. Ordinary proxying is not automatically
+compatible with that receiver identity check. Neither a VIP nor sender redundancy replicates stored logs.
+Continue at Step 4 after qualification.
+
+<a id="3-verify-the-declared-failure-contract"></a>
+
+## 4. Verify the declared failure contract
 
 | Test | Acceptance |
 | --- | --- |

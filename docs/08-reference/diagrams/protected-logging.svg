@@ -2,6 +2,7 @@
      role="img" aria-labelledby="title description">
   <title id="title">Protected logging retention and independent recovery</title>
   <desc id="description">Registered producers from all tiers submit to the Tier 0 TLS receiver.
+    The stable logs service name resolves to log-1 in the single-receiver deployment; it is not a VIP.
     The receiver publishes checkpoints to the NAS archive. An independent recovery host reads
     that archive with separate read-only access and writes its own encrypted repository.
     Offline tools and keys remain below connected services. Success checks have a separate view.</desc>
@@ -38,7 +39,7 @@
         <text x="370" y="140">log-1</text>
         <g id="Log" class="traffic">
           <polygon points="295,165 425,165 440,195 425,225 295,225 280,195"/>
-          <text x="360" y="190">syslog-ng</text><text x="360" y="212">TLS intake</text>
+          <text x="360" y="190">logs</text><text x="360" y="212" class="detail">TLS / syslog-ng</text>
         </g>
         <g id="Local" class="data">
           <path d="M290 350 C290 332 450 332 450 350 L450 416 C450 434 290 434 290 416 Z"/>

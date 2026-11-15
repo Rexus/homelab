@@ -15,6 +15,8 @@ PALETTE = "08-reference/diagrams/palette.json"
 IDENTITY_SVG = UPSTREAM / "docs/08-reference/diagrams/identity-operations.svg"
 CACHE_SVG = UPSTREAM / "docs/08-reference/diagrams/cache-services.svg"
 LOGGING_SVG = UPSTREAM / "docs/08-reference/diagrams/protected-logging.svg"
+LOGGING_ROUTING_SVGS = tuple(UPSTREAM / f"docs/08-reference/diagrams/{name}.svg"
+                           for name in ("logging-receivers", "logging-sender-routing", "logging-shared-endpoint"))
 LAB_SVG = UPSTREAM / "docs/08-reference/diagrams/lab-ownership.svg"
 INTAKE_SVG = UPSTREAM / "docs/08-reference/diagrams/verified-intake-placement.svg"
 SUPPLY_SVG = UPSTREAM / "docs/08-reference/diagrams/software-intake-context.svg"
@@ -38,7 +40,8 @@ K8S_PLATFORM_SVG = UPSTREAM / "docs/08-reference/diagrams/kubernetes-platform.sv
 PLACEMENT_SVGS = (IDENTITY_SVG, CACHE_SVG, LOGGING_SVG, LAB_SVG, INTAKE_SVG, SUPPLY_SVG, SECRETS_SVG,
                   BACKUP_SVG, CRYPTO_SVG, CA_SVG, RUNNER_SVG, TELEMETRY_SVG, REFERENCE_SVG,
                   RUNTIME_SVG, OBSERVABILITY_SVG, CONTROL_SVG, OBSERVABILITY_OPERATIONS_SVG, AVAILABILITY_SVG,
-                  PLATFORM_SVG, FLUX_OWNERSHIP_SVG, PKCS11_SVG, SIGNAL_SVG, K8S_PLATFORM_SVG)
+                  PLATFORM_SVG, FLUX_OWNERSHIP_SVG, PKCS11_SVG, SIGNAL_SVG, K8S_PLATFORM_SVG,
+                  *LOGGING_ROUTING_SVGS)
 FIGURES = re.compile(r"```mermaid\n(.*?)```|!\[[^\]]+\]\(([^)#]+\.svg)\)", re.DOTALL)
 
 
@@ -349,13 +352,16 @@ class DiagramConventions(TierRepositoryTestCase):
             self.assertNotIn('subgraph PVE[', code)
         self.assertIn(f'TLS {defaults["syslog_ng_tls_port"]}', collection)
         self.assertNotIn("log-2", provisioning)
-        redundant = diagrams(root / "step-14b-redundant-intake.md")[0]
-        self.assertIn('subgraph PVE1["', redundant)
-        self.assertIn('subgraph PVE2["', redundant)
-        self.assertIn(f'VM1["{guest}<br/>', redundant)
-        self.assertIn('VM2["log-2 / optional', redundant)
+        redundant = ET.fromstring(figure_sources(root / "step-14b-redundant-intake.md")[0])
+        nodes = {node.get('id'): node for node in redundant.iter() if node.get('id')}
+        self.assertIn('Proxmox host A', ''.join(nodes['PVE1'].itertext()))
+        self.assertIn('Proxmox host B', ''.join(nodes['PVE2'].itertext()))
+        self.assertIn(guest, ''.join(nodes['VM1'].itertext()))
+        self.assertIn('log-2 / optional', ''.join(nodes['VM2'].itertext()))
         self.assertIn('# "log-2"', hardware)
-        self.assertIn("Not installed by adding a VM", redundant)
+        self.assertIn('Project integration', ''.join(nodes['Commit'].itertext()))
+        alternate = redundant.find(".//{http://www.w3.org/2000/svg}path[@data-from='Sources'][@data-to='VM2']")
+        self.assertIn('manual', alternate.get('class').split())
         inventory = (UPSTREAM / "tier-0/ansible/inventory/hosts.yml.example").read_text()
         for name in (guest, "log-2"):
             self.assertIn(name, inventory)
@@ -421,6 +427,12 @@ class DiagramConventions(TierRepositoryTestCase):
                 "../../../tier-0/ansible/inventory/hosts.yml.example",
                 "../../../tier-0/ansible/group_vars/syslog.yml.example",
                 recipes + "foundation-logging.yml",
+            ], [
+                "../../../shared/ansible/roles/log_forwarder/templates/sender.conf.j2",
+                "../../../tier-0/ansible/group_vars/syslog.yml.example",
+            ], [
+                recipes + "foundation-logging.yml",
+                "../../../shared/ansible/roles/log_forwarder/templates/sender.conf.j2",
             ]],
         }
         for filename, steps in expected.items():

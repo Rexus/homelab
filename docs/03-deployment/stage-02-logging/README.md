@@ -19,6 +19,9 @@ The NAS and recovery boundaries identify independent custody, not extra networks
 [Archive implementation](../../../tier-0/ansible/playbooks/deployment/logging-archive.yml) Â·
 [Backup implementation](../../../tier-0/ansible/playbooks/deployment/logging-backup.yml).
 
+The intake label `logs` follows the DNS choice in Step 5.
+[Figure sources and rendering](../../08-reference/diagrams/protected-logging-render.md).
+
 **Working repository:** `<prefix>-tier-0` (source: `tier-0/`). Run commands from this root on the
 bootstrap/controller unless a protected signing controller is named explicitly.
 **Prerequisites:** completed [foundation](../foundation/README.md), independently authenticated SSH,
@@ -212,9 +215,22 @@ the existing `all.children`; merge with any existing `logging_producers` entry:
         foundation_logging: null
 ```
 
-Edit **Tier 0 `ansible/group_vars/logging_producers.yml`**. Set the
-[stable service name](../../02-conventions/service-dns.md) once; it must resolve to the receiver
-and match its certificate SAN. The target reuses that name:
+In **your internal DNS service**, create the machine record and a separate
+[stable service name](../../02-conventions/service-dns.md). Replace the domain with
+`platform_domain` from **Tier 0 `ansible/group_vars/all.yml`** and the address with
+`platform_host_ips.log-1` from **`ansible/group_vars/syslog.yml`**:
+
+| DNS name | Type | Value in the starter example |
+| --- | --- | --- |
+| `log-1.internal.example.com` | A | `10.10.10.30` |
+| `logs.internal.example.com` | CNAME | `log-1.internal.example.com` |
+
+`log-1` identifies the machine; `logs` identifies the intake service in
+[Figure 1](#figure-1-nas-retention-and-independent-recovery). DNS records are configured in your
+DNS service; guest creation does not create them. A CNAME has one target, not a list of receivers. [2]
+
+Edit **Tier 0 `ansible/group_vars/logging_producers.yml`**. Use the service name for both
+connection and certificate verification. Step 6 requests that same DNS SAN:
 
 ```yaml
 log_forwarder_target: "{{ log_forwarder_peer }}"
@@ -223,6 +239,16 @@ log_forwarder_peer: logs.internal.example.com
 
 If service DNS is not available yet, override `log_forwarder_target` with the receiver's accepted IP;
 keep `log_forwarder_peer` as its certificate DNS name.
+
+From **the bootstrap/execution host**, check resolution before continuing:
+
+```bash
+getent ahostsv4 logs.internal.example.com
+```
+
+**Expected:** the accepted `log-1` address. Adding `log-2` later does not change this alias
+automatically; [Step 14b](step-14b-redundant-intake.md#3-select-the-producer-routing) explains
+sender-based redundancy and a future shared endpoint. Multiple address records alone do not qualify failover.
 
 In **Tier 0 `ansible/inventory/host_vars/log-1.yml`**, add the following logging settings;
 create the file if missing. Preserve any UUID guard or other existing settings. The stream name
@@ -415,7 +441,7 @@ flowchart LR
       subgraph Network["Management Network / management"]
         Host["Existing Proxmox hosts<br/>OS / audit logs"]
         subgraph Guest["log-1 / receiver VM"]
-          VM["syslog-ng / TLS 6514"]
+          VM["logs / TLS 6514<br/>syslog-ng"]
           Records[("Local data disk<br/>JSONL / delivery queues")]
           VM --> Records
         end
@@ -442,7 +468,8 @@ flowchart LR
   class Guest boundary
   classDef zoneControl fill:#c9e0d5,stroke:#397366,color:#173f36
   class Sources,Devices,Host,Admin actor
-  class VM control
+  classDef traffic fill:#d8cbb9,stroke:#83715a,color:#352a1e
+  class VM traffic
   style Layout fill:none,stroke:none
   class Records data
   classDef tier0 fill:#c8c8c8,stroke:#707070,color:#262626
@@ -459,6 +486,7 @@ the [producer recipe](../../../tier-0/ansible/playbooks/deployment/logging-produ
 the selected sender in Step 12. [Shared's sender role](../../../shared/ansible/roles/log_forwarder/tasks/main.yml)
 owns execution code; each tier owns its inventory, keys and stream inputs. External producers and
 authorized readers enter from the left; the arrows distinguish ingestion from read access.
+`logs` resolves to `log-1`; it is the listener's service name, not a VIP or another network hop.
 
 Run from **`<prefix>-tier-0/`**, with Step 10's environment:
 
@@ -585,6 +613,9 @@ Do not apply the Linux host role to appliances or Talos; later runtime stages ow
 | **14b: additional receiver** | Deploy [redundant intake](step-14b-redundant-intake.md) on another physical host and qualify sender routing | Return to Step 15 |
 
 Two receivers alone do not provide replicated archive commitment or lossless HA.
+The current sender has one `log_forwarder_target`; adding `log-2` creates neither a shared VIP
+nor producer failover. Keep `logs` pointing to the commissioned receiver until the selected
+[routing integration](step-14b-redundant-intake.md#3-select-the-producer-routing) is installed and tested.
 Keep the declared durability limits: TCP/TLS queue release is not an archive acknowledgement;
 bounded queues, rotation and the uncheckpointed tail can lose or duplicate records on failure.
 
@@ -639,3 +670,5 @@ Continue with [Stage 3: Cryptographic trust](../stage-03-trust/README.md).
 
 1. [syslog-ng first-read TLS peer metadata fix](https://github.com/syslog-ng/syslog-ng/pull/5603),
    checked 2026-11-13. Qualify the selected signed EL package source against the receiver contract.
+2. [RFC 2181 §10.1: a CNAME alias has one canonical target](https://www.rfc-editor.org/rfc/rfc2181.html#section-10.1),
+   checked 2026-11-15.
