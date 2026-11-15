@@ -14,7 +14,7 @@ development_data_hosts:
 
 development_data_action: render
 development_data_apply_confirm: false
-development_data_gitlab_url: "https://git.{{ platform_domain }}"
+development_data_gitlab_url: "https://git.{{ platform_internal_domain | default(platform_domain) }}"
 # Obtain appVersion from `helm show chart gitlab/gitlab --version <chart-pin>`.
 # Download the matching EL9 CE RPM and obtain its real SHA256 and signing fingerprint.
 development_data_chart_app_version: ""
@@ -26,9 +26,9 @@ development_data_package_key_fingerprint: ""
 # Point each service name at its selected VM; issue the corresponding server certificate SAN.
 # The role verifies these names and passes them to GitLab in platform-inputs.yml.
 development_data_endpoints:
-  postgresql: "db.{{ platform_domain }}"
-  redis: "kv.{{ platform_domain }}"
-  gitaly: "repo.{{ platform_domain }}"
+  postgresql: "db.{{ platform_internal_domain | default(platform_domain) }}"
+  redis: "kv.{{ platform_internal_domain | default(platform_domain) }}"
+  gitaly: "repo.{{ platform_internal_domain | default(platform_domain) }}"
 # Exact cluster egress/node addresses and pod ranges that actually reach these VMs.
 development_data_client_cidrs: []
 development_data_ca_src: /absolute/private/platform-ca-bundle.pem

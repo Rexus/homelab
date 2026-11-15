@@ -1,4 +1,7 @@
 ---
+- name: Validate host identity and manage the hostname when selected
+  ansible.builtin.include_tasks: hostname.yml
+
 - name: Manage package verification and repository failure policy
   ansible.builtin.include_tasks: package_policy.yml
   when: baseline_manage_package_policy | bool

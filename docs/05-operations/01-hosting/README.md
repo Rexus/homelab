@@ -61,6 +61,7 @@ Existing hosts are registered here; they are not created or imported into Terraf
 | Change a VMID while keeping its MAC and network settings | [Full-clone VMID cutover](change-vmid.md) |
 | Change host SSH, time, audit or firewall settings | [Linux security setup](linux-security.md), [security operations](host-security.md) |
 | Configure approved host update access | [Software intake consumers](../02-software-intake/host-updates.md) |
+| Change cache/logging host or service DNS domains | [Service-domain cutover](service-domain-cutover.md) |
 | Import, publish or promote a template | [Template lifecycle](templates/template-lifecycle.md) |
 | Replace a template disk or troubleshoot publication | [Disk replacement](templates/template-disk.md), [troubleshooting](templates/template-troubleshooting.md) |
 | Refresh a template or remove clone dependencies | [Template refresh](templates/template-refresh.md), [linked clones](templates/linked-clones.md) |

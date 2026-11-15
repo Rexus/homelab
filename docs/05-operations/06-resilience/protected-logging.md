@@ -41,6 +41,7 @@ retain their separate selection and acceptance contracts.
 - [How is fault survival demonstrated?](#fault-and-restore-evidence)
 - [Can evidence be read with the platform shut down?](#offline-investigation)
 - [How is receiver configuration reapplied?](#automation-boundary)
+- [How is an existing logging DNS name changed?](../01-hosting/service-domain-cutover.md#4-update-the-logging-service)
 - [How is an independent NAS backup restored?](#nas-backup-restoration)
 
 <a id="routine-checks"></a>

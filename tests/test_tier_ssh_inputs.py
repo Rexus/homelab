@@ -23,11 +23,15 @@ class SSHInputs(TierRepositoryTestCase):
         }]))
         cases = (
             ({"platform_host_ips": {"guest-1": "192.0.2.10"}}, "192.0.2.10"),
-            ({"platform_host_ips": {"guest-1": "dhcp"}}, "guest-1.corp.example.com"),
+            ({"platform_host_ips": {"guest-1": "dhcp"}}, "guest-1.internal.example.com"),
             ({"platform_host_ips": {"guest-1": "dhcp"}, "platform_hostname_prefix": "test",
-              "platform_domain": "example.test"}, "test-guest-1.example.test"),
+              "platform_internal_domain": "example.test"}, "test-guest-1.example.test"),
             ({"platform_host_ips": {"guest-1": "dhcp"}, "platform_hostname_suffix": "test",
-              "platform_domain": "example.test"}, "guest-test-1.example.test"),
+              "platform_internal_domain": "example.test"}, "guest-test-1.example.test"),
+            ({"platform_host_ips": {"guest-1": "dhcp"}, "platform_domain_role": "member",
+              "platform_domain": "corp.test"}, "guest-1.corp.test"),
+            ({"platform_host_ips": {"guest-1": "dhcp"}, "platform_domain_role": "authority",
+              "platform_domain": "corp.test"}, "guest-1.corp.test"),
             ({"platform_host_ips": {}}, "guest-1"),
         )
         for tier in ("tier-0", "tier-1", "tier-2"):

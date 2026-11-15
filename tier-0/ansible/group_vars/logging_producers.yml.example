@@ -1,7 +1,9 @@
 # Local inputs; reusable implementation: Shared ansible/roles/log_forwarder.
 # Defaults and optional settings: Shared ansible/roles/log_forwarder/defaults/main.yml.
 # logging_producers already includes foundation_logging; reuse other approved inventory groups/hosts.
-# Set the stable service DNS name once below. Override target with an IP only if DNS is unavailable.
+# Set the stable service DNS name under platform_internal_domain once below.
+# Older inputs use platform_domain until migrated; keep the peer equal to the issued certificate SAN.
+# Override target with an IP only if DNS is unavailable.
 log_forwarder_target: "{{ log_forwarder_peer }}"
 log_forwarder_peer: ""  # exact receiver certificate DNS SAN
 # Set a distinct external dead-man URL per host; a shared URL can hide a failed producer.

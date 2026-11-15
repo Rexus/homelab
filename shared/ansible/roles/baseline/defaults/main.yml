@@ -1,4 +1,8 @@
 ---
+# Existing local inputs opt in explicitly; a code refresh must not rename hosts.
+# Enrolled Kerberos/FreeIPA hosts may only retain their current static hostname.
+baseline_manage_hostname: false
+baseline_hostname: "{{ platform_fqdn }}"
 baseline_trust_anchors: []
 baseline_rpm_repositories: []
 baseline_apt_repositories: []
@@ -65,14 +69,11 @@ shell_proxy_no_proxy_defaults:
   - 172.16.0.0/12
   - 192.168.0.0/16
 shell_proxy_no_proxy_domain_entries: >-
-  {{
-    [
-      platform_domain | default('') | string | trim,
-      '.' ~ (platform_domain | default('') | string | trim)
-    ]
-    if platform_domain | default('') | string | trim | length > 0
-    else []
-  }}
+  {%- set domains = [
+    platform_internal_domain | default(platform_domain | default('')) | string | trim,
+    platform_domain | default('') | string | trim
+  ] | reject('equalto', '') | unique | list -%}
+  {{ (domains + (domains | map('regex_replace', '^', '.') | list)) | unique | list }}
 shell_proxy_no_proxy_list: >-
   {{
     (

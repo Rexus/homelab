@@ -18,7 +18,7 @@ podman_runner_install_gitlab_runner: true
 # authentication token. Store real tokens in an encrypted vars file or runner
 # secret, not in a tracked example.
 podman_runner_register: false
-podman_runner_gitlab_url: "https://git.corp.example.com"
+podman_runner_gitlab_url: "https://git.{{ platform_internal_domain | default(platform_domain) }}"
 podman_runner_authentication_token: "change-me"
 
 # In GitLab, assign bootc/podman tags, allowed projects and protection; disable

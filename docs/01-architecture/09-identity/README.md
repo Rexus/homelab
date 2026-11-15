@@ -165,8 +165,15 @@ integration contracts.
 ## Components and interfaces
 
 Give each client-facing interface a stable [service DNS name](../../02-conventions/service-dns.md),
-such as `sso.corp.example.com` for sign-in or `ldap.corp.example.com` for qualified directory access.
+such as `sso.internal.example.com` for sign-in or `ldap.internal.example.com` for qualified directory access.
 Directory members keep their own host identities and protocol-specific discovery records.
+
+Standalone infrastructure and stable internal service aliases use
+`platform_internal_domain`. An enrolled host uses `platform_domain`; a directory
+server uses that domain while its authority is commissioned. Inventory records the
+host's `platform_domain_role` as `standalone`, `member` or `authority`. The
+[host-domain convention](../../02-conventions/service-dns.md#select-each-hosts-domain)
+connects these names to administrative ownership and the selected directory workflow.
 
 ### Keep application access separate from control
 

@@ -18,9 +18,14 @@ secrets and runtime-sensitive values. Use it together with the
 Use environment variables for secrets and runtime-sensitive values. Keep
 structured non-secret configuration in the example-based local files.
 
-For normal local runs, keep those values in `.env.local`; the deployment
+For normal local runs, keep secrets and runtime-sensitive values in `.env.local`; the deployment
 wrapper loads that file when it exists. Runners can provide the same variables
 directly, and `--env-file` can point the wrapper at another file path.
+
+Host and service namespaces belong in Ansible inputs as `platform_internal_domain`
+and `platform_domain`. Per-host enrollment roles belong in inventory or `host_vars`.
+Their selection and compatibility defaults are described in the
+[platform domain inputs](platform-inputs.md#host-and-service-domains).
 
 For Linux deployments through `deploy.sh`, set `PROXMOX_API_URL` to the Proxmox
 web/API root, such as `https://pve.example.com:8006/`. Do not append

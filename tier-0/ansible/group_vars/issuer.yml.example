@@ -16,7 +16,7 @@ openxpki_package_versions:
   openxpki-i18n: REPLACE_WITH_EXACT_PACKAGE_VERSION
 openxpki_realm: infrastructure
 # Issue the portal certificate for this service name; the host identity remains ca-1.
-openxpki_portal_fqdn: "ca.{{ platform_domain }}"
+openxpki_portal_fqdn: "ca.{{ platform_internal_domain | default(platform_domain) }}"
 openxpki_listen_address: "{{ ansible_host }}"
 openxpki_admin_networks: [10.10.10.0/24]
 openxpki_publication_networks: [10.0.0.0/8]

@@ -1,7 +1,7 @@
 # Service DNS names
 
 Clients should know a service by a stable, familiar fully qualified domain name (FQDN), such as
-`ldap.corp.example.com` or `git.corp.example.com`. Individual machines keep
+`ldap.internal.example.com` or `git.internal.example.com`. Individual machines keep
 their own names, such as `idm-1.corp.example.com`.
 
 The service name follows the interface as its hosting changes. A machine name
@@ -11,6 +11,7 @@ identifies one instance for administration, replication and diagnosis.
 
 - [Choose the service label](#choose-the-service-label)
 - [Choose the domain and scope](#choose-the-domain-and-scope)
+- [Select each host's domain](#select-each-hosts-domain)
 - [Connect the name to the service](#connect-the-name-to-the-service)
 - [Maintain existing names](#maintain-existing-names)
 - [References](#references)
@@ -46,23 +47,67 @@ protocol discovery labels and native Kubernetes resource names retain their own 
 
 ## Choose the domain and scope
 
-The default pattern is **`<service>.<internal-domain>`**, for example
-`ldap.corp.example.com`. A published service can use the selected external domain,
-such as `git.example.com`.
+The default pattern is **`<service>.<platform_internal_domain>`**, for example
+`logs.internal.example.com`. Internal service aliases keep this namespace when their
+backend hosts join a directory. A published service can use the selected external
+domain, such as `git.example.com`.
+
+Choose either a private subdomain of a registered domain under site control, such as
+`internal.example.com`, or a private-use name such as `example.internal`.
+IANA selected `.internal` and ICANN permanently reserved it from delegation in the
+public DNS root. Both patterns require site-managed internal DNS records and resolution.
+`example.com` is reserved for documentation, so replace it with the actual site domain in
+a real deployment. [3][4]
+
+Avoid `.local` for the platform's conventional DNS zones. RFC 6762 assigns that
+suffix to link-local Multicast DNS, which can conflict with conventional DNS lookup. [5]
+This concerns site DNS suffixes; retain filenames such as `.env.local` and the native
+Kubernetes `cluster.local` service-discovery namespace.
 
 Add a scope only when needed to distinguish services: `<service>.<env>.<domain>`
-or `<service>.<project>.<domain>`, such as `db.test.corp.example.com`.
+or `<service>.<project>.<domain>`, such as `db.test.internal.example.com`.
 An environment label is optional; it is not required for every production service.
 The short-label preference applies to the service label, not the full FQDN.
 
 | Name | Meaning |
 | --- | --- |
-| `ldap.corp.example.com` | Stable directory-service endpoint for supported clients |
+| `logs.internal.example.com` | Stable internal logging endpoint |
+| `cache.internal.example.com` | Stable internal proxy endpoint |
+| `ldap.internal.example.com` | Stable directory-service endpoint for supported clients |
 | `idm-1.corp.example.com` | A particular directory server, with its own host identity |
 
 Record domains and service-name patterns in the generated architecture repository's
 `platform-standards.md`. Exact records and targets belong to the owning DNS configuration;
 machine names remain in inventory and IaC.
+
+## Select each host's domain
+
+Use the host's actual administrative relationship to choose its namespace.
+
+| `platform_domain_role` | Host namespace | Set when |
+| --- | --- | --- |
+| `standalone` or unset | `platform_internal_domain` | The host is independently administered |
+| `member` | `platform_domain` | The host is enrolled in the selected directory domain |
+| `authority` | `platform_domain` | Commissioning a directory server or replica |
+
+Fresh inputs use `internal.example.com` for `platform_internal_domain` and
+`corp.example.com` for `platform_domain`. A standalone host can therefore be
+`log-1.internal.example.com`, while a directory member can be `vm-1.corp.example.com`.
+The computed `platform_host_domain` selects the suffix and `platform_fqdn` combines
+it with `platform_hostname`. Older inputs without `platform_internal_domain` fall
+back to `platform_domain`.
+
+Set the role in inventory, `host_vars`, or the appropriate inventory group. The
+directory-authority group declares `authority`. Keep `platform_domain_role` out of
+the common `all.yml` extra-var file so per-host selection takes effect.
+The naming role records an actual enrollment or commissioning decision. Enrollment
+uses the selected directory workflow. Independently administered hosts retain their
+approved administrative and recovery access.
+Verify domain enrollment and the effective access policy through the directory's
+management tools when assessing a host's security.
+
+The input locations and hostname-management switch are documented in the
+[platform input contract](../08-reference/platform-inputs.md#host-and-service-domains).
 
 ## Connect the name to the service
 
@@ -87,10 +132,15 @@ Keep working canonical names unless a deliberate change coordinates DNS, certifi
 listeners and consumers. Refresh preserves project-owned inputs; a new example label
 does not rename an existing service. Machine identity migration remains a separate
 [operation](proxmox-conventions.md#existing-installations).
+For existing cache and logging endpoints, follow the
+[service-domain cutover](../05-operations/01-hosting/service-domain-cutover.md).
 
 ## References
 
-Sources checked 2026-11-13.
+Sources checked 2026-11-15.
 
 1. [RFC 2181: aliases, MX targets and DNS label limits](https://www.rfc-editor.org/rfc/rfc2181.html).
 2. [RFC 2782: service discovery and SRV targets](https://www.rfc-editor.org/rfc/rfc2782.html).
+3. [ICANN resolution 2024.07.29.06, following IANA's selection of `.internal`](https://www.icann.org/en/board-activities-and-meetings/materials/approved-resolutions-special-meeting-of-the-icann-board-29-07-2024-en).
+4. [IANA reserved example domains](https://www.iana.org/domains/reserved).
+5. [RFC 6762, Section 3, Multicast DNS names](https://www.rfc-editor.org/rfc/rfc6762.html#section-3).

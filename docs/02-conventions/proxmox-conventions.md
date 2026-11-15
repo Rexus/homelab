@@ -240,13 +240,16 @@ See [refresh ownership](../04-development/generated-repositories.md#refresh-and-
 
 ### Service DNS names
 
-Use a stable, familiar service endpoint such as `ldap.corp.example.com` or
-`git.corp.example.com`; keep numbered names such as `idm-1` for individual guests.
+Use a stable, familiar service endpoint such as `ldap.internal.example.com` or
+`git.internal.example.com`; keep numbered names such as `idm-1` for individual guests.
 The [service DNS convention](service-dns.md) owns short labels, domain/scope patterns
 and protocol-specific identity requirements.
 
-Guest automation still forms host FQDNs from the VM name and `platform_domain`.
-It does not derive service DNS records, ingress routes or certificates from this document.
+Guest automation forms host FQDNs from `platform_hostname` and the selected
+`platform_host_domain`. Standalone hosts use `platform_internal_domain`; directory
+members and authorities use `platform_domain`. Internal service aliases use
+`platform_internal_domain` independently of the backend host's role. See the
+[host and service domain inputs](../08-reference/platform-inputs.md#host-and-service-domains).
 
 ### VM tags
 

@@ -80,7 +80,7 @@ Edit these local files in **Tier 0**, and the two named files in **Shared**:
 | `terraform/common.tfvars` | Actual `network_zones.management` attachment and subnet, or applied SDN lookup |
 | `terraform/deployments/syslog/terraform.tfvars` | `log-1` VMID, placement, size and separate `scsi1` data-disk capacity |
 | `ansible/inventory/hosts.yml` | `log-1` under `foundation_logging`; preserve the other inventory groups |
-| `ansible/group_vars/all.yml` | Guest login/domain and accepted package proxy/mirror |
+| `ansible/group_vars/all.yml` | Guest login, `platform_internal_domain` for standalone hosts/services, directory `platform_domain` and accepted package proxy/mirror |
 | `ansible/group_vars/syslog.yml` | `platform_host_ips.log-1`, `syslog_ng_data_device`, filesystem and any receiver-specific repository inputs |
 
 In **Tier 0 `ansible/inventory/hosts.yml`**, retain this mapping beneath the existing `all.children`:
@@ -109,7 +109,7 @@ For cache-backed package access, configure **Tier 0 `ansible/group_vars/all.yml`
 
 ```yaml
 repository_proxy_enabled: true
-repository_proxy_url: "http://cache.{{ platform_domain }}:3128"
+repository_proxy_url: "http://cache.{{ platform_internal_domain | default(platform_domain) }}:3128"
 ```
 
 Include the receiver's subnet in the cache's approved clients. For Rocky, uncomment the approved
@@ -215,9 +215,9 @@ the existing `all.children`; merge with any existing `logging_producers` entry:
         foundation_logging: null
 ```
 
-In **your internal DNS service**, create the machine record and a separate
+In **the internal DNS service**, create the machine record and a separate
 [stable service name](../../02-conventions/service-dns.md). Replace the domain with
-`platform_domain` from **Tier 0 `ansible/group_vars/all.yml`** and the address with
+`platform_internal_domain` from **Tier 0 `ansible/group_vars/all.yml`** and the address with
 `platform_host_ips.log-1` from **`ansible/group_vars/syslog.yml`**:
 
 | DNS name | Type | Value in the starter example |
@@ -225,8 +225,15 @@ In **your internal DNS service**, create the machine record and a separate
 | `log-1.internal.example.com` | A | `10.10.10.30` |
 | `logs.internal.example.com` | CNAME | `log-1.internal.example.com` |
 
+Both hosts and services initially use the internal namespace. A directory-enrolled receiver can
+later use a machine name under `platform_domain`; keep `logs` under `platform_internal_domain`
+and point its alias at that receiver's current machine record. Older inputs without
+`platform_internal_domain` continue to use `platform_domain`. For an existing installation, follow
+the [domain cutover](../../05-operations/01-hosting/service-domain-cutover.md#4-update-the-logging-service)
+before changing a verified TLS name.
+
 `log-1` identifies the machine; `logs` identifies the intake service in
-[Figure 1](#figure-1-nas-retention-and-independent-recovery). DNS records are configured in your
+[Figure 1](#figure-1-nas-retention-and-independent-recovery). DNS records are configured in the
 DNS service; guest creation does not create them. A CNAME has one target, not a list of receivers. [2]
 
 Edit **Tier 0 `ansible/group_vars/logging_producers.yml`**. Use the service name for both
@@ -659,6 +666,7 @@ separately; a successful Terraform apply or repository test is not fault/recover
 | --- | --- |
 | Adopt/recover storage or diagnose the receiver | [Receiver storage and runtime](procedures/receiver.md) |
 | Renew/revoke certificates and refresh the CRL | [Logging trust maintenance](procedures/producer-trust.md#renewal-and-revocation) |
+| Change machine/service DNS domains | [Cache and logging domain cutover](../../05-operations/01-hosting/service-domain-cutover.md) |
 | Add a producer after this stage | [Source enrollment](procedures/sources.md) |
 | Look up files, queue controls and limitations | [Receiver contract](../../08-reference/syslog-receiver.md) |
 | Find all implementations and owners | [Pipeline map](../../08-reference/logging-pipeline.md#ownership-and-entry-points) |

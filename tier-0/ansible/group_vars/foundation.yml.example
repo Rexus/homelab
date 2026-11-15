@@ -30,8 +30,8 @@ foundation_connection_connect_timeout: 8
 foundation_connection_wait_retries: 10
 foundation_connection_wait_delay: 3
 
-# FreeIPA uses the platform domain by default. Override only if your identity
-# domain intentionally differs from the environment domain.
+# Directory namespace/realm; preserve the identity of an existing authority.
+# Set platform_domain_role: authority in the identity inventory group's vars.
 foundation_freeipa_domain: "{{ platform_domain }}"
 foundation_freeipa_realm: "{{ platform_domain | upper }}"
 

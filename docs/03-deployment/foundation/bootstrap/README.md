@@ -147,6 +147,12 @@ Allow only the required paths, including same-subnet filtering where needed:
 | Bootstrap VM → approved software sources | Scoped HTTPS, an existing proxy/mirror, or verified offline transfer |
 | Bootstrap VM → managed guests/clusters | Add SSH/API paths as each capability is deployed, not blanket access to every subnet |
 
+Use a machine name in the selected internal namespace, such as `boot-1.internal.example.com` or
+`boot-1.example.internal`, while this host is independently administered. Set
+`platform_internal_domain` to that suffix when initializing tier inputs. Directory membership later
+selects `platform_domain` for enrolled machine identities; stable cache/logging service names retain
+the internal suffix. See the [service naming convention](../../../02-conventions/service-dns.md).
+
 Apply the [host/gateway policy](../network/firewall.md) before broad provisioning.
 Initial software supply must work before Stage 1's cache exists; an approved
 temporary acquisition path is not permission for unrestricted Tier 0 Internet access.

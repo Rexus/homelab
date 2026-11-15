@@ -10,6 +10,7 @@ each tier owns its specific networks, guest selections and overrides.
 - [Find supported settings](#find-supported-settings)
 - [VM disk storage](#vm-disk-storage)
 - [Initial guest placement](#initial-guest-placement)
+- [Host and service domains](#host-and-service-domains)
 - [Loading and overrides](#loading-and-overrides)
 - [Local SSH access](#local-ssh-access)
 - [OS baseline boundary](#os-baseline-boundary)
@@ -141,6 +142,50 @@ inputs. The default may stay `null` only when every selected guest supplies an o
 
 This is initial placement. Later Proxmox-managed VM migration follows the
 [HA placement contract](../03-deployment/foundation/proxmox/step-1b-cluster-ha.md#make-guests-movable).
+
+## Host and service domains
+
+Edit the domains in the consuming tier's **`ansible/group_vars/all.yml`**.
+Record the same selected namespaces in the architecture repository's
+`platform-standards.md`.
+
+| Input | Fresh example / default | Meaning |
+| --- | --- | --- |
+| `platform_internal_domain` | `internal.example.com` in fresh inputs | Standalone host namespace and stable internal service namespace |
+| `platform_domain` | `corp.example.com` in fresh inputs | Directory host namespace |
+| `platform_domain_role` | `standalone` when unset | Per-host role, set in inventory, `host_vars`, or an inventory group |
+| `platform_host_domain` | Derived | `platform_domain` for `member` and `authority`; otherwise `platform_internal_domain`, falling back to `platform_domain` for older inputs |
+| `platform_fqdn` | Derived | `platform_hostname` plus `platform_host_domain` |
+| `baseline_manage_hostname` | `false` in Shared; `true` in fresh inputs | Apply `platform_fqdn` through the native hostname module and preserve it against cloud-init hostname changes where cloud-init is present |
+
+Default internal service-host inputs derive their suffix from `platform_internal_domain`,
+falling back to `platform_domain` when the internal setting is absent. They remain
+independent of each backend's domain role. A stable `logs.internal.example.com`
+endpoint can therefore serve independently administered or directory-enrolled receivers.
+DNS records, TLS names and listener/consumer configuration follow that selected endpoint.
+
+Set `platform_domain_role: member` for an enrolled host in its
+**`ansible/inventory/host_vars/<inventory-key>.yml`** or inventory entry. Directory server and
+replica groups use `authority` during commissioning. Keep the role undeclared in
+`all.yml`, which deployment commands can load as extra vars with higher precedence
+than inventory host vars. Selecting a role supplies naming inputs to the selected
+workflow. Complete enrollment through the owning directory deployment.
+
+Existing local inputs retain their values during refresh. With no
+`platform_internal_domain`, derived names continue using `platform_domain`.
+Shared leaves hostname management disabled unless the consuming configuration enables
+it. For a deliberate hostname change, prepare DNS, certificate names and consumers
+before setting `baseline_manage_hostname: true` and running the selected Ansible
+deployment. Retain inventory keys and the SSH IP map while changing an FQDN.
+Existing FreeIPA or Kerberos enrollment material blocks a baseline hostname change.
+Use the directory's supported rename/re-enrollment procedure for enrolled hosts.
+Fresh directory authorities can receive their intended hostname while commissioning.
+
+Use the [DNS convention](../02-conventions/service-dns.md#choose-the-domain-and-scope)
+to choose a registered-domain subdomain or a private `.internal` namespace and avoid
+`.local` collisions with Multicast DNS. The tier examples and
+[Shared baseline defaults](../../shared/ansible/roles/baseline/defaults/main.yml)
+own the executable settings.
 
 ## Loading and overrides
 

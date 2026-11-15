@@ -29,13 +29,22 @@ platform_environment: prod
 # becomes ca-root-prod-1.
 platform_hostname_prefix: ""
 platform_hostname_suffix: ""
-# Use a private internal subdomain, not the public website apex.
-# Production usually uses the base private domain, such as corp.example.com or
-# internal.example.com.
+# Standalone host and stable internal-service namespace.
+# Either internal.example.com (under your owned domain) or example.internal is valid.
+# Avoid .local: it is reserved for multicast DNS. See docs/02-conventions/service-dns.md.
+platform_internal_domain: internal.example.com
+# Directory namespace. Configuring it does not create a directory or enroll a host.
 platform_domain: corp.example.com
+# Per-host platform_domain_role: standalone (default), member, or authority.
+# Set it in inventory/host_vars/<host>.yml or the owning inventory group's vars;
+# do not set a global role here, because deploy.sh loads this file as extra vars.
+platform_host_domain: >-
+  {{ platform_domain
+     if platform_domain_role | default('standalone') in ['member', 'authority']
+     else platform_internal_domain | default(platform_domain) }}
 
 # Keep hostname generation here so all.<env>.yml only has to override prefix,
-# suffix, and domain values.
+# suffix, and the two domain values.
 platform_hostname_prefix_normalized: >-
   {{
     (platform_hostname_prefix ~ '-')
@@ -60,12 +69,16 @@ platform_hostname: >-
 # These settings form numbered machine identities, such as idm-1.
 # Set service URLs/FQDNs in the owning service's inputs.
 # Service DNS: docs/02-conventions/service-dns.md
-platform_fqdn: "{{ platform_hostname }}.{{ platform_domain }}"
+platform_fqdn: "{{ platform_hostname }}.{{ platform_host_domain }}"
 
 # Setup-specific group vars own platform_host_ips. Keep this file focused on
 # the shared environment identity. When you add or uncomment a host, update the
 # matching setup file, such as foundation.yml, edge.yml, or vault.yml.
 # Environment-specific IPs belong in the matching <setup>.<env>.yml file.
+
+# Fresh installations let the baseline own the selected Linux FQDN.
+# Existing installations enable this only after DNS/TLS migration review.
+baseline_manage_hostname: true
 
 # Baseline defaults applied by Ansible roles.
 baseline_timezone: Europe/Stockholm
@@ -84,7 +97,7 @@ baseline_disable_ipv6: true
 # This can cover OS package repos, Git remotes, and registry/update endpoints
 # as policy allows. A setup can set repository_proxy_enabled: false to opt out.
 # repository_proxy_enabled: true
-# repository_proxy_fqdn: "cache.{{ platform_domain }}"
+# repository_proxy_fqdn: "cache.{{ platform_internal_domain | default(platform_domain) }}"
 # repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
 # repository_proxy_https_url defaults to repository_proxy_url when unset.
 # repository_proxy_ip can stay unset when DNS resolves repository_proxy_fqdn.

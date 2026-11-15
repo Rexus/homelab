@@ -27,6 +27,7 @@ is a separate alternative; it does not create this pair.
 | **`<prefix>-tier-2/`** | `ansible/group_vars/cache.yml` for VIP, client networks, approved sources and storage; `ansible/inventory/hosts.yml` for targets |
 | **`<prefix>-tier-1/`** | `ansible/group_vars/intake.yml`: [verified publication](verified-publication.md), installed as the [Stage 3 option](../../03-deployment/stage-03-trust/step-15b-verified-intake.md) |
 | Consumer's tier | Proxy/mirror inputs for that consumer; [Proxmox updates](host-updates.md), [APT troubleshooting](apt-refresh.md) |
+| Existing cache/logging consumers | [Internal-domain cutover](../01-hosting/service-domain-cutover.md), including DNS, proxy bypass and logging TLS |
 
 The cache controls transport; verified intake owns quarantine and publication after
 trust is established. The maintenance and troubleshooting steps below operate the cache pair.

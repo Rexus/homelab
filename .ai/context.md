@@ -97,9 +97,23 @@ This file keeps durable context for AI-assisted work across sessions.
 - Service-facing DNS uses stable, familiar lowercase functional labels, usually 2–8 characters:
   iam/auth/idp/sso, ldap, dc where applicable, smtp/imap/pop/mx, proxy/cache, git, db, nfs,
   ca/secrets, registry, logs/metrics, cd/release. docs/02-conventions/service-dns.md owns this rule.
-  Default <service>.<domain>; environment/project scopes are optional. Keep numbered machine
+  Default <service>.<platform_internal_domain>; environment/project scopes are optional. Keep numbered machine
   identities separate and preserve required protocol member names, discovery records, TLS SANs
   and canonical issuer/client URLs. This preference is not a DNS limit or an automatic rename.
+- Host-domain selection follows administrative status. `platform_internal_domain` owns standalone
+  hosts and stable internal service aliases; `platform_domain` owns directory-enrolled host identities.
+  Per-host `platform_domain_role` is standalone by default, member after enrollment, or authority for
+  directory server commissioning. `platform_host_domain` selects the suffix; `platform_fqdn` combines it
+  with the hostname. Put the role in inventory/host_vars or an inventory group, never all.yml extra vars.
+  Fresh examples use internal.example.com and corp.example.com. A subdomain of a registered domain
+  under the operator's control or a private .internal namespace is valid; avoid .local mDNS conflicts.
+  IANA selected .internal; ICANN permanently reserved it from root delegation. Keep source examples generic.
+  Older inputs without platform_internal_domain fall back to platform_domain. Shared defaults
+  baseline_manage_hostname to false; fresh inputs enable it. Refresh preserves project inputs.
+  Prepare DNS/TLS/consumers before deliberately changing hostname inputs and enabling hostname management.
+  Naming-role selection requires the real enrollment/commissioning workflow; it supplies no enrollment itself.
+  Existing FreeIPA/Kerberos enrollment material blocks baseline hostname changes. Use the directory's
+  supported rename/re-enrollment procedure; fresh authority commissioning can receive its intended FQDN.
 - Lead deployment guides with the expected result figure, before long contents or input tables.
   Introduce a major enhancement with its own result figure where that installation begins, and
   reference named figure anchors from the actions that create/configure/verify its parts.

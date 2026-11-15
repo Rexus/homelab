@@ -10,7 +10,7 @@ logging_authority_requests: []
 #   profile: server
 #   csr: /protected/requests/log-1.csr
 #   key_sha256: <independently-verified-colon-separated-public-key-sha256>
-#   san: ['DNS:logs.internal.example']
+#   san: ['DNS:logs.internal.example.com']
 logging_authority_revocations: []
 # - serial_number: <integer-from-issued-certificate>
 #   revocation_date: '20261019000000Z'

@@ -58,7 +58,7 @@ Templates can override the state path through `TEMPLATE_STATE_PATH`.
 Check the owning wrapper before accepting any default. Do not invent a new state because the old one is missing.
 
 For example, an `infrastructure-runner` deployment run from **`homelab-tier-0/`** without `--env`
-has the following answers. This is one example; use the setup/environment that owns your object.
+has the following answers. This is one example; use the setup/environment that owns the selected object.
 
 | Prompt in Step 3 | Example answer | Where to find it |
 | --- | --- | --- |
@@ -167,7 +167,7 @@ instead: its old-binding removal must be followed by import of the validated rep
    ```
 
    Example answer: `module.vms["iac-1"].proxmox_virtual_environment_vm.this`.
-   Copy your object's whole line from the earlier listing. Expected preview:
+   Copy the selected object's whole line from the earlier listing. Expected preview:
    `Would remove module.vms["iac-1"].proxmox_virtual_environment_vm.this`.
 
 3. Require exactly the intended match. The following command changes state immediately; it has

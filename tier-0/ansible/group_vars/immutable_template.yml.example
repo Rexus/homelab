@@ -48,7 +48,7 @@ immutable_template_image_publication:
 
 # Keep false until the target image has been built and published.
 immutable_template_apply_bootc: false
-immutable_template_bootc_image: registry.corp.example.com/platform/rhel-10-immu@sha256:REPLACE_WITH_APPROVED_DIGEST
+immutable_template_bootc_image: "registry.{{ platform_internal_domain | default(platform_domain) }}/platform/rhel-10-immu@sha256:REPLACE_WITH_APPROVED_DIGEST"
 immutable_template_bootc_transport: registry
 immutable_template_bootc_retain: true
 immutable_template_reboot_after_switch: false

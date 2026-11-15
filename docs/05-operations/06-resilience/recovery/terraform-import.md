@@ -24,21 +24,21 @@ Templates, LXC and Kubernetes use their own state/input contracts.
 ## What will I enter?
 
 The examples below move **`iac-1` from VMID `611` to `612` on `pve01`**, in a collection
-whose prefix is `homelab`. They illustrate the answers; use your own existing deployment.
+whose prefix is `homelab`. They illustrate the answers; use the actual existing deployment.
 Run every command in this guide from **the tier repository that originally created the VM**,
 for example **`homelab-tier-0/`**, not Shared or the Proxmox host.
 
-| Asked value | Example answer | Find your value |
+| Asked value | Example answer | Find the actual value |
 | --- | --- | --- |
 | Deployment setup | `infrastructure-runner` | The first argument in the original `bash scripts/deploy.sh <setup>` command; Step 2 prints this repository's `.deployment-setups` |
 | Setup group-vars filename | `infrastructure_runner.yml` | File under `ansible/group_vars/` used by that deployment; press Enter for the displayed default |
 | Shared directory | `../homelab-shared` | Sibling checkout used by this tier's `scripts/deploy.sh`; press Enter for the displayed default |
-| VM resource address | `module.vms["iac-1"].proxmox_virtual_environment_vm.this` | Copy the **whole line** for your VM from Step 3's `terraform state list`; Step 4 verifies it |
+| VM resource address | `module.vms["iac-1"].proxmox_virtual_environment_vm.this` | Copy the **whole line** for the selected VM from Step 3's `terraform state list`; Step 4 verifies it |
 | Replacement import ID | `pve01/612` | New VM's **Proxmox node name** and **VMID**, shown in the Proxmox tree/Summary; not its DNS name or IP |
 
 Type answers **at the prompt that ends in `:`**, then press Enter. Do not type the prompt itself,
 shell quotes or the variable name. Blocks marked `text` show example output; only `bash` blocks run.
-`IAC_*` variables hold your answers for later commands. Keep the same maintenance shell open;
+`IAC_*` variables hold the answers for later commands. Keep the same maintenance shell open;
 never paste a later command into a new terminal with those variables unset.
 
 ## Steps
@@ -129,7 +129,7 @@ Shared repository directory [../homelab-shared]:
 
 This selects `terraform/deployments/infrastructure-runner/terraform.tfvars` and
 `ansible/group_vars/infrastructure_runner.yml`. A setup is a deployment name, **not** a VM hostname,
-VMID, tier number or environment name. If you do not know its owner, look for the VM's logical key
+VMID, tier number or environment name. If its owner is unknown, look for the VM's logical key
 in the tier's `terraform/deployments/*/terraform.tfvars` before continuing.
 
 **Expected:** a valid original setup, group-vars file and Shared checkout. A mistyped Shared path

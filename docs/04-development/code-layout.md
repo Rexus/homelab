@@ -151,6 +151,13 @@ Keep original state and keys when changing code. [Platform inputs](../08-referen
 owns field names, credentials, precedence and SSH access; [network inputs](../08-reference/network-inputs.md)
 owns attachment resolution. Avoid duplicating those defaults here.
 
+Tier-local `all.yml` selects `platform_internal_domain` for standalone hosts and
+stable internal service names, and `platform_domain` for directory host identities.
+Inventory or `ansible/inventory/host_vars/` records each host's `platform_domain_role`.
+Shared's baseline implements explicitly enabled hostname management. The
+[host and service domain contract](../08-reference/platform-inputs.md#host-and-service-domains)
+owns the derived fields, enrollment boundary and existing-input compatibility.
+
 <a id="terraform-setups"></a>
 
 ## Other entry points and starters

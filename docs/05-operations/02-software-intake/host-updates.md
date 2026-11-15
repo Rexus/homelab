@@ -141,7 +141,7 @@ Update access alone does not schedule or approve patch installation.
 ## How is the GUI download proxy configured manually?
 
 1. Open **Datacenter > Options > HTTP proxy > Edit**.
-2. Enter the accepted proxy, for example `http://cache.corp.example.com:3128`, and save.
+2. Enter the accepted proxy, for example `http://cache.internal.example.com:3128`, and save.
 3. On a Proxmox host, inspect the cluster-wide setting:
 
    Run on **the selected Proxmox host as an authorized root operator**.
@@ -164,7 +164,7 @@ Update access alone does not schedule or approve patch installation.
    Run on **the selected Proxmox host as an authorized root operator**.
 
    ```bash
-   read -r -p "Approved proxy URL (example: http://cache.corp.example.com:3128): " CACHE_PROXY_URL
+   read -r -p "Approved proxy URL (example: http://cache.internal.example.com:3128): " CACHE_PROXY_URL
    read -r -p "Approved small repository metadata URL: " SOURCE_URL
    curl --fail --noproxy '' --proxy "$CACHE_PROXY_URL" --output /dev/null "$SOURCE_URL"
    apt-get -o APT::Update::Error-Mode=any -o Acquire::http::Proxy="$CACHE_PROXY_URL" \

@@ -149,8 +149,14 @@ contract. DNS names, ingress controllers and VIP counts do not establish isolati
 redundancy or backend readiness.
 
 Clients use [stable service DNS names](../../02-conventions/service-dns.md), such as
-`git.corp.example.com` or `proxy.corp.example.com`. The name identifies the accepted
+`git.internal.example.com` or `proxy.internal.example.com`. The name identifies the accepted
 service interface; numbered host names remain separate operational identities.
+
+Internal service names use `platform_internal_domain` throughout the platform's
+lifecycle. Standalone hosts use that namespace too. Directory members and directory
+authorities use `platform_domain` for their machine identities. The
+[domain naming convention](../../02-conventions/service-dns.md#choose-the-domain-and-scope)
+defines the supported private namespace choices and the per-host selection.
 
 The [firewall policy](01-firewall-policy.md#rule-contracts) owns source/destination/listener
 rules. [Software lifecycle](../10-delivery/README.md#domain-boundaries) owns accepted

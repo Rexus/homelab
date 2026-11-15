@@ -72,6 +72,11 @@ Edit **`<prefix>-tier-2/ansible/group_vars/cache.yml`**. Compare with its refres
 | `cache_squid_allowed_domains` | Retain required repository/tool sources and redirect destinations; include the selected Windows sources for option 7b |
 | `cache_squid_refresh_patterns` | Adopt the current example's source-respecting rules; remove old expiry/privacy/reload overrides |
 | `cache_squid_extra_options` | Review retained custom directives for policy/cache changes |
+| `cache_proxy_fqdn` | Stable service name under `platform_internal_domain`; retain the accepted endpoint until its DNS cutover is ready |
+
+If adopting separate host/service domains, complete the
+[cache/logging domain cutover](../../05-operations/01-hosting/service-domain-cutover.md) before
+reconciling a changed endpoint. Refresh preserves existing `all.yml` and does not merge its new formulas.
 
 Approve the default [pinned Git sources](../../08-reference/control-node-tooling.md#collection-sources),
 or the API/artifact route for explicit Galaxy acquisition; use prepared archives offline.

@@ -25,7 +25,8 @@ cache_keepalived_virtual_router_id: 40
 # Keepalived needs CIDR form when assigning the VIP to the interface.
 cache_proxy_vip_cidr: "10.30.30.22/24"
 cache_proxy_name: cache
-cache_proxy_fqdn: "{{ cache_proxy_name }}.{{ platform_domain }}"
+# Stable service DNS follows the internal namespace, including after host enrollment.
+cache_proxy_fqdn: "{{ cache_proxy_name }}.{{ platform_internal_domain | default(platform_domain) }}"
 cache_proxy_port: 3128
 # Plain IP form for consumers that cannot use CIDR, such as /etc/hosts.
 cache_proxy_vip: >-

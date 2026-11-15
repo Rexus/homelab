@@ -75,7 +75,7 @@ These services give later projects a common base:
 
 | Shared service | What it gives other paths |
 | --- | --- |
-| DNS and private domain | Stable service names such as `ldap.corp.example.com` and `git.corp.example.com`; individual servers retain separate names |
+| DNS and private domains | Stable internal service names such as `ldap.internal.example.com` and `git.internal.example.com`; individual servers use their standalone or directory host domain |
 | identity | one user and group authority for operators, services, and automation |
 | PKI | trusted certificates for internal TLS, mTLS, service identity, and device identity |
 | secret platform | controlled storage for long-lived secrets, tokens and service credentials; later dynamic credential paths |

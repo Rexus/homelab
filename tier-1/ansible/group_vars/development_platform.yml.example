@@ -20,8 +20,8 @@ development_platform_gitlab_version: REPLACE_WITH_EXACT_CHART_VERSION
 development_platform_gitlab_backup_enabled: true
 development_platform_gitlab_backup_schedule: "30 2 * * *"
 development_platform_runner_version: REPLACE_WITH_EXACT_RUNNER_CHART_VERSION
-development_platform_host: git.internal.example.com
-development_platform_domain: internal.example.com
+development_platform_host: "git.{{ development_platform_domain }}"
+development_platform_domain: "{{ platform_internal_domain | default(platform_domain) }}"
 development_platform_ingress_class: REPLACE_WITH_ACCEPTED_INGRESS_CLASS
 development_platform_database_host: REPLACE_WITH_POSTGRESQL_HOST
 development_platform_redis_host: REPLACE_WITH_REDIS_HOST

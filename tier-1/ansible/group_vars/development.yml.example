@@ -12,7 +12,7 @@ gitlab_home: /srv/gitlab
 # Use the service DNS name users and runners will use. Point it at git-1 in
 # DNS or through the edge proxy. For production, pin the image tag and use a
 # certificate from the shared PKI.
-gitlab_hostname: "git.{{ platform_domain }}"
+gitlab_hostname: "git.{{ platform_internal_domain | default(platform_domain) }}"
 gitlab_external_url: "https://{{ gitlab_hostname }}"
 
 # Keep host SSH on 22. Git clone over SSH uses this published container port.

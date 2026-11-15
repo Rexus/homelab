@@ -3,7 +3,7 @@ gitlab_container_image: ""
 gitlab_container_name: gitlab
 gitlab_home: /srv/gitlab
 
-gitlab_hostname: "git.{{ platform_domain | default('corp.example.com') }}"
+gitlab_hostname: "git.{{ platform_internal_domain | default(platform_domain | default('internal.example.com')) }}"
 gitlab_external_url: "https://{{ gitlab_hostname }}"
 gitlab_http_host_port: 80
 gitlab_https_host_port: 443

@@ -72,13 +72,16 @@ Keep the existing `log-1` machine record and `logs` alias from
 [Step 5](README.md#step-5-configure-the-first-producer). Add an A record for
 `log-2.internal.example.com` using its new `platform_host_ips.log-2` address.
 Do not add a second CNAME for `logs`, and do not redirect producers before Step 3's routing is accepted.
+Use `platform_internal_domain` for the stable `logs` service name. Each machine record follows its
+own enrollment role; joining either host to the directory leaves the service name in the internal
+namespace. Existing suffix changes follow the [domain cutover](../../05-operations/01-hosting/service-domain-cutover.md).
 
 ## 3. Select the producer routing
 
 The supplied [sender template](../../../shared/ansible/roles/log_forwarder/templates/sender.conf.j2)
 configures one `log_forwarder_target` and one verified `log_forwarder_peer`. It has no secondary-target
 or dual-output input. The paths below describe **project integrations**, not additional kit installers.
-Keep the current single-target configuration until your chosen routing IaC is implemented and tested.
+Keep the current single-target configuration until the selected routing IaC is implemented and tested.
 
 | Choice | DNS and producer configuration | What changes |
 | --- | --- | --- |
@@ -111,7 +114,7 @@ No DNS record alone distributes or retries events. Continue at Step 4 after qual
 installed by the [receiver recipe](../../../tier-0/ansible/playbooks/deployment/foundation-logging.yml).
 Producers retain the service name in the [single-target sender](../../../shared/ansible/roles/log_forwarder/templates/sender.conf.j2).
 
-Provision and qualify the shared endpoint through your routing IaC before changing DNS. Replace the
+Provision and qualify the shared endpoint through the selected routing IaC before changing DNS. Replace the
 `logs` CNAME with an A record for its VIP; retain the receiver machine records for administration.
 Each receiver needs its own private key and certificate valid for `logs.internal.example.com`.
 Keep `log_forwarder_target` and `log_forwarder_peer` on that service name. Reconnect/revalidate producers

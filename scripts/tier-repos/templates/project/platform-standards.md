@@ -16,13 +16,14 @@ replace them with the selected project values.
 
 | Type | Standard | Comments |
 | --- | --- | --- |
-| Internal domain | `corp.example.com` | Private DNS namespace. |
+| Internal domain / `platform_internal_domain` | `internal.example.com` | Standalone hosts and stable internal services. `example.internal` is another private namespace choice. |
+| Directory domain / `platform_domain` | `corp.example.com` | Enrolled hosts and directory authorities. |
 | External domain | `example.com` | Public DNS namespace. |
 | VM name-part order | `<role>-<n>` | Optional `<env>-<role>-<n>`; use [role abbreviations](#role-abbreviations). |
 | VM hostname length | Prefer 3–8 characters | Include hyphens and sequence; `boot-1`, `idm-1`, `api-gw-1`. |
 | Number format | `1`, `2`, `3` | First and subsequent instances. |
 | Service DNS label | Prefer familiar 2–8 character labels | `ldap`, `idp`, `auth`, `git`, `proxy`, `db`, `nfs`; see [service DNS names](docs/auto-docs/02-conventions/service-dns.md). |
-| Internal service FQDN | `<service>.<internal-domain>` | Stable endpoint, such as `ldap.corp.example.com`. |
+| Internal service FQDN | `<service>.<internal-domain>` | Stable endpoint using `platform_internal_domain`, such as `logs.internal.example.com`. |
 | External service FQDN | `<service>.<external-domain>` | Selected published endpoint, such as `git.example.com`. |
 | Service scope | Optional `<service>.<env>.<domain>` or `<service>.<project>.<domain>` | Add only when needed to distinguish services. |
 | Template name | `<os>-<release>-tmpl` | Candidate suffix where selected. |
@@ -32,6 +33,11 @@ a separate hard restriction. Template titles and Kubernetes object/release names
 keep their own conventions. Existing host keys require a deliberate
 [state and identity migration](docs/auto-docs/02-conventions/proxmox-conventions.md#existing-installations),
 not an automatic rename during refresh.
+Select the per-host domain role and namespace using the
+[DNS convention](docs/auto-docs/02-conventions/service-dns.md#select-each-hosts-domain)
+and [platform inputs](docs/auto-docs/08-reference/platform-inputs.md#host-and-service-domains).
+Use a registered domain under site control or a private `.internal` namespace. Avoid `.local`,
+which is used by Multicast DNS.
 Service labels identify interfaces; numbered VM names identify individual machines.
 
 ## Role abbreviations

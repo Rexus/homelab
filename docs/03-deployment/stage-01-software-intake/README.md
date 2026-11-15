@@ -108,7 +108,7 @@ Edit in **`<prefix>-tier-2/`**:
 | --- | --- |
 | `.env.local` | Actual `PROXMOX_API_URL`, token ID/secret and `TF_VAR_ssh_public_key_files`; Tier 2 does not inherit Tier 0's credentials |
 | `terraform/deployments/cache/terraform.tfvars` | Free VMIDs, selected size/storage and OS/data disks; retain `cache-1`/`cache-2` keys |
-| `ansible/group_vars/all.yml` | `platform_domain`, hostname prefix/suffix and `ansible_user` matching the clone's login account |
+| `ansible/group_vars/all.yml` | `platform_internal_domain` for standalone hosts and stable services; `platform_domain` for directory members/authority; hostname prefix/suffix and the clone's `ansible_user` |
 
 In **Tier 2 `.env.local`**, uncomment `TF_VAR_ssh_public_key_files` and use the actual absolute
 public-key path from [bootstrap SSH setup](../foundation/bootstrap/README.md#step-3-prepare-the-execution-accounts-ssh-key):
@@ -159,6 +159,12 @@ cache_squid_allowed_cidrs:
   - 10.30.30.0/24
 cache_validation_url: https://mirrors.fedoraproject.org/
 ```
+
+Create `cache.internal.example.com` in the independent DNS service, pointing to the VIP.
+Use the selected `platform_internal_domain`, such as `example.internal`, in place of `internal.example.com`.
+The example's `cache_proxy_fqdn` follows that setting and falls back to `platform_domain` in older inputs.
+Keep the service name when a cache host later joins the directory. Machine names such as `cache-1`
+follow that host's enrollment role. See the [service naming convention](../../02-conventions/service-dns.md).
 
 Include the actual bootstrap and Proxmox management CIDRs. Narrow `cache_squid_allowed_domains`
 to the selected repositories, required tools and redirect destinations; an empty list is rejected.
@@ -290,9 +296,13 @@ This configures the existing bootstrap; it is not another Terraform setup or inv
 | Input | Set |
 | --- | --- |
 | `bootstrap_software_intake_mode` | `proxy` |
-| `repository_proxy_url` | Accepted HTTP proxy URL, using its resolvable name or IP; no credentials |
+| `repository_proxy_url` | Accepted service URL, such as `http://cache.internal.example.com:3128`; an accepted VIP is also valid; no credentials |
 | `shell_proxy_no_proxy_extra` | Internal HTTP/HTTPS destinations that bypass the proxy, for example the Proxmox API hostname and IP; no scheme/path |
 | `repository_proxy_dnf_sources` | Fixed approved sources for enabled EL repositories whose mirror lists select unapproved hosts |
+
+This local recipe reads `bootstrap.yml` explicitly. Enter the actual service URL there, even when
+other tier inputs derive it from `platform_internal_domain`. Bootstrap can use the cache while
+retaining its independent administration and DNS path.
 
 On **`boot-1`**, inspect actual EL repository filenames and sections before selecting fixed sources:
 
@@ -392,7 +402,7 @@ For proxy consumers, edit **Tier 0 `ansible/group_vars/all.yml`**:
 
 ```yaml
 repository_proxy_enabled: true
-repository_proxy_url: "http://10.30.30.22:3128"
+repository_proxy_url: "http://cache.{{ platform_internal_domain | default(platform_domain) }}:3128"
 ```
 
 Use the actual accepted endpoint. Ensure host subnets and enabled Debian, Proxmox and Ceph repository
@@ -473,7 +483,7 @@ Reuse the accepted endpoint; do not replace an already accepted host configurati
 
 ```yaml
 repository_proxy_enabled: true
-repository_proxy_url: "http://10.30.30.22:3128"
+repository_proxy_url: "http://cache.{{ platform_internal_domain | default(platform_domain) }}:3128"
 ```
 
 A hostname is valid when independent DNS already resolves it.
@@ -494,6 +504,7 @@ See the [policy and sizing reference](../../08-reference/proxy-cache.md) when ex
 | Wider vulnerability policy | [Design extension](../../01-architecture/07-software-intake/01-verification.md); OCI/Trivy integration remains separate | Add target-specific gates; ordinary proxy tunnels remain unscanned |
 | OCI registry | [Stage 7 artifact supply](../stage-07-delivery/procedures/registry.md); Tier 1, Harbor is an example | Store/promote container images and compatible OCI artifacts; does not replace RPM/APT repositories |
 | Patch rollout | Tier-owned maintenance automation; not supplied end to end | Use approved content with test/reboot/health gates; content availability alone is not patch compliance |
+| Move existing cache/logging DNS to the internal namespace | [Service-domain cutover](../../05-operations/01-hosting/service-domain-cutover.md) | Preserve local inputs and prepare DNS/TLS before changing consumers |
 
 Repository and registry services can share intake policy and approval records,
 but use their own protocols, credentials, persistence and recovery contracts.

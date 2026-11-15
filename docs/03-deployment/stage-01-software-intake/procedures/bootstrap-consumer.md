@@ -54,7 +54,7 @@ Select **2a** or **2b**, then continue at **3**. This is not an `init-local-file
 | Field | Set to |
 | --- | --- |
 | `bootstrap_software_intake_mode` | `proxy` |
-| `repository_proxy_url` | Accepted internal proxy URL using a hostname or IP, such as `http://10.30.30.22:3128`; no credentials |
+| `repository_proxy_url` | Accepted internal service URL, such as `http://cache.internal.example.com:3128`, or its VIP; no credentials |
 | `shell_proxy_no_proxy_extra` | Internal websites and HTTP/HTTPS endpoints that should bypass the proxy |
 | `repository_proxy_dnf_sources` | EL repositories that must use fixed approved HTTPS sources instead of dynamic mirrors |
 
@@ -63,6 +63,11 @@ proxy variables. Only explicitly selected DNF source sections are edited; other 
 DNS and `/etc/hosts` remain unchanged.
 HTTPS certificate verification remains enabled; HTTPS CONNECT does not cache encrypted content.
 Keep native pip, Galaxy and Terraform source restrictions where required.
+
+Set the actual URL in `bootstrap.yml`; this local command loads that file explicitly.
+Use the stable internal service name regardless of cache-host directory enrollment.
+For an existing deployment changing its suffix, follow the
+[cache/logging domain cutover](../../../05-operations/01-hosting/service-domain-cutover.md) first.
 
 For **EL10**, mirror lists can select third-party hosts outside the proxy allowlist. Choose fixed
 approved sources for every enabled repository that would otherwise use such mirrors. On **`boot-1`**,

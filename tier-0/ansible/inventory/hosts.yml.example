@@ -15,7 +15,7 @@ all:
       # Replace hosts: {} above with a host mapping when managing Proxmox.
       # hosts:
       #   pve01:
-      #     ansible_host: pve01.corp.example.com
+      #     ansible_host: pve01.internal.example.com
     # Stage 6 managed monitor or accepted existing host; outside observed Kubernetes clusters.
     infrastructure_monitoring:
       hosts: {}
@@ -44,6 +44,9 @@ all:
         issuing_ca: null
     # Dedicated FreeIPA VMs, outside Kubernetes; Keycloak belongs to clusters/tier0/.
     identity:
+      # Authorities need their directory FQDN while commissioning the realm.
+      vars:
+        platform_domain_role: authority
       children:
         identity_primary: null
         identity_replicas: null

@@ -1,0 +1,133 @@
+---
+- name: Validate the declared host domain role
+  ansible.builtin.assert:
+    that:
+      - platform_domain_role | default('standalone') in ['standalone', 'member', 'authority']
+    fail_msg: >-
+      Set platform_domain_role per host to standalone, member or authority.
+      This selects its machine namespace; the baseline does not enroll hosts or rename realms.
+
+- name: Validate the selected host domain before any baseline changes
+  ansible.builtin.assert:
+    that:
+      - baseline_identity_domain is string
+      - baseline_identity_domain | length > 0
+      - baseline_identity_domain | length <= 253
+      - baseline_identity_domain is match('^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+\Z')
+      - not (baseline_identity_domain | lower).endswith('.local')
+    fail_msg: >-
+      Select a nonempty DNS domain without spaces, underscores, trailing dots or a .local suffix.
+      Standalone hosts use platform_internal_domain (for example internal.example.com or
+      example.internal); member and authority hosts use platform_domain. Legacy inputs without
+      platform_internal_domain continue to use platform_domain.
+  vars:
+    baseline_identity_domain: >-
+      {{ platform_host_domain | default(
+           platform_domain | default('')
+           if platform_domain_role | default('standalone') in ['member', 'authority']
+           else platform_internal_domain | default(platform_domain | default(''))
+         ) }}
+  when: >-
+    platform_internal_domain is defined or platform_domain is defined or
+    platform_host_domain is defined or platform_domain_role is defined or baseline_manage_hostname | bool
+
+- name: Manage the explicitly selected system hostname
+  when: baseline_manage_hostname | bool
+  block:
+    - name: Require a supported systemd host for hostname management
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family | default('') in ['RedHat', 'Debian']
+          - ansible_service_mgr | default('') == 'systemd'
+        fail_msg: >-
+          baseline_manage_hostname supports systemd hosts in the RedHat and Debian families.
+          Disable hostname management for other targets; no automatic domain enrollment is performed.
+
+    - name: Validate the requested system hostname
+      ansible.builtin.assert:
+        that:
+          - baseline_hostname is string
+          - baseline_hostname | length > 0
+          - baseline_hostname | length <= 64
+          - baseline_hostname is match('^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*\Z')
+          - baseline_hostname | lower != 'local'
+          - not (baseline_hostname | lower).endswith('.local')
+        fail_msg: >-
+          Set platform_fqdn or an explicit baseline_hostname to a valid DNS hostname of at most
+          64 characters, without spaces, underscores, trailing dots or a .local suffix.
+
+    - name: Check for existing Kerberos or FreeIPA identity material without reading it
+      ansible.builtin.stat:
+        path: "{{ item }}"
+        follow: false
+        get_checksum: false
+        get_mime: false
+        get_attributes: false
+      loop:
+        - /etc/krb5.keytab
+        - /etc/ipa/default.conf
+      register: baseline_directory_identity
+
+    - name: Protect the static hostname of an existing directory identity
+      when: >-
+        baseline_directory_identity.results | selectattr('stat.exists') | list | length > 0
+      block:
+        - name: Check that the enrolled host has a readable static hostname file
+          ansible.builtin.stat:
+            path: /etc/hostname
+            follow: true
+            get_checksum: false
+            get_mime: false
+            get_attributes: false
+          register: baseline_static_hostname
+
+        - name: Require an existing static hostname before preserving directory identity
+          ansible.builtin.assert:
+            that:
+              - baseline_static_hostname.stat.isreg | default(false)
+            fail_msg: >-
+              Existing Kerberos/FreeIPA identity material was found, but /etc/hostname is missing
+              or is not a regular file. Restore the existing static hostname or set
+              baseline_manage_hostname=false; directory identity changes require a planned migration.
+
+        - name: Read only the enrolled host's static hostname
+          ansible.builtin.slurp:
+            src: /etc/hostname
+          register: baseline_enrolled_hostname
+          no_log: true
+
+        - name: Refuse to rename an existing Kerberos or FreeIPA identity
+          ansible.builtin.assert:
+            that:
+              - baseline_hostname == (baseline_enrolled_hostname.content | b64decode | trim)
+            fail_msg: >-
+              Existing Kerberos/FreeIPA identity material was found. baseline_manage_hostname=true
+              may only preserve the current static hostname in /etc/hostname. Restore the matching
+              platform_fqdn/domain inputs or set baseline_manage_hostname=false, then plan a directory
+              migration separately. platform_domain_role is a declared record, not enrollment proof;
+              changing it or a global domain must not rename an active directory identity.
+
+    - name: Check whether Cloud-init hostname configuration is present
+      ansible.builtin.stat:
+        path: /etc/cloud/cloud.cfg.d
+        follow: true
+        get_checksum: false
+        get_mime: false
+        get_attributes: false
+      register: baseline_cloud_init_config
+
+    - name: Preserve the managed hostname across Cloud-init boots
+      ansible.builtin.copy:
+        dest: /etc/cloud/cloud.cfg.d/99-baseline-hostname.cfg
+        content: |
+          # Managed by the Shared baseline role.
+          preserve_hostname: true
+        owner: root
+        group: root
+        mode: "0644"
+      when: baseline_cloud_init_config.stat.isdir | default(false)
+
+    - name: Set the system hostname with the native systemd strategy
+      ansible.builtin.hostname:
+        name: "{{ baseline_hostname }}"
+        use: systemd

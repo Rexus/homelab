@@ -8,7 +8,7 @@ architecture repository's README; individual guests remain in tier-local IaC inp
 | --- | --- |
 | Assign VM, container or template IDs | [VMID quick reference](vmid-convention.md) |
 | Choose individual VM names and Proxmox tags | [Names and tags](proxmox-conventions.md) |
-| Choose stable, familiar service endpoints | [Service DNS names](service-dns.md) |
+| Choose internal/directory domains and stable service endpoints | [Service DNS names](service-dns.md) |
 | Plan VLANs, zones, SDN IDs and subnets | [Network plan](network-plan.md) |
 | Name and locate IaC inputs, including filesystem UUID pins | [IaC input names](iac-inputs.md) |
 | Understand environment-specific inputs | [Environment contract](../08-reference/environment-variables.md) |
