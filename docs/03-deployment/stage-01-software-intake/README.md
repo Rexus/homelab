@@ -161,7 +161,7 @@ cache_keepalived_virtual_router_id: 40
 cache_squid_allowed_cidrs:
   - 10.10.10.0/24
   - 10.30.30.0/24
-cache_validation_url: https://mirrors.fedoraproject.org/
+cache_validation_url: https://dl.fedoraproject.org/pub/epel/
 ```
 
 Create `cache.internal.example.com` in the independent DNS service, pointing to the VIP.
@@ -311,41 +311,33 @@ This configures the existing bootstrap; it is not another Terraform setup or inv
 | `bootstrap_software_intake_mode` | `proxy` |
 | `repository_proxy_url` | Accepted service URL, such as `http://cache.internal.example.com:3128`; an accepted VIP is also valid; no credentials |
 | `shell_proxy_no_proxy_extra` | Internal HTTP/HTTPS destinations that bypass the proxy, for example the Proxmox API hostname and IP; no scheme/path |
-| `repository_proxy_dnf_sources` | Fixed approved sources for enabled EL repositories whose mirror lists select unapproved hosts |
+| `baseline_package_source_profile` | `official` for fixed Rocky, AlmaLinux, Debian or Ubuntu sources; `preserve` for commissioned custom/internal mirrors |
 
 This local recipe reads `bootstrap.yml` explicitly. Enter the actual service URL there, even when
 other tier inputs derive it from `platform_internal_domain`. Bootstrap can use the cache while
 retaining its independent administration and DNS path.
 
-On **`boot-1`**, inspect actual EL repository filenames and sections before selecting fixed sources:
-
-```bash
-grep -nE '^\[|^(metalink|mirrorlist|baseurl)=' /etc/yum.repos.d/*.repo
-```
-
-For Rocky, add the matching enabled sections in **Tier 0 `ansible/group_vars/bootstrap.yml`**.
-Other EL distributions use their corresponding existing files/sections and approved sources.
+Set this in **Tier 0 `ansible/group_vars/bootstrap.yml`** for the proxy path:
 
 ```yaml
-repository_proxy_dnf_sources:
-  - file: rocky.repo
-    section: baseos
-    baseurl: 'https://dl.rockylinux.org/pub/rocky/$releasever/BaseOS/$basearch/os/'
-  - file: rocky.repo
-    section: appstream
-    baseurl: 'https://dl.rockylinux.org/pub/rocky/$releasever/AppStream/$basearch/os/'
-  - file: rocky-extras.repo
-    section: extras
-    baseurl: 'https://dl.rockylinux.org/pub/rocky/$releasever/extras/$basearch/os/'
+baseline_package_source_profile: official
 ```
 
-Include enabled EPEL/other sections only when used, with their approved fixed sources. Preserve
-publisher keys/signature checks; the proxy must admit selected hosts and actual redirects.
-Debian/Ubuntu uses its existing accepted APT sources; it needs no DNF section mapping.
+The profile selects endpoints for the actual OS before package installation. It removes mirror
+selection from enabled Rocky/Alma repositories, including enabled EPEL, and fixes Debian/Ubuntu
+APT endpoints. Existing release names, components, enabled/disabled choices and publisher trust
+remain intact. The cache example permits all four distributions, including `.ubuntu.com`.
+Review the [source profile and custom overrides](../../08-reference/platform-inputs.md#fixed-package-source-profile)
+when using a local mirror, third-party repository or a nonstandard source-file layout.
+
+For managed Linux guests, also set `baseline_package_source_profile: official` beside the accepted
+proxy settings in **each owning tier's `ansible/group_vars/all.yml`**. A cache host building its own
+proxy must retain independent accepted package access; never point it at its unavailable VIP.
 
 ### 10b. Native mirrors or disconnected supply
 
-Set `bootstrap_software_intake_mode: mirror`. Retain the commissioned native repository/tool
+Set `bootstrap_software_intake_mode: mirror` and `baseline_package_source_profile: preserve`.
+Retain the commissioned native repository/tool
 configurations and prepared offline artifacts. This removes the recipe's package/shell proxy settings;
 it does not install a mirror or replace pip, collection or Terraform source configurations.
 The [bootstrap intake reference](procedures/bootstrap-consumer.md) covers field behavior and rollback.
@@ -363,7 +355,7 @@ The precheck prepares declared collections through the accepted source. Disconne
 the prepared `offline.env` and prefix this command with `CONTROL_NODE_COLLECTIONS_MODE=check`.
 Add `--ask-become-pass` only when the account actually requires a sudo password.
 **Expected:** native package policy, package-proxy settings and login-shell settings are reconciled;
-other baseline host settings remain untouched. No VM, inventory entry or state is created.
+the selected source profile is applied before subsequent package installs. No VM, inventory entry or state is created.
 
 **IaC:** Tier 0 [inputs](../../../tier-0/ansible/group_vars/bootstrap.yml.example) and
 [local play](../../../tier-0/ansible/playbooks/deployment/bootstrap-software-intake.yml)

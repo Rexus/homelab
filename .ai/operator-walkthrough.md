@@ -19,6 +19,27 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Predictable package sources, 2026-11-15
+
+Added an opt-in Shared baseline profile for fixed official Rocky/AlmaLinux, enabled EPEL,
+Debian and Ubuntu endpoints. Existing role defaults preserve sources; fresh supported proxy
+consumer examples select official. The selected profile runs before package prerequisites, including
+trust-tool installation, without enabling repositories or changing their release/components/keys.
+Debian cloud mirror+file references, legacy/deb822 files and Ubuntu ports are included. Explicit DNF
+overrides and complete APT inputs retain precedence; nonstandard layouts fail with an actionable route.
+An optional DNF per-repository proxy can be retained, set or removed to return to global inheritance.
+The cache example admits Ubuntu and validates a fixed source rather than a mirror-discovery service.
+
+Native Ansible 2.16 checks exercised preservation, idempotence, disabled/custom repositories,
+cloud mirror files, APT parsing, proxy-override removal, refusal paths and generated export. Ten final
+profile tests, four existing source-preservation cases and generated payload/link/language checks
+passed; exact logs are `.tmp/fixed-source-final-native.log`, `.tmp/fixed-source-checks.log`,
+`.tmp/fixed-source-proxy-override.log` and `.tmp/fixed-source-followups.log`.
+The operator observed an ordinary EPEL refresh through the configured VIP after a controlled
+fixed-source/proxy change. Earlier intermittent connection timeouts were not root-caused; do not
+attribute them all to source selection or claim universal transport recovery. No remote system was
+accessed by this agent and no distro/package upgrade was performed.
+
 ### Root, issuer and complete reader-path review, 2026-11-15
 
 Five focused reviews covered early installation, later capability stages and operations, generated

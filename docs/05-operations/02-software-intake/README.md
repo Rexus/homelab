@@ -103,6 +103,8 @@ and the `cache_validation_failover_enabled` option; disabling it skips the takeo
 | Repeated HTTP misses | Check source cacheability, refresh policy and object limits; do not override source privacy or expiry. |
 | Package verification fails | Stop and investigate keys, metadata and source; do not disable verification or bypass the proxy. |
 
+For repeated mirror timeouts or proxy denials, select the [fixed OS source profile](../../08-reference/platform-inputs.md#fixed-package-source-profile), then rerun the owning bootstrap/guest recipe.
+
 ### Terraform initialization reports registry access forbidden
 
 1. In **`<prefix>-tier-2/ansible/group_vars/cache.yml`**, add this entry to the existing

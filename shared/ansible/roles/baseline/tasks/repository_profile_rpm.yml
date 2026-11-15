@@ -1,0 +1,39 @@
+---
+- name: Find existing distribution and optional repository definitions
+  ansible.builtin.find:
+    paths: "{{ repository_proxy_dnf_repo_dir }}"
+    patterns: '*.repo'
+    file_type: file
+    follow: false
+  register: baseline_official_rpm_files
+
+- name: Start the enabled official source selection for this host
+  ansible.builtin.set_fact:
+    baseline_official_rpm_selected: []
+
+- name: Read existing repository definitions before selecting enabled sections
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
+  loop: "{{ baseline_official_rpm_files.files | sort(attribute='path') }}"
+  loop_control:
+    label: "{{ item.path }}"
+  register: baseline_official_rpm_contents
+
+- name: Select enabled vendor repositories while retaining explicit per-section overrides
+  ansible.builtin.include_tasks: repository_profile_rpm_file.yml
+  loop: "{{ baseline_official_rpm_contents.results }}"
+  loop_control:
+    loop_var: baseline_official_rpm_file
+    label: "{{ baseline_official_rpm_file.item.path }}"
+
+- name: Require enabled known sources or explicit existing source selections
+  ansible.builtin.assert:
+    that: baseline_official_rpm_selected | length > 0 or repository_proxy_dnf_sources | length > 0
+    fail_msg: Use preserve and explicit DNF source inputs for nonstandard repository IDs or layouts.
+
+- name: Apply fixed endpoints to the selected existing repositories
+  ansible.builtin.include_tasks: repository_source.yml
+  loop: "{{ baseline_official_rpm_selected }}"
+  loop_control:
+    loop_var: repository_proxy_dnf_source
+    label: "{{ repository_proxy_dnf_source.file }}/{{ repository_proxy_dnf_source.section }}"

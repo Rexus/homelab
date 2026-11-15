@@ -145,6 +145,11 @@ filesystem through libguestfs. The Debian target image stays powered off through
 When using a disposable preparation VM, first copy the verified original qcow2 and its checksum
 manifest into a private workspace on that VM. Its own installed OS can be Rocky/Alma or Debian/Ubuntu.
 
+When reusing **`boot-1` already behind the cache**, first reconcile its
+[bootstrap package sources](../../stage-01-software-intake/procedures/bootstrap-consumer.md#3-apply-the-local-configuration).
+The tool installation below uses that preparation host's OS repositories. Rocky/Alma mirror lists
+must select permitted endpoints before installing packages through a restricted proxy.
+
 Install the image tool on **that Linux preparation host**. For Rocky/Alma EL10:
 
 ```bash

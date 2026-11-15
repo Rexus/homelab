@@ -1,0 +1,43 @@
+---
+- name: Inspect only the distribution's existing APT definitions
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  loop: >-
+    {{ [baseline_package_source_apt_main_path] +
+       (baseline_official_sources.apt_files[ansible_distribution]
+        | map('regex_replace', '^', baseline_package_source_apt_dir ~ '/') | list) }}
+  register: baseline_official_apt_files
+
+- name: Require a recognized existing OS source layout
+  ansible.builtin.assert:
+    that: baseline_official_apt_files.results | selectattr('stat.exists') | list | length > 0
+    fail_msg: Use preserve and explicit APT source inputs for a nonstandard source-file layout.
+
+- name: Reject linked or non-file vendor source definitions
+  ansible.builtin.assert:
+    that:
+      - not item.stat.islnk | default(false)
+      - not item.stat.exists or item.stat.isreg | default(false)
+    fail_msg: Inspect the selected OS source file before choosing the official profile.
+  loop: "{{ baseline_official_apt_files.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+# Change only URI tokens in vendor-owned legacy/deb822 files. Installing a deb822
+# parser through the broken source would create a package-bootstrap dependency loop.
+- name: Replace mirror endpoints while preserving suites components and vendor keyrings
+  ansible.builtin.replace:
+    path: "{{ item.0.item }}"
+    regexp: "{{ item.1.regexp }}"
+    replace: "{{ item.1.replace }}"
+    backup: true
+  loop: "{{ baseline_official_apt_files.results | product(replacements) | list }}"
+  loop_control:
+    label: "{{ item.0.item }} -> {{ item.1.replace }}"
+  vars:
+    replacement_profile: >-
+      {{ 'UbuntuPorts' if ansible_distribution == 'Ubuntu' and
+         ansible_architecture not in ['x86_64', 'i386', 'i686'] else ansible_distribution }}
+    replacements: "{{ baseline_official_sources.apt_replacements[replacement_profile] }}"
+  when: item.0.stat.exists

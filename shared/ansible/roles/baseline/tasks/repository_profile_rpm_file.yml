@@ -1,0 +1,23 @@
+---
+- name: Retain only enabled known repository sections not explicitly overridden
+  ansible.builtin.set_fact:
+    baseline_official_rpm_selected: >-
+      {{ baseline_official_rpm_selected + [{
+        'file': source_file, 'section': item.key,
+        'baseurl': baseline_official_sources.epel_urls[item.key]
+          if item.key in baseline_official_sources.epel_urls else
+          baseline_official_sources.rpm_roots[ansible_distribution] ~ '/$releasever/' ~
+          baseline_official_sources.rpm_trees[item.key] ~ '/$basearch/os/'
+      }] }}
+  vars:
+    source_file: "{{ baseline_official_rpm_file.item.path | basename }}"
+    explicit: >-
+      {{ repository_proxy_dnf_sources | selectattr('file', 'equalto', source_file)
+         | selectattr('section', 'equalto', item.key) | list }}
+  loop: "{{ baseline_official_rpm_file.content | b64decode | community.general.from_ini | dict2items }}"
+  loop_control:
+    label: "{{ source_file }}/{{ item.key }}"
+  when:
+    - item.key in baseline_official_sources.rpm_trees or item.key in baseline_official_sources.epel_urls
+    - item.value.enabled | default('1') | bool
+    - explicit | length == 0

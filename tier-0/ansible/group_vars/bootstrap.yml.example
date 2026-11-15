@@ -7,22 +7,29 @@ bootstrap_software_intake_mode: proxy  # proxy or mirror; no permanent direct-WA
 # No credentials in this system-readable URL. HTTPS CONNECT does not cache encrypted bodies.
 # This local recipe loads bootstrap.yml explicitly. Set the actual service URL here.
 repository_proxy_url: http://cache.internal.example.com:3128
+# Fixed official OS endpoints avoid mirror lists selecting unapproved destinations.
+# Supports Rocky, AlmaLinux, Debian and Ubuntu. Use preserve for commissioned internal mirrors.
+baseline_package_source_profile: >-
+  {{ 'official' if bootstrap_software_intake_mode == 'proxy' and
+     ansible_distribution | default('') in ['Rocky', 'AlmaLinux', 'Debian', 'Ubuntu'] else 'preserve' }}
 # Internal websites and HTTP/HTTPS endpoints to contact directly, bypassing the proxy.
 # Example: the Proxmox API hostname and any IP used directly. Use hosts/IPs without a scheme/path.
 shell_proxy_no_proxy_extra:
   - pve01.example.internal
   - 10.10.10.11
 
-# Optional on EL: pin enabled repositories whose mirror lists select unapproved hosts.
+# Optional on EL: override individual sources selected by the official profile.
 # Definitions: Shared ansible/roles/baseline/defaults/main.yml; existing files/keys are retained.
 # Inspect /etc/yum.repos.d/ for actual filenames/sections. Example for an enabled EPEL repository:
 # repository_proxy_dnf_sources:
 #   - file: epel.repo
 #     section: epel
 #     baseurl: 'https://dl.fedoraproject.org/pub/epel/$releasever/Everything/$basearch/'
+#     proxy: "{{ repository_proxy_url if bootstrap_software_intake_mode == 'proxy' else '' }}"
+# Optional proxy above pins the declared route; an empty string removes that per-repo override.
 
 # Mirror path: select mode=mirror only after commissioning the native repository/tool
 # configs and retained artifacts. The recipe removes its DNF/APT and shell proxy settings;
-# Only explicitly selected repository_proxy_dnf_sources are edited. Other repo definitions,
+# In preserve mode only explicit source overrides are edited. Other repo definitions,
 # pip.conf, Galaxy config and Terraform CLI config remain separately owned.
 # Keep approved signatures/TLS verification, provider locks and recovery artifacts.

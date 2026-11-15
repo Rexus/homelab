@@ -115,6 +115,11 @@ An existing mirror is valid. The repository supplies A and an optional
 [verified RPM/APT and artifact publication path](../../03-deployment/stage-02-trust/step-15b-verified-intake.md)
 for B. C still requires a prepared, independently verified offline supply bundle.
 
+Restricted consumers use fixed publisher endpoints or retained internal repositories. Dynamic mirror
+selection can direct a client to another operator's hostname, even when the discovery service is
+permitted. Source selection and egress policy must therefore agree; a denied mirror is not a reason
+to expand access automatically. Transport reachability and repository authenticity are separate checks.
+
 ## Transport and integrity
 
 | Path | Design choice and limit |

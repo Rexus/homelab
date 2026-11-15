@@ -56,11 +56,10 @@ Select **2a** or **2b**, then continue at **3**. This is not an `init-local-file
 | `bootstrap_software_intake_mode` | `proxy` |
 | `repository_proxy_url` | Accepted internal service URL, such as `http://cache.internal.example.com:3128`, or its VIP; no credentials |
 | `shell_proxy_no_proxy_extra` | Internal websites and HTTP/HTTPS endpoints that should bypass the proxy |
-| `repository_proxy_dnf_sources` | EL repositories that must use fixed approved HTTPS sources instead of dynamic mirrors |
+| `baseline_package_source_profile` | `official` for fixed OS endpoints, or `preserve` for commissioned custom/internal mirrors |
 
 Use the accepted VIP or existing endpoint. The recipe sets the DNF/APT proxy and login-shell
-proxy variables. Only explicitly selected DNF source sections are edited; other repositories,
-DNS and `/etc/hosts` remain unchanged.
+proxy variables and the selected OS source profile. DNS and `/etc/hosts` remain unchanged.
 HTTPS certificate verification remains enabled; HTTPS CONNECT does not cache encrypted content.
 Keep native pip, Galaxy and Terraform source restrictions where required.
 
@@ -69,38 +68,21 @@ Use the stable internal service name regardless of cache-host directory enrollme
 For an existing deployment changing its suffix, follow the
 [cache/logging domain cutover](../../../05-operations/01-hosting/service-domain-cutover.md) first.
 
-For **EL10**, mirror lists can select third-party hosts outside the proxy allowlist. Choose fixed
-approved sources for every enabled repository that would otherwise use such mirrors. On **`boot-1`**,
-find the actual files, section IDs and URLs:
-
-```bash
-grep -nE '^\[|^(metalink|mirrorlist|baseurl)=' /etc/yum.repos.d/*.repo
-```
-
-Edit **Tier 0 `ansible/group_vars/bootstrap.yml`**. This Rocky/EPEL example must match the installed
-filenames and sections; include only selected repositories and add other enabled sources as needed:
+Select fixed official OS sources in **Tier 0 `ansible/group_vars/bootstrap.yml`**:
 
 ```yaml
-repository_proxy_dnf_sources:
-  - file: rocky.repo
-    section: baseos
-    baseurl: 'https://dl.rockylinux.org/pub/rocky/$releasever/BaseOS/$basearch/os/'
-  - file: rocky.repo
-    section: appstream
-    baseurl: 'https://dl.rockylinux.org/pub/rocky/$releasever/AppStream/$basearch/os/'
-  - file: rocky-extras.repo
-    section: extras
-    baseurl: 'https://dl.rockylinux.org/pub/rocky/$releasever/extras/$basearch/os/'
-  - file: epel.repo
-    section: epel
-    baseurl: 'https://dl.fedoraproject.org/pub/epel/$releasever/Everything/$basearch/'
+baseline_package_source_profile: official
 ```
 
-Use the distribution's corresponding official source or an accepted internal mirror for another EL10
-distribution. Keep its existing publisher keys and signature settings. The recipe removes `mirrorlist`
-and `metalink` only from selected sections and retains timestamped file backups. The proxy must allow
-the selected hosts and any actual redirects; allowing the mirror-list service alone is insufficient.
-An unavailable selected source stops refresh; no automatic mirror or direct-WAN fallback is added.
+This selects the actual Rocky, AlmaLinux, Debian or Ubuntu endpoints before subsequent package
+installs. Enabled known RPM repositories stop using dynamic mirror lists; APT retains its suites,
+components and keyrings while using fixed official endpoints. No repository is enabled and no
+signature/TLS check is weakened. See the [profile and custom overrides](../../../08-reference/platform-inputs.md#fixed-package-source-profile).
+
+For managed guests, select the same profile beside the proxy settings in the owning tier's
+`ansible/group_vars/all.yml`. Existing explicit DNF overrides take precedence; complete explicit
+APT sources remain separately owned. Unrecognized third-party repositories need their own accepted
+source and cache permission. The profile adds no automatic mirror or direct-WAN fallback.
 
 Add internal websites and HTTP/HTTPS endpoints that should be reached directly to
 `shell_proxy_no_proxy_extra`. For example, exclude the Proxmox endpoint in
@@ -122,11 +104,13 @@ for retained artifacts and tool configuration. Then set:
 
 ```yaml
 bootstrap_software_intake_mode: mirror
+baseline_package_source_profile: preserve
 ```
 
 This removes the DNF `[main] proxy` setting and the owned APT/shell proxy files.
 Other repository definitions, pip configuration, Galaxy configuration and Terraform CLI
-configuration remain intact. Explicit DNF source selections still apply. It installs no mirror service
+configuration remain intact. Explicit DNF source selections still apply. `preserve` stops profile
+edits; it does not undo a previous official-source selection. It installs no mirror service
 and does not make a cache an offline mirror.
 Retain verified package signatures, TLS trust, provider lockfiles and independent recovery artifacts.
 
@@ -148,7 +132,7 @@ CONTROL_NODE_COLLECTIONS_MODE=check ANSIBLE_CONFIG=ansible/ansible.cfg \
 **Expected:** local package/shell configuration is reconciled; a second run reports no changes.
 The play imports Shared's package-policy and package/shell proxy tasks, leaving baseline timezone/IPv6
 configuration untouched. The package-policy tasks apply native verification/failure defaults;
-only explicitly selected DNF source sections are edited; publisher-key choices remain owned locally. [2][3]
+the selected source profile and explicit source overrides apply; publisher-key choices remain owned locally. [2][3]
 The play uses sudo through `become: true`; no password prompt is needed with authorized
 passwordless sudo. Add `--ask-become-pass` (`-K`) only when sudo requires an account password.
 

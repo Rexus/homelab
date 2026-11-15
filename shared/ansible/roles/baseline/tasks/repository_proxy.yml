@@ -81,6 +81,12 @@
     - repository_proxy_remove_when_disabled | bool
     - repository_proxy_manage_apt | bool
 
+- name: Apply the selected OS package source profile after proxy configuration
+  ansible.builtin.include_tasks: repository_profile.yml
+  when:
+    - repository_proxy_configure_sources | default(true) | bool
+    - baseline_package_source_profile != 'preserve'
+
 - name: Select approved sources for explicitly managed DNF repositories
   ansible.builtin.include_tasks: repository_source.yml
   loop: "{{ repository_proxy_dnf_sources }}"

@@ -16,6 +16,10 @@
   ansible.builtin.include_tasks: shell_proxy.yml
   when: baseline_manage_shell_proxy | bool
 
+- name: Select the OS package source profile before installing package prerequisites
+  ansible.builtin.include_tasks: repository_profile.yml
+  when: baseline_package_source_profile != 'preserve'
+
 - name: Install explicitly selected public trust anchors
   ansible.builtin.include_tasks: trust_anchors.yml
   when: baseline_trust_anchors | length > 0

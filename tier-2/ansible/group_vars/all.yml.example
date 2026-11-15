@@ -99,6 +99,11 @@ baseline_disable_ipv6: true
 # repository_proxy_enabled: true
 # repository_proxy_fqdn: "cache.{{ platform_internal_domain | default(platform_domain) }}"
 # repository_proxy_url: "http://{{ repository_proxy_fqdn }}:3128"
+# Fixed official endpoints for proxy consumers; preserve for custom/internal mirrors.
+# Supported OS sources: Rocky, AlmaLinux, Debian and Ubuntu. Keys/suites stay unchanged.
+baseline_package_source_profile: >-
+  {{ 'official' if repository_proxy_enabled | default(false) | bool and
+     ansible_distribution | default('') in ['Rocky', 'AlmaLinux', 'Debian', 'Ubuntu'] else 'preserve' }}
 # repository_proxy_https_url defaults to repository_proxy_url when unset.
 # repository_proxy_ip can stay unset when DNS resolves repository_proxy_fqdn.
 # Set it only when the baseline must seed /etc/hosts before DNS exists.

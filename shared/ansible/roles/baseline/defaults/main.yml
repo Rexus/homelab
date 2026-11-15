@@ -8,6 +8,10 @@ baseline_rpm_repositories: []
 baseline_apt_repositories: []
 baseline_apt_retired_files: []
 baseline_apt_direct_hosts: []
+# Opt in to fixed official OS endpoints; preserve remains safe for existing/internal mirrors.
+baseline_package_source_profile: preserve
+baseline_package_source_apt_main_path: /etc/apt/sources.list
+baseline_package_source_apt_dir: /etc/apt/sources.list.d
 baseline_package_sources_environment: >-
   {{ {'http_proxy': repository_proxy_url, 'https_proxy': repository_proxy_effective_https_url}
      if repository_proxy_active | bool else {} }}

@@ -2,6 +2,10 @@
 - name: Manage native package verification
   ansible.builtin.import_tasks: package_policy.yml
 
+- name: Select the OS package source profile before installing package prerequisites
+  ansible.builtin.include_tasks: repository_profile.yml
+  when: baseline_package_source_profile != 'preserve'
+
 - name: Install selected public trust anchors
   ansible.builtin.include_tasks: trust_anchors.yml
   when: baseline_trust_anchors | length > 0

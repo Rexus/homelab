@@ -323,8 +323,9 @@ Additional sources and public trust are explicit local selections:
 | Shared baseline input | Owned change |
 | --- | --- |
 | `baseline_trust_anchors` | Controller-side public CA files installed in the native EL/Debian trust store |
+| `baseline_package_source_profile` | `preserve` by default; `official` selects fixed Rocky, AlmaLinux, Debian or Ubuntu OS endpoints |
 | `baseline_rpm_repositories` | New RPM sources with HTTPS URLs and pinned publisher-key fingerprints |
-| `repository_proxy_dnf_sources` | Selected existing vendor stanzas redirected without replacing their keys; `direct: true` bypasses the proxy for that stanza |
+| `repository_proxy_dnf_sources` | Existing DNF stanzas: `file`, `section`, HTTPS `baseurl`; optional `direct: true` or credential-free HTTP(S) `proxy` override |
 | `baseline_apt_repositories` | Native deb822 sources with existing vendor keyrings, suites and components |
 | `baseline_apt_retired_files` | Explicitly replaced whole source files, retained as `.save` copies |
 | `baseline_apt_direct_hosts` | Exact internal APT publication hosts bypassing a global proxy |
@@ -354,6 +355,47 @@ tasks. Removing these unused defaults does not alter an existing machine or hard
 it. Existing local copies of those values must not be counted as enforced controls.
 Verify effective SSH, time, firewall and audit behavior before accepting a host.
 
+<a id="fixed-package-source-profile"></a>
+
+### Fixed package source profile
+
+Select `baseline_package_source_profile: official` in the bootstrap inputs or the owning tier's
+`ansible/group_vars/all.yml` when using the policy proxy. Fresh examples select it for proxy consumers;
+refresh preserves existing local inputs, so add it explicitly there. [4][5][6]
+
+| OS | Fixed official endpoints |
+| --- | --- |
+| Rocky | `https://dl.rockylinux.org/pub/rocky/` |
+| AlmaLinux | `https://repo.almalinux.org/almalinux/` |
+| Enabled EPEL / EPEL testing | `https://dl.fedoraproject.org/pub/epel/` |
+| Debian | `https://deb.debian.org/debian`, `https://security.debian.org/debian-security` |
+| Ubuntu amd64 | `https://archive.ubuntu.com/ubuntu`, `https://security.ubuntu.com/ubuntu` |
+| Ubuntu ports architectures, including arm64 | `https://ports.ubuntu.com/ubuntu-ports` |
+
+The profile keeps distro release/architecture selection, enabled repositories, components, publisher
+keys and verification settings. RPM source selection discovers existing `.repo` files; explicit
+`repository_proxy_dnf_sources` overrides win. It does not install/enable EPEL, CRB or another repository.
+Already enabled CRB is redirected with BaseOS/AppStream; omitting an enabled repository from a manual
+override list leaves its mirror selection unchanged.
+APT edits only standard OS URI paths in `/etc/apt/sources.list` and `debian.sources`/`debian.list` or
+`ubuntu.sources`/`ubuntu.list`. Legacy, deb822 and Debian cloud `mirror+file:` layouts are supported without installing a parser
+through a broken repository. Standard Debian local mirror-list references become fixed HTTPS URIs;
+the mirror-list files themselves are retained. Other files, such as OpenXPKI/Proxmox sources, stay separately owned.
+Complete `baseline_apt_repositories` inputs take precedence over the official APT profile.
+
+For an explicitly pinned DNF route, a source entry may set `proxy: "{{ repository_proxy_url }}"`.
+Omit that field to retain its existing choice; use `proxy: ""` to remove the per-repository override
+and inherit the global proxy again. `direct: true` and a nonempty proxy are mutually exclusive.
+These inputs control configuration; they do not diagnose or repair intermittent transport failures. [7]
+
+Use `preserve` for commissioned internal mirrors or a nonstandard source layout, then supply the
+explicit source inputs above. That stops profile edits; it does not restore earlier URLs automatically.
+Repository edits retain backups. Review enabled third-party sources and any actual redirects separately;
+the profile and proxy allowlist must agree. A proxy rejection is an access decision, not cache slowness.
+HTTPS CONNECT forwards encrypted traffic without storing package bodies; use the verified repository
+publication path for complete disconnected supply. OS repository support does not expand a service's
+supported operating systems; the current CA installer still targets Debian 12.
+
 ## Existing collections
 
 Retain existing guest VMIDs and their state when reviewing refreshed examples. Follow the
@@ -377,3 +419,7 @@ old assignment after verifying that the plan retains the same authorized keys.
 1. [Terraform input variables and precedence](https://developer.hashicorp.com/terraform/language/values/variables)
 2. [Terraform file function](https://developer.hashicorp.com/terraform/language/functions/file)
 3. [Terraform merge function](https://developer.hashicorp.com/terraform/language/functions/merge)
+4. [Rocky repository versions and IDs](https://docs.rockylinux.org/books/admin_guide/13-softwares/).
+5. [APT legacy and deb822 source definitions](https://manpages.debian.org/bookworm/apt/sources.list.5.en.html).
+6. [Ubuntu package management and source files](https://ubuntu.com/server/docs/how-to/software/package-management/).
+7. [DNF proxy configuration and repository precedence](https://dnf.readthedocs.io/en/latest/conf_ref.html#proxy).

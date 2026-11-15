@@ -13,6 +13,13 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Repository intent
 
+- Restricted package consumers select fixed official endpoints or commissioned internal mirrors.
+  The Shared baseline source profile is preserve by default; fresh supported proxy consumers select
+  official Rocky/Alma/Debian/Ubuntu sources without enabling repositories or weakening trust.
+  Explicit DNF and complete APT selections take precedence. Debian cloud mirror+file sources are
+  handled before package dependency installation. Keep source endpoints and proxy policy aligned;
+  no automatic arbitrary mirror fallback or broad allowlist is added.
+
 - Stage 2's fresh foundation input selects ca-1 only; directory members are an explicit Stage 5 choice.
   foundation initialization also creates missing issuer.yml, preserving existing local inputs/state.
   OpenXPKI currently requires Debian 12 amd64; HSM provider/ceremony hosts may use EL10. Keep the Debian

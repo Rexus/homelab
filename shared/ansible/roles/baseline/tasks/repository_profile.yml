@@ -1,0 +1,25 @@
+---
+- name: Validate the selected package source profile before changing repositories
+  ansible.builtin.assert:
+    that:
+      - baseline_package_source_profile in ['preserve', 'official']
+      - baseline_package_source_profile == 'preserve' or ansible_distribution in ['Rocky', 'AlmaLinux', 'Debian', 'Ubuntu']
+    fail_msg: Select preserve for custom sources, or official for Rocky, AlmaLinux, Debian or Ubuntu.
+
+- name: Select fixed official OS endpoints without enabling repositories or changing trust
+  when: baseline_package_source_profile == 'official'
+  block:
+    - name: Load the native OS endpoint catalog
+      ansible.builtin.include_vars:
+        file: package-source-profiles.yml
+        name: baseline_official_sources
+
+    - name: Select existing enabled RPM repositories on Rocky or AlmaLinux
+      ansible.builtin.include_tasks: repository_profile_rpm.yml
+      when: ansible_distribution in ['Rocky', 'AlmaLinux']
+
+    - name: Select official APT endpoints when complete custom sources are not supplied
+      ansible.builtin.include_tasks: repository_profile_apt.yml
+      when:
+        - ansible_distribution in ['Debian', 'Ubuntu']
+        - baseline_apt_repositories | length == 0

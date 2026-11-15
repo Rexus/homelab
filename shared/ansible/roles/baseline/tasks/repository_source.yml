@@ -8,7 +8,18 @@
       - repository_proxy_dnf_source.baseurl | urlsplit('hostname') | default('', true) | length > 0
       - repository_proxy_dnf_source.baseurl | urlsplit('username') is none
       - repository_proxy_dnf_source.baseurl | urlsplit('password') is none
-    fail_msg: Select a repository filename, existing section and credential-free HTTPS baseurl.
+      - source_proxy is string
+      - source_proxy == '' or source_proxy | urlsplit('scheme') in ['http', 'https']
+      - source_proxy == '' or source_proxy | urlsplit('hostname') | default('', true) | length > 0
+      - source_proxy == '' or source_proxy | urlsplit('username') is none
+      - source_proxy == '' or source_proxy | urlsplit('password') is none
+      - source_proxy == '' or source_proxy | urlsplit('path') in ['', '/']
+      - source_proxy == '' or source_proxy | urlsplit('query') == ''
+      - source_proxy == '' or source_proxy | urlsplit('fragment') == ''
+      - not (repository_proxy_dnf_source.direct | default(false) | bool and source_proxy | length > 0)
+    fail_msg: Select a repository filename, existing section and credential-free HTTPS baseurl; an optional HTTP(S) proxy cannot also select direct access.
+  vars:
+    source_proxy: "{{ repository_proxy_dnf_source.proxy | default('') }}"
 
 - name: Inspect the existing DNF repository file
   ansible.builtin.stat:
@@ -71,3 +82,18 @@
     backup: true
     mode: '0644'
   when: repository_proxy_dnf_source.direct | default(false) | bool
+
+- name: Manage an explicitly selected repository proxy override or return to inheritance
+  community.general.ini_file:
+    path: "{{ repository_proxy_dnf_repo_dir }}/{{ repository_proxy_dnf_source.file }}"
+    section: "{{ repository_proxy_dnf_source.section }}"
+    option: proxy
+    value: "{{ repository_proxy_dnf_source.proxy }}"
+    state: "{{ 'present' if repository_proxy_dnf_source.proxy | length > 0 else 'absent' }}"
+    no_extra_spaces: true
+    create: false
+    backup: true
+    mode: '0644'
+  when:
+    - repository_proxy_dnf_source.proxy is defined
+    - not repository_proxy_dnf_source.direct | default(false) | bool
