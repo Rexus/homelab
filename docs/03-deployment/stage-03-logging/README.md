@@ -26,6 +26,12 @@ explicit interfaces; [coverage and live acceptance](../../08-reference/implement
 [Operations](../../05-operations/06-resilience/protected-logging.md).
 
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Reapply receiver configuration](../../05-operations/06-resilience/protected-logging.md#how-is-receiver-configuration-reapplied)
+> or [restore a failed logging VM](../../05-operations/06-resilience/recovery/virtual-machines.md). Retain the original
+> archive and key identities when recovering data.
+
 <a id="installation-order"></a>
 
 ## Follow the deployment

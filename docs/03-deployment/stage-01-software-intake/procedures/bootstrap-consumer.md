@@ -16,6 +16,11 @@ the reusable tasks. This local play creates no guest, inventory entry or Terrafo
 its accepted Ansible installation and `community.general` collection, sudo access, working DNS/CA trust,
 and a tested Stage 1 endpoint reachable from the bootstrap network.
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Troubleshoot proxy/package access](../../../05-operations/02-software-intake/README.md#what-should-i-check-when-it-fails)
+> or [maintain accepted host update sources](../../../05-operations/02-software-intake/host-updates.md).
+
 ## Contents
 
 - [1. Verify the software source](#1-verify-the-software-source)

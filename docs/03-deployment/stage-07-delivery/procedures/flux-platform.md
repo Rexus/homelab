@@ -7,6 +7,10 @@ shows the resulting boundary, including independent maintenance and recovery.
 
 **Working repository:** `<prefix>-tier-1/`, from the authorized independent execution host.
 
+> [!TIP]
+> **Recovery and maintenance:** [Operate delivery and recover applications](../../../05-operations/05-delivery.md) or
+> [restore retained Tier 1 product data](../../../05-operations/06-resilience/recovery/tier-1-products.md).
+
 ## Contents
 
 - [Prepare independent sources and custody](#prepare-independent-sources-and-custody)

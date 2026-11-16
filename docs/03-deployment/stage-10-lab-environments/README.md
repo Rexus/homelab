@@ -83,6 +83,11 @@ credentials, protected state and tested recovery.
 a bounded application recipe is supplied; the optional protected request controller remains project integration.
 See [coverage](../../08-reference/implementation-support.md#stage-coverage).
 
+> [!TIP]
+> **Recovery and maintenance:** [Change Kubernetes/lab capacity](../../05-operations/01-hosting/kubernetes-and-labs.md),
+> [retire selected resources](../../05-operations/01-hosting/provisioning.md), or
+> [recover original cluster state](../../05-operations/06-resilience/recovery/original-state-etcd.md).
+
 ## Working repositories
 
 | Work | Repository | IaC location inside that repository |

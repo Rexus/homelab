@@ -17,6 +17,7 @@ and no concurrent publisher or clone-maintenance operation.
 | --- | --- |
 | Find settings and prerequisites? | [Inputs and execution host](#where-are-settings-and-prerequisites-recorded) |
 | Publish a new image revision? | [Publish](#how-is-a-new-template-published) |
+| Recreate one template with a new image but the same VMID? | [Fast-track rebuild](template-rebuild.md) |
 | Bring manually created templates under IaC? | [Adopt](#how-are-existing-templates-adopted) |
 | Check fixed RAM and empty CloudInit accounts? | [Verify policy](#how-is-template-policy-verified) |
 | Recover a failed upload/apply? | [Recover publication](#what-if-publication-fails) |
@@ -195,6 +196,7 @@ and offline custody remain explicit operations, not routes created by this workf
 | Task | Runbook / acceptance |
 | --- | --- |
 | Replace only `scsi0`, retaining the VMID and rollback disk | [Boot-disk replacement](template-disk.md) |
+| Remove and recreate one template with a new image, retaining its VMID | [Fast-track rebuild](template-rebuild.md) |
 | Refresh a staged AlmaLinux/Rocky package image | [Linux template refresh](template-refresh.md) |
 | Remove dependent linked clones before cleanup | [Linked-clone migration](linked-clones.md) |
 | Retire an old disk | [Reviewed disk cleanup](template-disk.md#retire-the-old-disk); check snapshots and linked-clone origins first |
@@ -209,6 +211,8 @@ Retain approved artifacts independently of a live Tier 1 registry or Git service
 **Run in:** Proxmox GUI. The template wrapper has **no `destroy` action**; both template
 VMs and uploaded images have Terraform `prevent_destroy` guards. Keep those guards enabled.
 This is explicit manual retirement, followed by state/reference reconciliation.
+For immediate recreation with the same key/VMID, use the [fast-track rebuild](template-rebuild.md)
+instead; it retains the catalog entry and clears only the confirmed old image binding.
 
 1. Stop publisher/clone jobs. Retain independent approved images/checksums and any
    required guest backups. Verify the exact template name and VMID against Tier 0's catalog.

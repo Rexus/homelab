@@ -37,6 +37,10 @@ GitLab and cannot require the new GitLab, Harbor, Spinnaker or ordinary runners 
 **Evidence:** code/rendering and live qualification are separate; use the
 [support map](../../08-reference/implementation-support.md#tier-1-flux-evidence).
 
+> [!TIP]
+> **Recovery and maintenance:** [Maintain delivery and roll back applications](../../05-operations/05-delivery.md) or
+> [restore Tier 1 product data](../../05-operations/06-resilience/recovery/tier-1-products.md).
+
 <a id="main-path"></a>
 
 ## Deployment actions

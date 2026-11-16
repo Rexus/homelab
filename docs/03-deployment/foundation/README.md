@@ -63,6 +63,12 @@ For an existing environment lost to failure, use [backup recovery](../../05-oper
 **Design:** [hosting](../../01-architecture/04-hosting/README.md) and
 [network boundaries](../../01-architecture/05-networking/README.md).
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Recreate one template with the same VMID](../../05-operations/01-hosting/templates/template-rebuild.md),
+> [recover bootstrap](../../05-operations/06-resilience/recovery/bootstrap.md), or
+> [maintain host boot security](../../05-operations/01-hosting/proxmox-host-boot-security.md#maintenance-and-recovery).
+
 ## Contents
 
 - [Step 1: Prepare hosts and networks](#step-1-prepare-hosts-and-networks)
@@ -181,6 +187,11 @@ Return here for **Step 4**. After Stage 1 establishes the selected software-supp
 updates through it. Host-management tasks use SSH. The `foundation` Terraform root owns the selected
 CA/directory VMs. [Stage 2](../stage-02-trust/README.md#step-7-provision-the-issuer-and-attached-storage)
 uses Terraform-only provisioning followed by issuer-specific recipes; Stage 5 selects the identity recipe.
+
+> [!TIP]
+> **Recovery and maintenance:** [Redo one template](../../05-operations/01-hosting/templates/template-rebuild.md),
+> [recover a failed publication](../../05-operations/01-hosting/templates/template-troubleshooting.md), or
+> [change a guest boot/TPM profile](../../05-operations/01-hosting/guest-hardening.md#iac-contract).
 
 <a id="step-3-publish-and-test-vm-templates"></a>
 <a id="step-4-publish-and-test-vm-templates"></a>

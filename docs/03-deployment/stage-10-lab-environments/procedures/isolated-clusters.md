@@ -10,6 +10,11 @@ after that operator deployment is accepted.
 **Scope:** operator-first deployment and the future bounded request contract.
 No multi-cluster allocator, expiry controller or portal is installed by this path.
 
+> [!TIP]
+> **Recovery and maintenance:** [Maintain lab capacity](../../../05-operations/01-hosting/kubernetes-and-labs.md),
+> [retire a disposable deployment](../../../05-operations/01-hosting/provisioning.md), or
+> [restore retained cluster state](../../../05-operations/06-resilience/recovery/original-state-etcd.md).
+
 ## Step 1: Select the isolation profile
 
 Use dedicated VM-backed clusters for unsafe OS, add-on or privileged application

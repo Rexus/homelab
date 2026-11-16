@@ -69,6 +69,7 @@ Existing hosts are registered here; they are not created or imported into Terraf
 | Configure approved host update access | [Software intake consumers](../02-software-intake/host-updates.md) |
 | Change cache/logging host or service DNS domains | [Service-domain cutover](service-domain-cutover.md) |
 | Import, publish or promote a template | [Template lifecycle](templates/template-lifecycle.md) |
+| Remove and recreate a template with the same VMID | [Fast-track template rebuild](templates/template-rebuild.md) |
 | Replace a template disk or troubleshoot publication | [Disk replacement](templates/template-disk.md), [troubleshooting](templates/template-troubleshooting.md) |
 | Refresh a template or remove clone dependencies | [Template refresh](templates/template-refresh.md), [linked clones](templates/linked-clones.md) |
 | Add Kubernetes capacity or operate Lab environments | [Kubernetes and labs](kubernetes-and-labs.md) |

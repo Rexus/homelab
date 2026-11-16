@@ -12,6 +12,11 @@ The [host-management setup](../../../05-operations/01-hosting/README.md) must al
 the real `hypervisors` inventory, approved SSH identity and independent recovery access.
 Use the currently accepted initial package sources; the future cache/PKI/IdP are not prerequisites.
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Maintain physical host firmware/TPM](../../../05-operations/01-hosting/proxmox-host-boot-security.md#maintenance-and-recovery)
+> or [recover a guest's separate EFI/TPM state](../../../05-operations/01-hosting/guest-hardening.md#boot-recovery).
+
 ## 1. Finish management protection
 
 Complete [Proxmox access hardening](../../../05-operations/01-hosting/proxmox-hardening.md):

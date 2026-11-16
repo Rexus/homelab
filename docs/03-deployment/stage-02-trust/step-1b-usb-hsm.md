@@ -82,6 +82,12 @@ owns this order; the intermediate single remote endpoint provides no provider fa
 qualified Debian provider profile. Only the supplied OpenXPKI **issuer** installer requires
 Debian 12 amd64. A common HSM device does not make those host-package paths interchangeable.
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Maintain one provider](../../05-operations/03-cryptography/usb-hsm.md#how-is-one-gateway-maintained),
+> [restore a PicoHSM key replica](../../05-operations/03-cryptography/picohsm-replica.md), or
+> [migrate hardware custody](../../05-operations/03-cryptography/hardware-migration.md).
+
 ## Contents
 
 - [Supplied automation and prerequisites](#supplied-automation-and-prerequisites)

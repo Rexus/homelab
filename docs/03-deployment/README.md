@@ -68,6 +68,11 @@ After completing a deployment path, check its entry and selected options in
 and `~~text~~` for unselected options. Keep live acceptance evidence separate;
 see [project records](../04-development/project-documentation.md#start-with-project-values).
 
+> [!TIP]
+> **Recovery and maintenance:** [Recover an existing system](../05-operations/06-resilience/README.md),
+> [reconcile or retire IaC resources](../05-operations/01-hosting/provisioning.md), or
+> [maintain Secure Boot and TPM](../05-operations/01-hosting/maintenance.md#boot-maintenance).
+
 ## Table of contents
 
 - [Deployment stages](#deployment-stages)

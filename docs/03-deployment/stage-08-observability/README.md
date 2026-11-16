@@ -90,6 +90,11 @@ The numbered actions below own first installation. The [configuration reference]
 lists optional fields and exact Secret contracts; [stage coverage](../../08-reference/implementation-support.md#stage-coverage)
 distinguishes supplied automation from live acceptance.
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Reconcile or maintain observability](../../05-operations/06-resilience/observability.md) or
+> [restore retained product data](../../05-operations/06-resilience/recovery/tier-1-products.md).
+
 <a id="main-path"></a>
 
 ## Deployment actions

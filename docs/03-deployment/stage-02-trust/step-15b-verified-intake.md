@@ -125,6 +125,11 @@ it never enables an external package repository or downloads worker collections 
 The worker also requires curl ≥8.4, DNF 4 and the native RPM/APT verification libraries;
 an older distribution's default packages may not satisfy these gates.
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Operate or recover verified publication](../../05-operations/02-software-intake/verified-publication.md) and
+> [preserve original service data](../../05-operations/06-resilience/README.md).
+
 ## Contents
 
 - [1. Initialize inputs](#1-initialize-inputs)

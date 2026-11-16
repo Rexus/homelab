@@ -19,6 +19,17 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Deployment recovery and maintenance notices, 2026-11-16
+
+Deployment entry points now link their actual operations from short contextual notices, keeping
+opening result figures first. Foundation template automation points to same-VMID rebuild and failed
+publication recovery. Signed boot, TPM, HSM, issuer and Vault paths point to their retained-identity
+maintenance/recovery procedures; capability owners link cache, logging, cluster, identity and Tier 1
+product tasks. Notices navigate to the existing runbooks without adding installation prerequisites
+or treating empty reinstallation as recovery of retained keys/data.
+All 13 source/generated documentation and deployment-navigation checks passed; the source link/anchor
+sweep and diff whitespace checks are clean (`.tmp/deployment-recovery-notices-20261116.log`).
+
 ### Layered-security figure and release review, 2026-11-16
 
 The hosting boot-integrity section and guest commissioning now share one logical SVG showing
@@ -197,6 +208,11 @@ proposed seed-repair commands passed Bash syntax validation. Source links/anchor
 The operator subsequently confirmed the SCSI seed workaround worked. The newly selected generic
 image still requires its own fresh-clone qualification; success with the earlier image/controller
 does not establish that separate boot, network or Secure Boot acceptance.
+
+The operator later confirmed same-key/VMID template republication after host-side template/upload
+removal and exact old-image state-binding cleanup. The fast-track template-rebuild runbook now owns
+that sequence, with private state backup, retained YAML entry and separate saved-plan review/apply.
+Publication success does not establish the replacement image's clone or boot-security acceptance.
 
 ### Predictable package sources, 2026-11-15
 

@@ -11,6 +11,12 @@ initialize that provider. Choose the seal before the first Vault initialization.
 **Return:** [Step 1](README.md#step-1-select-vault-placement-and-seal), selected 1a Kubernetes or 1b VM installation, then recovery checks.
 **Design:** [seal patterns and dependency boundaries](../../01-architecture/08-cryptography/06-vault-seal.md).
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Recover Vault with its original seal](../../05-operations/06-resilience/recovery/vault.md),
+> [maintain HSM custody](../../05-operations/03-cryptography/usb-hsm.md), or
+> [expand a single-device provider](../../05-operations/03-cryptography/usb-hsm.md#single-device-to-pool).
+
 <a id="secret-service-seal-integration"></a>
 
 ## Contents

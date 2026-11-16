@@ -10,6 +10,11 @@ Use [Tier 1 cluster IaC](../../../../tier-1/terraform/deployments/kubernetes) an
 
 **Design:** [delivery runtimes](../../../01-architecture/10-delivery/README.md).
 
+> [!TIP]
+> **Recovery and maintenance:** [Update Talos serially](../../../05-operations/01-hosting/maintenance.md#talos-updates),
+> [maintain boot/TPM](../../../05-operations/01-hosting/maintenance.md#boot-maintenance), or
+> [recover Tier 1 and its services](../../../05-operations/06-resilience/recovery/tier-1-products.md).
+
 ## Table of contents
 
 - [Purpose](#purpose)

@@ -34,6 +34,11 @@ issuer CSR/token operations are supplied; ACME adapter qualification remains sep
 [coverage](../../08-reference/implementation-support.md#stage-coverage).
 **Design:** [certificate authority](../../01-architecture/08-cryptography/01-certificate-authority.md).
 
+> [!TIP]
+> **Recovery and maintenance:** [Restore the original issuer](../../05-operations/03-cryptography/issuer-recovery.md),
+> [renew/revoke certificates](../../05-operations/03-cryptography/certificate-authority.md), or
+> [expand a single HSM into a pool](../../05-operations/03-cryptography/usb-hsm.md#single-device-to-pool).
+
 <a id="main-path"></a>
 
 ## Installation route

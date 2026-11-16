@@ -56,6 +56,11 @@ Tier 0 [VM inputs](../../../tier-0/terraform/deployments/vault/terraform.tfvars.
 and [Vault recipe](../../../tier-0/ansible/playbooks/deployment/vault-vm.yml).
 Initialization, unseal and independent share custody are manual operations after installation.
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Restore the original Vault identity/data](../../05-operations/06-resilience/recovery/vault.md) or
+> [change VM resources and maintain boot/TPM](../../05-operations/01-hosting/maintenance.md).
+
 ## Table of contents
 
 - [Purpose](#purpose)

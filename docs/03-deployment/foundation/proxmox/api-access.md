@@ -9,6 +9,11 @@ This procedure does not deploy guests.
 **Continue at Step 11 on:** the bootstrap host, in the owning generated tier.
 **Design:** [protected provisioning](../../../01-architecture/04-hosting/02-provisioning.md).
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Review API roles and rotate access](../../../05-operations/01-hosting/proxmox-hardening.md#api-and-identity) or
+> [repair API TLS trust](../../../05-operations/01-hosting/proxmox-tls.md).
+
 ## Contents
 
 - [Before starting](#prerequisites)

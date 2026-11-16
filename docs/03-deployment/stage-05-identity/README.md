@@ -62,6 +62,12 @@ The supplied API SSO rollout uses the **Terraform-owned Talos 1.13.x** reference
 An existing externally managed cluster needs its own qualified native SSO/recovery integration; the plan-based recipe
 does not adopt it. Talos 1.14 remains outside this complete reference path until separately qualified.
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Restore directory/CA identity](../../05-operations/06-resilience/recovery/freeipa-ca.md),
+> [restore Keycloak](../../05-operations/06-resilience/recovery/keycloak.md), or
+> [maintain access](../../05-operations/04-identity.md).
+
 <a id="main-path"></a>
 
 ## Installation route

@@ -644,6 +644,11 @@ This file keeps durable context for AI-assisted work across sessions.
 - each stage has a main README with numbered local steps, diagrams, a capability result,
   and links to the static architecture; named monitoring/Observability/collection deployments
   belong to their owning stages, not one cross-stage procedure
+- Deployment owners and selected template/boot/key procedures expose a short **Recovery and maintenance**
+  notice after their opening figure and before task navigation. Link the actual operations for that
+  component, including template rebuild/publication repair, EFI/TPM custody and service-data recovery.
+  Major entry points such as Foundation template automation repeat the relevant pointer at the action.
+  Keep these as task links; preserve the numbered installation path and authoritative runbooks.
 - tutorials follow the historical May-era manual Rocky/Alma template guide's action-by-action style,
   not a fixed three-step program. Use as many numbered actions as required in their real execution
   order, with one copyable block per concrete action, short expected results, exact local files/fields

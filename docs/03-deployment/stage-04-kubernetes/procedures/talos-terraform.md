@@ -18,6 +18,11 @@ To consume an existing cluster, use the [adoption procedure](../step-1b-existing
 [Stage 4 Figure 1](../README.md#figure-1-control-cluster-runtime) shows the Tier 0 starter's three
 control-plane VMs and independent API endpoint. Later tiers select their own nodes and state.
 
+> [!TIP]
+> **Recovery and maintenance:** [Change cluster capacity](../../../05-operations/01-hosting/kubernetes-and-labs.md),
+> [update Talos](../../../05-operations/01-hosting/maintenance.md#talos-updates), or
+> [restore original cluster state](../../../05-operations/06-resilience/recovery/original-state-etcd.md).
+
 ## Table of contents
 
 - [Prerequisites](#prerequisites)

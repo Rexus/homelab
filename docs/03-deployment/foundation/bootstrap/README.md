@@ -73,6 +73,12 @@ The reference VM path also needs prepared hosts/network/storage and one tested
 [manual Linux template](../proxmox/templates.md).
 **Design:** [protected execution](../../../01-architecture/04-hosting/02-provisioning.md#execution-contexts).
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Restore bootstrap and its workspace](../../../05-operations/06-resilience/recovery/bootstrap.md),
+> [resize guest storage](../../../05-operations/01-hosting/maintenance.md#resize-guests), or
+> [recover EFI/TPM identity](../../../05-operations/01-hosting/guest-hardening.md#boot-recovery).
+
 ## Contents
 
 - [1. Clone and configure the bootstrap VM](#step-1-clone-the-bootstrap-vm)

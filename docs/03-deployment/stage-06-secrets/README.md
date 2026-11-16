@@ -45,6 +45,12 @@ Identity federation and the OIDC provider are established in
 [Identity, Steps 12–20](../stage-05-identity/README.md#step-12-select-the-existing-cluster-and-identity-provider-inputs).
 This stage integrates secret-service and operator access with that provider.
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Restore and unseal the original Vault](../../05-operations/06-resilience/recovery/vault.md),
+> [rotate service credentials](../../05-operations/03-cryptography/secret-handling.md), or
+> [expand a single HSM into a pool](../../05-operations/03-cryptography/usb-hsm.md#single-device-to-pool).
+
 <a id="main-path"></a>
 
 ## Installation route

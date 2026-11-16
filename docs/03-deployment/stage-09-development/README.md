@@ -110,6 +110,12 @@ live acceptance and automated lab requests remain separate; see
 The source-control and general-build actions use Tier 1. Actions 16-20 explicitly switch to Tier 0.
 No new guest needs an interactive login for package, disk, mount or service configuration.
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Restore Tier 1 product data](../../05-operations/06-resilience/recovery/tier-1-products.md),
+> [retain GitLab backups](../../05-operations/06-resilience/backups/gitlab-data.md), or
+> [reconcile original IaC state](../../05-operations/01-hosting/terraform-state.md).
+
 <a id="main-path"></a>
 
 ## Deployment actions

@@ -10,6 +10,12 @@ applies their configuration. No manual guest setup is required.
 **Requires:** the accepted Talos **1.13.x** release/CLI, approved Image Factory media/installer,
 independent API endpoint and node DNS/time/image access. Complete the main guide's preceding actions.
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Maintain boot trust and TPM](../../../05-operations/01-hosting/maintenance.md#boot-maintenance),
+> [recover the original EFI/TPM identity](../../../05-operations/01-hosting/guest-hardening.md#boot-recovery), or
+> [restore a clean Talos control plane](../../../05-operations/06-resilience/recovery/original-state-etcd.md#restore-a-clean-talos-control-plane).
+
 ## Contents
 
 - [1. Select a fresh installation](#1-select-a-fresh-installation)

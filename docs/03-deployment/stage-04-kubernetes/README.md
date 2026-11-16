@@ -69,6 +69,11 @@ schematic/release and matching CLI selected in
 The reference Cilium patches and Stage 5 SSO workflow use that minor. A 1.14 logging-render option
 does not qualify the complete platform or SSO path; do not upgrade/downgrade existing nodes here.
 
+> [!TIP]
+> **Recovery and maintenance:** [Update Talos serially](../../05-operations/01-hosting/maintenance.md#talos-updates),
+> [maintain boot trust/TPM](../../05-operations/01-hosting/maintenance.md#boot-maintenance), or
+> [recover original cluster state and etcd](../../05-operations/06-resilience/recovery/original-state-etcd.md).
+
 <a id="main-path"></a>
 
 ## Installation route

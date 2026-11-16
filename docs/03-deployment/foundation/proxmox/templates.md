@@ -17,6 +17,11 @@ Standalone manual ownership is also valid; use the
 for later adoption or maintenance.
 Never let two Terraform states manage the same VMID or image file.
 
+> [!TIP]
+> **Recovery and maintenance:** [Recreate a template](../../../05-operations/01-hosting/templates/template-rebuild.md),
+> [troubleshoot publication](../../../05-operations/01-hosting/templates/template-troubleshooting.md), or
+> [qualify signed Linux boot](../../../05-operations/01-hosting/guest-hardening.md#linux-secure-boot).
+
 ## Contents
 
 - [Step 1: Select the image](#step-1-select-the-image)

@@ -20,6 +20,12 @@ middleware; Terraform owns the later issuer/provider VM attachment.
 > For an initialized device or another board in the same key domain, use
 > [restore the original wrapped key](../../../05-operations/03-cryptography/picohsm-replica.md).
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Restore an existing key onto a replacement board](../../../05-operations/03-cryptography/picohsm-replica.md) or
+> [expand to a provider pool](../../../05-operations/03-cryptography/usb-hsm.md#single-device-to-pool). Use those paths
+> for retained keys rather than repeating blank-device initialization.
+
 ## Contents
 
 - [1. Select the board and firmware](#1-select-the-board-and-firmware)

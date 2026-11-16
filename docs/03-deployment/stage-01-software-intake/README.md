@@ -29,6 +29,11 @@ after its issuance prerequisites exist. Harbor belongs to Stage 7.
 See [coverage](../../08-reference/implementation-support.md#stage-coverage).
 **Design:** [controlled software intake](../../01-architecture/07-software-intake/README.md).
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Reapply cache configuration or troubleshoot access](../../05-operations/02-software-intake/README.md) or
+> [recover a cache](../../05-operations/02-software-intake/README.md#how-is-a-cache-recovered).
+
 ## Installation order
 
 | Actions | Result |

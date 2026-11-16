@@ -11,6 +11,7 @@ This runbook diagnoses failures; it does not authorize deleting images or state.
 | Upload failed or reported no space? | [Inspect both machines](#why-did-an-upload-fail) |
 | Bootstrap temporary storage is too small? | [Change upload staging](#how-is-upload-staging-moved) |
 | A file/template exists after an interrupted apply? | [Recover with the original state](#how-is-partial-publication-recovered) |
+| `prevent_destroy` or an existing-image filename mismatch during an intentional rebuild? | [Recreate the selected template with the same VMID](template-rebuild.md) |
 
 ## Why did an upload fail?
 

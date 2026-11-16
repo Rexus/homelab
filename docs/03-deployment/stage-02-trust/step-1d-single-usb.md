@@ -18,6 +18,12 @@ so the immutable policy names the commissioned original key. Provision once at S
 then install the inactive runtime at action 9. Return to this option's actions 3–4 at
 [10b](README.md#step-10-prepare-the-issuing-request). Action 5 rejoins signing and token activation.
 
+> [!TIP]
+> **Recovery and maintenance:**
+> [Restore retained device keys](../../05-operations/03-cryptography/usb-hsm.md#replica-updates),
+> [recover the issuer](../../05-operations/03-cryptography/issuer-recovery.md), or
+> [expand into a provider pool](../../05-operations/03-cryptography/usb-hsm.md#single-device-to-pool).
+
 ## Contents
 
 - [1. Select custody and preserve key identity](#1-select-custody-and-preserve-key-identity)
