@@ -17,7 +17,8 @@ output "catalog" {
       efi_pre_enrolled_keys = try(
         proxmox_virtual_environment_vm.template[key].efi_disk[0].pre_enrolled_keys, false,
       )
-      tags = local.template_tags[key]
+      tpm_state_present = length(proxmox_virtual_environment_vm.template[key].tpm_state) > 0
+      tags              = local.template_tags[key]
     }
   }
 }

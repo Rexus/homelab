@@ -1,0 +1,3 @@
+---
+- name: Prove selected managed Linux guest boot controls using the shared native recipe
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-boot-security.yml

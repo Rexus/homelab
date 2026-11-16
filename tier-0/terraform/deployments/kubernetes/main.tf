@@ -57,7 +57,7 @@ resource "terraform_data" "configuration" {
       error_message = "SDN bootstrap requires every node to use the selected VNet bridge with no second VLAN tag."
     }
     precondition {
-      condition = try(local.template.family == "talos" && length(trimspace(local.template.node_name)) > 0 &&
+      condition = var.secure_boot != null ? true : try(local.template.family == "talos" && length(trimspace(local.template.node_name)) > 0 &&
       length(trimspace(local.template.title)) > 0, false)
       error_message = "Select an approved Talos template with title and source node in the shared consumer catalog."
     }
@@ -68,6 +68,21 @@ resource "terraform_data" "configuration" {
     precondition {
       condition     = alltrue([for node in local.machines : node.cores >= 2 && node.memory >= 4096])
       error_message = "Talos nodes require a known size profile or explicit sizing of at least 2 cores and 4096 MiB."
+    }
+    precondition {
+      condition = var.secure_boot == null ? true : (
+        var.template_vm_id == null && var.vm_firmware.bios == "ovmf" && var.vm_firmware.machine == "q35" &&
+        var.vm_firmware.scsi_hardware == "virtio-scsi-pci" &&
+        can(regex("(^|/)nocloud-installer-secureboot/[a-f0-9]{64}:", var.cluster.installer_image)) &&
+        try(filesha256(var.secure_boot.iso_path) == var.secure_boot.iso_sha256, false)
+      )
+      error_message = "Secure Boot requires a fresh ISO installation (template_vm_id=null), OVMF/q35/non-Single SCSI, matching signed NoCloud installer and verified local media."
+    }
+    precondition {
+      condition = var.secure_boot == null ? true : alltrue([
+        for store in local.secure_boot_stores : try(store.active && store.enabled && contains(store.content_types, "iso"), false)
+      ]) && length(distinct([for store in local.secure_boot_stores : try(store.shared, false)])) == 1
+      error_message = "The selected ISO datastore must be enabled, active and ISO-capable on every target node, with a consistent shared-storage flag."
     }
   }
 }

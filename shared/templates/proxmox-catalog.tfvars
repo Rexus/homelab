@@ -19,6 +19,8 @@ default_linux_vm_template_id = null
 # family describes the OS family; distribution-specific consumer metadata stays in title/tags.
 # ID, title, node, family, image tags and boot hardware follow applied template_candidates.
 # Linux consumers use this boot profile at creation; existing/imported boot hardware is preserved.
+# tpm_state_present records applied/inspected template state, never a request to copy its TPM.
+# Per-VM tpm selection requires false; legacy/missing evidence must be verified first.
 # Earlier entries remain until deliberately retired; template creation stays Tier 0-owned.
 proxmox_template_catalog = {
   # Stage 2's OpenXPKI issuer requires a clone-tested Debian 12 amd64 template.
@@ -28,12 +30,22 @@ proxmox_template_catalog = {
   #   node_name = "pve01"
   #   family    = "debian"
   #   tags      = ["debian12", "debian", "x86-64-v3", "cloud-init"]
+  #   bios                  = "ovmf"
+  #   machine               = "q35"
+  #   scsi_hardware         = "virtio-scsi-single"
+  #   efi_pre_enrolled_keys = true
+  #   tpm_state_present     = false
   # }
   # "9100" = {
   #   title     = "alma-template-build-1"
   #   node_name = "pve01"
   #   family    = "redhat"
   #   tags      = ["el10", "alma", "x86-64-v3", "cloud-init"]
+  #   bios                  = "ovmf"
+  #   machine               = "q35"
+  #   scsi_hardware         = "virtio-scsi-single"
+  #   efi_pre_enrolled_keys = true
+  #   tpm_state_present     = false
   # }
   # "9101" = {
   #   title     = "rocky-template-build-1"
@@ -43,7 +55,8 @@ proxmox_template_catalog = {
   #   bios                  = "ovmf"
   #   machine               = "q35"
   #   scsi_hardware         = "virtio-scsi-single"
-  #   efi_pre_enrolled_keys = false
+  #   efi_pre_enrolled_keys = true
+  #   tpm_state_present     = false
   # }
   # "9102" = {
   #   title     = "talos-template-build-1"

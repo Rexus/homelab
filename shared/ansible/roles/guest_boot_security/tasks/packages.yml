@@ -1,0 +1,17 @@
+---
+- name: Install inspection tools through the guest's accepted DNF repositories
+  ansible.builtin.dnf:
+    name: "{{ (['mokutil'] if guest_boot_security_require_secure_boot else []) + (['tpm2-tools'] if guest_boot_security_require_tpm else []) }}"
+    state: present
+    disable_gpg_check: false
+  when: ansible_os_family == 'RedHat'
+
+- name: Install inspection tools through the guest's accepted APT repositories
+  ansible.builtin.apt:
+    name: "{{ (['mokutil'] if guest_boot_security_require_secure_boot else []) + (['tpm2-tools'] if guest_boot_security_require_tpm else []) }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+    allow_unauthenticated: false
+    install_recommends: false
+  when: ansible_os_family == 'Debian'

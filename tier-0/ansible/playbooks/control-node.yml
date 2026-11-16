@@ -89,4 +89,5 @@
       template-policy: [community.proxmox]
       proxmox-hosts: []
       proxmox-ha: [community.proxmox]
+      proxmox-guest-security: [community.proxmox]
       site: [community.general, ansible.posix]

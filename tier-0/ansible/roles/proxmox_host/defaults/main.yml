@@ -17,3 +17,8 @@ proxmox_host_remove_proxy_when_disabled: false
 proxmox_host_manage_datacenter_proxy: true
 proxmox_host_manage_apt_proxy: true
 proxmox_host_apt_proxy_file: /etc/apt/apt.conf.d/76pveproxy
+
+# Separate physical-host entry point; the default proxy workflow does not run it.
+proxmox_host_boot_security_operation: check
+proxmox_host_require_secure_boot: true
+proxmox_host_require_tpm: true

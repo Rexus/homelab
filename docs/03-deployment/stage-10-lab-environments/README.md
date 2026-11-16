@@ -251,7 +251,7 @@ In **`<prefix>-tier-2/`**, edit:
 
 - `ansible/inventory/hosts.yml`: matching `talos_control_plane` / `talos_workers` keys.
 - `ansible/group_vars/talos.yml`: each node's reserved `platform_host_ips` address.
-- `terraform/deployments/kubernetes/terraform.tfvars`: unused VMIDs, approved template,
+- `terraform/deployments/kubernetes/terraform.tfvars`: unused VMIDs, approved signed media or retained template,
   live storage, isolated node attachment, private API endpoint and ordered native patches.
 
 Complete the common procedure's [configuration](../stage-04-kubernetes/procedures/talos-terraform.md#configure)

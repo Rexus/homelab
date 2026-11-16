@@ -8,12 +8,16 @@
 # Tier 1 owns this VM, inventory and state; Tier 0 owns template publication.
 # Terraform attaches scsi1; the deployment's Ansible role creates and mounts its guest filesystem.
 
+# Fresh VMs select TPM 2.0 below; omit tpm or set tpm = null to opt out (legacy default).
+# Requires tpm_state_present = false in the applied/inspected Shared clone-source reference.
+# Existing VM TPM/boot hardware is preserved; this does not enable Secure Boot or encryption.
 vm_instances = {
   "intake-1" = {
     vm_id            = 1321
     size             = "small-mem"
     storage_class    = "local"
     disk_size_gb     = 40
+    tpm              = {}
     network_zone_key = "delivery_edge"
     tags             = ["software-intake", "restricted", "always-on", "delivery"]
     extra_disks = [{

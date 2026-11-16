@@ -6,13 +6,13 @@ umask 077
 # Preserve existing backend, working-data, plan, and credential paths across the rename.
 
 if [[ $# == 1 && "$1" == --help ]]; then
-  echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials|export-plan}"
+  echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials|export-plan|verify-security}"
   echo "Current implementation: Talos. Reference: docs/03-deployment/stage-04-kubernetes/procedures/kubernetes.md"
   exit 0
 fi
 
-if [[ $# != 1 || ! "$1" =~ ^(init|plan|apply|credentials|export-plan)$ ]]; then
-  echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials|export-plan}" >&2
+if [[ $# != 1 || ! "$1" =~ ^(init|plan|apply|credentials|export-plan|verify-security)$ ]]; then
+  echo "Usage: bash scripts/kubernetes-cluster.sh {init|plan|apply|credentials|export-plan|verify-security}" >&2
   echo "Current implementation: Talos. Reference: docs/03-deployment/stage-04-kubernetes/procedures/kubernetes.md" >&2
   exit 1
 fi
@@ -86,13 +86,24 @@ if [[ ( "$action" == apply || "$action" == export-plan ) && ! -f "$plan" ]]; the
   echo "No saved Kubernetes plan. Run plan and review it first." >&2
   exit 1
 fi
-if [[ "$action" == credentials && ! -f "$state" ]]; then
+if [[ ( "$action" == credentials || "$action" == verify-security ) && ! -f "$state" ]]; then
   echo "No local Kubernetes deployment state. Restore the existing state; do not bootstrap a replacement cluster." >&2
   exit 1
 fi
 
 mkdir -p "$TF_DATA_DIR" "$(dirname "$state")" "$(dirname "$plan")"
 terraform -chdir="$root" init -input=false -lockfile=readonly -reconfigure -backend-config="path=$state"
+
+verify_boot_security() (
+  # Private exports are temporary: the verifier never logs cluster credentials or source JSON.
+  security_export="$(mktemp -d "$TF_DATA_DIR/.boot-security.XXXXXX")"
+  trap 'rm -rf -- "$security_export"' EXIT
+  terraform -chdir="$root" output -raw talosconfig > "$security_export/talosconfig"
+  terraform -chdir="$root" output -json nodes > "$security_export/nodes.json"
+  terraform -chdir="$root" output -json boot_security > "$security_export/policy.json"
+  python3 "$shared/scripts/talos-boot-security.py" verify --talosconfig "$security_export/talosconfig" \
+    --nodes "$security_export/nodes.json" --policy "$security_export/policy.json"
+)
 case "$action" in
   plan)
     terraform -chdir="$root" validate
@@ -101,14 +112,23 @@ case "$action" in
       rm -f "$plan"
       exit 1
     fi
-    echo "Review the saved plan. This creates and bootstraps a new cluster, not an adoption or recovery."
+    if ! terraform -chdir="$root" show -json "$plan" | python3 "$shared/scripts/talos-boot-security.py" plan-guard; then
+      rm -f "$plan"
+      exit 1
+    fi
+    echo "Review the saved cluster plan. Updates retain the original state and cluster identities."
     ;;
   apply)
+    terraform -chdir="$root" show -json "$plan" | python3 "$shared/scripts/talos-boot-security.py" plan-guard --require-talosctl
     terraform -chdir="$root" apply -input=false -lock-timeout=60s "$plan"
     rm -f "$plan" "$plan_json"
+    verify_boot_security
     echo "Export protected client files with: bash scripts/kubernetes-cluster.sh credentials"
     source "$shared/scripts/lib/deployment-record.sh"
     print_deployment_record "$repo_root" kubernetes
+    ;;
+  verify-security)
+    verify_boot_security
     ;;
   export-plan)
     directory="$(dirname "$plan_json")"

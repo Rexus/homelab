@@ -10,6 +10,9 @@
 # environment overlay, for example when testing another supported distro.
 # default_linux_vm_template_id = 9101
 
+# Fresh VMs select TPM 2.0 below; omit tpm or set tpm = null to opt out (legacy default).
+# Requires tpm_state_present = false in the applied/inspected Shared clone-source reference.
+# Existing VM TPM/boot hardware is preserved; this does not enable Secure Boot or encryption.
 vm_instances = {
   # Keys match the stable logical host names in the Ansible inventory.
   # The environment prefix or suffix from Ansible becomes the Proxmox VM name.
@@ -20,6 +23,7 @@ vm_instances = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20
+    tpm              = {}
     network_zone_key = "external_edge"
     tags             = ["haproxy", "keepalived", "public", "always-on", "edge"]
   }
@@ -28,6 +32,7 @@ vm_instances = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20
+    tpm              = {}
     network_zone_key = "external_edge"
     tags             = ["haproxy", "keepalived", "public", "always-on", "edge"]
   }
@@ -36,6 +41,7 @@ vm_instances = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20
+    tpm              = {}
     network_zone_key = "external_edge"
     tags             = ["haproxy", "keepalived", "public", "always-on", "edge"]
   }

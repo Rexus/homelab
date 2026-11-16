@@ -1,0 +1,13 @@
+---
+- name: Prepare or verify physical Proxmox host boot controls
+  hosts: hypervisors
+  serial: 1
+  gather_facts: true
+  gather_subset: ['!all', min, virtual]
+  become: true
+  any_errors_fatal: true
+  tasks:
+    - name: Run only the physical host boot-security entry point
+      ansible.builtin.import_role:
+        name: proxmox_host
+        tasks_from: boot_security

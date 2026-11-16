@@ -2,12 +2,16 @@
 
 # Tier 0 direct trusted-CI option. Guide: docs/03-deployment/stage-09-development/procedures/infrastructure-runner.md
 # VMID allocation: docs/02-conventions/vmid-convention.md
+# Fresh VMs select TPM 2.0 below; omit tpm or set tpm = null to opt out (legacy default).
+# Requires tpm_state_present = false in the applied/inspected Shared clone-source reference.
+# Existing VM TPM/boot hardware is preserved; this does not enable Secure Boot or encryption.
 vm_instances = {
   "iac-1" = {
     vm_id            = 611
     size             = "medium"
     storage_class    = "local"
     disk_size_gb     = 80
+    tpm              = {}
     network_zone_key = "management"
     tags             = ["tier-0", "infrastructure-runner", "critical", "restricted"]
   }

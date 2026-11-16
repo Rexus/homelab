@@ -14,6 +14,7 @@ register existing hosts and test SSH/Ansible before running host recipes.
 
 - [How is management access restricted?](#how-is-management-access-restricted)
 - [How is automation access reviewed?](#how-is-automation-access-reviewed)
+- [How are host Secure Boot and TPM enabled?](#host-boot-security)
 - [How is host health checked before a change?](#how-is-host-health-checked-before-a-change)
 - [What must pass before routine automation?](#what-must-pass-before-routine-automation)
 
@@ -34,6 +35,10 @@ register existing hosts and test SSH/Ansible before running host recipes.
    off public edge paths; use the approved remote-entry/jump path when required.
 5. Record the tests. If legitimate access fails, restore the prior rule through the
    console and investigate before closing the maintenance window.
+6. Under **Datacenter > Permissions > Two Factor**, enroll human administrator accounts using
+   an accepted TOTP/WebAuthn method and retain recovery codes independently. Test a separate new
+   login before ending the original session. UI/API-login MFA does not protect SSH or API tokens;
+   keep their key/scoped-token controls. No future IdP is needed for local Proxmox enrollment. [2]
 
 **Expected:** approved administration and cluster traffic work; unrelated networks
 cannot administer hosts. Enabling a firewall alone does not establish this result.
@@ -54,6 +59,16 @@ cannot administer hosts. Enabling a firewall alone does not establish this resul
 
 **Expected:** one scoped automation identity per accepted authority; ordinary
 workloads and general runners have no host-administration credentials.
+
+<a id="host-boot-security"></a>
+
+## How are host Secure Boot and TPM enabled?
+
+Follow [physical host boot security](proxmox-host-boot-security.md) for firmware preparation,
+the supported signed Proxmox boot chain, TPM 2.0 activation and controller-run verification.
+This is part of [Foundation Step 11](../../03-deployment/foundation/proxmox/step-11-host-security.md).
+Guest vTPMs and USB HSMs keep their separate identities; enabling the server TPM does not
+configure guest TPMs or enroll a disk-encryption key.
 
 <a id="host-and-cluster-hygiene"></a>
 
@@ -99,6 +114,7 @@ into the same routine change.
 | API | Intended scoped token can perform the required operation over verified TLS |
 | Compute | Actual nodes, storage and bridges match the selected inputs |
 | Recovery | Independent console, original inputs/state, backups and keys are usable |
+| Host boot/key hardware | Signed boot and physical TPM checks pass where supported; exceptions and any enrolled consumer's recovery method are recorded |
 | Logs and time | Time is synchronized and protected events are available |
 
 Return to [template operations](templates/template-lifecycle.md) or the selected deployment
@@ -107,3 +123,4 @@ only after these checks pass. The table is an acceptance gate, not an installer.
 ## References
 
 1. [Proxmox firewall rules and backend behavior](https://github.com/proxmox/pve-docs/blob/master/pve-firewall.adoc).
+2. [Proxmox two-factor methods and recovery](https://github.com/proxmox/pve-docs/blob/master/pveum.adoc#two-factor-authentication).

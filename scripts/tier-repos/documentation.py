@@ -177,6 +177,8 @@ def copy_documentation(writer, prefix, upstream):
               "08-reference/diagrams/workload-telemetry-placement.svg",
               "08-reference/diagrams/reference-platform-placement.svg",
               "08-reference/diagrams/hosting-runtime-placement.svg",
+              "08-reference/diagrams/boot-integrity-key-protection.svg",
+              "08-reference/diagrams/render-boot-protection.cjs",
               "08-reference/diagrams/observability-capabilities.svg",
               "08-reference/diagrams/control-applications-placement.svg",
               "08-reference/diagrams/observability-operations.svg",

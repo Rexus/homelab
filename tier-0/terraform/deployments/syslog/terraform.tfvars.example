@@ -7,12 +7,16 @@
 # Terraform owns VMs/disks; Tier 0 Ansible prepares guarded storage and installs the receiver with supplied TLS.
 # Neither installs archive replication or protected retention.
 
+# Fresh VMs select TPM 2.0 below; omit tpm or set tpm = null to opt out (legacy default).
+# Requires tpm_state_present = false in the applied/inspected Shared clone-source reference.
+# Existing VM TPM/boot hardware is preserved; this does not enable Secure Boot or encryption.
 vm_instances = {
   "log-1" = {
     vm_id            = 501
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 40
+    tpm              = {}
     network_zone_key = "management"
     tags             = ["syslog", "audit", "restricted", "always-on", "control"]
     extra_disks = [{
@@ -29,6 +33,7 @@ vm_instances = {
   #   size              = "small"
   #   storage_class     = "local"
   #   disk_size_gb      = 40
+  #   tpm               = {}
   #   network_zone_key  = "management"
   #   tags              = ["syslog", "audit", "restricted", "always-on", "control"]
   #   extra_disks = [{ interface = "scsi1", size_gb = 100, storage_class = "local" }]
@@ -42,6 +47,7 @@ vm_instances = {
   #   size              = "small"
   #   storage_class     = "local"
   #   disk_size_gb      = 30
+  #   tpm               = {}
   #   network_zone_key  = "management"
   #   tags              = ["backup", "audit", "restricted", "control"]
   #   extra_disks = [{ interface = "scsi1", size_gb = 200, storage_class = "local" }]

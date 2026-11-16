@@ -57,7 +57,7 @@ Edit in **`<prefix>-tier-1/`**.
 - `ansible/inventory/hosts.yml`: Tier 1 `talos_control_plane` / `talos_workers` hosts
 - `ansible/group_vars/talos.yml`: Their actual reserved `platform_host_ips`
 - `terraform/deployments/kubernetes/terraform.tfvars`: Cluster name/private API endpoint, unique VMIDs,
-  approved template/source node, releases/installer, Tier 1 attachment and native patches
+  approved signed ISO/TPM inputs (or retained template/source), releases/installer, Tier 1 attachment and native patches
 
 Complete the [common cluster configuration](../../stage-04-kubernetes/procedures/talos-terraform.md#configure)
 and its node-configuration steps before planning: image access, firmware, ordered CNI/logging

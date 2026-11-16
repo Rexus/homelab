@@ -1,0 +1,108 @@
+---
+- name: Retain the approved initial configuration and running state privately
+  ansible.builtin.set_fact:
+    proxmox_guest_security_original: "{{ proxmox_guest_security_vm }}"
+  no_log: true
+
+- name: Perform one guarded TPM addition and leave failures available for recovery
+  block:
+    - name: Recheck identity and configuration immediately before graceful shutdown
+      ansible.builtin.include_tasks: read.yml
+
+    - name: Reject concurrent edits before changing the power state
+      ansible.builtin.assert:
+        that:
+          - proxmox_guest_security_vm.config == proxmox_guest_security_original.config
+          - proxmox_guest_security_vm.status == proxmox_guest_security_original.status
+          - proxmox_guest_security_vm.hastate | default('') in ['', 'ignored']
+        fail_msg: The selected VM changed after review; no maintenance was admitted.
+        quiet: true
+
+    - name: Gracefully shut down only the selected originally running VM
+      community.proxmox.proxmox_kvm:
+        node: "{{ proxmox_guest_security_node }}"
+        vmid: "{{ proxmox_guest_security_vmid }}"
+        state: stopped
+        force: false
+        timeout: "{{ proxmox_guest_security_shutdown_timeout }}"
+      when: proxmox_guest_security_original.status == 'running'
+      no_log: true
+
+    - name: Recheck the stopped VM and current API digest
+      ansible.builtin.include_tasks: read.yml
+
+    - name: Require unchanged hardware and a stopped unlocked VM before allocation
+      ansible.builtin.assert:
+        that:
+          - proxmox_guest_security_vm.status == 'stopped'
+          - proxmox_guest_security_vm.config == proxmox_guest_security_original.config
+          - proxmox_guest_security_vm.config.tpmstate0 is not defined
+          - proxmox_guest_security_vm.hastate | default('') in ['', 'ignored']
+        fail_msg: Hardware or HA ownership changed during shutdown; the VM will not be mutated or restarted.
+        quiet: true
+
+    # update_unsafe admits tpmstate0, but no other disk/network/firmware input is supplied.
+    - name: Add only the missing TPM 2.0 state volume with optimistic API locking
+      community.proxmox.proxmox_kvm:
+        node: "{{ proxmox_guest_security_node }}"
+        vmid: "{{ proxmox_guest_security_vmid }}"
+        state: present
+        update: true
+        update_unsafe: true
+        digest: "{{ proxmox_guest_security_vm.config.digest }}"
+        tpmstate0:
+          storage: "{{ proxmox_guest_security_tpm_storage }}"
+          version: '2.0'
+      no_log: true
+
+    - name: Read back current and pending hardware after TPM allocation
+      ansible.builtin.include_tasks: read.yml
+
+    - name: Prove every prior setting and disk identity was retained
+      ansible.builtin.assert:
+        that:
+          - proxmox_guest_security_vm.status == 'stopped'
+          - proxmox_guest_security_vm.config.tpmstate0 is match('^' ~ (proxmox_guest_security_tpm_storage | regex_escape) ~ ':')
+          - proxmox_guest_security_vm.config.tpmstate0 is search('(^|,)version=v2\.0(,|$)')
+          - >-
+            (proxmox_guest_security_vm.config | dict2items | rejectattr('key', 'in', ['digest', 'tpmstate0']) | items2dict) ==
+            (proxmox_guest_security_original.config | dict2items | rejectattr('key', 'equalto', 'digest') | items2dict)
+        fail_msg: >-
+          TPM allocation did not match the accepted one-setting plan. The VM remains stopped;
+          inspect the private record and Proxmox task log. Do not delete a TPM or EFI volume.
+        quiet: true
+
+    - name: Restore only the originally running VM after successful hardware verification
+      community.proxmox.proxmox_kvm:
+        node: "{{ proxmox_guest_security_node }}"
+        vmid: "{{ proxmox_guest_security_vmid }}"
+        state: started
+        timeout: "{{ proxmox_guest_security_shutdown_timeout }}"
+      when: proxmox_guest_security_original.status == 'running'
+      no_log: true
+
+    - name: Read the resulting VM hardware and power state
+      ansible.builtin.include_tasks: read.yml
+
+    - name: Require the original power state and retain the new TPM identity
+      ansible.builtin.assert:
+        that:
+          - proxmox_guest_security_vm.status == proxmox_guest_security_original.status
+          - proxmox_guest_security_vm.config.tpmstate0 is defined
+        fail_msg: Inspect Proxmox task status and console; application readiness must be verified separately.
+
+    - name: Show the new TPM state reference for backup and guest acceptance
+      ansible.builtin.debug:
+        msg:
+          - "TPM state: {{ proxmox_guest_security_vm.config.tpmstate0 }}"
+          - >-
+            Capture a new complete backup including TPM and EFI state, run the guest/Talos acceptance
+            checks, then return HA policy from ignored through its owning workflow when applicable.
+            Prepare a new record for later maintenance; this original record remains unchanged.
+  rescue:
+    - name: Stop the maintenance path without replacing or deleting any hardware
+      ansible.builtin.fail:
+        msg: >-
+          TPM maintenance stopped. No automatic rollback deletes TPM/EFI state and no forced power
+          operation is attempted. Inspect the VM console, API task log and original private record.
+          The VM may remain stopped, or running if graceful shutdown failed. Reinspect before retrying.

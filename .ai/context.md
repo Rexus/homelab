@@ -18,6 +18,13 @@ This file keeps durable context for AI-assisted work across sessions.
   selected controls, temporary-access cleanup and independent recovery without requiring a later stage.
   Secure Boot, vTPM and encryption are separate qualified choices, not universal late toggles.
   docs/05-operations/deployment-commands.md owns the compact setup/configuration/command index.
+- Foundation Step 11 explicitly commissions the physical Proxmox servers: management/MFA/TLS,
+  the accepted signed host boot chain and physical TPM 2.0 where supported. Firmware activation
+  is a vendor-console action, preferably before a fresh host install; Tier 0's native host recipe
+  prepares inspection tools and performs read-only enforcement/local TPM proof from bootstrap.
+  Keep host TPM, guest vTPM and USB HSM custody distinct. No implicit host disk-key sealing or
+  remote attestation is claimed. Firmware/motherboard/dbx changes require independent consumer
+  recovery, one-host maintenance and post-boot checks; never clear a TPM as a generic repair.
 - Stage 2 supplies separate repository/pin-discovery and controller-only portal CSR recipes. They do
   not initialize a CA or approve issuance. Retire seven-day bootstrap portal TLS through the existing
   requester/approver workflow and issuer reconciliation, preserving the portal key and CA identity.
@@ -50,12 +57,20 @@ This file keeps durable context for AI-assisted work across sessions.
   separate keys, permissions and recovery. Offline root devices are not online pool members. Raw
   token remoting has no per-object policy; do not promise shared-device isolation from key labels.
   Vault native PKCS#11 seal remains Enterprise/device-mechanism qualified; default unseal is Shamir.
-- The baseline currently uses UEFI without Secure Boot; no later stage enables it automatically.
-  The common hardening/maintenance guide now documents supported Linux template inputs and qualifies
-  signed media, guest/host trust separately, enrollment, revocation/dbx/SBAT maintenance and EFI/vTPM
-  recovery. Talos signed-media migration and per-guest TPM provisioning remain distinct implementation
-  work; do not imply they are supplied by an EFI checkbox, installer pin or template TPM.
-  Do not silently flip live boot policy or device OTP fuses.
+- New compatible vendor Linux installations use the tested signed UEFI profile and fresh per-VM
+  TPM 2.0 through the generic `tpm` object. TPM-free template evidence is explicit in the applied
+  Shared catalog. Existing/adopted TPM state is preserved. Existing VM addition uses Tier 0's
+  native controller-owned proxmox-guest-security recipe with inspect/prepare/check/apply operations.
+  The tier-local guest-boot-security recipe installs native inspection packages when requested,
+  then proves Linux Secure Boot and TPM 2.0 through normal Ansible access. It performs no key sealing.
+  Stage 4 option 5a is fresh signed NoCloud ISO installation with unique EFI/vTPM, signed matching
+  1.13.x installer and optional TPM-bound STATE/EPHEMERAL encryption, selected by default on this path.
+  Option 5b retains the existing template route. The cluster wrapper guards existing boot/encryption
+  policy and verifies signed nodes through authenticated Talos APIs after apply or verify-security.
+  ISO ejection uses install_media_attached=false after installed-disk acceptance.
+  Common maintenance retains signed trust, EFI/TPM state and independent recovery through changes.
+  Physical TPM, software vTPM, USB HSM signing custody, PKI and restricted network access remain
+  complementary controls. Boot/security checks and source tests do not qualify live recovery.
 - Deployment stage folders use zero-padded two-digit numbers (stage-01 through stage-10) so
   lexical/GitHub sorting follows the installation sequence. Update references and migration targets
   together; retain former route keys so project-owned links survive generated-documentation refresh.
@@ -186,11 +201,14 @@ This file keeps durable context for AI-assisted work across sessions.
 - New deployments target Proxmox VE 9+; the selected 9.2+ path uses native HA/affinity
   and dynamic automatic rebalancing. ProxLB is an explicit alternative, never a second
   unqualified scheduler for the same guests. HA restarts fenced guests; it is not zero downtime.
-- The common vm-template guide owns manual Alma/Rocky/Talos import. Fresh Talos examples
-  select NoCloud UEFI-only, q35, non-Single VirtIO SCSI, fixed RAM and the guest-agent
-  schematic. Explicit vm_firmware matches clones to publication; omitted fields preserve
-  legacy BIOS behavior, not implicit firmware migration.
-- Fresh Talos clones use a CloudInit/NoCloud drive at ide2 for static inventory IPs
+- The common vm-template guide owns manual Alma/Rocky/Debian and retained Talos raw import.
+  Debian 12 uses the full-kernel generic image with a prepared QEMU agent for Q35/ide2 compatibility;
+  require cloud-init/media/network acceptance separately from a successful guest-agent response.
+  Fresh Kubernetes starters instead select signed NoCloud ISO installation with unique EFI/TPM
+  and encrypted system volumes; retained raw-template examples use unsigned UEFI-only boot.
+  Both use q35, non-Single VirtIO SCSI, fixed RAM and the selected guest-agent schematic.
+  Explicit vm_firmware matches the chosen boot route; omitted fields preserve legacy BIOS behavior.
+- Fresh Talos nodes use a CloudInit/NoCloud drive at ide2 for static inventory IPs
   and gateway only; user/password/SSH/custom user-data remain unset. Optional DNS override
   is explicit; otherwise qualify Proxmox's inherited defaults. bootstrap_network = null
   retains the previous DHCP path. The Talos API still owns machine configuration.
@@ -205,8 +223,9 @@ This file keeps durable context for AI-assisted work across sessions.
   Complete all selected paths before the next stage. Enhancements are scheduled after their real
   prerequisites, even when they extend earlier capabilities; never send a fresh operator to a future
   stage and back to finish a supposedly completed stage. Qualified existing/manual interfaces remain explicit.
-- Foundation has ten numbered actions: hosts/networks, first manual Linux template, bootstrap,
-  then publication, clone/recovery qualification and selected HA acceptance in actions 4-10.
+- Foundation has eleven numbered actions: hosts/networks, first manual Linux template, bootstrap,
+  then publication, clone/recovery qualification and selected HA acceptance in actions 4-10,
+  followed by physical host and retained guest security commissioning in action 11.
   Bootstrap has nineteen sequential actions; template-refresh remains separate later maintenance/state. Select HA/SDN before guests, complete SDN
   authorization after bootstrap, and qualify guest HA/ProxLB before leaving Foundation. Old anchors remain.
   Linux host security belongs under docs/05-operations/01-hosting/linux-security.md and is first selected at

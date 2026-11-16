@@ -51,6 +51,11 @@ def published_references(candidates):
                     or (hardware["bios"] == "seabios" and hardware.get("efi_pre_enrolled_keys", False))):
                 raise ValueError(f"Incomplete or invalid applied template hardware for {key}; Shared was not changed.")
             entry.update(hardware)
+        # Preserve absence for legacy outputs: missing evidence must never become false.
+        if "tpm_state_present" in candidate:
+            if type(candidate["tpm_state_present"]) is not bool:
+                raise ValueError(f"Invalid applied template TPM evidence for {key}; Shared was not changed.")
+            entry["tpm_state_present"] = candidate["tpm_state_present"]
         references[str(vm_id)] = entry
     return references
 
@@ -71,6 +76,8 @@ def merged_catalog(original, references):
     updated = {key: dict(entry) for key, entry in catalog.items()}
     for vm_id, entry in references.items():
         updated[vm_id] = {**updated.get(vm_id, {}), **entry}
+        if "tpm_state_present" not in entry:
+            updated[vm_id].pop("tpm_state_present", None)
     if updated == catalog:
         return original, default
 

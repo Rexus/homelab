@@ -6,6 +6,9 @@
 # IPs and naming come from Tier 0 inventory/group vars through environment_guests.
 # Set approved Enterprise Linux image/storage references in the shared catalog/profile.
 # Separate initial hosts are enforced; live anti-affinity and independent storage/power need qualification.
+# Fresh VMs select TPM 2.0 below; omit tpm or set tpm = null to opt out (legacy default).
+# Requires tpm_state_present = false in the applied/inspected Shared clone-source reference.
+# Existing VM TPM/boot hardware is preserved; this does not enable Secure Boot or encryption.
 vm_instances = {
   api-gw-1 = {
     proxmox_node_name = "pve01"
@@ -13,6 +16,7 @@ vm_instances = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20
+    tpm              = {}
     network_zone_key = "management"
     tags             = ["tier-0", "private-api", "restricted", "always-on"]
   }
@@ -22,6 +26,7 @@ vm_instances = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 20
+    tpm              = {}
     network_zone_key = "management"
     tags             = ["tier-0", "private-api", "restricted", "always-on"]
   }

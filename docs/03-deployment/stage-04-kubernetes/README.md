@@ -44,7 +44,7 @@ flowchart LR
 
 **IaC:** **Figure 1: Control-cluster runtime.** Tier 0 [Kubernetes inputs](../../../tier-0/terraform/deployments/kubernetes/terraform.tfvars.example)
 and [cluster entry point](../../../tier-0/scripts/kubernetes-cluster.sh) create these three VMs and bootstrap Kubernetes.
-The API endpoint, IP allocations and approved node template already exist.
+The API endpoint, IP allocations and approved boot artifacts already exist.
 Each VM receives a network-only NoCloud drive at `ide2`, plus its live boot/EFI disks;
 the Talos API applies machine configuration. DHCP bootstrap remains an explicit legacy option.
 No workers are active in this starter; application and add-on manifests are separate inputs.
@@ -149,10 +149,26 @@ The [cross-tier lifecycle reference](procedures/talos-terraform.md) owns detaile
 
 ## Step 5: Edit node hardware, addresses and release pins
 
-Decide boot security before creating nodes. The current NoCloud path does not supply Talos signed
-media/key enrollment or per-node TPM provisioning; review the
-[Talos qualification path](../../05-operations/01-hosting/guest-hardening.md#talos-boot-security)
-if either is required. Step 20 records the observed result, rather than converting an installed node.
+Choose **5a** for new permanent nodes or **5b** for an accepted template-based installation.
+Both paths finish their input preparation here and continue at **Step 6**.
+
+### 5a: Signed fresh installation and TPM — recommended
+
+Prepare the approved NoCloud Secure Boot ISO and matching signed installer using the
+[signed installation guide](procedures/secure-boot.md). In **Tier 0
+`terraform/deployments/kubernetes/terraform.tfvars`**, set `template_vm_id = null`, select the
+documented `secure_boot` object and use OVMF/q35/`virtio-scsi-pci`.
+Terraform supplies fresh EFI and TPM 2.0 state for every node. Keep
+`encrypt_system_disks = true` for TPM-bound STATE/EPHEMERAL encryption unless the recorded
+storage/recovery choice requires otherwise. Retain installation media until the installed-disk
+boot checks pass. Prepare the inputs now, then continue below without a separate cluster apply.
+
+### 5b: Retain the template installation path
+
+Keep `secure_boot = null`, the approved Talos `template_vm_id`, matching ordinary NoCloud installer
+and tested firmware/agent settings. This path clones the existing base image. Use the retained
+boot profile for an existing deployment. Moving GRUB-based nodes to signed UKI boot uses the
+fresh-installation/recovery path with cluster identity and quorum preserved.
 
 Edit **Tier 0**:
 
@@ -160,7 +176,7 @@ Edit **Tier 0**:
 | --- | --- |
 | `ansible/inventory/hosts.yml` | Actual `talos_control_plane` / `talos_workers`; the starter is three schedulable control planes, no workers |
 | `ansible/group_vars/talos.yml` | Reserved static `platform_host_ips` for every node |
-| `terraform/deployments/kubernetes/terraform.tfvars` | Approved Talos `template_vm_id`, firmware/agent, endpoint, release/installer pins, nonoverlapping pod/service networks, each node's VMID/MAC/placement/storage/bridge and `bootstrap_network` |
+| `terraform/deployments/kubernetes/terraform.tfvars` | Chosen 5a/5b boot inputs, endpoint, release/installer pins, nonoverlapping pod/service networks, each node's VMID/MAC/placement/storage/bridge and `bootstrap_network` |
 
 For physical-host redundancy, set distinct initial `node_name` values in
 **`terraform/deployments/kubernetes/terraform.tfvars`**:
@@ -240,7 +256,10 @@ Run from **`<prefix>-tier-0/`**:
 bash scripts/kubernetes-cluster.sh apply
 ```
 
-**Expected:** VMs cloned, native machine configurations applied, Kubernetes bootstrapped once.
+**Expected:** signed-path VMs created from blank disks or retained-path VMs cloned, native machine
+configurations applied, Kubernetes bootstrapped once. For **5a**, the wrapper verifies signed boot
+and selected encryption through each node's authenticated API after apply. Stop on a failed proof
+before installing consumers. For **5b**, it reports the retained template policy.
 Saved-plan apply has no second `yes` prompt; CI approves that exact protected plan before this command.
 It has no `--auto-approve` flag.
 
@@ -265,6 +284,8 @@ kubectl get --raw='/readyz'
 **Expected:** private API access; nodes/CoreDNS can remain unready until Cilium. Retain original state,
 machine secrets and client files independently before installing consumers. An existing-cluster path
 uses its original kubeconfig/Talos files; never substitute the fallback paths above.
+For **5a**, follow the signed guide's [ISO ejection and controlled installed-disk checks](procedures/secure-boot.md#5-eject-installation-media-and-capture-recovery).
+Set `secure_boot.install_media_attached = false` through the reviewed plan/apply path.
 
 <a id="step-2-establish-the-basic-platform"></a>
 
@@ -508,9 +529,16 @@ Record results and selections in **`<prefix>-architecture/deployments.md`**.
 
 Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for API
 gateways, Talos nodes and the selected platform. Recheck restricted API/admin access, namespace policy,
-audit delivery and independent Talos/etcd/data recovery. Talos Secure Boot uses its signed image and
-trust-enrollment path; adding an EFI flag or vTPM to the existing unsigned path is not that migration.
-Retain the approved boot profile and resource identities before recording this stage complete.
+audit delivery and independent Talos/etcd/data recovery. For **5a**, on **Tier 0**, recheck node boot
+security after installed-disk acceptance and ISO ejection.
+
+```bash
+bash scripts/kubernetes-cluster.sh verify-security
+```
+
+Require authenticated proof for every node and the selected STATE/EPHEMERAL encryption policy.
+For **5b**, record the actual retained controls through the common checkpoint. Retain the approved
+boot profile and resource identities before recording this stage complete.
 
 ## Capability available
 

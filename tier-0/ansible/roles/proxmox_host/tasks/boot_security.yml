@@ -1,0 +1,148 @@
+---
+- name: Validate the physical host operation and explicit boot policy before mutation
+  ansible.builtin.assert:
+    that:
+      - proxmox_host_boot_security_operation in ['prepare', 'check']
+      - proxmox_host_require_secure_boot is boolean
+      - proxmox_host_require_tpm is boolean
+      - proxmox_host_require_secure_boot or proxmox_host_require_tpm
+      - not ansible_check_mode or proxmox_host_boot_security_operation == 'check'
+    fail_msg: >-
+      Select proxmox_host_boot_security_operation=prepare (inspection tools and status) or check
+      (read-only acceptance), with at least one boolean requirement true. Ansible --check supports check only.
+
+- name: Admit only physical Debian Linux hosts before package operations
+  ansible.builtin.assert:
+    that:
+      - ansible_system == 'Linux'
+      - ansible_os_family == 'Debian'
+      - ansible_distribution == 'Debian'
+      - ansible_virtualization_role | default('') in ['host', 'NA']
+      - "'guest' not in ansible_virtualization_roles | default([])"
+      - ansible_virtualization_type | default('') not in ['lxc', 'docker', 'podman', 'container', 'containerd', 'openvz']
+    fail_msg: >-
+      This recipe admits only physical Proxmox VE hosts on Debian Linux with virtualization role host or NA.
+      Guests, containers and nested hypervisors must use their separate acceptance paths.
+
+- name: Inspect the actual Proxmox configuration directory
+  ansible.builtin.stat:
+    path: /etc/pve
+    follow: false
+  register: _proxmox_host_boot_security_pve
+
+- name: Read the installed PVE manager and running kernel version
+  ansible.builtin.command:
+    argv: [/usr/bin/pveversion]
+  register: _proxmox_host_boot_security_version
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Require a real PVE directory and successful native Proxmox identity
+  ansible.builtin.assert:
+    that:
+      - _proxmox_host_boot_security_pve.stat.isdir | default(false)
+      - not _proxmox_host_boot_security_pve.stat.islnk | default(false)
+      - _proxmox_host_boot_security_version.rc | default(127) == 0
+      - _proxmox_host_boot_security_version.stdout | default('') is match('^pve-manager/[0-9]+[.][0-9]+')
+    fail_msg: >-
+      Physical host admission requires the real /etc/pve directory and a working /usr/bin/pveversion
+      reporting pve-manager. No packages have been installed.
+
+- name: Report the admitted physical host and its running PVE version
+  ansible.builtin.debug:
+    msg:
+      physical_host: "{{ inventory_hostname }}"
+      pve_version: "{{ _proxmox_host_boot_security_version.stdout }}"
+
+- name: Prepare only native inspection tools from the host's already accepted APT repositories
+  ansible.builtin.apt:
+    name: [mokutil, efibootmgr, tpm2-tools]
+    state: present
+    update_cache: true
+    install_recommends: false
+    allow_unauthenticated: false
+    force: false
+    force_apt_get: true
+    fail_on_autoremove: true
+  when: proxmox_host_boot_security_operation == 'prepare'
+
+- name: Inspect whether this running host booted through UEFI
+  ansible.builtin.stat:
+    path: /sys/firmware/efi
+  register: _proxmox_host_boot_security_efi
+
+- name: Read existing bootloader EFI entries and current Secure Boot status without changing them
+  ansible.builtin.command:
+    argv: "{{ item }}"
+  loop:
+    - [/usr/sbin/proxmox-boot-tool, status]
+    - [/usr/bin/efibootmgr, -v]
+    - [/usr/bin/mokutil, --sb-state]
+  environment:
+    LC_ALL: C
+  register: _proxmox_host_boot_security_inspection
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: proxmox_host_boot_security_operation == 'prepare'
+
+- name: Report preparation status even when Secure Boot or TPM is disabled
+  ansible.builtin.debug:
+    msg:
+      command: "{{ item.item | join(' ') }}"
+      rc: "{{ item.rc | default(127) }}"
+      stdout: "{{ item.stdout | default('') }}"
+      stderr: "{{ item.stderr | default(item.msg | default('')) }}"
+  loop: "{{ _proxmox_host_boot_security_inspection.results }}"
+  loop_control:
+    label: "{{ item.item | join(' ') }}"
+  when: proxmox_host_boot_security_operation == 'prepare'
+
+- name: Verify only the selected physical host boot controls using shared read-only probes
+  when: proxmox_host_boot_security_operation == 'check'
+  block:
+    - name: Require actual UEFI boot when Secure Boot is selected
+      ansible.builtin.assert:
+        that: _proxmox_host_boot_security_efi.stat.isdir | default(false)
+        fail_msg: The running physical host did not boot through UEFI; Secure Boot cannot be accepted.
+      when: proxmox_host_require_secure_boot
+
+    # Deliberately bypass the shared role's guest admission, package tasks and main entry point.
+    - name: Verify enforced Secure Boot without a shim validation bypass
+      ansible.builtin.include_role:
+        name: guest_boot_security
+        tasks_from: secure-boot
+      when: proxmox_host_require_secure_boot
+
+    - name: Verify local physical TPM 2.0 fixed properties
+      ansible.builtin.include_role:
+        name: guest_boot_security
+        tasks_from: tpm
+      when: proxmox_host_require_tpm
+  rescue:
+    - name: Explain the physical host remediation boundary
+      ansible.builtin.fail:
+        msg: >-
+          Physical Proxmox boot acceptance failed: {{ ansible_failed_result.msg | default('native probe failed') }}.
+          Use proxmox_host_boot_security_operation=prepare for native tools and boot status, then follow
+          docs/05-operations/01-hosting/proxmox-host-boot-security.md for physical firmware/boot maintenance and rerun check.
+          This recipe never changes the bootloader, EFI keys, TPM identity or firmware and never reboots.
+
+- name: Report the physical host boot acceptance scope and next step
+  ansible.builtin.debug:
+    msg:
+      operation: "{{ proxmox_host_boot_security_operation }}"
+      uefi_boot: "{{ _proxmox_host_boot_security_efi.stat.isdir | default(false) }}"
+      secure_boot: >-
+        {{ 'Not selected' if not proxmox_host_require_secure_boot else
+           ('Enforced; no shim validation bypass' if proxmox_host_boot_security_operation == 'check'
+            else 'Status reported only; enable in firmware and rerun check') }}
+      tpm: >-
+        {{ 'Not selected' if not proxmox_host_require_tpm else
+           ('Local TPM 2.0 fixed properties verified' if proxmox_host_boot_security_operation == 'check'
+            else 'Not accepted during prepare; enable TPM 2.0 in firmware and rerun check') }}
+      guide: docs/05-operations/01-hosting/proxmox-host-boot-security.md
+      scope: >-
+        No bootloader installation/conversion, EFI key enrollment, TPM identity change, firmware change or reboot.
+        This does not enroll LUKS encryption, seal keys or establish measured-boot attestation.

@@ -60,6 +60,8 @@ class VmAdoption(TierRepositoryTestCase):
                         'bridge': 'services', 'disk_size_gb': 30, 'memory': 2048,
                         'datastore_id': 'disk-store', 'initialization_datastore_id': 'disk-store',
                         'firmware': '${module.environment.vm_instances["guest-1"].firmware}',
+                        'tpm': '${module.environment.vm_instances["guest-1"].tpm}',
+                        'template_tpm_state_present': '${module.environment.vm_instances["guest-1"].template_tpm_state_present}',
                         'extra_disks': [{'interface': 'scsi1', 'size_gb': 100}],
                     }},
                 }
@@ -124,6 +126,33 @@ class VmAdoption(TierRepositoryTestCase):
                 self.assertEqual(adopted['after']['bios'], 'ovmf')
                 self.assertEqual(adopted['after']['machine'], 'q35')
                 self.assertEqual(adopted['after']['scsi_hardware'], 'virtio-scsi-single')
+                # Creation input does not rotate/move the identity of an imported guest.
+                catalog_entry['tpm_state_present'] = False
+                configuration['module']['environment']['vm_instances']['guest-1']['tpm'] = {
+                    'datastore_id': 'new-tpm-store',
+                }
+                main.write_text(json.dumps(configuration))
+                retained_tpm = self.plan(fixture)
+                self.assertNotIn('delete', retained_tpm['actions'])
+                self.assertNotIn('create', retained_tpm['actions'])
+                self.assertEqual(retained_tpm['after']['tpm_state'], observed['tpm_state'])
+                # The same creation input cannot silently add a device to an existing VM.
+                # A maintenance recipe must create it while stopped, then refresh records it.
+                original_tpm = copy.deepcopy(observed['tpm_state'])
+                state['resources'][0]['instances'][0]['attributes']['tpm_state'] = []
+                (fixture / 'terraform.tfstate').write_text(json.dumps(state))
+                without_tpm = self.plan(fixture)
+                self.assertEqual(without_tpm['after']['tpm_state'], [])
+                self.assertNotIn('delete', without_tpm['actions'])
+                self.assertNotIn('create', without_tpm['actions'])
+                state['resources'][0]['instances'][0]['attributes']['tpm_state'] = original_tpm
+                (fixture / 'terraform.tfstate').write_text(json.dumps(state))
+                configuration['module']['vm']['cores'] = 4
+                main.write_text(json.dumps(configuration))
+                cpu_growth = self.plan(fixture)
+                self.assertEqual(cpu_growth['actions'], ['update'])
+                self.assertEqual(cpu_growth['after']['cpu'][0]['cores'], 4)
+                self.assertEqual(cpu_growth['after']['tpm_state'], observed['tpm_state'])
                 hardware = {field: catalog_entry[field] for field in
                             ('bios', 'machine', 'scsi_hardware', 'efi_pre_enrolled_keys')}
                 catalog_entry.update(bios='seabios', machine='pc', scsi_hardware='lsi')

@@ -1,0 +1,23 @@
+---
+- name: Admit only supported Linux guest proof targets
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Prepare only the selected native inspection tools when explicitly requested
+  ansible.builtin.include_tasks: packages.yml
+  when: guest_boot_security_operation == 'apply'
+
+- name: Inspect actual firmware enforcement
+  ansible.builtin.include_tasks: secure-boot.yml
+  when: guest_boot_security_require_secure_boot
+
+- name: Inspect the local TPM 2.0 interface and fixed properties
+  ansible.builtin.include_tasks: tpm.yml
+  when: guest_boot_security_require_tpm
+
+- name: Show the accepted guest boot controls
+  ansible.builtin.debug:
+    msg:
+      guest: "{{ inventory_hostname }}"
+      secure_boot: "{{ 'Enabled; shim validation not disabled' if guest_boot_security_require_secure_boot else 'Not selected' }}"
+      tpm: "{{ 'Local TPM 2.0 fixed properties verified' if guest_boot_security_require_tpm else 'Not selected' }}"
+      scope: No key sealing, firmware enrollment, TPM reset, guest reboot or root-encryption conversion.

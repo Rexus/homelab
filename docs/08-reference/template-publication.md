@@ -52,6 +52,12 @@ only when the selected image or site needs a different value.
 | `image_file_name` | Optional existing Import basename; defaults to `<vm_id>-<sha256>.raw` or `.qcow2` |
 | `release` / `schematic_id` | Exact build version, optional `v` prefix / mandatory Talos Factory schematic |
 
+Fresh vendor Linux examples explicitly select `efi_pre_enrolled_keys: true` for a qualified
+signed UEFI chain. Keep reusable templates TPM-free; the service VM creates its own TPM through
+the [consumer contract](template-catalog.md#how-consumers-use-it). Talos's retained raw template
+uses no pre-enrollment; its [signed ISO path](../03-deployment/stage-04-kubernetes/procedures/secure-boot.md)
+creates per-node trust and TPM state instead.
+
 Each build includes `tags: []` for optional extras such as `[test]`. Standard tags
 describe the image and CPU profile, not template status or tier ownership. The
 `template_candidates` output includes the resolved tags for consumer-catalog review.

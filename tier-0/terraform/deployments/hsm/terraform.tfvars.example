@@ -22,6 +22,9 @@ hsm_variant = "hardware"
 # Separate physical hosts are examples; verify USB affinity and Proxmox HA placement.
 # The Tier 0 Ansible inventory and hsm.yml include the matching hsm-1 and
 # hsm-2 entries.
+# Fresh VMs select TPM 2.0 below; omit tpm or set tpm = null to opt out (legacy default).
+# Requires tpm_state_present = false in the applied/inspected Shared clone-source reference.
+# Existing VM TPM/boot hardware is preserved; this does not enable Secure Boot or encryption.
 vm_instances = {
   "hsm-1" = {
     proxmox_node_name = "pve01"
@@ -32,6 +35,7 @@ vm_instances = {
     size             = "small"
     storage_class    = "local"
     disk_size_gb     = 30
+    tpm              = {}
     network_zone_key = "cryptography"
     tags             = ["hsm", "pkcs11", "critical", "restricted", "always-on", "security"]
   }
@@ -42,6 +46,7 @@ vm_instances = {
     size              = "small"
     storage_class     = "local"
     disk_size_gb      = 30
+    tpm               = {}
     network_zone_key  = "cryptography"
     tags              = ["hsm", "pkcs11", "critical", "restricted", "always-on", "security"]
   }
@@ -52,6 +57,7 @@ vm_instances = {
   #   size              = "small"
   #   storage_class     = "local"
   #   disk_size_gb      = 30
+  #   tpm               = {}
   #   network_zone_key  = "cryptography"
   #   tags              = ["hsm", "pkcs11", "critical", "restricted", "always-on", "security"]
   # }
@@ -63,6 +69,7 @@ vm_instances = {
   #   size             = "tiny"
   #   storage_class    = "local"
   #   disk_size_gb     = 20
+  #   tpm              = {}
   #   network_zone_key = "ceremony"
   #   tags             = ["isolated", "maintenance", "security"]
   # }

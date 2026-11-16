@@ -31,6 +31,8 @@ Run from [Tier 0](../${repo_prefix}-tier-0/README.md); hardware and bootstrap pr
   - [ ] Selected HA/balancing qualified — [Step 10](docs/auto-docs/03-deployment/foundation/README.md#step-10-qualify-selected-ha-and-balancing).
   - [ ] **Alternative 10b:** ProxLB instead of native rebalancing — [Guide](docs/auto-docs/03-deployment/foundation/proxmox/step-10b-proxlb.md).
 
+- [ ] Proxmox host security accepted; Secure Boot/physical TPM checked and exceptions recorded — [Step 11](docs/auto-docs/03-deployment/foundation/proxmox/step-11-host-security.md).
+
 ## 1. Software Intake
 
 Cache: [Tier 2](../${repo_prefix}-tier-2/README.md).

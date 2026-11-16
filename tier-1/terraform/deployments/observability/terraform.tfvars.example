@@ -11,6 +11,9 @@
 # Protected syslog/audit intake and archive stay in Tier 0.
 # Existing sites must migrate deliberately; never replace live inputs with this example.
 
+# Fresh VMs select TPM 2.0 below; omit tpm or set tpm = null to opt out (legacy default).
+# Requires tpm_state_present = false in the applied/inspected Shared clone-source reference.
+# Existing VM TPM/boot hardware is preserved; this does not enable Secure Boot or encryption.
 vm_instances = {
   # Keys match the tier-local Ansible inventory and platform_host_ips.
   # Initial placement is not a persistent Proxmox anti-affinity rule.
@@ -22,6 +25,7 @@ vm_instances = {
     memory            = 12288
     storage_class     = "local"
     disk_size_gb      = 40
+    tpm               = {}
     extra_disks       = [{ interface = "scsi1", size_gb = 80 }]
     network_zone_key  = "observability"
     tags              = ["otel-collector", "internal", "always-on", "platform"]
@@ -34,6 +38,7 @@ vm_instances = {
     memory            = 12288
     storage_class     = "local"
     disk_size_gb      = 40
+    tpm               = {}
     extra_disks       = [{ interface = "scsi1", size_gb = 80 }]
     network_zone_key  = "observability"
     tags              = ["otel-collector", "internal", "always-on", "platform"]
@@ -44,6 +49,7 @@ vm_instances = {
     size              = "large"
     storage_class     = "local"
     disk_size_gb      = 40
+    tpm               = {}
     memory            = 12288
     extra_disks       = [{ interface = "scsi1", size_gb = 500 }]
     network_zone_key  = "observability"
@@ -55,6 +61,7 @@ vm_instances = {
     size              = "large"
     storage_class     = "local"
     disk_size_gb      = 40
+    tpm               = {}
     memory            = 12288
     extra_disks       = [{ interface = "scsi1", size_gb = 500 }]
     network_zone_key  = "observability"
@@ -66,6 +73,7 @@ vm_instances = {
     size              = "large"
     storage_class     = "local"
     disk_size_gb      = 40
+    tpm               = {}
     memory            = 12288
     extra_disks       = [{ interface = "scsi1", size_gb = 1000 }]
     network_zone_key  = "observability"
@@ -77,6 +85,7 @@ vm_instances = {
     size              = "large"
     storage_class     = "local"
     disk_size_gb      = 40
+    tpm               = {}
     memory            = 12288
     extra_disks       = [{ interface = "scsi1", size_gb = 1000 }]
     network_zone_key  = "observability"
@@ -88,6 +97,7 @@ vm_instances = {
     size              = "large"
     storage_class     = "local"
     disk_size_gb      = 40
+    tpm               = {}
     memory            = 12288
     extra_disks       = [{ interface = "scsi1", size_gb = 1000 }]
     network_zone_key  = "observability"

@@ -1,0 +1,35 @@
+---
+- name: Require an explicit proof policy and an apply or check operation
+  ansible.builtin.assert:
+    that:
+      - guest_boot_security_operation in ['check', 'apply']
+      - guest_boot_security_require_secure_boot is boolean
+      - guest_boot_security_require_tpm is boolean
+      - guest_boot_security_require_secure_boot or guest_boot_security_require_tpm
+      - not ansible_check_mode or guest_boot_security_operation == 'check'
+    fail_msg: >-
+      Select operation check (read-only) or apply (install inspection tools, then check), with
+      require_secure_boot and/or require_tpm true. Generic Ansible --check is only for check.
+
+- name: Exclude hypervisors, physical machines, Talos and container runtimes
+  ansible.builtin.assert:
+    that:
+      - ansible_system == 'Linux'
+      - ansible_os_family in ['RedHat', 'Debian']
+      - ansible_virtualization_role | default('') == 'guest'
+      - ansible_virtualization_type | default('') in ['kvm', 'qemu']
+      - "'pve' not in ansible_kernel | lower"
+      - "'talos' not in ansible_distribution | lower"
+    fail_msg: >-
+      Select only managed EL or Debian-family QEMU/KVM Linux guests after their normal baseline.
+      Proxmox hosts, Talos nodes, physical hosts and LXC/container guests use separate acceptance paths.
+
+- name: Inspect Proxmox host identity before package operations
+  ansible.builtin.stat:
+    path: /etc/pve
+  register: guest_boot_security_proxmox
+
+- name: Reject nested or otherwise identified Proxmox hosts
+  ansible.builtin.assert:
+    that: not guest_boot_security_proxmox.stat.exists
+    fail_msg: This is a Proxmox host; use the host hardening path, not the Linux guest proof role.

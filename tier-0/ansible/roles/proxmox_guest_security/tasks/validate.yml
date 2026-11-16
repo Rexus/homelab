@@ -1,0 +1,33 @@
+---
+- name: Require an explicit VM identity and supported operation before API access
+  ansible.builtin.assert:
+    that:
+      - proxmox_guest_security_operation in ['inspect', 'prepare', 'check', 'apply']
+      - proxmox_guest_security_vmid is integer and proxmox_guest_security_vmid is not boolean
+      - proxmox_guest_security_vmid | int >= 100
+      - proxmox_guest_security_node is match('^[A-Za-z0-9][A-Za-z0-9.-]*$')
+      - proxmox_guest_security_name is match('^[A-Za-z0-9][A-Za-z0-9.-]*$')
+      - proxmox_guest_security_shutdown_timeout is integer
+      - proxmox_guest_security_shutdown_timeout | int >= 30
+      - proxmox_guest_security_shutdown_timeout | int <= 900
+      - not ansible_check_mode or proxmox_guest_security_operation == 'inspect'
+    fail_msg: >-
+      Select one existing VM by integer vmid, exact node and name. Use inspect, prepare,
+      check or apply; Ansible --check is supported only for inspect. No guest SSH is used.
+
+- name: Require a private record location and selected TPM storage for maintenance
+  ansible.builtin.assert:
+    that:
+      - proxmox_guest_security_tpm_storage is match('^[A-Za-z][A-Za-z0-9_.-]*$')
+      - proxmox_guest_security_record is match('^/.+[^/]$')
+      - "'..' not in proxmox_guest_security_record.split('/')"
+    fail_msg: >-
+      Set tpm_storage to VM-image storage and record to a new JSON file in an existing
+      private controller directory (for example /home/operator/.local/share/guest-security/vm.json).
+  when: proxmox_guest_security_operation != 'inspect'
+
+- name: Require the reviewed record checksum for check and apply
+  ansible.builtin.assert:
+    that: proxmox_guest_security_record_sha256 is match('^[a-f0-9]{64}$')
+    fail_msg: Copy the exact record SHA256 printed by prepare into proxmox_guest_security_record_sha256.
+  when: proxmox_guest_security_operation in ['check', 'apply']

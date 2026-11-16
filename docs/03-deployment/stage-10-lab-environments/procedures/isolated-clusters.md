@@ -26,7 +26,7 @@ The [runtime figure](../README.md#figure-workload-runtimes) shows the Kubernetes
 authorized provisioning boundary. The [approval workflow](../README.md#figure-request-approval) precedes it.
 
 Follow [Tier 2 Kubernetes](../README.md#step-2-provision-the-workload-runtime) with
-its inventory, native image access, approved templates, unique allocations,
+its inventory, native image access, approved signed media or retained template, unique allocations,
 private API and original state. Accept the cluster/add-ons before tenant access.
 Grant only the selected workload/cluster role through the existing IdP.
 Keep Talos, hypervisor, lifecycle state and platform credentials private.

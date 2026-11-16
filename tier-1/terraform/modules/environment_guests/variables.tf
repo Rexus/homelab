@@ -38,6 +38,7 @@ variable "proxmox_template_catalog" {
     machine               = optional(string)
     scsi_hardware         = optional(string)
     efi_pre_enrolled_keys = optional(bool)
+    tpm_state_present     = optional(bool)
   }))
   default = {}
 }
@@ -88,6 +89,10 @@ variable "vm_instances" {
       machine               = optional(string)
       scsi_hardware         = optional(string, "virtio-scsi-single")
       efi_pre_enrolled_keys = optional(bool, false)
+    }))
+    tpm = optional(object({
+      version      = optional(string, "v2.0")
+      datastore_id = optional(string)
     }))
     initialization_datastore_id = optional(string)
     nic_firewall                = optional(bool, true)

@@ -10,6 +10,7 @@
 # environment overlay, for example when converting another supported distro.
 # default_linux_vm_template_id = 9101
 
+# Template builders stay TPM-free: consumers create their own per-VM TPM identities.
 vm_instances = {
   # First run with template=false and started=true so Ansible can configure
   # the builder VM. After verification, set template=true and started=false,

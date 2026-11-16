@@ -88,6 +88,28 @@ variable "nodes" {
 variable "template_vm_id" {
   description = "An approved Talos image from the shared catalog; never a Linux cloud-init image."
   type        = number
+  default     = null
+}
+
+variable "secure_boot" {
+  description = "Fresh signed NoCloud ISO installation with unique EFI/vTPM state. Null preserves the existing template-clone workflow."
+  type = object({
+    iso_path               = string
+    iso_sha256             = string
+    iso_datastore_id       = string
+    encrypt_system_disks   = optional(bool, true)
+    install_media_attached = optional(bool, true)
+  })
+  default = null
+  validation {
+    condition = var.secure_boot == null ? true : (
+      can(regex("^/", var.secure_boot.iso_path)) &&
+      endswith(var.secure_boot.iso_path, ".iso") &&
+      can(regex("^[a-f0-9]{64}$", var.secure_boot.iso_sha256)) &&
+      can(regex("^[A-Za-z0-9][A-Za-z0-9_.-]*$", var.secure_boot.iso_datastore_id))
+    )
+    error_message = "Secure Boot needs an absolute local approved NoCloud SecureBoot ISO path, lowercase SHA256 and ISO-capable datastore ID."
+  }
 }
 
 variable "proxmox_template_catalog" {

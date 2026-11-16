@@ -34,7 +34,7 @@ proxmox_template_catalog = {
             "rocky-build-1": {"vm_id": 110, "title": "rocky-10-tmpl", "node_name": "pve01",
                               "family": "redhat", "tags": ["el10", "rocky", "cloud-init"],
                               "bios": "ovmf", "machine": "q35", "scsi_hardware": "virtio-scsi-single",
-                              "efi_pre_enrolled_keys": False,
+                              "efi_pre_enrolled_keys": False, "tpm_state_present": False,
                               "sha256": "not-consumer-data", "image_path": "/private/artifact"},
             "talos-build-1": {"vm_id": 130, "title": "talos-tmpl", "node_name": "pve01",
                               "family": "talos", "tags": ["talos1", "cloud-init"]},
@@ -57,7 +57,7 @@ proxmox_template_catalog = {
         self.assertEqual(catalog["110"]["node_name"], "pve01")
         self.assertEqual(catalog["110"]["title"], "rocky-10-tmpl")
         self.assertEqual(catalog["110"]["note"], "Keep this")
-        for field in ("bios", "machine", "scsi_hardware", "efi_pre_enrolled_keys"):
+        for field in ("bios", "machine", "scsi_hardware", "efi_pre_enrolled_keys", "tpm_state_present"):
             self.assertEqual(catalog["110"][field], self.candidates["rocky-build-1"][field])
         self.assertEqual(catalog["130"]["family"], "talos")
         self.assertNotIn("sha256", catalog["110"])
@@ -133,6 +133,22 @@ proxmox_template_catalog = {
         with self.assertRaisesRegex(ValueError, "Incomplete or invalid applied template hardware"):
             sync.update_catalog(self.catalog, {"source": candidate})
         self.assertEqual(self.catalog.read_text(), self.original)
+
+    def test_tpm_evidence_is_boolean_and_never_guessed_from_legacy_outputs(self):
+        candidate = self.candidates["rocky-build-1"]
+        for invalid in (None, 0, 1, "false", []):
+            with self.subTest(invalid=invalid):
+                with self.assertRaisesRegex(ValueError, "Invalid applied template TPM evidence"):
+                    sync.published_references({"source": {**candidate, "tpm_state_present": invalid}})
+        for present in (True, False):
+            result = sync.published_references({"source": {**candidate, "tpm_state_present": present}})
+            self.assertIs(result["110"]["tpm_state_present"], present)
+        legacy = dict(candidate)
+        legacy.pop("tpm_state_present")
+        self.assertNotIn("tpm_state_present", sync.published_references({"source": legacy})["110"])
+        original = 'default_linux_vm_template_id = 110\nproxmox_template_catalog = {"110" = {tpm_state_present = false}}\n'
+        merged, _ = sync.merged_catalog(original, sync.published_references({"source": legacy}))
+        self.assertNotIn("tpm_state_present", merged)
 
 
 if __name__ == "__main__":

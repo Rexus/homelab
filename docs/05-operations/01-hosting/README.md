@@ -58,6 +58,10 @@ Existing hosts are registered here; they are not created or imported into Terraf
 | Task | Procedure |
 | --- | --- |
 | Close a deployment stage or commission retained guests | [Guest hardening and commissioning](guest-hardening.md) |
+| Enable and maintain the physical Proxmox server's Secure Boot and TPM | [Host boot-security procedure](proxmox-host-boot-security.md) |
+| Select signed Linux boot and a unique TPM for a new VM | [Linux Secure Boot](guest-hardening.md#linux-secure-boot), [per-VM TPM inputs](guest-hardening.md#guest-tpm) |
+| Inspect an existing VM or add a missing TPM 2.0 | [Controller-owned TPM maintenance](proxmox-guest-security.md) |
+| Install signed Talos nodes and select TPM-bound system volumes | [Talos boot security](guest-hardening.md#talos-boot-security) |
 | Patch Proxmox/Linux/Talos, resize guests or replace hardware | [Common maintenance procedures](maintenance.md) |
 | Configure host failover, VM separation or planned migration | [Proxmox HA operations](proxmox-ha.md) |
 | Change a VMID while keeping its MAC and network settings | [Full-clone VMID cutover](change-vmid.md) |
@@ -183,6 +187,7 @@ Stop on an unexpected target, changed host key or failed login. Correct registra
 | --- | --- | --- |
 | Configure approved update access | [Proxmox proxy configuration, action 2](../02-software-intake/host-updates.md#2-register-the-existing-hosts-and-proxy) | Existing `proxmox-hosts.yml` manages the Datacenter/APT proxy only |
 | Restrict management access | [Proxmox access and hardening](proxmox-hardening.md) | Reviewed host/gateway policy and manual acceptance |
+| Verify physical host Secure Boot and TPM | [Host boot security](proxmox-host-boot-security.md) | Native inspection-tool preparation and read-only Ansible checks; firmware activation stays on the server console |
 | Enroll existing guests in HA and maintain affinity | [Proxmox HA setup](proxmox-ha.md#configure-through-iac) | Tier 0 native HA playbook and local HA inputs |
 | Collect host security events | [Protected log sources](../../03-deployment/stage-03-logging/procedures/sources.md) | Enroll each host's source identity before forwarding |
 | Trust the provisioning API | [Proxmox API trust](proxmox-tls.md#step-1-trust-the-bootstrap-ca) | Separate verified HTTPS trust for API callers |

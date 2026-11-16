@@ -15,6 +15,7 @@ Finish each selected stage's functional checks and [hardening checkpoint](01-hos
 - [Context and initialization](#context-and-initialization)
 - [Linux setups](#linux-setups)
 - [Templates, Kubernetes and Vault CI](#templates-kubernetes-and-vault-ci)
+- [Boot-security commands](#boot-security-commands)
 - [Native application recipes and GitOps](#native-application-recipes-and-gitops)
 - [Selected subrecipes and optional paths](#selected-subrecipes-and-optional-paths)
 
@@ -45,6 +46,11 @@ Configure these common inputs once, then the row-specific files:
 | --- | --- |
 | Each tier | `.env.local` (provider/SSH inputs), `terraform/common.tfvars`, `ansible/inventory/hosts.yml`, `ansible/group_vars/all.yml` |
 | Shared | `config/platform.tfvars`, `config/guest-sizes.json`, `templates/proxmox-catalog.tfvars` |
+
+New Linux guest examples select `vm_instances["<host>"].tpm = {}` for unique TPM 2.0 state.
+The selected source catalog must explicitly report `tpm_state_present = false`. Vendor Linux
+Secure Boot follows the tested template's firmware profile. Existing VMs use the
+[additive maintenance path](01-hosting/proxmox-guest-security.md).
 
 Inventory and YAML IP/network settings also feed Linux Terraform: rerun provisioning when those change.
 For Linux environments, add the same `--env <name>` to init and deploy; omit it for production.
@@ -117,7 +123,7 @@ These use dedicated entry points. Command cells are complete commands relative t
 | Setup / guide | Tier | Configuration | Terraform input changes | Ansible/configuration changes |
 | --- | --- | --- | --- | --- |
 | Foundation [template publication](01-hosting/templates/template-lifecycle.md#local-workflow): `templates` | 0 | `templates/proxmox.yml`; Shared platform/catalog inputs above | `bash scripts/proxmox-templates.sh plan --env-file .env.local`, review, then `bash scripts/proxmox-templates.sh apply --env-file .env.local` | Plan/apply also reconciles policy; read-only check: `bash scripts/proxmox-templates.sh verify --env-file .env.local`; [disk replacement](01-hosting/templates/template-disk.md) is separate |
-| 4 [control cluster](../03-deployment/stage-04-kubernetes/README.md), 7 [platform cluster](../03-deployment/stage-07-delivery/procedures/platform-cluster.md), 10 [workload/isolated clusters](../03-deployment/stage-10-lab-environments/procedures/isolated-clusters.md): `kubernetes` | 0 / 1 / 2, independently | `terraform/deployments/kubernetes/terraform.tfvars`, `ansible/inventory/hosts.yml`, `ansible/group_vars/talos.yml`; Shared template catalog | `bash scripts/kubernetes-cluster.sh plan`, review, then `bash scripts/kubernetes-cluster.sh apply` | Talos machine inputs use the same plan/apply; Linux `--ansible-only` does not apply |
+| 4 [control cluster](../03-deployment/stage-04-kubernetes/README.md), 7 [platform cluster](../03-deployment/stage-07-delivery/procedures/platform-cluster.md), 10 [workload/isolated clusters](../03-deployment/stage-10-lab-environments/procedures/isolated-clusters.md): `kubernetes` | 0 / 1 / 2, independently | `terraform/deployments/kubernetes/terraform.tfvars`, inventory and `talos.yml`; selected signed ISO/hash or Shared template catalog | `bash scripts/kubernetes-cluster.sh plan`, review, then `bash scripts/kubernetes-cluster.sh apply` | Talos machine inputs use the same plan/apply. Signed-path proof repeats with `bash scripts/kubernetes-cluster.sh verify-security` |
 | 9 [Vault JWT/policies](../03-deployment/stage-09-development/procedures/vault-ci.md): `ci-auth` | 0 | `terraform/deployments/ci-auth/terraform.tfvars`; exported `VAULT_ADDR`, `VAULT_CACERT`, `VAULT_TOKEN` | Native Terraform init/plan/apply with protected `.terraform/state/ci-auth/terraform.tfstate`; [exact commands](../03-deployment/stage-09-development/procedures/vault-ci.md#configure-exact-job-authority) | No Ansible recipe; no Proxmox wrapper |
 
 From **Tier 0 root**, initialize publication inputs once:
@@ -138,6 +144,45 @@ Export Proxmox credentials for the cluster wrapper; it does not load `.env.local
 After apply, `bash scripts/kubernetes-cluster.sh credentials` exports private client/recovery files.
 Template and cluster `apply` consume saved plans without an extra Terraform approval prompt;
 their preceding plan/review step remains required. Neither accepts `--auto-approve`.
+
+## Boot-security commands
+
+Physical-host checks use Tier 0's existing `hypervisors` inventory and SSH account through the
+[host firmware/maintenance guide](01-hosting/proxmox-host-boot-security.md).
+Use the [existing-VM guide](01-hosting/proxmox-guest-security.md) for private preparation records,
+backups and the approved outage. Its input file selects one exact existing VM.
+
+For **VM hardware maintenance only**, initialize the TPM inputs from **Tier 0**.
+
+```bash
+bash scripts/init-local-files.sh --setup proxmox-guest-security
+```
+
+Before the **VM hardware API operations** below, load Tier 0's existing API environment in
+the protected execution shell.
+
+```bash
+set -a
+source .env.local
+set +a
+```
+
+| Task | Owner and configuration | Command |
+| --- | --- | --- |
+| Prepare physical Proxmox host inspection tools | Tier 0, existing `hypervisors` inventory; replace `<host>` and `<ssh-user>` with the accepted host/account | `ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/proxmox-boot-security.yml --limit "<host>" -e @ansible/group_vars/all.yml -e "ansible_user=<ssh-user>" -e proxmox_host_boot_security_operation=prepare` |
+| Verify the server's Secure Boot and physical TPM 2.0 | Same Tier 0 host, using SSH | `ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/proxmox-boot-security.yml --limit "<host>" -e @ansible/group_vars/all.yml -e "ansible_user=<ssh-user>" -e proxmox_host_boot_security_operation=check` |
+| Inspect existing VM boot hardware | Tier 0, `ansible/group_vars/proxmox_guest_security.yml` | `ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/proxmox-guest-security.yml -e @ansible/group_vars/proxmox_guest_security.yml -e proxmox_guest_security_operation=inspect` |
+| Prepare, check or apply the missing TPM | Same Tier 0 file, private record/hash and backup/outage inputs from the guide. Replace `<operation>` with `prepare`, then `check`, then `apply` | `ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, ansible/playbooks/deployment/proxmox-guest-security.yml -e @ansible/group_vars/proxmox_guest_security.yml -e "proxmox_guest_security_operation=<operation>"` |
+| Prepare tools and verify Linux Secure Boot plus TPM | Owning tier, existing inventory and selected service group vars. Replace `<group-vars>` with the row's filename stem, such as `cache`, and `<inventory-group>` with that populated Linux group | `ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/guest-boot-security.yml -e @ansible/group_vars/all.yml -e "@ansible/group_vars/<group-vars>.yml" -e "guest_boot_security_hosts=<inventory-group>" -e guest_boot_security_operation=apply` |
+| Recheck Linux boot controls | Same owning tier and selected Linux group | `ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/deployment/guest-boot-security.yml -e @ansible/group_vars/all.yml -e "@ansible/group_vars/<group-vars>.yml" -e "guest_boot_security_hosts=<inventory-group>" -e guest_boot_security_operation=check` |
+| Verify signed Talos nodes | Owning tier, original Kubernetes state and selected boot policy | `bash scripts/kubernetes-cluster.sh verify-security` |
+| Eject accepted signed Talos installation media | Owning tier, `secure_boot.install_media_attached = false` in the existing Kubernetes `.tfvars` | `bash scripts/kubernetes-cluster.sh plan`, review, then `bash scripts/kubernetes-cluster.sh apply` |
+
+Linux `apply` installs only native inspection packages from the configured accepted repositories,
+then verifies the running controls. `check` requires those tools already installed. Both Secure Boot
+and TPM checks are enabled by default. Include any additional group-vars and encrypted inputs used
+by the existing service workflow. Talos `verify-security` proves signed-path UKI boot and the
+selected system-volume encryption. Template-path nodes report their retained policy.
 
 ## Native application recipes and GitOps
 

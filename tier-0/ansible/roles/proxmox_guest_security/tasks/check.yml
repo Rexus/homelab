@@ -1,0 +1,105 @@
+---
+- name: Inspect the reviewed record without following a symlink
+  ansible.builtin.stat:
+    path: "{{ proxmox_guest_security_record }}"
+    follow: false
+    checksum_algorithm: sha256
+  register: proxmox_guest_security_reviewed
+  no_log: true
+
+- name: Require the exact private record prepared for this change
+  ansible.builtin.assert:
+    that:
+      - proxmox_guest_security_reviewed.stat.isreg | default(false)
+      - not proxmox_guest_security_reviewed.stat.islnk | default(true)
+      - proxmox_guest_security_reviewed.stat.mode == '0600'
+      - proxmox_guest_security_reviewed.stat.checksum == proxmox_guest_security_record_sha256
+    fail_msg: The private record is missing, unsafe or changed since review. Stop and inspect it.
+
+- name: Read the accepted record privately
+  ansible.builtin.slurp:
+    src: "{{ proxmox_guest_security_record }}"
+  register: proxmox_guest_security_record_content
+  no_log: true
+
+- name: Decode the accepted record privately
+  ansible.builtin.set_fact:
+    proxmox_guest_security_saved: "{{ proxmox_guest_security_record_content.content | b64decode | from_json }}"
+  no_log: true
+
+- name: Require the bytes read to match the reviewed checksum
+  ansible.builtin.assert:
+    that: proxmox_guest_security_record_content.content | b64decode | hash('sha256') == proxmox_guest_security_record_sha256
+    fail_msg: The private record changed during inspection. Stop and review it again.
+
+- name: Select only a genuinely missing TPM
+  ansible.builtin.set_fact:
+    proxmox_guest_security_needs_tpm: "{{ proxmox_guest_security_vm.config.tpmstate0 is not defined }}"
+
+- name: Reject changed identity, hardware, TPM version or maintenance selection
+  ansible.builtin.assert:
+    that:
+      - proxmox_guest_security_saved.schema == 1
+      - proxmox_guest_security_saved.endpoint == proxmox_guest_security_endpoint
+      - proxmox_guest_security_saved.vmid == proxmox_guest_security_vmid
+      - proxmox_guest_security_saved.node == proxmox_guest_security_node
+      - proxmox_guest_security_saved.name == proxmox_guest_security_name
+      - proxmox_guest_security_saved.tpm_storage == proxmox_guest_security_tpm_storage
+      - >-
+        proxmox_guest_security_vm.config == proxmox_guest_security_saved.config or
+        (proxmox_guest_security_saved.config.tpmstate0 is not defined and
+         proxmox_guest_security_vm.config.tpmstate0 is defined and
+         (proxmox_guest_security_vm.config | dict2items | rejectattr('key', 'in', ['digest', 'tpmstate0']) | items2dict) ==
+         (proxmox_guest_security_saved.config | dict2items | rejectattr('key', 'equalto', 'digest') | items2dict) and
+         proxmox_guest_security_vm.config.tpmstate0 is match('^' ~ (proxmox_guest_security_tpm_storage | regex_escape) ~ ':'))
+      - proxmox_guest_security_vm.status == proxmox_guest_security_saved.status
+      - >-
+        proxmox_guest_security_vm.config.tpmstate0 is not defined or
+        proxmox_guest_security_vm.config.tpmstate0 is search('(^|,)version=v2\.0(,|$)')
+    fail_msg: >-
+      Identity, power state or configuration changed since prepare, or the VM has a TPM 1.2 device.
+      Inspect it and prepare a new record. Existing EFI/TPM disks are never replaced or reset.
+    quiet: true
+
+- name: Require explicit outage and independently retained recovery before adding hardware
+  ansible.builtin.assert:
+    that:
+      - proxmox_guest_security_outage_approved is sameas true
+      - proxmox_guest_security_backup_retained is sameas true
+      - proxmox_guest_security_backup_reference | trim | length >= 8
+      - proxmox_guest_security_vm.hastate | default('') in ['', 'ignored']
+    fail_msg: >-
+      Approve this VM's outage, record its independently retained complete backup reference and set
+      backup_retained: true. An HA-managed VM must first be set to ignored through the HA workflow;
+      this recipe never changes HA policy. Existing TPM state cannot be recreated from guest disks.
+  when:
+    - proxmox_guest_security_operation == 'apply'
+    - proxmox_guest_security_vm.config.tpmstate0 is not defined
+
+- name: Inspect the selected TPM backing store before any outage
+  community.proxmox.proxmox_storage_info:
+    storage: "{{ proxmox_guest_security_tpm_storage }}"
+  register: proxmox_guest_security_storage
+  no_log: true
+  when: proxmox_guest_security_vm.config.tpmstate0 is not defined
+
+- name: Require enabled VM-image storage available to the selected node
+  ansible.builtin.assert:
+    that:
+      - proxmox_guest_security_storage.proxmox_storages | length == 1
+      - "'images' in proxmox_guest_security_storage.proxmox_storages[0].content"
+      - not proxmox_guest_security_storage.proxmox_storages[0].disable | default(false) | bool
+      - >-
+        proxmox_guest_security_storage.proxmox_storages[0].nodes is not defined or
+        proxmox_guest_security_node in proxmox_guest_security_storage.proxmox_storages[0].nodes
+    fail_msg: TPM state requires enabled VM-image storage assigned to this Proxmox node.
+    quiet: true
+  when: proxmox_guest_security_vm.config.tpmstate0 is not defined
+
+- name: Show the accepted one-setting maintenance plan
+  ansible.builtin.debug:
+    msg:
+      change: "{{ 'Add missing TPM 2.0 on ' ~ proxmox_guest_security_tpm_storage if proxmox_guest_security_vm.config.tpmstate0 is not defined else 'None; retain the existing TPM 2.0 identity' }}"
+      power: "{{ 'Graceful stop and restore original running state' if proxmox_guest_security_vm.status == 'running' and proxmox_guest_security_vm.config.tpmstate0 is not defined else 'Leave original power state unchanged' }}"
+      preserved: All existing disks, EFI/NVRAM, BIOS, machine, boot order, NIC/MAC, USB and VM identity.
+      secure_boot: Inspection only; this operation does not enroll keys or change firmware enforcement.

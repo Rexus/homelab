@@ -36,6 +36,8 @@ module "vms" {
   template                    = each.value.template
   full_clone                  = each.value.full_clone
   firmware                    = each.value.firmware
+  tpm                         = each.value.tpm
+  template_tpm_state_present  = each.value.template_tpm_state_present
   initialization_datastore_id = each.value.initialization_datastore_id
   nic_firewall                = each.value.nic_firewall
   started                     = each.value.started

@@ -354,8 +354,13 @@ Continue at Step 11; critical HA guests retain their native recovery authority.
 
 ## Step 11: Secure the foundation
 
-Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for the
-hosts, bootstrap and accepted templates. Retain independent API/SSH recovery and a full-clone bootstrap
+First complete [Proxmox host security](proxmox/step-11-host-security.md): protected administration,
+human-account MFA, signed host boot and physical TPM 2.0 activation/verification. For fresh hosts,
+choose supported firmware controls before installation; this final step verifies the retained result.
+Use the guided existing-host preparation for any remaining boot changes, one server at a time.
+
+Then complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for
+bootstrap and accepted templates. Retain independent API/SSH recovery and a full-clone bootstrap
 backup including its workspace disk. Remove disposable clone credentials/resources after acceptance.
 Record the selected boot profile with each template; signed-media/EFI/vTPM changes require their
 qualified maintenance path before consumers inherit them. Persistent local records cover this early
@@ -366,6 +371,7 @@ stage; later identity, Vault and protected logging are not prerequisites for clo
 ## Foundation ready
 
 - [ ] Hosts/networks are reachable through protected, tested paths.
+- [ ] Proxmox host security, observed Secure Boot/TPM state and any hardware exceptions are recorded.
 - [ ] Bootstrap tools, verified API access, SSH and independent recovery copies work.
 - [ ] Template clones boot and the selected Linux VMID is recorded in Shared.
 - [ ] Guest backup/restore and original-state recovery have recorded results.

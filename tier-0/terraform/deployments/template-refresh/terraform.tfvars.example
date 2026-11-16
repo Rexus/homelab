@@ -6,6 +6,7 @@
 # VMID allocation: docs/02-conventions/vmid-convention.md
 # Shared values live in ../../common.tfvars.
 
+# Template builders stay TPM-free: consumers create their own per-VM TPM identities.
 vm_instances = {
   # Default refresh target: one staged replacement for the normal Enterprise
   # Linux template. Expand this map when you maintain more than one template.

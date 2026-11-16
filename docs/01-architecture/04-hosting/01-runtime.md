@@ -40,6 +40,7 @@ outside this connected hosting model.
 
 - [Completed hosting model](#completed-hosting-model)
 - [Runtime realizations](#runtime-realizations)
+- [Boot integrity and key protection](#boot-integrity-and-key-protection)
 - [Scaling and host capacity](#scaling-and-host-capacity)
 - [Storage interfaces](#storage-interfaces)
 - [Persistence and recovery](#persistence-and-recovery)
@@ -65,6 +66,49 @@ The directory pair's dedicated-VM placement is part of the reference design.
 A runtime alternative for another service does not imply migration of that pair
 or of any existing service. Moving a service requires an explicit data and
 lifecycle design, even when its client interface remains unchanged.
+
+## Boot integrity and key protection
+
+The VM boundary in the hosting figure is also a boot and recovery boundary. Permanent services
+combine a signed boot chain, a unique machine key-protection identity, authenticated service
+connections and restricted administration. These controls protect different parts of the system.
+
+<a id="figure-boot-integrity"></a>
+
+![Boot integrity, authenticated services and protected key custody](../../08-reference/diagrams/boot-integrity-key-protection.svg)
+
+*Figure: Conceptual security layers. Read the boot checks and service dependencies left to right.
+Each host and guest has its own boot chain. Service identity and authorization protect runtime use;
+an enrolled TPM policy protects storage keys, while a selected HSM protects the issuer's signing key.
+Offline root trust enters through a ceremony; the dashed link is not a network connection.*
+
+Enrollment is a certificate-lifecycle operation, not a lookup on every client request.
+[Editable figure and render record](../../08-reference/diagrams/boot-protection-render.md).
+
+These are complementary controls, not one automatic chain. Signed boot checks the selected boot
+components; it does not validate every application or data file. Where the storage profile enrolls
+a TPM boot policy, key release depends on satisfying that policy. Attaching the device alone does
+not enroll a volume. The [operations guide](../../05-operations/01-hosting/guest-hardening.md#control-decisions)
+maps these roles to the selected implementation and its acceptance checks. [2][3]
+
+| Control | Protects | Required companion |
+| --- | --- | --- |
+| Secure Boot | Admission of trusted signed boot components | Approved images, maintained signing/revocation trust and verification inside the running OS |
+| TPM | Machine-bound key operations and measured-boot policy where explicitly enrolled | Unique per-machine state and independently usable recovery; attachment alone encrypts nothing |
+| HSM | Application signing keys used by the issuer or another selected consumer | Per-consumer permissions, supported integration and separate wrapped-key recovery |
+| PKI | Authenticated service names, channels and identities | Renewal/revocation, peer verification and least-privilege access |
+| Independent recovery | Restoration after loss of a runtime, key provider or storage | Coherent data/configuration/boot state and recovery credentials outside that failure domain |
+
+A virtual TPM shares the hypervisor's trust boundary; it does not replace separately controlled
+physical key custody. A signed boot chain does not authorize service requests, and a service
+certificate does not protect its operating-system image. Keep the layers simple and explicit.
+
+The supplied realization selects vendor-signed UEFI Linux images and per-VM TPM 2.0 for new service
+VMs. Talos has a signed installation route with TPM-bound system-volume encryption. Existing
+guests retain their boot/key identity during routine reconciliation; an explicit maintenance or
+replacement operation admits changes. The [commissioning guide](../../05-operations/01-hosting/guest-hardening.md#control-decisions)
+owns implementation, actual guest proof and recovery acceptance. Application-key custody remains
+in the [cryptography design](../08-cryptography/README.md).
 
 ## Scaling and host capacity
 
@@ -203,3 +247,5 @@ Storage-interface sources are maintained in [Data and storage](../06-data/README
 The hosting figure is the repository's selected reference, not a cloud-provider deployment claim.
 
 1. [Kubernetes: resource requests, limits and scheduling](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).
+2. [Proxmox: UEFI trust, Secure Boot and virtual TPM](https://github.com/proxmox/pve-docs/blob/master/qm.adoc#bios-and-uefi).
+3. [Talos: signed boot chain and TPM-bound disk unlock](https://docs.siderolabs.com/talos/v1.13/platform-specific-installations/bare-metal-platforms/secureboot).

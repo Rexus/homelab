@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="720" viewBox="0 0 960 720"
+     role="img" aria-labelledby="title description">
+  <title id="title">Boot integrity, service trust and protected keys</title>
+  <desc id="description">A logical view of complementary protections. Enrolled firmware trust
+    verifies signed boot components before admitting operating-system startup, independently on
+    each host and guest. Clients use authenticated service connections and service access policy.
+    Services enroll certificates with an issuer, whose selected HSM protects its signing key.
+    Encrypted data uses a machine TPM only when an unlock policy is enrolled. Independent recovery
+    and offline root custody sit below the connected functions; the root supplies an issuer
+    certificate through a ceremony, not a network route.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581"/>
+    </marker>
+    <style>
+      svg { font: 16px Arial, sans-serif; }
+      text { fill: currentColor; stroke: none; text-anchor: middle; }
+      .group { fill: #f5f6f7; stroke: #89939e; color: #273340; stroke-dasharray: 2 3; }
+      .control { fill: #e2f3ed; stroke: #397366; color: #173f36; }
+      .services { fill: #e7f0fc; stroke: #4d719b; color: #203a5b; }
+      .actor { fill: #edf0f3; stroke: #697682; color: #293642; }
+      .data { fill: #eeeafa; stroke: #78639b; color: #42325d; }
+      .custody { fill: #fff2d1; stroke: #926820; color: #584013; }
+      .control, .services, .actor, .data, .custody { stroke-dasharray: none; }
+      .connection { fill: none; stroke: #627581; stroke-width: 1.5; stroke-dasharray: none; marker-end: url(#arrow); }
+      .association { stroke-dasharray: 4 4; }
+      .edge-label { fill: #1f2937; font-size: 14px; }
+      .label-background { fill: #f8fafc; stroke: none; }
+      .detail { font-size: 14px; }
+    </style>
+  </defs>
+
+  <g id="BootIntegrity" class="group">
+    <rect x="20" y="20" width="920" height="185"/>
+    <text x="480" y="48">Boot Integrity · Each Host and Guest</text>
+    <g id="FirmwareTrust" class="control">
+      <rect x="45" y="85" width="220" height="70"/>
+      <text x="155" y="113">UEFI Trust</text>
+      <text x="155" y="137" class="detail">Enrolled signing authorities</text>
+    </g>
+    <g id="SignedBoot" class="control">
+      <rect x="365" y="85" width="230" height="70"/>
+      <text x="480" y="113">Signed Boot Components</text>
+      <text x="480" y="137" class="detail">Loader · kernel / OS image</text>
+    </g>
+    <g id="AdmittedStartup" class="services">
+      <rect x="685" y="85" width="225" height="70"/>
+      <text x="797" y="113">OS Startup</text>
+      <text x="797" y="137" class="detail">Accepted boot chain</text>
+    </g>
+    <path class="connection" data-from="FirmwareTrust" data-to="SignedBoot" d="M265 120 H365"/>
+    <text class="edge-label" x="315" y="108">Verify</text>
+    <path class="connection" data-from="SignedBoot" data-to="AdmittedStartup" d="M595 120 H685"/>
+    <text class="edge-label" x="640" y="108">Admit</text>
+    <text x="480" y="186" class="detail">Untrusted boot components are refused before execution</text>
+  </g>
+
+  <g id="ServiceProtection" class="group">
+    <rect x="20" y="235" width="920" height="310"/>
+    <text x="480" y="263">Service Trust and Key Protection</text>
+    <g id="Client" class="actor">
+      <rect x="40" y="295" width="145" height="70"/>
+      <text x="112" y="325">Client</text>
+      <text x="112" y="348" class="detail">Verify peer identity</text>
+    </g>
+    <g id="Service" class="services">
+      <rect x="265" y="295" width="200" height="70"/>
+      <text x="365" y="323">Service</text>
+      <text x="365" y="347" class="detail">TLS + access policy</text>
+    </g>
+    <g id="Issuer" class="control">
+      <rect x="540" y="295" width="160" height="70"/>
+      <text x="620" y="323">PKI Issuer</text>
+      <text x="620" y="347" class="detail">Issue · renew · revoke</text>
+    </g>
+    <g id="SigningProvider" class="custody">
+      <rect x="775" y="295" width="145" height="70"/>
+      <text x="847" y="323">HSM</text>
+      <text x="847" y="347" class="detail">Issuer signing key</text>
+    </g>
+    <path class="connection" data-from="Client" data-to="Service" d="M185 330 H265"/>
+    <text class="edge-label" x="225" y="318">TLS</text>
+    <path class="connection" data-from="Service" data-to="Issuer" d="M465 330 H540"/>
+    <text class="edge-label" x="502" y="318">Enroll</text>
+    <path class="connection" data-from="Issuer" data-to="SigningProvider" d="M700 330 H775"/>
+    <text class="edge-label" x="737" y="318">Sign</text>
+    <g id="EncryptedData" class="data">
+      <path d="M265 467 C265 451 465 451 465 467 V510 C465 526 265 526 265 510 Z"/>
+      <path d="M265 467 C265 483 465 483 465 467" fill="none"/>
+      <text x="365" y="493">Encrypted Data</text>
+      <text x="365" y="514" class="detail">When selected</text>
+    </g>
+    <g id="MachineTPM" class="custody">
+      <rect x="540" y="450" width="160" height="75"/>
+      <text x="620" y="476">Machine TPM</text>
+      <text x="620" y="497" class="detail">Enrolled unlock policy</text>
+      <text x="620" y="517" class="detail">Physical or virtual</text>
+    </g>
+    <path class="connection" data-from="Service" data-to="EncryptedData" d="M365 365 V455"/>
+    <text class="edge-label" x="412" y="414">Read / write</text>
+    <path class="connection" data-from="EncryptedData" data-to="MachineTPM" d="M465 488 H540"/>
+    <text class="edge-label" x="502" y="476">Unseal</text>
+  </g>
+
+  <g id="OfflineCustody" class="custody">
+    <rect x="20" y="595" width="920" height="110"/>
+    <text x="480" y="620">Independent Recovery and Offline Custody</text>
+    <g id="RuntimeRecovery" class="custody">
+      <rect x="40" y="637" width="270" height="50"/>
+      <text x="175" y="657">Runtime Recovery</text>
+      <text x="175" y="679" class="detail">OS · data · EFI / vTPM state</text>
+    </g>
+    <g id="KeyRecovery" class="custody">
+      <rect x="345" y="637" width="270" height="50"/>
+      <text x="480" y="657">Key Recovery</text>
+      <text x="480" y="679" class="detail">Wrapped keys · recovery credentials</text>
+    </g>
+    <g id="OfflineRoot" class="custody">
+      <rect x="650" y="637" width="270" height="50"/>
+      <text x="785" y="657">Offline Root</text>
+      <text x="785" y="679" class="detail">Separate signing custody</text>
+    </g>
+  </g>
+  <path class="connection association" data-from="OfflineRoot" data-to="Issuer" d="M785 637 V565 H737 V395 H620 V365"/>
+  <rect class="label-background" x="792" y="548" width="133" height="42"/>
+  <text class="edge-label" x="858" y="565">Ceremony:</text>
+  <text class="edge-label" x="858" y="583">issuer certificate</text>
+</svg>

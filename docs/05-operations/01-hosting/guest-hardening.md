@@ -1,9 +1,20 @@
 # Guest hardening and commissioning
 
-Apply the selected baseline while deploying each component. Use the final checkpoint in Foundation
-and each stage to verify it, close temporary access and record the accepted operating state.
-Secure Boot, a virtual TPM (vTPM) and disk encryption are separate choices made before changing
-firmware, media or key dependencies. There is no universal end-of-stage switch for them.
+Use signed boot on compatible permanent VMs, a unique TPM 2.0 where selected, restricted network
+access, authenticated service connections and independent recovery. Apply these controls during
+deployment, then use each stage's final checkpoint to verify the retained installation.
+
+For new Rocky/Alma and Debian VMs, start with the tested vendor Secure Boot profile and add TPM
+through the owning VM inputs. Talos uses its signed ISO/installer path. Existing VMs use the
+explicit maintenance procedure before changing boot hardware or introducing a new key dependency.
+
+![Boot integrity, service identity and key protection](../../08-reference/diagrams/boot-integrity-key-protection.svg)
+
+*Figure: The selected controls protect different parts of an installation. Verify signed startup,
+service access and each enrolled key consumer separately; retain recovery outside their failure domain.
+The [architecture view](../../01-architecture/04-hosting/01-runtime.md#figure-boot-integrity) explains
+the relationships. A vTPM remains controlled by the hypervisor; HSM integration and TPM disk unlock
+are selected capabilities, not consequences of enabling Secure Boot.*
 
 **Work from:** the owning tier's original inputs/state and the selected host or guest console.
 **Before a change:** independent console access, approved artifacts, a maintenance window and a
@@ -13,9 +24,10 @@ Offline custody and root ceremonies retain their own procedures and authority bo
 ## Contents
 
 - [Close a stage or commission a permanent guest](#stage-checkpoint)
-- [Choose independent controls](#control-decisions)
+- [Choose the layered baseline](#control-decisions)
 - [What the current IaC actually controls](#iac-contract)
 - [Qualify Linux Secure Boot](#linux-secure-boot)
+- [Add or inspect a unique TPM 2.0](#guest-tpm)
 - [Qualify Talos boot security](#talos-boot-security)
 - [Preserve boot identity and recover](#boot-recovery)
 - [References](#references)
@@ -41,28 +53,21 @@ backup capture until the checkpoint.
    policy; never apply the leaf-host role to Proxmox or Kubernetes nodes. Confirm a fresh allowed
    administration connection, denied access from an unrelated source, working time/DNS and the
    actual service listeners. Keep the independent console usable.
-3. Close deployment-only paths: retire temporary accounts/tokens/keys after testing their permanent
+3. Close deployment-only paths. Retire temporary accounts/tokens/keys after testing their permanent
    replacements, remove temporary firewall allows, eject installation ISOs and review **VM > Options
    > Boot Order**. Retain a required NoCloud/cloud-init network drive. A permanent VM stays a VM;
    converting it to a template or rebuilding it is not a hardening action. Review **Start at boot**
    and startup/shutdown dependencies, or the selected HA resource policy, before claiming unattended
    recovery. An `always-on` tag alone configures neither behavior.
-4. Inspect the actual boot hardware before selecting any change. On the **owning Proxmox host**,
-   choose the VMID from the owning tier input, for example `701` for a disposable pilot:
-
-   ```bash
-   read -r -p 'Selected VMID from owned inputs (example: 701): ' GUEST_VMID
-   qm config "$GUEST_VMID" --current 1
-   qm pending "$GUEST_VMID"
-   ```
-
-   Record `bios`, `machine`, `scsihw`, `boot`, `efidisk0`, `tpmstate0`, disk/backup settings and
-   pending changes. Absence of `bios` normally means SeaBIOS on this x86 deployment. EFI keys in
-   configuration do not prove that verification is active inside the guest. Use the OS checks below.
-5. Record the [control decisions](#control-decisions). If selected, qualify boot verification before
-   creating a new permanent guest, or schedule the explicit migration/replacement below. Keep an
-   existing accepted boot profile until that workflow passes. An unmet required control blocks
-   production acceptance; record an exception with owner/review date rather than marking it enabled.
+4. Inspect the VM through **Tier 0's controller recipe**, selecting the VMID/name/current node from
+   the owning inputs and Proxmox summary. Its read-only operation reports configured boot hardware
+   and catches pending changes before maintenance. Record BIOS, machine/controller, EFI, TPM,
+   storage and boot order, then verify enforcement through the guest checks below.
+   [Inspect the selected VM](proxmox-guest-security.md#2-inspect-the-selected-vm)
+5. Record the [layered baseline](#control-decisions). Verify signed boot and the selected TPM on each
+   retained guest through the checks below. For an existing guest, complete its maintenance or
+   replacement path first. Record any required control that cannot yet pass with its owner and
+   review date in the deployment record.
 6. Capture the original ignored inputs/state, service data and recovery credentials through the
    [backup procedure](../06-resilience/backups/virtual-machines.md). Include firmware and TPM state
    where present. Verify backup completion and recoverability using this stage's available backup
@@ -84,20 +89,33 @@ Boot verification does not establish any of the other acceptance results.
 
 <a id="control-decisions"></a>
 
-## Choose independent controls
+## Choose the layered baseline
 
-| Control | Protects / decision to record | Does not establish |
-| --- | --- | --- |
-| UEFI Secure Boot | Verification of the selected signed boot chain against enrolled firmware trust; record media, signer, trust database and observed guest state | Disk confidentiality, safe applications, protection from a privileged hypervisor operator |
-| vTPM | A software TPM interface and persistent per-VM state; select only for an identified consumer | Boot verification, encryption or physical TPM isolation; Proxmox administrators can access its backing volume [1] |
-| Disk encryption | Confidentiality of the selected disks/volumes; record unlock method and independent recovery key custody | A backup, service failover or protection from a running compromised guest/hypervisor |
-| Unattended updates | A separately qualified package/image selection, scheduling and reboot policy | Approval merely because an intake proxy permits a download |
-| HA | Recovery of availability under the tested failure model | Backup history or clean recovery from corruption/compromise |
+Use the following baseline for new permanent installations. Keep the selected controls in the
+owning configuration and record their observed state when closing a stage.
 
-Adding a TPM never enrolls application secrets or disk-unlock keys in this kit. Encryption and TPM
-binding need their own recovery-tested design. Changing EFI keys, dbx revocations, firmware, machine
-type or TPM identity can change measurements and prevent an existing TPM-bound volume unlocking.
-Keep recovery credentials outside that VM and outside its dependent identity/secret services. [2][3]
+| Layer | Configuration and acceptance |
+| --- | --- |
+| Signed boot | Use the tested vendor-signed UEFI chain for Rocky/Alma and Debian, or the signed Talos path. Verify enforcement inside the running OS after an installed-disk cold boot |
+| Per-VM TPM 2.0 | Create fresh state for each selected VM. Verify the guest detects TPM 2.0 and preserve its backing state with the VM backup. Proxmox supplies a software vTPM controlled by the hypervisor [1] |
+| Protected signing keys | Select the Stage 2 USB HSM path for issuer keys and its separate offline-root custody. Retain the original wrapping/recovery material before expanding the provider pool |
+| Authenticated services | Use the commissioned PKI for service TLS and validate peer names/chains. Keep certificate renewal, revocation distribution and administrative identities in the owning capability's runbook |
+| Restricted access | Apply the appropriate host/guest baseline, management-source restrictions, zone policy and least-privilege accounts. Verify both an allowed transaction and denied unrelated access |
+| Recoverable storage | Capture coherent OS/data/EFI/TPM state and retain usable recovery credentials independently. Talos can additionally select TPM-bound STATE/EPHEMERAL encryption through its signed installation inputs |
+| Maintained software | Use approved intake sources, patch/reboot windows and service checks through the common maintenance procedure |
+
+Physical TPMs, software vTPMs and USB HSMs have different custody. A physical TPM belongs to its
+machine. A VM's TPM state resides on Proxmox storage. PicoHSM/YubiHSM devices protect the application
+keys explicitly commissioned on them. Record the actual consumer and custodian for each.
+
+TPM attachment supplies the interface. A disk or application needs its own enrollment before it
+uses that interface. Keep Linux disk-key enrollment within its selected OS/storage design. Talos's
+optional TPM encryption uses the explicit installation path below. Changes to firmware, EFI trust,
+dbx or TPM identity can require independent recovery. [1][2][3][6]
+
+Follow [USB HSM operations](../03-cryptography/usb-hsm.md),
+[PKI operations](../03-cryptography/README.md) and the appropriate
+[host access controls](proxmox-hardening.md) for the owning procedures.
 
 <a id="iac-contract"></a>
 
@@ -109,17 +127,18 @@ and the separate Kubernetes root have different lifecycles; do not infer one fro
 | Owner and exact input | Implemented behavior / limit |
 | --- | --- |
 | Tier 0 `templates/proxmox.yml`, `all` / `templates.<key>`: `bios`, `machine`, `scsi_hardware`, `efi_pre_enrolled_keys`, `tpm_version` | Maps to `images` in [`proxmox_templates`](../../../tier-0/terraform/modules/proxmox_templates/variables.tf). OVMF creates a `4m` EFI disk. Optional `tpm_version: v2.0` creates TPM state on `datastore_id`; `v1.2` is also accepted. Omitted enrollment is `false`; omitted TPM is absent. These are hardware capabilities, not signed-image preparation |
-| Shared `templates/proxmox-catalog.tfvars`, `proxmox_template_catalog["<VMID>"]`: `bios`, `machine`, `scsi_hardware`, `efi_pre_enrolled_keys` | Published creation profile for generic Linux clones. Defaults/older revisions are preserved by synchronization; TPM metadata is not exported. See [catalog ownership](../../08-reference/template-catalog.md) |
+| Shared `templates/proxmox-catalog.tfvars`, `proxmox_template_catalog["<VMID>"]`: `bios`, `machine`, `scsi_hardware`, `efi_pre_enrolled_keys`, `tpm_state_present` | Applied template evidence and creation profile for generic Linux clones. A fresh per-VM TPM requires the source catalog to report `tpm_state_present = false`. Republish older references through the template workflow to obtain observed evidence. See [catalog ownership](../../08-reference/template-catalog.md) |
 | Owning tier `terraform/deployments/<setup>/terraform.tfvars`, `vm_instances["<host>"].template_vm_id` and optional `.firmware` | Generic Linux guests use the actual clone source's catalog profile. A `.firmware = { bios = "ovmf", machine = "q35", scsi_hardware = "virtio-scsi-single", efi_pre_enrolled_keys = true }` override replaces the whole creation profile; it does not merge missing fields |
-| Generic [`vm` lifecycle](../../../tier-0/terraform/modules/vm/main.tf) | Preserves existing/imported BIOS, machine, SCSI controller, EFI disk, boot order and TPM state. Changing catalog/firmware inputs does not retrofit them. CPU, RAM, regular disks and networking remain managed. Per-guest TPM creation/rotation is not exposed; do not infer safe unique TPM identities from template cloning |
+| Same VM entry, optional `.tpm = { version = "v2.0" }` | Creates fresh TPM 2.0 state for a new VM from a TPM-free source. Optional `datastore_id` selects VM-image storage, otherwise it inherits the VM's disk storage. The module rejects a known template-borne TPM and requires explicit TPM-free evidence when creating fresh state |
+| Generic [`vm` lifecycle](../../../tier-0/terraform/modules/vm/main.tf) | Preserves existing/imported BIOS, machine, SCSI controller, EFI disk, boot order and TPM state. Existing guests use the [TPM maintenance recipe](proxmox-guest-security.md) for an additive change. CPU, RAM, regular disks and networking remain managed |
 | Template adoption, `scripts/proxmox-templates.sh import` | Import plans against the supplied publication catalog; its template resource does **not** use the generic VM boot-preservation rules. Enter the observed firmware/enrollment/TPM settings and review all differences before apply |
-| Owning tier `terraform/deployments/kubernetes/terraform.tfvars`: `template_vm_id`, `vm_firmware.{bios,machine,scsi_hardware}`, `qemu_agent` | Talos root creates full clones, OVMF `4m` EFI disks with `pre_enrolled_keys = false`, and no explicit TPM block. Defaults retain legacy BIOS/Single-controller behavior; new examples explicitly select OVMF/q35/`virtio-scsi-pci`. Only `node_name` is ignored; firmware edits can affect existing nodes |
-| Same Talos file: `cluster.talos_version`, `cluster.installer_image`, `machine_config_patches` | Supplies initial Talos machine configuration. No signed-media enrollment/upgrade controller, generic guest adoption or TPM-encryption recovery workflow is implemented. Changing the installer string is not an OS upgrade |
+| Owning tier `terraform/deployments/kubernetes/terraform.tfvars`, `secure_boot` | Selects a fresh signed NoCloud ISO installation. Terraform verifies the local ISO hash, uploads to ISO-capable storage and provisions blank OS disks, fresh `4m` EFI variables in setup mode and per-node TPM 2.0 state. Use its [signed installation procedure](../../03-deployment/stage-04-kubernetes/procedures/secure-boot.md) |
+| Same Talos object, `secure_boot.encrypt_system_disks` | Defaults to `true` when the signed installation path is selected. Adds LUKS2 `VolumeConfig` for STATE and EPHEMERAL using the node's TPM and checked Secure Boot enrollment. Preserve its coherent recovery set |
+| Same Talos file, `template_vm_id`, `cluster.installer_image`, `vm_firmware` and `machine_config_patches` | The chosen media, installer, firmware and machine configuration form one installation contract. Existing clone-based nodes retain their chosen path. OS updates use the [serial maintenance procedure](maintenance.md#talos-updates) |
 
-The native provider offers `efi_disk` and `tpm_state`, but a complete guest TPM path also needs typed
-inputs/resolution, unique clone identity, import preservation, placement/backup checks and recovery
-tests. The Talos Packer file is an incomplete scaffold. Neither path supplies missing lifecycle
-automation. Use the existing supported controls above; qualify extensions explicitly. [4]
+The generic guest's template must be TPM-free. Keep a template's `tpm_version` absent when it is a
+clone source for these VMs. Each guest receives its own state through `.tpm`. Preserve that state
+during VM import, migration and recovery. [4]
 
 <a id="linux-secure-boot"></a>
 
@@ -136,36 +155,17 @@ trusted signatures/enrollment too; an OS family label alone does not qualify the
 2. For a **new template revision**, edit Tier 0 `templates/proxmox.yml` under the selected
    `templates.<new-key>`: set `bios: ovmf`, the tested `machine`/`scsi_hardware`, and explicitly
    `efi_pre_enrolled_keys: true`. Retain all required artifact/hash/VMID/storage fields and all
-   existing managed entries. Leave `tpm_version` absent unless separately selected. Do not apply
-   these choices to Talos. Proxmox pre-enrollment initializes trust and enables verification on a
+   existing managed entries. Keep `tpm_version` absent in this reusable template. Proxmox
+   pre-enrollment initializes vendor trust and enables verification on a
    new EFI disk; the firmware menu can subsequently change the effective state. [1]
 3. Publish through the [template procedure](templates/template-lifecycle.md#how-is-a-new-template-published),
-   then boot an isolated disposable clone. On the **Linux pilot**, install inspection tools from
-   its approved sources if absent. Choose only the matching distribution block:
-
-   Debian pilot:
-
-   ```bash
-   sudo apt-get install mokutil efibootmgr
-   ```
-
-   Rocky/Alma pilot:
-
-   ```bash
-   sudo dnf install mokutil efibootmgr
-   ```
-
-   On **that pilot**, inspect after a cold start from its installed disk:
-
-   ```bash
-   mokutil --sb-state
-   sudo efibootmgr -v
-   sudo journalctl -k -b --no-pager
-   ```
-
-   Require `SecureBoot enabled`, the intended signed loader and functioning storage/network
-   drivers. A tool reporting unavailable EFI variables is not successful verification. Test a kernel
-   update, another cold start, backup restore and recovery-media boot before promotion.
+   then deploy an isolated pilot through its owning IaC. After a cold start from the installed
+   disk, run the [controller-owned Linux proof](proxmox-guest-security.md#prove-the-controls-inside-a-managed-linux-guest).
+   It prepares the selected native inspection packages from accepted sources and requires actual
+   Secure Boot enforcement without shim bypass. Select its TPM requirement only when the pilot
+   has a unique TPM. No manual guest installation is needed.
+   Require working storage/network drivers, then test a kernel update, another cold start,
+   backup restore and recovery-media boot before promotion.
 4. Retain the tested firmware profile in Shared and select the new `template_vm_id` for **new**
    guests, following [promotion](templates/template-lifecycle.md#how-is-a-tested-image-promoted-or-rolled-back).
    The publisher synchronizes references; it does not change the default selection automatically.
@@ -178,50 +178,86 @@ trusted signatures/enrollment too; an OS family label alone does not qualify the
    EFI disk as a generic recipe. Schedule only the tested change, verify through the console, then
    inspect a no-surprise IaC plan before resuming writers. [1]
 
-Current trust also matters: 2011/2023 Microsoft CA transitions, shim/SBAT and dbx revocations can
-invalidate older boot/recovery media. Updating host firmware packages does not necessarily update
-an existing VM's enrolled databases. Inspect actual guest trust and the installed Proxmox version's
-**EFI Disk > Disk Action > Enroll Updated Certificates** support before planning an enrollment;
-retain recovery keys and test the transition first. Do not weaken revocations to make stale media
-boot. Alma's current certificate guidance is specific to its supplied shim/architecture. [1][2]
+Current trust also matters. Microsoft CA transitions, shim/SBAT and dbx revocations can invalidate
+older boot/recovery media. Inspect actual guest trust and the installed Proxmox version's
+**EFI Disk > Disk Action > Enroll Updated Certificates** support before planning an enrollment.
+Retain recovery keys and test the transition on a restored guest first. Use current signed recovery
+media. Alma's certificate guidance depends on its supplied shim and architecture. [1][2]
+
+<a id="guest-tpm"></a>
+
+## Add or inspect a unique TPM 2.0
+
+### New Rocky/Alma or Debian VM
+
+1. Publish the TPM-free clone source through the template workflow. Its applied Shared
+   catalog entry must report `tpm_state_present = false`. Keep TPM state out of reusable templates.
+2. Edit **the owning tier's `terraform/deployments/<setup>/terraform.tfvars`**. Inside the existing
+   `vm_instances` entry for each selected guest, add the following object. Keep the guest's other
+   settings in that same entry.
+
+   ```hcl
+   tpm = {
+     version = "v2.0"
+   }
+   ```
+
+   This inherits the VM's image storage. Add `datastore_id` within `tpm` only when its state needs a
+   different VM-image datastore. Check that the chosen storage is available on every intended
+   recovery or HA target.
+3. Run the setup's normal deployment command and review the new VM's boot/TPM storage in its plan.
+   The command index gives the exact command for each setup. Existing guests retain their TPM state
+   through normal reconciliation. Use the additive maintenance path below for an existing VM.
+   [Deployment commands](../deployment-commands.md)
+4. Run the [controller-owned Linux proof](proxmox-guest-security.md#prove-the-controls-inside-a-managed-linux-guest)
+   from the owning tier's setup. It requires the local device to report TPM **2.0** and verifies
+   the selected Secure Boot policy. Capture a coherent VM backup with TPM/EFI state before
+   enrolling any disk or application key.
+
+### Existing Proxmox VM
+
+Use **Tier 0's existing-VM boot inspection and TPM recipe**. It reads the selected VM through the
+API, prepares a private configuration record and adds a missing TPM 2.0 during a controlled outage.
+Follow its prepare, check, apply and recovery steps. [Existing-VM TPM maintenance](proxmox-guest-security.md)
+
+After addition, record the observed TPM and its recovery location. For a generic Terraform-managed
+VM, set its intended `.tpm` object once the source catalog has the required TPM-free evidence, then
+review that setup's plan. Verify the guest's TPM version and service health, then capture a fresh
+backup. Retain the same TPM identity across later imports and moves.
 
 <a id="talos-boot-security"></a>
 
 ## Qualify Talos boot security
 
-**Current kit path:** approved NoCloud raw image/template plus its matching installer/schematic.
-The reference platform selects Talos 1.13.x; changing to 1.14 also needs the existing full-platform
-qualification. Use the [Talos deployment contract](../../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md).
+The signed installation path provisions fresh UEFI variables and TPM 2.0 for each node. Its signed
+ISO enrolls the Talos key while the virtual firmware is in setup mode. The installed node uses the
+matching Secure Boot installer. Keep the ISO, installer, schematic/extensions and Talos release
+together in the installation record. [6]
 
-**Not implemented:** a complete signed Talos media/publication/enrollment lifecycle. Upstream Talos
-uses signed systemd-boot and a Unified Kernel Image (UKI), an enrolled Sidero/custom signing key and
-the matching Secure Boot installer. Its 1.13 guide requires a fresh installation for a non-UKI
-GRUB-based node. Pre-enrolling Microsoft keys is not the Sidero enrollment procedure. [6]
-
-1. Keep current nodes on their accepted firmware/media. In a separate isolated qualification
-   project/state, select an exact release, schematic/extensions and signed ISO/UKI installer from
-   the version-matched upstream guide. Retain hashes and the signer/trust policy.
-2. Design UEFI setup-mode/key enrollment, repeatable publication and upgrade/recovery handling
-   before creating a candidate. The existing NoCloud clone workflow does not implement those steps.
-   Do not pass a signed installer name to ordinary nodes and claim conversion support.
-3. Verify a candidate's installed-disk boot through its authenticated Talos API. On the **approved
-   execution host**, using that candidate cluster's own credentials:
+1. For **new nodes**, follow the signed installation procedure from Stage 4. Edit the owning tier's
+   `terraform/deployments/kubernetes/terraform.tfvars` and select the documented `secure_boot` inputs.
+   Retain its approved local ISO/hash and matching signed installer through software intake.
+   [Talos signed installation](../../03-deployment/stage-04-kubernetes/procedures/secure-boot.md)
+2. Decide whether to retain `secure_boot.encrypt_system_disks = true`. This encrypts STATE and
+   EPHEMERAL at first provisioning and binds their unlock to that node's TPM and signed boot policy.
+   Keep original node secrets/configuration, etcd and workload backups independently. If TPM state
+   is lost, the recovery path needs either the coherent original VM or a rebuilt node with recovered
+   cluster/application data. [6]
+3. Verify the installed nodes through their authenticated Talos APIs. From **the owning tier root**:
 
    ```bash
-   read -r -p 'Candidate Talos node IP (example: 192.0.2.41): ' TALOS_NODE
-   read -r -p 'Candidate talosconfig path (example: secrets/talos/talosconfig): ' TALOS_CONFIG
-   talosctl --talosconfig "$TALOS_CONFIG" --nodes "$TALOS_NODE" get securitystate
+   bash scripts/kubernetes-cluster.sh verify-security
    ```
 
-   Require the intended `SECUREBOOT` result, working API/network/storage and cold-start recovery.
-   Ordinary current nodes can use the same read-only command to record their actual state.
-4. Test signed upgrades, backup/restore and trust-key continuity. If separately selecting TPM-based
-   encryption, first supply a unique per-node TPM and an independent, tested unlock/rebuild recovery
-   method. Preserve signing/PCR keys when using custom keys. Do not copy the upstream TPM-encryption
-   example into all-node `machine_config_patches` as an automatic hardening step. [6]
-5. Only after qualification, implement/review the missing media/input/lifecycle path and its native
-   provider tests. Migrate nodes using the product's supported replacement process, preserving
-   cluster identity/quorum and application data. No supplied command completes this transition today.
+   Require the command to accept Secure Boot/UKI and, when selected, STATE/EPHEMERAL TPM unlock.
+   Repeat after a controlled installed-disk cold boot. Verify API, network, storage and the real
+   workloads before accepting the nodes. Initial provisioning runs the same security proof.
+4. During updates, keep the signed installer family and original signing trust. Test the canary's
+   next signed OS upgrade, reboot and isolated recovery before rolling to peers. Recheck boot and
+   volume state. Follow the [Talos maintenance sequence](maintenance.md#talos-updates).
+5. For an **existing GRUB-based Talos node**, use a fresh signed installation and the node-replacement
+   procedure with quorum retained. Upstream requires fresh installation for this transition. Retain
+   the original cluster identity and recover the workload data before retiring the old node. [6]
 
 <a id="boot-recovery"></a>
 

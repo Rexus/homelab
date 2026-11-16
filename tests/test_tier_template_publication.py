@@ -33,11 +33,17 @@ class TemplatePublication(TierRepositoryTestCase):
         catalog = yaml.safe_load((UPSTREAM / 'tier-0/templates/proxmox.yml.example').read_text())
         self.assertEqual(catalog['all']['storage_class'], 'shared')
         self.assertEqual(catalog['all']['vlan_id'], 10)
+        self.assertFalse(catalog['all'].get('efi_pre_enrolled_keys', False))
+        for name in ('debian-build-1', 'alma-build-1', 'rocky-build-1'):
+            self.assertIs(catalog['templates'][name]['efi_pre_enrolled_keys'], True)
+        self.assertIs(catalog['templates']['talos-build-1']['efi_pre_enrolled_keys'], False)
+        self.assertNotIn('tpm_version', catalog['all'])
         self.assertFalse({'scsi_hardware', 'nic_mtu', 'nic_firewall', 'qemu_agent'} & catalog['all'].keys())
         shared = (UPSTREAM / 'shared/templates/proxmox-catalog.tfvars').read_text()
         self.assertNotIn('family    = "alma"', shared)
         self.assertNotIn('family    = "rocky"', shared)
         for build in catalog['templates'].values():
+            self.assertNotIn('tpm_version', build)
             self.assertFalse({'datastore_id', 'image_datastore_id', 'qemu_agent', 'bios', 'bridge'} & build.keys())
             self.assertEqual(build['tags'], [])
         root = UPSTREAM / 'tier-0/terraform/deployments/templates'

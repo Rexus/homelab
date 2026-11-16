@@ -1,0 +1,43 @@
+---
+- name: Read current boot hardware without contacting the guest
+  community.proxmox.proxmox_vm_info:
+    vmid: "{{ proxmox_guest_security_vmid }}"
+    type: qemu
+    config: current
+    network: false
+  register: proxmox_guest_security_current
+  no_log: true
+
+- name: Read the candidate configuration to detect pending changes
+  community.proxmox.proxmox_vm_info:
+    vmid: "{{ proxmox_guest_security_vmid }}"
+    type: qemu
+    config: pending
+    network: false
+  register: proxmox_guest_security_pending
+  no_log: true
+
+- name: Require the exact existing unlocked VM and no pending configuration
+  ansible.builtin.assert:
+    that:
+      - proxmox_guest_security_current.proxmox_vms | length == 1
+      - proxmox_guest_security_pending.proxmox_vms | length == 1
+      - not proxmox_guest_security_current.proxmox_vms[0].template | default(false) | bool
+      - proxmox_guest_security_current.proxmox_vms[0].vmid == proxmox_guest_security_vmid
+      - proxmox_guest_security_current.proxmox_vms[0].node == proxmox_guest_security_node
+      - proxmox_guest_security_current.proxmox_vms[0].name == proxmox_guest_security_name
+      - proxmox_guest_security_current.proxmox_vms[0].status in ['running', 'stopped']
+      - proxmox_guest_security_current.proxmox_vms[0].config.lock | default('', true) | length == 0
+      - proxmox_guest_security_current.proxmox_vms[0].config.digest is match('^[a-f0-9]{40}$')
+      - proxmox_guest_security_current.proxmox_vms[0].config == proxmox_guest_security_pending.proxmox_vms[0].config
+      - proxmox_guest_security_pending.proxmox_vms[0].node == proxmox_guest_security_node
+      - proxmox_guest_security_pending.proxmox_vms[0].status == proxmox_guest_security_current.proxmox_vms[0].status
+    fail_msg: >-
+      The VM must match vmid/node/name exactly, be running or stopped, unlocked and have no pending
+      changes. Resolve migrations, backups, HA transitions and pending edits before maintenance.
+    quiet: true
+
+- name: Retain the inspected configuration privately for the next guard
+  ansible.builtin.set_fact:
+    proxmox_guest_security_vm: "{{ proxmox_guest_security_current.proxmox_vms[0] }}"
+  no_log: true

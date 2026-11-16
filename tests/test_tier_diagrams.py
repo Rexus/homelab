@@ -30,6 +30,7 @@ RUNNER_SVG = UPSTREAM / "docs/08-reference/diagrams/infrastructure-runner-placem
 TELEMETRY_SVG = UPSTREAM / "docs/08-reference/diagrams/workload-telemetry-placement.svg"
 REFERENCE_SVG = UPSTREAM / "docs/08-reference/diagrams/reference-platform-placement.svg"
 RUNTIME_SVG = UPSTREAM / "docs/08-reference/diagrams/hosting-runtime-placement.svg"
+BOOT_SVG = UPSTREAM / "docs/08-reference/diagrams/boot-integrity-key-protection.svg"
 OBSERVABILITY_SVG = UPSTREAM / "docs/08-reference/diagrams/observability-capabilities.svg"
 CONTROL_SVG = UPSTREAM / "docs/08-reference/diagrams/control-applications-placement.svg"
 OBSERVABILITY_OPERATIONS_SVG = UPSTREAM / "docs/08-reference/diagrams/observability-operations.svg"
@@ -41,7 +42,7 @@ SIGNAL_SVG = UPSTREAM / "docs/08-reference/diagrams/signal-pipelines.svg"
 K8S_PLATFORM_SVG = UPSTREAM / "docs/08-reference/diagrams/kubernetes-platform.svg"
 PLACEMENT_SVGS = (IDENTITY_SVG, CACHE_SVG, LOGGING_SVG, LAB_SVG, INTAKE_SVG, SUPPLY_SVG, SECRETS_SVG,
                   BACKUP_SVG, CRYPTO_SVG, TRUST_SVG, USB_SVG, CA_SVG, RUNNER_SVG, TELEMETRY_SVG, REFERENCE_SVG,
-                  RUNTIME_SVG, OBSERVABILITY_SVG, CONTROL_SVG, OBSERVABILITY_OPERATIONS_SVG, AVAILABILITY_SVG,
+                  RUNTIME_SVG, BOOT_SVG, OBSERVABILITY_SVG, CONTROL_SVG, OBSERVABILITY_OPERATIONS_SVG, AVAILABILITY_SVG,
                   PLATFORM_SVG, FLUX_OWNERSHIP_SVG, PKCS11_SVG, SIGNAL_SVG, K8S_PLATFORM_SVG,
                   *LOGGING_ROUTING_SVGS)
 FIGURES = re.compile(r"```mermaid\n(.*?)```|!\[[^\]]+\]\(([^)#]+\.svg)\)", re.DOTALL)

@@ -149,6 +149,10 @@ variable "vm_instances" {
       scsi_hardware         = optional(string, "virtio-scsi-single")
       efi_pre_enrolled_keys = optional(bool, false)
     }))
+    tpm = optional(object({
+      version      = optional(string, "v2.0")
+      datastore_id = optional(string)
+    }))
     initialization_datastore_id = optional(string)
     nic_firewall                = optional(bool, true)
     # Uses catalog tags from another template ID, useful while building templates.

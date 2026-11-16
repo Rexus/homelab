@@ -68,8 +68,8 @@ variables {
   default_linux_vm_template_id = 9101
   proxmox_storage_classes = {local = {vm_disk = "test-vm-storage"}}
   proxmox_template_catalog = {
-    "9101" = {title = "Approved EL image", family = "rocky"}
-    "9103" = {title = "Approved CA image", family = "debian"}
+    "9101" = {title = "Approved EL image", family = "rocky", tpm_state_present = false}
+    "9103" = {title = "Approved CA image", family = "debian", tpm_state_present = false}
   }
   ansible_group_vars_paths = ["../../../ansible/group_vars/all.yml", "../../../ansible/group_vars/foundation.yml"]
   network_zones = {
@@ -83,8 +83,8 @@ variables {
 run "before_stage_six" {
   command = plan
   assert {
-    condition = toset(keys(module.vms)) == toset(["ca-1", "idm-1", "idm-2"])
-    error_message = "The default must not create an early monitor or lose foundation guests."
+    condition = toset(keys(module.vms)) == toset(["ca-1"])
+    error_message = "The fresh default creates only the issuer; directory and monitor remain explicit later choices."
   }
 }
 ''', encoding="utf-8")
@@ -99,7 +99,7 @@ run "before_stage_six" {
 run "stage_six_enabled" {
   command = plan
   assert {
-    condition = toset(keys(module.vms)) == toset(["ca-1", "idm-1", "idm-2", "mon-1"])
+    condition = toset(keys(module.vms)) == toset(["ca-1", "mon-1"])
     error_message = "Only the optional monitor may join the existing foundation addresses."
   }
   assert {

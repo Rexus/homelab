@@ -51,6 +51,29 @@ variable "firmware" {
   }
 }
 
+variable "tpm" {
+  description = "Creation-only, fresh per-VM TPM 2.0 state. Null omits it; existing/adopted TPM state is preserved."
+  type = object({
+    version      = optional(string, "v2.0")
+    datastore_id = optional(string)
+  })
+  default = null
+
+  validation {
+    condition = var.tpm == null ? true : (
+      var.tpm.version == "v2.0" &&
+      (var.tpm.datastore_id == null ? true : can(regex("^[A-Za-z][A-Za-z0-9._-]*$", var.tpm.datastore_id)))
+    )
+    error_message = "tpm supports version v2.0 only; omit datastore_id to inherit VM-image storage or select a non-empty Proxmox datastore ID."
+  }
+}
+
+variable "template_tpm_state_present" {
+  description = "Applied clone-source catalog evidence: true rejects identity cloning; false permits a fresh per-VM TPM; null is legacy/unverified."
+  type        = bool
+  default     = null
+}
+
 variable "storage_class" {
   description = "Logical storage class such as local, shared, or fast."
   type        = string

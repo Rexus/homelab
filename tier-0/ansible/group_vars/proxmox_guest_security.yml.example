@@ -1,0 +1,22 @@
+---
+# Schema: ansible/roles/proxmox_guest_security/defaults/main.yml and tasks/validate.yml.
+# Native API: community.proxmox.proxmox_vm_info and community.proxmox.proxmox_kvm.
+# Guide: docs/05-operations/01-hosting/proxmox-guest-security.md.
+# Load .env.local before the controller play. No guest SSH or host inventory entry is needed.
+proxmox_guest_security_operation: inspect
+proxmox_guest_security_vmid: 0
+proxmox_guest_security_node: pve01
+proxmox_guest_security_name: vm-1
+proxmox_guest_security_tpm_storage: local-zfs
+
+# Set a new absolute file in an existing private (0700) controller directory.
+proxmox_guest_security_record: ""
+# Paste prepare's SHA256 after reviewing the private record. Never commit that record.
+proxmox_guest_security_record_sha256: ""
+
+# Required only when apply will add a missing TPM. Backup includes every disk and EFI/TPM state.
+# Example reference: an independently retained PBS snapshot or full backup archive identifier.
+proxmox_guest_security_backup_reference: ""
+proxmox_guest_security_backup_retained: false
+proxmox_guest_security_outage_approved: false
+proxmox_guest_security_shutdown_timeout: 180

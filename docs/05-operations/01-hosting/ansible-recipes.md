@@ -80,6 +80,9 @@ The signing play is a gated backend renderer, not a service, VIP or HA installer
 
 | Tier / setup | Deployment recipe | Maintenance recipe and scope |
 | --- | --- | --- |
+| 0 / physical Proxmox hosts | Host firmware commissioning in [Foundation Step 11](../../03-deployment/foundation/proxmox/step-11-host-security.md) | `maintenance/proxmox-boot-security.yml`: native inspection-package preparation or read-only Secure Boot/local TPM 2.0 proof; no firmware changes or reboot |
+| 0 / existing VM hardware | `deployment/proxmox-guest-security.yml`: native API inspection and guarded addition of a missing TPM 2.0 | [Boot/TPM maintenance](proxmox-guest-security.md): preserves EFI, existing TPM and all other hardware; no guest SSH or Terraform provisioning |
+| 0/1/2 / selected Linux guests | `deployment/guest-boot-security.yml`: native guest inspection tools and actual Secure Boot/TPM proof | [Guest acceptance](proxmox-guest-security.md#prove-the-controls-inside-a-managed-linux-guest): normal owning inventory/SSH/become; no boot/TPM mutation |
 | 0 / `foundation` | `deployment/identity-freeipa.yml` | `maintenance/foundation.yml`: read-only directory service/API checks |
 | 0 / `foundation`, issuer override | `deployment/openxpki.yml` | `maintenance/openxpki.yml`: read-only service/configuration/API checks |
 | 0 / issuer preparation | `deployment/openxpki-repository.yml`: verify the approved repository and list package candidates; `deployment/openxpki-portal-request.yml`: controller CSR from the existing portal key | [Stage 2](../../03-deployment/stage-02-trust/README.md): approve exact package pins before installation, replace temporary portal TLS after issuance works |

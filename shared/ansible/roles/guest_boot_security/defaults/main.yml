@@ -1,0 +1,5 @@
+---
+# check never installs tools or changes firmware; apply installs only inspection tools, then proves state.
+guest_boot_security_operation: check
+guest_boot_security_require_secure_boot: true
+guest_boot_security_require_tpm: true

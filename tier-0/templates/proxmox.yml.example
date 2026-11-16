@@ -14,6 +14,7 @@
 # release: exact version/build (optional v prefix), not a filename, placeholder or latest/stable alias.
 # Connected Tier 0 uses a protected control network; offline custody needs a separate isolated fabric.
 # Add a new entry and VMID for every revision; retain previous entries for rollback.
+# Keep templates TPM-free: each service VM creates its own TPM 2.0 state.
 all:
   node_name: pve01
   # Shared config/platform.tfvars: proxmox_storage_classes.shared.vm_disk.
@@ -43,18 +44,22 @@ templates:
   # Required by the supplied Stage 2 OpenXPKI CA: Debian 12 amd64, not Ubuntu or EL10.
   # Download and QEMU-agent preparation: docs/03-deployment/foundation/proxmox/templates.md#debian-ca-template
   # Use the prepared output's path/hash and the exact approved Debian build as release.
+  # The full-kernel generic variant supports Q35's ide2 cloud-init CD-ROM.
   debian-build-1:
     family: debian
     distribution: debian
+    # Qualify the vendor-signed UEFI boot chain in a clone before promotion.
+    efi_pre_enrolled_keys: true
     release: REPLACE_WITH_EXACT_DEBIAN_12_BUILD
     vm_id: 9103
     name: debian-template-build-1
-    image_path: /srv/tier0/artifacts/debian-12-genericcloud-amd64.qcow2
+    image_path: /srv/tier0/artifacts/debian-12-generic-amd64-agent.qcow2
     sha256: REPLACE_WITH_UNPACKED_IMAGE_SHA256
     tags: [] # Optional image variants, for example [test] or [hardened].
   alma-build-1:
     family: redhat
     distribution: alma
+    efi_pre_enrolled_keys: true
     release: REPLACE_WITH_EXACT_RELEASE_AND_BUILD
     vm_id: 9100
     name: alma-template-build-1
@@ -64,6 +69,7 @@ templates:
   rocky-build-1:
     family: redhat
     distribution: rocky
+    efi_pre_enrolled_keys: true
     release: REPLACE_WITH_EXACT_RELEASE_AND_BUILD
     vm_id: 9101
     name: rocky-template-build-1
@@ -75,6 +81,8 @@ templates:
     # Match installer/schematic and talosctl; 1.14 is not qualified by the supplied SSO rollout.
     family: talos
     distribution: talos
+    # The unsigned NoCloud template is not the separate Talos Secure Boot path.
+    efi_pre_enrolled_keys: false
     release: REPLACE_WITH_EXACT_TALOS_VERSION
     schematic_id: REPLACE_WITH_IMAGE_FACTORY_SCHEMATIC_ID
     vm_id: 9102

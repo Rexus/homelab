@@ -1,0 +1,41 @@
+---
+- name: Use the accepted native API client for the complete operation
+  module_defaults:
+    group/community.proxmox.proxmox: "{{ proxmox_guest_security_api_defaults }}"
+  block:
+    - name: Inspect the selected VM before any local or cluster change
+      ansible.builtin.include_tasks: read.yml
+
+    - name: Show configured boot controls without claiming guest enforcement
+      ansible.builtin.debug:
+        msg:
+          vm: "{{ proxmox_guest_security_name }} / {{ proxmox_guest_security_vmid }} / {{ proxmox_guest_security_node }}"
+          status: "{{ proxmox_guest_security_vm.status }}"
+          digest: "{{ proxmox_guest_security_vm.config.digest }}"
+          bios: "{{ proxmox_guest_security_vm.config.bios | default('seabios') }}"
+          efi_state: "{{ proxmox_guest_security_vm.config.efidisk0 | default('absent') }}"
+          tpm_state: "{{ proxmox_guest_security_vm.config.tpmstate0 | default('absent') }}"
+          enforcement: >-
+            EFI configuration describes provisioning, not current NVRAM trust or guest Secure Boot
+            enforcement. Verify those through the OS/Talos acceptance checks in the hardening guide.
+
+    - name: Prepare an immutable controller record without changing the VM
+      ansible.builtin.include_tasks: prepare.yml
+      when: proxmox_guest_security_operation == 'prepare'
+
+    - name: Compare the reviewed record with the current VM
+      ansible.builtin.include_tasks: check.yml
+      when: proxmox_guest_security_operation in ['check', 'apply']
+
+    - name: Add only a missing TPM through the planned maintenance path
+      ansible.builtin.include_tasks: apply.yml
+      when:
+        - proxmox_guest_security_operation == 'apply'
+        - proxmox_guest_security_vm.config.tpmstate0 is not defined
+
+    - name: Report unchanged TPM identity when it already satisfies the request
+      ansible.builtin.debug:
+        msg: Existing TPM 2.0 retained exactly. No stop/start or boot-hardware change was performed.
+      when:
+        - proxmox_guest_security_operation in ['check', 'apply']
+        - not proxmox_guest_security_needs_tpm

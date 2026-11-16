@@ -2,6 +2,7 @@
 
 import json
 import os
+import shutil
 import subprocess
 import unittest
 
@@ -63,9 +64,9 @@ class TierClusters(TierRepositoryTestCase):
         self.generate()
         tier1 = self.root / "verify-tier-1"
         record = (tier1 / "docs/architecture/README.md").read_text()
-        self.assertIn("Unselected: Argo CD", record)
-        self.assertIn("Spinnaker release pipelines", record)
-        self.assertIn("Tier 1 does not inherit Tier 0 Flux automatically", (tier1 / "README.md").read_text())
+        self.assertIn("independent Tier 1 Flux reconciliation", record)
+        self.assertIn("Spinnaker application Git promotion", record)
+        self.assertIn("Fresh Tier 1 selects independent Flux", (tier1 / "README.md").read_text())
         script = (self.root / "verify-shared/scripts/kubernetes-cluster.sh").read_text()
         for installer in ("flux bootstrap", "argocd cluster add", "spin pipeline"):
             self.assertNotIn(installer, script)
@@ -92,11 +93,20 @@ for arg in sys.argv:
 if os.environ.get("FAIL_PLAN") and "plan" in sys.argv:
     sys.exit(1)
 if "show" in sys.argv:
-    print('{"format_version": "1.2", "planned_values": {"sensitive": "disposable"}}')
+    if os.environ.get("SIGNED_PLAN"):
+        policy = {"mode": "secureboot", "encrypt_system_disks": True}
+        print(json.dumps({"planned_values": {"outputs": {"boot_security": {"value": policy}}}}))
+    else:
+        print('{"format_version": "1.2", "planned_values": {"sensitive": "disposable"}}')
 if "output" in sys.argv:
     if os.environ.get("FAIL_EXPORT") and sys.argv[-1] == "kubeconfig":
         sys.exit(1)
-    print('{"k8ctl-1": "test machine configuration"}' if "-json" in sys.argv else "test credential")
+    if sys.argv[-1] == "boot_security":
+        print('{"mode":"template","encrypt_system_disks":false}')
+    elif sys.argv[-1] == "nodes":
+        print('{"k8ctl-1":{"ip":"192.0.2.11"}}')
+    else:
+        print('{"k8ctl-1": "test machine configuration"}' if "-json" in sys.argv else "test credential")
 ''')
         fake.chmod(0o755)
         log = self.root / f"calls-{repo.name}.jsonl"
@@ -121,6 +131,18 @@ if "output" in sys.argv:
         self.assertEqual(inventory.read_text(), "# Existing project inventory\n")
         self.assertEqual(call("plan").returncode, 0)
         plan = repo / ".terraform/plans/talos.tfplan"
+        self.assertTrue(plan.is_file())
+        tools = self.root / f"tools-without-talosctl-{repo.name}"
+        tools.mkdir()
+        for command in ("bash", "dirname", "mkdir", "python3", "rm"):
+            (tools / command).symlink_to(shutil.which(command))
+        (tools / "terraform").symlink_to(fake)
+        offset = len(log.read_text().splitlines())
+        refused = call("apply", dict(env, PATH=str(tools), SIGNED_PLAN="1"))
+        self.assertNotEqual(refused.returncode, 0)
+        self.assertIn("talosctl on PATH before applying", refused.stderr)
+        self.assertFalse(any("apply" in json.loads(line)["args"]
+                             for line in log.read_text().splitlines()[offset:]))
         self.assertTrue(plan.is_file())
         result = call("export-plan")
         self.assertEqual(result.returncode, 0, result.stderr)

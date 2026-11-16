@@ -28,6 +28,7 @@ run "publish_linux_families_windows_and_other" {
       output.catalog[key].os_type == vm.operating_system[0].type &&
       output.catalog[key].family == var.images[key].family &&
       output.catalog[key].distribution == var.images[key].distribution &&
+      !output.catalog[key].tpm_state_present &&
       vm.template && !vm.started && vm.memory[0].floating == 0 &&
       length(vm.initialization[0].user_account) == 0 && length(vm.tpm_state) == 0
     ])
@@ -68,6 +69,7 @@ run "windows_firmware_tpm_and_older_guest_override" {
       proxmox_virtual_environment_vm.template["windows"].efi_disk[0].pre_enrolled_keys &&
       proxmox_virtual_environment_vm.template["windows"].tpm_state[0].version == "v2.0" &&
       proxmox_virtual_environment_vm.template["windows"].tpm_state[0].datastore_id == "ceph-vm" &&
+      output.catalog["windows"].tpm_state_present &&
       proxmox_virtual_environment_vm.template["windows"].machine == "q35" &&
       alltrue([for key, vm in proxmox_virtual_environment_vm.template :
         length(vm.efi_disk) == 0 && length(vm.tpm_state) == 0 if key != "windows"

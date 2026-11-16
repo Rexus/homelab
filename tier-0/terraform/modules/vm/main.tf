@@ -69,14 +69,30 @@ resource "proxmox_virtual_environment_vm" "this" {
     }
   }
 
+  dynamic "tpm_state" {
+    for_each = var.tpm == null ? [] : [var.tpm]
+    content {
+      datastore_id = coalesce(tpm_state.value.datastore_id, local.resolved_datastore_id)
+      version      = tpm_state.value.version
+    }
+  }
+
   # Template provenance and boot hardware initialize new VMs; existing/imported VMs retain theirs.
-  # Preserve an adopted TPM identity too; this module does not provision or rotate TPM state.
+  # TPM identity is created once. Adding it to an existing VM uses the stopped-VM maintenance recipe.
   # Proxmox owns later placement. Capacity, disks and networking remain deployment-managed.
   lifecycle {
     ignore_changes = [
       node_name, clone, description, operating_system, serial_device,
       bios, machine, scsi_hardware, efi_disk, boot_order, tpm_state,
     ]
+
+    # bpg 0.112 reuses a cloned TPM if present; it does not create a fresh identity in that case.
+    precondition {
+      condition = var.tpm == null ? var.template_tpm_state_present != true : (
+        var.template_tpm_state_present == false && !var.template
+      )
+      error_message = "Never clone a populated template TPM. A per-VM tpm requires a TPM-free clone source (tpm_state_present = false in the applied Shared catalog) and template = false. Republish/inspect older template references before enabling it."
+    }
 
     precondition {
       condition = alltrue([

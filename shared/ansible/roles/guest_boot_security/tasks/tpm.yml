@@ -1,0 +1,50 @@
+---
+- name: Inspect only local kernel TPM character devices
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  loop: [/dev/tpmrm0, /dev/tpm0]
+  register: guest_boot_security_devices
+
+- name: Require a local TPM device instead of an external simulator or network transport
+  ansible.builtin.assert:
+    that: guest_boot_security_devices.results | selectattr('stat.ischr', 'defined') | selectattr('stat.ischr') | list | length > 0
+    fail_msg: >-
+      No local TPM character device is available. Verify the selected system TPM through its owning
+      provisioning or firmware procedure.
+
+- name: Select the kernel resource manager when available
+  ansible.builtin.set_fact:
+    guest_boot_security_device: >-
+      {{ (guest_boot_security_devices.results | selectattr('stat.ischr', 'defined') |
+          selectattr('stat.ischr') | map(attribute='item') | list)[0] }}
+
+- name: Read fixed TPM properties through the explicit local device transport
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/tpm2_getcap
+      - "--tcti=device:{{ guest_boot_security_device }}"
+      - properties-fixed
+  register: guest_boot_security_getcap
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Require a successful native TPM property query
+  ansible.builtin.assert:
+    that: guest_boot_security_getcap.rc | default(127) == 0
+    fail_msg: >-
+      TPM query failed or tpm2-tools is missing. Run the owning preparation operation to install native tools and
+      inspect device access. {{ guest_boot_security_getcap.stderr | default(guest_boot_security_getcap.msg | default('')) }}
+
+- name: Decode native YAML capability output
+  ansible.builtin.set_fact:
+    guest_boot_security_properties: "{{ guest_boot_security_getcap.stdout | from_yaml }}"
+
+- name: Require the TPM 2.0 family and report its manufacturer
+  ansible.builtin.assert:
+    that:
+      - guest_boot_security_properties is mapping
+      - guest_boot_security_properties.TPM2_PT_FAMILY_INDICATOR.value | default('') | string == '2.0'
+      - guest_boot_security_properties.TPM2_PT_MANUFACTURER is mapping
+    success_msg: "TPM 2.0 verified via {{ guest_boot_security_device }}; manufacturer {{ guest_boot_security_properties.TPM2_PT_MANUFACTURER.value | default('reported') }}."
+    fail_msg: The local device did not return TPM 2.0 fixed properties. Do not reset or recreate its identity.

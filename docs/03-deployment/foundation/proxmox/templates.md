@@ -6,9 +6,10 @@ an image datastore with **Import** content, and live VM storage on the eligible 
 For the first manual Linux image, use the independent workstation and Proxmox GUI;
 the generated repositories and API publisher are not prerequisites for this guide.
 
-One GUI disk-import workflow covers AlmaLinux, Rocky Linux, Debian and Talos. Choose the
-image below, then follow the numbered actions. Talos-specific differences are explicit;
-there is no separate ISO installation. For repeatable API publication instead,
+One GUI disk-import workflow covers AlmaLinux, Rocky Linux, Debian and retained Talos templates.
+New permanent Talos nodes can use the recommended signed ISO path in Stage 4, with fresh EFI/TPM
+state per node. Choose the image below, then follow the numbered actions for this template path.
+For repeatable API publication,
 use the [template lifecycle](../../../05-operations/01-hosting/templates/template-lifecycle.md).
 On the Foundation path, create the first Linux template here and adopt it after bootstrap preparation.
 Standalone manual ownership is also valid; use the
@@ -39,8 +40,8 @@ Never let two Terraform states manage the same VMID or image file.
 | --- | --- | --- |
 | AlmaLinux | Official [Generic Cloud](https://wiki.almalinux.org/cloud/Generic-cloud.html), x86_64 `.qcow2` | Review EL10's CPU baseline; use the explicitly selected x86_64_v2 variant only for older compatible hosts |
 | Rocky Linux | Official [GenericCloud Base or LVM](https://download.rockylinux.org/pub/rocky/10/images/x86_64/), x86_64 `.qcow2` | Select the guest disk layout; EL10 needs x86-64-v3-capable hosts [6] |
-| Debian 12 | Official [Bookworm cloud images](https://cloud.debian.org/images/cloud/bookworm/) · [download amd64 GenericCloud QCOW2](https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-genericcloud-amd64.qcow2) | Required for the supplied Stage 2 OpenXPKI issuer; prepare the guest agent below before import |
-| Talos | [Image Factory](https://factory.talos.dev/) disk image, not ISO | Follow the selections below; retain version and schematic ID |
+| Debian 12 | Official [Bookworm cloud images](https://cloud.debian.org/images/cloud/bookworm/) · [download amd64 Generic QCOW2](https://cloud.debian.org/images/cloud/bookworm/latest/debian-12-generic-amd64.qcow2) | Required for the supplied Stage 2 OpenXPKI issuer; use the full-kernel `generic` variant for Q35 and prepare the guest agent below |
+| Talos, retained template path | [Image Factory](https://factory.talos.dev/) NoCloud disk image | Follow the template selections below. New signed ISO installs use [Stage 4 option 5a](../../stage-04-kubernetes/README.md#5a-signed-fresh-installation-and-tpm--recommended) |
 
 Base and LVM are valid Rocky GenericCloud variants. LVM describes storage inside
 the guest; Proxmox clone support is determined by host storage and template disk
@@ -52,9 +53,11 @@ first-boot resize behavior on a disposable clone.
 > Debian 13 and EL10 are not qualified substitutes for `ca-1`. HSM provider VMs can use EL10.
 > Publish this image before reaching Stage 2; it need not replace the normal Linux default.
 
-> **Boot policy:** this baseline uses UEFI with Secure Boot disabled, including Talos and the CA.
-> Later stages do not enable it automatically. Signed boot media, guest key enrollment and firmware
-> recovery require a separately qualified path; checking **Pre-Enroll keys** alone is not that path.
+> **Boot policy:** use vendor-signed Secure Boot for compatible Rocky/Alma and Debian images,
+> including the issuer's Debian image. Keep reusable templates TPM-free. Generic VM inputs create
+> fresh guest TPM 2.0 state, using the source catalog's explicit `tpm_state_present = false` evidence.
+> New Talos signed installation uses its own ISO and enrollment path in Stage 4. Existing guests
+> use the [boot maintenance procedures](../../../05-operations/01-hosting/guest-hardening.md).
 
 <a id="talos-version-contract"></a>
 
@@ -66,8 +69,9 @@ before downloading. Keep these selections together:
 
 | Input | Reference selection |
 | --- | --- |
-| Image Factory and Tier 0 `templates/proxmox.yml` build `release` / `schematic_id` | Same approved exact 1.13.x release and schematic |
-| Cluster `cluster.talos_version` / `cluster.installer_image` | Same release (`v1.13.x`) and matching NoCloud installer schematic; select a compatible Kubernetes pin separately |
+| Image Factory release and schematic | Same approved exact 1.13.x release and schematic for the chosen disk or signed ISO path |
+| Tier 0 `templates/proxmox.yml` build `release` / `schematic_id`, when publishing a Talos template | Match that disk's release and schematic |
+| Cluster `cluster.talos_version` / `cluster.installer_image` | Same release (`v1.13.x`) and matching ordinary or Secure Boot NoCloud installer schematic. Select a compatible Kubernetes pin separately |
 | `cluster_security_logging_talos_schema` | `v1.13`; this is a schema selection, not the exact OS patch release |
 | Operator `talosctl` and Stage 5 serial SSO | Matching 1.13 client; the rollout checks the plan and running nodes too |
 
@@ -76,12 +80,13 @@ does not qualify the Cilium configuration or the Stage 5 serial SSO workflow. Se
 only as a separately qualified variant. Image Factory and linked hardware documentation may show
 a newer release; they do not select an upgrade for this deployment. Do not downgrade an existing cluster.
 
-For Talos, make these Image Factory selections in order: [1][2]
+For the **retained Talos template path**, make these Image Factory selections in order. New signed
+nodes follow [Stage 4's signed-media preparation](../../stage-04-kubernetes/procedures/secure-boot.md). [1][2]
 
 1. **Cloud server**, then the approved exact **1.13.x** version for the reference path.
 2. **NoCloud**, architecture **amd64**.
 3. System extension **`siderolabs/qemu-guest-agent`**.
-4. Bootloader **UEFI only**, not Secure Boot.
+4. Bootloader **UEFI only** for this retained raw-template route.
 5. Save the schematic definition/ID and matching installer-image reference;
    download the **disk image** `nocloud-amd64.raw.xz` and its verification material.
 
@@ -121,7 +126,7 @@ inspect it rather than overwriting it blindly. The optional
 
 ### Debian CA image preparation
 
-Download **`debian-12-genericcloud-amd64.qcow2`** and its matching
+Download **`debian-12-generic-amd64.qcow2`** and its matching
 [SHA512SUMS](https://cloud.debian.org/images/cloud/bookworm/latest/SHA512SUMS) from the same accepted
 Debian build. The `latest` link is for acquisition; retain the exact build/date and source digest,
 then use that build as the catalog's `release`, not `latest`. [9]
@@ -132,8 +137,13 @@ On **the acquisition workstation**, verify the downloaded image against the matc
 sha512sum --check --ignore-missing SHA512SUMS
 ```
 
-Require `debian-12-genericcloud-amd64.qcow2: OK`. Retain the approved HTTPS source and verification
+Require `debian-12-generic-amd64.qcow2: OK`. Retain the approved HTTPS source and verification
 record; a checksum fetched alongside a file is not an independent publisher signature.
+
+Use **`generic`** for this guide's Q35 hardware and `ide2` cloud-init drive. Debian's smaller
+`genericcloud` kernel can lack the AHCI driver needed to see that CD-ROM; without the seed,
+cloud-init can stay disabled and leave the NIC down. The `generic` image retains cloud-init with
+broader hardware support. Debian's `nocloud` image is a different variant, not this selection. [13]
 
 Stock Debian cloud images do not include `qemu-guest-agent`. Prepare a derivative before
 enabling Proxmox's agent option. [9][10]
@@ -166,7 +176,7 @@ On **the same Linux preparation host**, select the workspace containing the veri
 
 ```bash
 read -r -e -p 'Image workspace (example . when already in artifacts): ' DEBIAN_IMAGE_WORKSPACE
-ls -l "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64.qcow2"
+ls -l "$DEBIAN_IMAGE_WORKSPACE/debian-12-generic-amd64.qcow2"
 ```
 
 **Behind the cache:** `virt-customize` inherits the current shell's exported `http_proxy` and
@@ -179,16 +189,16 @@ stop if the output already exists:
 ```bash
 (
   set -e
-  test ! -e "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2" || {
+  test ! -e "$DEBIAN_IMAGE_WORKSPACE/debian-12-generic-amd64-agent.qcow2" || {
     printf '%s\n' 'Prepared output already exists; inspect or select a new output path.' >&2
     exit 1
   }
-  cp -- "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64.qcow2" \
-    "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2"
+  cp -- "$DEBIAN_IMAGE_WORKSPACE/debian-12-generic-amd64.qcow2" \
+    "$DEBIAN_IMAGE_WORKSPACE/debian-12-generic-amd64-agent.qcow2"
   LIBGUESTFS_BACKEND=direct virt-customize \
-    -a "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2" \
+    -a "$DEBIAN_IMAGE_WORKSPACE/debian-12-generic-amd64-agent.qcow2" \
     --install qemu-guest-agent
-  sha256sum "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2"
+  sha256sum "$DEBIAN_IMAGE_WORKSPACE/debian-12-generic-amd64-agent.qcow2"
 )
 ```
 
@@ -198,15 +208,15 @@ file unchanged. Record this recipe plus source/output digests; the derivative is
 vendor-signed artifact. Never run `virt-customize` against an image in use by a VM. [10]
 
 **Expected output on the preparation host:**
-`$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2` and its printed SHA256.
+`$DEBIAN_IMAGE_WORKSPACE/debian-12-generic-amd64-agent.qcow2` and its printed SHA256.
 Retain the original image, matching manifest, recipe and both digests in the artifact record.
 
 **If customization failed:** resolve the reported error. On **the preparation host**, preserve the
 incomplete output under a new filename, then repeat the derivative block:
 
 ```bash
-mv -n -- "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.qcow2" \
-  "$DEBIAN_IMAGE_WORKSPACE/debian-12-genericcloud-amd64-agent.failed-$(date -u +%Y%m%dT%H%M%SZ).qcow2"
+mv -n -- "$DEBIAN_IMAGE_WORKSPACE/debian-12-generic-amd64-agent.qcow2" \
+  "$DEBIAN_IMAGE_WORKSPACE/debian-12-generic-amd64-agent.failed-$(date -u +%Y%m%dT%H%M%SZ).qcow2"
 ```
 
 Continue only after package installation succeeds and SHA256 is printed; do not publish the failed copy.
@@ -220,8 +230,8 @@ or controller**, using its accepted SSH access to that preparation VM:
 
 ```bash
 read -r -p 'Preparation VM SSH destination (example automation@10.10.10.60): ' DEBIAN_PREP_SSH
-read -r -e -p 'Absolute prepared file on that VM (example /srv/tier0/artifacts/debian-12/debian-12-genericcloud-amd64-agent.qcow2): ' DEBIAN_PREPARED_IMAGE
-read -r -e -p 'New absolute local output file (example /srv/tier0/artifacts/debian-12-genericcloud-amd64-agent.qcow2): ' DEBIAN_AGENT_LOCAL
+read -r -e -p 'Absolute prepared file on that VM (example /srv/tier0/artifacts/debian-12/debian-12-generic-amd64-agent.qcow2): ' DEBIAN_PREPARED_IMAGE
+read -r -e -p 'New absolute local output file (example /srv/tier0/artifacts/debian-12-generic-amd64-agent.qcow2): ' DEBIAN_AGENT_LOCAL
 scp "$DEBIAN_PREP_SSH:$DEBIAN_PREPARED_IMAGE" "$DEBIAN_AGENT_LOCAL"
 sha256sum "$DEBIAN_AGENT_LOCAL"
 ```
@@ -233,7 +243,7 @@ Retain the accepted output and verification record before retiring a disposable 
 
 | Setting | Debian difference from the other images |
 | --- | --- |
-| Image | GenericCloud `.qcow2`, not the Talos raw image or an installation ISO |
+| Image | Debian `generic` `.qcow2` with the full kernel and cloud-init |
 | SCSI / firmware | Use the common Linux `virtio-scsi-single`, q35 and OVMF settings below; Talos has its own controller selection |
 | Initialization | Normal Linux CloudInit user/SSH/IP settings on clones; Talos's drive supplies networking only |
 | Agent | Add the Debian package above; Talos needs its Factory extension; verify every clone's agent |
@@ -264,7 +274,7 @@ The following values are a starting profile; clones receive their actual sizing/
 | General | An unused template VMID and descriptive image name; e.g. `alma-10-tmpl`, `rocky-10-tmpl`, `talos-tmpl` | Record the exact Talos version/schematic in its publication record |
 | OS | **Do not use any media**, guest OS Linux | Same; the raw image is the installed disk, not an installer ISO |
 | System | Machine **q35**, BIOS **OVMF (UEFI)**, EFI disk **4m** on approved live storage | Same |
-| System: EFI | **Pre-Enroll keys unchecked** for this non-Secure-Boot path; no TPM | Do not select a Secure Boot image accidentally |
+| System: EFI | **Pre-Enroll keys checked** for the compatible vendor-signed Linux image. Keep the reusable template TPM-free | For this retained Talos raw-template route, leave **Pre-Enroll keys unchecked** and keep the template TPM-free. Signed Talos uses Stage 4's ISO route |
 | System: controller | **VirtIO SCSI single** for Alma/Rocky/Debian | **VirtIO SCSI** (`virtio-scsi-pci`), not Single, per current Talos guidance [2] |
 | System: QEMU Agent | Enable only if the image contains the agent | Enable: the selected schematic includes `siderolabs/qemu-guest-agent` |
 | Disks | Remove the default disk; click **Import**, choose the uploaded image, attach as **SCSI / scsi0** | Select the unpacked `.raw`; do not add another empty boot disk |
@@ -343,9 +353,10 @@ After preparing the bootstrap host, complete
 [Foundation Step 4: import or publish with IaC](../README.md#step-4-publish-and-test-vm-templates)
 before Stage 1. That step selects the plan for existing templates or new candidates.
 
-Fresh Talos publication and cluster examples explicitly select `ovmf`, `q35`,
+Retained Talos template publication and clone inputs select `ovmf`, `q35`,
 `virtio-scsi-pci`, an EFI disk without pre-enrolled keys, fixed RAM and the guest
-agent. Existing input files without firmware settings retain their legacy BIOS
+agent. Signed ISO installation creates EFI/TPM state per node through Stage 4 instead.
+Existing input files without firmware settings retain their legacy BIOS
 configuration. **Do not copy new firmware settings onto running VMs as an update**;
 publish/test a new template and use a reviewed replacement/migration plan.
 
@@ -356,6 +367,7 @@ Qualify these independently before promoting a template:
 | Check | Expected result |
 | --- | --- |
 | Full clone | Independent copy boots with its own network settings |
+| Linux initialization | Cloud-init detects its seed and completes; the NIC is up with the clone's selected IPv4 configuration |
 | Linked clone, when selected | Host storage supports it and all attached disks have the required base/snapshot state |
 | Guest control | Proxmox's agent option is enabled, and the guest agent is installed and running inside the clone |
 
@@ -373,6 +385,21 @@ Run on **the selected Proxmox host as an authorized root operator**.
 read -r -p "Disposable clone VMID: " CLONE_VMID
 qm agent "$CLONE_VMID" ping
 ```
+
+An agent response alone does not prove initialization or networking. For a **Linux clone**,
+run on **the same Proxmox host**, using the clone VMID entered above:
+
+```bash
+qm guest exec "$CLONE_VMID" -- cloud-init status --long
+qm guest exec "$CLONE_VMID" -- ip -br address
+qm guest exec "$CLONE_VMID" -- lsblk -o NAME,TYPE,FSTYPE,LABEL,MOUNTPOINTS
+```
+
+Require successful cloud-init completion, the expected IPv4 address and visible cloud-init media
+(normally `sr0`, label `cidata`). If Debian reports `disabled-by-generator` and no CD-ROM,
+check the attached CloudInit drive and the image/kernel choice above before changing DHCP or DNS.
+Publish a newly prepared `generic` revision and qualify a fresh clone; changing a catalog filename
+does not repair an existing guest.
 
 If the agent does not respond, inspect it through the **disposable clone's console**,
 not the reusable template or the deployment host:
@@ -401,6 +428,11 @@ Proxmox agent channel; a guest-only reboot does not recreate its virtual hardwar
 Tier 0 alone owns the reusable image and `terraform/deployments/templates/` state.
 Shared holds its approved VMID/title/source node. Each consuming tier owns its
 `terraform/deployments/kubernetes/`, inventory, clone disks and cluster secrets.
+
+For **new signed Talos installations**, retain the approved ISO and installer record, then continue
+at [Stage 4 option 5a](../../stage-04-kubernetes/README.md#5a-signed-fresh-installation-and-tpm--recommended).
+That path creates blank node disks directly. The following catalog handoff applies to the retained
+template choice.
 
 For the [API publisher](../../../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow),
 record the unpacked image/hash, version/schematic and explicit firmware in Tier 0's
@@ -434,7 +466,9 @@ installer artifacts and recovery secrets independently of the cluster and hosted
 10. [Native offline image customization](https://libguestfs.org/virt-customize.1.html).
 11. [Libguestfs package installation and proxy environment](https://libguestfs.org/virt-builder.1.html).
 12. [Libguestfs backend selection and EL defaults](https://libguestfs.org/guestfs-faq.1.html).
+13. [Debian kernel: GenericCloud AHCI/cloud-init limitation and Generic image alternative](https://salsa.debian.org/kernel-team/linux/-/merge_requests/699).
 
 Sources 6–8 checked 2026-11-07; other sources reviewed 2026-10-27.
 Sources 10–12 checked 2026-11-15 for file-based customization, appliance networking and build proxy scope.
+Source 13 checked 2026-11-16 for the Q35 initialization-media compatibility issue.
 Match the selected image's release documentation.

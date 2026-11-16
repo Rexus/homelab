@@ -44,7 +44,7 @@ The [design](../../../01-architecture/11-operations/04-backup-recovery.md) owns 
 | --- | --- |
 | Dataset and owner | State/ignored inputs, application data and logs have named recovery procedures |
 | RPO / RTO | Maximum acceptable data age and measured restore duration, per dataset |
-| Included disks | Every required guest disk is enabled for backup; include bootstrap OS/data disks and the logger's separate data disk |
+| Included disks | Every required guest disk, including EFI variables and TPM state where present; bootstrap OS/workspace and each service's data disks |
 | Retention | Approved history, expiry, legal/incident holds and pruning custodian |
 | Access | Separate creation/restore/retention duties; test actual storage permissions and record backup-writer/root deletion authority |
 | Independent copy | Offsite/offline or independently protected copy and keys survive the selected source failure |
@@ -111,6 +111,10 @@ An existing qualified target is valid; neither path requires an object-storage A
 In **Proxmox > guest > Hardware > disk**, inspect each **Backup** selection.
 For `boot-1`, include every disk required by its OS/workspace or root-LVM layout.
 For the collector, include its separate log-data disk.
+For signed/encrypted guests, retain coherent OS, `efidisk0` and `tpmstate0` together. Verify those
+volumes in the actual backup task and an isolated restore, then repeat the
+[boot/TPM acceptance checks](../../01-hosting/guest-hardening.md#boot-recovery).
+An OS disk restored without its original EFI/TPM state may no longer unlock encrypted data.
 
 External Kubernetes PVCs, NAS shares and application objects need their own
 [product backup contracts](../../../03-deployment/foundation/storage/README.md#choose-the-native-interface).

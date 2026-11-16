@@ -1,0 +1,24 @@
+---
+# This controller-only maintenance role adds a missing TPM, never replaces boot identity.
+proxmox_guest_security_operation: inspect
+proxmox_guest_security_vmid: 0
+proxmox_guest_security_node: ""
+proxmox_guest_security_name: ""
+proxmox_guest_security_tpm_storage: ""
+proxmox_guest_security_record: ""
+proxmox_guest_security_record_sha256: ""
+proxmox_guest_security_outage_approved: false
+proxmox_guest_security_backup_reference: ""
+proxmox_guest_security_backup_retained: false
+proxmox_guest_security_shutdown_timeout: 180
+proxmox_guest_security_endpoint: >-
+  {{ lookup('ansible.builtin.env', 'PROXMOX_API_URL') | default(
+     lookup('ansible.builtin.env', 'PROXMOX_VE_ENDPOINT'), true) | regex_replace('/$', '') }}
+proxmox_guest_security_token_id: >-
+  {{ lookup('ansible.builtin.env', 'PROXMOX_API_TOKEN_ID') | default(
+     lookup('ansible.builtin.env', 'PROXMOX_VE_API_TOKEN').split('=', 1)[0], true) }}
+proxmox_guest_security_token_secret: >-
+  {{ lookup('ansible.builtin.env', 'PROXMOX_API_TOKEN_SECRET') | default(
+     lookup('ansible.builtin.env', 'PROXMOX_VE_API_TOKEN').split('=', 1)[1]
+     if '=' in lookup('ansible.builtin.env', 'PROXMOX_VE_API_TOKEN') else '', true) }}
+proxmox_guest_security_ca: "{{ lookup('ansible.builtin.env', 'PROXMOX_CA_FILE') | default(omit, true) }}"

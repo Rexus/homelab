@@ -90,8 +90,13 @@ locals {
         local.template_metadata[tostring(local.resolved_vm_template_ids[key])].node_name,
         null,
       )
-      full_clone                  = vm.full_clone
-      firmware                    = local.resolved_vm_firmware[key]
+      full_clone = vm.full_clone
+      firmware   = local.resolved_vm_firmware[key]
+      tpm        = vm.tpm
+      template_tpm_state_present = try(
+        var.proxmox_template_catalog[tostring(local.resolved_vm_template_ids[key])].tpm_state_present,
+        null,
+      )
       initialization_datastore_id = vm.initialization_datastore_id
       nic_firewall                = vm.nic_firewall
       size                        = coalesce(try(vm.size, null), "small")

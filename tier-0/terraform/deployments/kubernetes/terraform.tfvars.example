@@ -4,7 +4,8 @@
 # Cluster-owned hardware/configuration. This root does not load Linux common.tfvars.
 # VMID allocation: docs/02-conventions/vmid-convention.md
 # IP reservations are in ansible/group_vars/talos.yml, hosts in ansible/inventory/hosts.yml.
-# Set the image ID from the shared approved catalog, and pin matching releases/schematic.
+# New permanent nodes select signed ISO boot below. Existing template-based inputs remain valid.
+# Pin the same approved release and schematic in the ISO and signed NoCloud installer.
 # Complete reference path: approved exact Talos 1.13.x image, installer and talosctl.
 # The supplied Stage 5 SSO rollout does not qualify Talos 1.14; generic version validation is not that proof.
 # Configure native proxy/DNS/time or approved mirrors before denying direct egress.
@@ -20,9 +21,19 @@ machine_config_patches = []
 # Reference: docs/08-reference/network-inputs.md#sdn-subnet-lookup
 bootstrap_network = { prefix_length = 24, gateway = "10.10.13.1" }
 
-template_vm_id = 9102
-# New-cluster profile: match the approved UEFI-only NoCloud template.
-# Do not copy this profile onto an existing BIOS cluster as an update.
+# Stage 4 option 5a: prepare media/hash/storage before provisioning; see the guide below.
+# docs/03-deployment/stage-04-kubernetes/procedures/secure-boot.md
+# Retained template option 5b: secure_boot=null and template_vm_id=<approved Talos template ID>.
+# Root defaults preserve existing inputs; never copy this selection over a running cluster.
+template_vm_id = null
+secure_boot = {
+  iso_path               = "/srv/tier0/artifacts/nocloud-amd64-secureboot.iso"
+  iso_sha256             = "REPLACE_WITH_ACCEPTED_64_HEX_SHA256"
+  iso_datastore_id       = "local"
+  encrypt_system_disks   = true
+  install_media_attached = true
+}
+# Fresh signed media enrolls its trust into the per-node EFI setup-mode disk.
 vm_firmware = { bios = "ovmf", machine = "q35", scsi_hardware = "virtio-scsi-pci" }
 qemu_agent  = true # Requires siderolabs/qemu-guest-agent in the image and installer schematic.
 cluster = {
@@ -31,7 +42,7 @@ cluster = {
   bootstrap_node     = "k8ctl-1"
   talos_version      = "REPLACE_WITH_EXACT_VERSION_WITH_v"
   kubernetes_version = "REPLACE_WITH_COMPATIBLE_VERSION_WITHOUT_v"
-  installer_image    = "REPLACE_WITH_INSTALLER_MATCHING_TEMPLATE_SCHEMATIC_AND_VERSION"
+  installer_image    = "factory.talos.dev/nocloud-installer-secureboot/REPLACE_WITH_SCHEMATIC_ID:REPLACE_WITH_EXACT_VERSION_WITH_v"
   pod_cidr           = "10.244.0.0/16"
   service_cidr       = "10.96.0.0/12"
   allow_scheduling_on_control_planes = true

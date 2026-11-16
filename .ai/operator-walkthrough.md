@@ -19,6 +19,81 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### Layered-security figure and release review, 2026-11-16
+
+The hosting boot-integrity section and guest commissioning now share one logical SVG showing
+signed startup, authenticated service access, TPM-bound storage where enrolled, issuer/HSM signing
+and independent offline custody. Its palette, caption, renderer and generated asset ownership are
+connected. Four normal/narrow light/dark previews rendered cleanly and were visually inspected.
+
+Release review found and fixed a Talos media-maintenance hazard: signed nodes now retain disk-first
+`[scsi0, ide0]` boot order while only CD-ROM media changes; existing-node boot-order differences
+are rejected before apply. The final native render enforces the selected signed installer, and
+apply checks for the required talosctl before provisioning. Plan review and apply are separate
+copy blocks, and Foundation Step 11 has an explicit numbered continuation/return route.
+
+Five focused Talos regression tests passed, including native signed/encrypted configuration and
+media eject/reattach plans across all three tiers (`.tmp/talos-release-review-20261116.log`). Ten
+source/generated documentation, palette, navigation and command checks plus the corrected Step 11
+route passed (`.tmp/release-docs-native-20261116.log`, `.tmp/release-step11-native-20261116.log`).
+Fresh VM TPM validation covered 48 native plans across 16 Linux roots; existing host/guest fixture
+evidence remains valid for unchanged roles. These checks do not establish live firmware enforcement,
+media hotplug, encrypted cold-boot unlock or recovery. Debian generic remains the selected image;
+its prepared QCOW2 needs its own fresh-clone acceptance before promotion.
+
+### Physical Proxmox foundation security, 2026-11-16
+
+Foundation Step 11 now routes one physical-host commissioning guide before bootstrap/template
+closeout. Fresh-host firmware choices are also linked before installation. Operations owns signed
+host boot preparation, TPM 2.0 activation, supported existing UEFI GRUB/systemd-boot paths and
+physical-key recovery; the maintenance and command indexes point to that same procedure.
+Tier 0 adds a serial host-only Ansible recipe: prepare installs native inspection tools from the
+accepted repositories; check proves Secure Boot and local TPM 2.0 through reused read-only probes.
+Admission rejects guest/container/nested or non-Proxmox targets before package preparation.
+Firmware, TPM clearing, bootloader conversion and reboot are never hidden in this recipe.
+
+Fourteen native Ansible 2.16.14 fixture/payload/syntax checks passed for host and guest admission,
+disabled/bypassed boot, missing/wrong TPM, explicit exceptions and package-free check behavior.
+Nine documentation/navigation/command checks passed; source links and repository syntax are clean.
+Evidence: `.tmp/physical-host-boot-native-validation.log`, `.tmp/physical-host-docs-20261116.log`
+and `.tmp/physical-host-syntax-20261116.log`. No real firmware change, host boot, TPM enrollment
+or hardware recovery was performed; physical acceptance remains separately recorded.
+
+### Implemented VM boot controls and deployment routes, 2026-11-16
+
+The generic Linux VM input now carries a nullable per-guest `tpm` object through all tier roots.
+Fresh TPM 2.0 selection requires applied clone-source evidence that the template is TPM-free.
+Imported/existing TPM state is retained. The existing-VM controller recipe inspects one guest,
+records its original configuration and adds a missing TPM through a bounded maintenance operation.
+The Linux guest proof recipe can prepare native inspection tools and verify Secure Boot plus TPM
+through normal Ansible access. HSM and PKI retain their commissioned key/certificate responsibilities.
+
+Stage 4 Step 5 now makes signed fresh installation option 5a and retained template installation
+option 5b explicit before patch preparation. The signed path uploads verified local NoCloud ISO
+media, creates blank node disks and fresh EFI/TPM state, and selects the matching signed installer.
+Its optional STATE/EPHEMERAL TPM encryption defaults on. The wrapper guards existing mode/encryption,
+proves signed-node state after apply and supports verify-security. Media ejection is an owned input.
+Foundation template guidance and the operations command index connect these same choices.
+
+Native implementation validation now includes 48 per-root creation plans (all 16 Linux roots with
+absent/inherited/custom TPM storage), imported identity preservation and strict source-catalog
+evidence. Eleven native Ansible API-fixture checks cover additive TPM allocation, unchanged hardware,
+graceful power handling, repeat no-op and guarded failures. Linux guest-proof fixtures cover actual
+command result admission and private local TPM transport; generated recipes exist in every tier.
+Talos tests use the locked native provider against a trusted local storage API fixture, including
+local/shared ISO upload ownership, missing storage, tampered media and media eject. Native Talos 1.13
+validates the generated signed/encrypted configuration. API proof and plan guards reject disabled
+boot, failed TPM unlock, hidden changes to rendered encryption policy and scale-out without media.
+Final focused logs: `.tmp/boot-policy-final-20261116.log`, `.tmp/boot-contracts-final-20261116.log`,
+`.tmp/boot-native-final-20261116.log`; scoped agent evidence remains under `.tmp/*-status.txt`.
+
+This entry records source/documentation integration. Physical boot, key enrollment, TPM unlock,
+signed OS upgrade and restored hardware acceptance still require the operator's qualification.
+Eight focused documentation checks passed for command/source correspondence, table/Bash syntax,
+stage numbering/closeout and source/generated links. The six edited pages also passed 285 local
+link/anchor checks and 50 Bash block parses. Documentation validation is recorded in
+`.tmp/boot-security-docs-status.txt`.
+
 ### Trust preparation, stage commissioning and operating commands, 2026-11-16
 
 Reviewed Stage 2's inactive-runtime preparation through first issuance, recovery and portal TLS.
@@ -33,8 +108,8 @@ in their opening route. It verifies selected controls and independently recovera
 requiring a later stage. The common guest-hardening guide separates observed Secure Boot, vTPM,
 encryption and availability. The maintenance guide covers input changes, package/image upgrades,
 reboot and capacity handling for Proxmox, EL/Debian and Talos. Generic VM adoption now preserves
-existing TPM state in all three tiers; the modules still expose no complete per-guest TPM creation
-or signed Talos media/enrollment lifecycle.
+existing TPM state in all three tiers. The subsequent boot-control implementation above adds the
+per-guest creation and signed Talos installation routes.
 
 Operations links a compact command/configuration index beside its README. It covers registered
 Linux setups, dedicated template/Kubernetes/CI roots, native recipes and selected options using
@@ -108,6 +183,20 @@ the existing proxy environment without another input or IP override. The hostnam
 package installation was not separately repeated, and the underlying libvirt fault is not established.
 Successful appliance command output may be captured in its build log; print diagnostic success on
 the host after checking the tool's exit status. Failed derivative outputs must not be published.
+
+### Debian clone initialization-media failure, 2026-11-16
+
+The operator's disposable Debian 12 clone had a configured ide2 CloudInit drive and matching NIC
+MAC, but guest-agent inspection showed cloud-init disabled by its generator, the NIC down and no
+guest CD-ROM. This matches Debian's documented genericcloud/AHCI limitation under Q35; the driver
+configuration on that particular guest has not been inspected. The template guide now selects the
+full-kernel generic image, and the publication starter points to its prepared agent derivative.
+Clone qualification checks initialization, addresses and seed visibility separately from agent ping.
+Source/generated documentation links and publication-default checks passed; the edited guide and
+proposed seed-repair commands passed Bash syntax validation. Source links/anchors and diff checks are clean.
+The operator subsequently confirmed the SCSI seed workaround worked. The newly selected generic
+image still requires its own fresh-clone qualification; success with the earlier image/controller
+does not establish that separate boot, network or Secure Boot acceptance.
 
 ### Predictable package sources, 2026-11-15
 
@@ -1545,7 +1634,7 @@ No live acceptance box is checked by this consistency review.
   credentials, NAS-owned snapshot commissioning contract, independent restic jobs with no prune,
   offline verifier and restore procedure, native raw/view read audit and fixed application-only
   filesystem views. Actual NAS grants/snapshots/audit and physical independence need live proof.
-  [Locked retention](../docs/03-deployment/stage-03-logging/step-15b-retention-lock.md), replicated intake
+  [Locked retention](../docs/03-deployment/stage-03-logging/step-7b-retention-lock.md), replicated intake
   remain separate variants, not supplied by this NAS implementation. Tier 1 search is
   independently installed; approved projections and their scoped persistent exporter
   have a separate Tier 0 recipe and require live access/replay qualification.
@@ -1622,9 +1711,9 @@ inspected. Every selected path still needs its own live acceptance evidence.
 | Lab environments | [Stage 10](../docs/03-deployment/stage-10-lab-environments/README.md) | VM/cluster, bounded application/policy/RBAC, scoped telemetry and opt-in HTTPS; profiles are not an allocator; live tenant acceptance required |
 | Proxmox HA | [Foundation 1b](../docs/03-deployment/foundation/proxmox/step-1b-cluster-ha.md) | Quorum/storage/fencing separate from VM creation; physical failure tests outstanding |
 | Guest SDN | [Foundation 1c](../docs/03-deployment/foundation/proxmox/step-1c-sdn.md) | Manual VNet setup; verify every eligible node and one tagging owner |
-| Redundant logging | [Logging 14b](../docs/03-deployment/stage-03-logging/step-14b-redundant-intake.md) | Added hosts do not establish replicated commitment or retention |
-| NAS-backed evidence | [Logging 15a](../docs/03-deployment/stage-03-logging/step-15a-nas-archive.md) | Checkpoint/backup/audit-view recipes supplied; NAS-owned snapshots/accounts and live failure/access proof remain commissioning |
-| Retention-locked evidence | [Logging 15b](../docs/03-deployment/stage-03-logging/step-15b-retention-lock.md) | Stronger deletion boundary documented; actual lock mode, publication, replica and recovery integration still required |
+| Redundant logging | [Logging 6b](../docs/03-deployment/stage-03-logging/step-6b-redundant-intake.md) | Added hosts do not establish replicated commitment or retention |
+| NAS-backed evidence | [Logging 7a](../docs/03-deployment/stage-03-logging/step-7a-nas-archive.md) | Checkpoint/backup/audit-view recipes supplied; NAS-owned snapshots/accounts and live failure/access proof remain commissioning |
+| Retention-locked evidence | [Logging 7b](../docs/03-deployment/stage-03-logging/step-7b-retention-lock.md) | Stronger deletion boundary documented; actual lock mode, publication, replica and recovery integration still required |
 | Shared USB HSM | [Trust 1b](../docs/03-deployment/stage-02-trust/step-1b-usb-hsm.md) | Native host/provider/remoting installation and original-key checks; physical key copies, application sessions and actual failure recovery remain acceptance |
 | Network HSM | [Trust 1c](../docs/03-deployment/stage-02-trust/step-1c-network-hsm.md) | Vendor commissioning/client/HA procedure required |
 | Single USB device | [Trust 1d](../docs/03-deployment/stage-02-trust/step-1d-single-usb.md) | Custody/backup procedure required; availability is not inferred from a token |

@@ -1,0 +1,22 @@
+---
+- name: Read the operating system's actual Secure Boot and shim validation state
+  ansible.builtin.command:
+    argv: [/usr/bin/mokutil, --sb-state]
+  environment:
+    LC_ALL: C
+  register: guest_boot_security_mokutil
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Require enabled Secure Boot without a shim validation bypass
+  ansible.builtin.assert:
+    that:
+      - guest_boot_security_mokutil.rc | default(127) == 0
+      - "'SecureBoot enabled' in guest_boot_security_mokutil.stdout_lines | default([])"
+      - "'disabled' not in guest_boot_security_mokutil.stdout | default('') | lower"
+    fail_msg: >-
+      The system did not prove enforced Secure Boot (or mokutil is missing). Run the owning preparation
+      operation to install the native tools, then follow its boot or firmware procedure if needed.
+      Firmware metadata alone is insufficient. Probe: {{ guest_boot_security_mokutil.stdout | default('') }}
+      {{ guest_boot_security_mokutil.stderr | default(guest_boot_security_mokutil.msg | default('')) }}

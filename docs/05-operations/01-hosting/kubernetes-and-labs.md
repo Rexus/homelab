@@ -116,7 +116,7 @@ kubectl get nodes -L node-pool
    | --- | --- |
    | `ansible/inventory/hosts.yml` | Add the matching worker key under `talos_workers.hosts` |
    | `ansible/group_vars/talos.yml` | Add its reserved address to `platform_host_ips` |
-   | `terraform/deployments/kubernetes/terraform.tfvars` | Add its `nodes` entry: VMID, host, MAC, live datastore, bridge and size; `pool = "compute"` emits `node-pool=compute` |
+   | `terraform/deployments/kubernetes/terraform.tfvars` | Add its `nodes` entry: VMID, host, MAC, live datastore, bridge and size; `pool = "compute"` emits `node-pool=compute`. For signed ISO nodes, set `secure_boot.install_media_attached = true` before scale-out; eject after installed-disk acceptance |
 
 3. Prepare the saved plan:
 

@@ -23,6 +23,10 @@ owners, versions, backup IDs/times and integrity records. Record unused capabili
   `boot-1` is the starter example. A full clone on the same storage is not an independent backup.
   For an LVM root spanning disks, include and restore every required PV disk together; `/srv/tier0`
   can be a root-filesystem directory rather than a separate mount.
+- [ ] **Guest boot/key identity:** coherent OS/data disks, EFI variables and TPM state where present,
+  actual boot order/controller, approved signed recovery media and independently usable recovery
+  credentials. Test an isolated restore and [verify the selected controls](../../01-hosting/guest-hardening.md#boot-recovery).
+  A bare OS image is insufficient for TPM-bound encrypted volumes.
 - [ ] **Original IaC identity:** every tier's original state/backend recovery point, workspace/
   environment selection, ignored tfvars, inventories, group vars and local environment inputs.
   Preserve partial-apply state too; Git alone does not contain these files.

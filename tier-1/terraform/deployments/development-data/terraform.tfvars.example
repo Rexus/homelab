@@ -11,6 +11,9 @@
 # A null shared default selects no image; an EL10 default is not compatible.
 # default_linux_vm_template_id = APPROVED_EL9_TEMPLATE_VMID
 
+# Fresh VMs select TPM 2.0 below; omit tpm or set tpm = null to opt out (legacy default).
+# Requires tpm_state_present = false in the applied/inspected Shared clone-source reference.
+# Existing VM TPM/boot hardware is preserved; this does not enable Secure Boot or encryption.
 vm_instances = {
   # Main path: chart applications consume these dedicated native data services.
   # Select an approved EL9 x86_64 template for these hosts. No all-in-one GitLab VM.
@@ -19,6 +22,7 @@ vm_instances = {
     size             = "small-mem"
     storage_class    = "shared"
     disk_size_gb     = 100
+    tpm              = {}
     network_zone_key = "application"
     tags             = ["gitlab", "postgresql", "internal", "always-on", "apps"]
   }
@@ -27,6 +31,7 @@ vm_instances = {
     size             = "tiny-mem"
     storage_class    = "shared"
     disk_size_gb     = 40
+    tpm              = {}
     network_zone_key = "application"
     tags             = ["gitlab", "redis", "internal", "always-on", "apps"]
   }
@@ -35,6 +40,7 @@ vm_instances = {
     size             = "medium-mem"
     storage_class    = "shared"
     disk_size_gb     = 200
+    tpm              = {}
     network_zone_key = "application"
     tags             = ["gitlab", "gitaly", "internal", "always-on", "apps"]
   }

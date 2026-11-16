@@ -6,7 +6,7 @@ Run commands from the selected tier's root; Shared is not the cluster's working 
 
 **Design:** [cluster runtime variants](../../../01-architecture/04-hosting/README.md).
 
-For the continuous Tier 0 installation, follow [Stage 4, actions 1-19](../README.md).
+For the continuous Tier 0 installation, follow [Stage 4, actions 1-20](../README.md).
 This reusable cross-tier procedure owns the native node lifecycle; it is not another installer to run afterward.
 
 This is the current Talos implementation of the [Kubernetes cluster goal](kubernetes.md).
@@ -43,10 +43,12 @@ The example's version placeholders do not select that minor automatically. Keep 
 installer, `cluster.talos_version`, CLI and logging schema consistent before planning.
 Talos 1.14 requires separate full-platform/SSO qualification, not just a different version string.
 
-- Complete [Proxmox preparation](../../foundation/proxmox/README.md#first-deployment-order),
-  optional [HA](../../foundation/proxmox/step-1b-cluster-ha.md), and [Talos template publication](../../foundation/proxmox/templates.md).
-- Approve the template ID, title, and source node in the sibling shared
-  [catalog](../../../08-reference/template-catalog.md). Retain the disk and matching installer image.
+- Complete [Proxmox preparation](../../foundation/proxmox/README.md#first-deployment-order) and
+  selected [HA preparation](../../foundation/proxmox/step-1b-cluster-ha.md).
+- Choose the [fresh signed ISO installation](secure-boot.md) for new permanent nodes. Retain its
+  approved local ISO/hash and matching signed NoCloud installer. The retained template option uses
+  [Talos template publication](../../foundation/proxmox/templates.md) and an approved template
+  ID/title/source node in the sibling Shared [catalog](../../../08-reference/template-catalog.md).
 - Reserve each VM's inventory IP outside DHCP, and configure `bootstrap_network`
   with its subnet prefix/gateway. A NoCloud drive supplies static network settings,
   not Linux users or Talos machine configuration. Legacy `null` retains DHCP reservations.
@@ -59,11 +61,10 @@ Talos 1.14 requires separate full-platform/SSO qualification, not just a differe
 - Review storage/bridge availability on every eligible Proxmox host and choose
   non-overlapping node, pod, and service networks.
 
-Fresh examples use the [common imported template](../../foundation/proxmox/templates.md):
-amd64 NoCloud, UEFI (`ovmf`/`q35`), `virtio-scsi-pci`, `scsi0` installed as `/dev/sda`,
-fixed RAM and the schematic's guest agent. A CloudInit drive at `ide2` supplies static
-NoCloud networking only. User/password/SSH and other fields remain unset; Talos machine
-config uses the native API. The default Talos CNI applies unless patched.
+The signed ISO path creates fresh EFI/TPM state and blank OS disks. The retained template path
+uses an approved amd64 NoCloud disk and its recorded firmware. Both use `scsi0` installed as
+`/dev/sda`, fixed RAM and the schematic's guest agent. A CloudInit drive at `ide2` supplies static
+NoCloud networking. Talos machine configuration uses the native API. The default CNI applies unless patched.
 For Tier 0's Cilium path, apply the [native CNI/proxy patches](basic-platform.md#prepare-talos)
 before bootstrap. Use native patches below for proxy, DNS/time and mirrors.
 Firmware or CNI changes require review before deployment. Enable the guest agent only
@@ -74,7 +75,8 @@ inventory map. DNS fields are left at Proxmox defaults unless `dns_servers` is
 explicitly supplied. Qualify those defaults before bootstrap. A null input keeps
 the previous DHCP path without adding a drive to existing VMs automatically.
 
-Match `vm_firmware` to the approved template before creating VMs. Existing inputs
+Match `vm_firmware` to the selected installation before creating VMs. Signed ISO installs require
+OVMF/q35/`virtio-scsi-pci`. Existing template inputs
 without it retain BIOS/Single-controller defaults; a refresh is not a firmware
 migration. Do not apply a new UEFI profile to existing nodes without a reviewed
 replacement/recovery plan. The EFI volume lives on each node's selected live datastore.
@@ -117,13 +119,26 @@ Edit **`terraform/deployments/kubernetes/terraform.tfvars`**:
 
 | Field | Set before first bootstrap |
 | --- | --- |
-| `template_vm_id`, `vm_firmware`, `qemu_agent` | Approved Talos template VMID and matching firmware/agent; not the Linux default |
+| `template_vm_id`, `secure_boot`, `vm_firmware`, `qemu_agent` | Choose the signed fresh-install contract below or the retained template/firmware contract |
 | `cluster.endpoint` | Verified private endpoint DNS/VIP from the preceding endpoint procedure, including `https://` and `:6443` |
-| `cluster.talos_version`, `cluster.kubernetes_version`, `cluster.installer_image` | Exact compatible release pins and NoCloud installer matching the template schematic |
+| `cluster.talos_version`, `cluster.kubernetes_version`, `cluster.installer_image` | Exact compatible release pins and the chosen ordinary or Secure Boot NoCloud installer, matching the image schematic |
 | `cluster.pod_cidr`, `cluster.service_cidr` | Networks that do not overlap nodes, site routes or other required peers |
 | `nodes` | Each inventory key's unused VMID from the [allocation plan](../../../02-conventions/vmid-convention.md), real initial Proxmox host, unique MAC, actual live `datastore_id`, bridge and size |
 | `bootstrap_network` | Actual prefix/gateway, or `sdn_vnet` for applied lookup; add `dns_servers` only for an independent bootstrap resolver override |
 | `machine_config_patches` | Ordered image-access, CNI and logging patches prepared in Step 2; retain every required patch |
+
+Choose the boot contract before first provisioning.
+
+| Choice | Exact inputs |
+| --- | --- |
+| **Fresh signed ISO — recommended** | `template_vm_id = null`; `vm_firmware` selects `ovmf`, `q35`, `virtio-scsi-pci`; `secure_boot.iso_path` is the absolute local verified ISO, `iso_sha256` its lowercase 64-character digest and `iso_datastore_id` ISO-capable storage. `encrypt_system_disks` and `install_media_attached` default to `true` |
+| **Retained template** | `secure_boot = null`; approved Talos `template_vm_id` and its recorded firmware/agent profile |
+
+For signed installation, use `factory.talos.dev/nocloud-installer-secureboot/<schematic>:v1.13.x`
+with the exact approved patch release and schematic. Terraform checks the local media hash and
+discovers whether its ISO datastore is shared or local on the selected nodes. It creates a fresh
+TPM 2.0 for every node. The selected system-disk encryption configures STATE and EPHEMERAL at first
+provisioning. Follow the [signed-media procedure](secure-boot.md) for acquisition and acceptance.
 
 Every Talos inventory host must have one hardware entry and one reserved IPv4
 address. Each new-cluster example starts with three schedulable control-plane
@@ -222,7 +237,7 @@ Run from the selected cluster owner: **`<prefix>-tier-0/`**, `<prefix>-tier-1/` 
 bash scripts/kubernetes-cluster.sh plan
 ```
 
-Review every VMID, source template, initial host, disk, MAC, endpoint, and secret
+Review every VMID, chosen boot artifact, initial host, disk, EFI/TPM state, MAC, endpoint and secret
 resource before continuing. A failed re-plan removes the saved plan so an older
 plan cannot be applied accidentally.
 
@@ -234,10 +249,12 @@ Run from the selected cluster owner: **`<prefix>-tier-0/`**, **`<prefix>-tier-1/
 bash scripts/kubernetes-cluster.sh apply
 ```
 
-`apply` requires the saved plan. Terraform clones the VMs, generates cluster
+`apply` requires the saved plan. Terraform creates signed-path VMs or clones retained-path VMs, generates cluster
 secrets and per-node configurations, applies them through the Talos API, then
 bootstraps Kubernetes once on the selected control-plane node. [2]
 Initial configuration uses maintenance mode; protect that network from untrusted clients.
+For the signed path, apply then checks every node's authenticated Secure Boot/UKI state and the
+selected STATE/EPHEMERAL encryption. Resolve failed checks before continuing to the platform.
 
 Unlike Linux `deploy.sh`, this helper **requires** the separate saved-plan step.
 Applying a saved plan does not ask Terraform's interactive `yes` question. In CI,
@@ -250,6 +267,7 @@ gate the apply job on approval of that exact protected plan; there is no additio
 | `plan` | Initialize providers/local backend, validate, refresh, and save `.terraform/plans/talos.tfplan` |
 | `apply` | Apply the reviewed saved plan; remove it after success |
 | `credentials` | Export client files and per-node configurations to ignored `secrets/talos/` |
+| `verify-security` | Recheck authenticated Secure Boot/UKI and selected TPM-bound system volumes for signed-path nodes; report the retained policy for template-path nodes |
 
 ### 9. Export the credentials
 
@@ -261,6 +279,8 @@ bash scripts/kubernetes-cluster.sh credentials
 
 **Expected:** protected client files and per-node configurations under `secrets/talos/`.
 Keep them and the original Terraform state in independent recovery custody before continuing.
+For signed nodes, follow the signed guide's [media ejection and controlled installed-disk checks](secure-boot.md#5-eject-installation-media-and-capture-recovery).
+Set `secure_boot.install_media_attached = false` through the same reviewed plan/apply sequence.
 
 <a id="install-the-platform"></a>
 
@@ -364,6 +384,12 @@ existing state; the supplied command configures a local backend.
 VMs, cluster secrets, and bootstrap carry `prevent_destroy` guards. Proxmox owns
 later VM placement; Terraform ignores node moves, not other hardware changes.
 These guards are not backups and do not survive removal of their resource blocks.
+
+The wrapper refuses to change existing nodes between template and Secure Boot modes or toggle their
+selected system-disk encryption. Use the signed fresh-install/recovery path for that transition.
+Keep the original node TPM/EFI state with its coherent backup. If TPM-bound data must be recovered
+after losing that state, use the original complete VM recovery set or rebuild nodes and recover
+cluster/application data from independent backups.
 
 This is **not a rolling upgrade controller**. Configuration changes use Talos
 `auto` apply mode and may reboot multiple nodes. Do not use a broad apply for

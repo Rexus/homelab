@@ -76,6 +76,7 @@ Set these per guest in **the owning tier's `terraform/deployments/<setup>/terraf
 | `size`, `cores`, `memory` | Shared VM profile, with optional per-field CPU/RAM overrides; memory is MiB. See [scaling and host capacity](../01-architecture/04-hosting/01-runtime.md#scaling-and-host-capacity) |
 | `full_clone` | Creation-only; `true` by default. Changing it does not convert an existing linked clone; use [full-clone cutover](../05-operations/01-hosting/change-vmid.md) |
 | `firmware` | Creation-only BIOS/machine/SCSI/EFI profile from the selected Shared template; optional complete creation override. Existing/imported boot hardware is preserved; see the [catalog contract](template-catalog.md#how-consumers-use-it) |
+| `tpm` | New service starters select `{}`: unique TPM 2.0, inherited VM-image storage; optional `datastore_id` override. Requires the actual source catalog's `tpm_state_present = false`. Null/omitted retains the legacy request; existing TPM state stays preserved. [Creation and maintenance](../05-operations/01-hosting/guest-hardening.md#guest-tpm) |
 | `initialization_datastore_id` | Optional Cloud-Init media datastore override; omission uses the selected storage-class mapping |
 | `nic_firewall` | `true` by default; the NIC flag is separate from installed host/cluster firewall policy |
 | `extra_disks` | Additional configured interfaces, capacities and optional datastore/class overrides; service Ansible owns safe initialization and mounts |
@@ -273,6 +274,10 @@ overrides qualified host defaults. No Linux users, SSH keys or machine-config
 snippets are supplied on that drive; the Talos API owns machine configuration.
 Omitted firmware and `bootstrap_network = null` preserve the older BIOS/DHCP contract.
 See the [cluster inputs](../03-deployment/stage-04-kubernetes/procedures/talos-terraform.md#configure).
+For new signed nodes, `secure_boot` instead selects an approved local ISO/hash/ISO datastore,
+fresh EFI/TPM state and optional TPM-bound system encryption. This uses `template_vm_id = null`
+and the matching signed NoCloud installer. Follow [the signed installation inputs](../03-deployment/stage-04-kubernetes/procedures/secure-boot.md#3-configure-the-boot-policy).
+Existing clusters retain their boot/encryption policy; refreshing code does not convert them.
 The optional [SDN subnet lookup](network-inputs.md#sdn-subnet-lookup) replaces
 explicit prefix/gateway inputs with an existing VNet reference for either path.
 

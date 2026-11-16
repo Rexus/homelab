@@ -44,6 +44,9 @@ Use the [Proxmox conventions](../../../02-conventions/proxmox-conventions.md) an
 ### Step 2: Install each host
 
 1. Boot the approved Proxmox installer and select only the intended boot disks.
+   On supported fresh hardware, prepare UEFI, Secure Boot and TPM 2.0 through the
+   [host firmware procedure](../../../05-operations/01-hosting/proxmox-host-boot-security.md#3-enable-tpm-and-secure-boot-in-firmware)
+   before installation; retain existing enrolled identities on a reused server.
    **Installation removes existing contents on those disks.** Preserve required data first. [1]
 2. Enter the final hostname, management address, gateway and independent DNS.
 3. Complete installation. From the workstation, open `https://<host-name>:8006/`;
@@ -85,6 +88,8 @@ Then return to [Foundation Step 1](../README.md#step-1-prepare-hosts-and-network
 for storage and firewall checks. Continue through that README's manual-template, bootstrap and
 managed-publication steps in order; do not skip directly to Stage 1 from host preparation.
 API tokens and Terraform follow creation of the first manual template and bootstrap host.
+At [Foundation Step 11](../README.md#step-11-secure-the-foundation), finish host hardening and
+verify physical Secure Boot/TPM state from bootstrap before accepting Foundation.
 
 ## Platform guides
 
@@ -92,6 +97,7 @@ API tokens and Terraform follow creation of the first manual template and bootst
 | --- | --- |
 | Host attachments, bonds and storage fabric | [Host networking](network.md) |
 | Scoped credentials and trust | [API setup](api-access.md) |
+| Finish physical host security and TPM commissioning | [Foundation Step 11](../README.md#step-11-secure-the-foundation) |
 | Initialize local files and manage installed hosts over SSH | [Bootstrap host-management setup](../../../05-operations/01-hosting/README.md) |
 | Import a verified image in the GUI | [VM templates](templates.md) |
 | Publish/adopt and maintain templates | [Template lifecycle](../../../05-operations/01-hosting/templates/template-lifecycle.md) |

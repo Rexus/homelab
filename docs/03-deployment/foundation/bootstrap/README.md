@@ -121,6 +121,7 @@ a full clone running on this platform is not itself an independent recovery copy
 | VMID | `601` in the [VMID convention](../../../02-conventions/vmid-convention.md); reserve an unused automation ID if already occupied |
 | Compute | Start with 2 vCPUs / 4 GiB RAM; size for the selected tools and artifact processing |
 | OS disk | Live Proxmox storage, sized for the selected Linux OS and installed tools |
+| Boot security | Retain the qualified vendor-signed UEFI profile. On this **new clone**, add **Hardware > Add > TPM State**, version **2.0**, on its live VM-image storage; keep the reusable template TPM-free |
 | Workspace capacity | Reference layout: separate attached live-storage disk at `/srv/tier0`, starting at 60 GiB; alternatively expand the existing LVM root disk using storage B below |
 | Guest attachment | Current `management` network, example VLAN 10; follow the approved network plan |
 | Cloud-Init | Clone-specific static IP/CIDR, gateway and independent DNS; set **User** to `automation` and add each approved workstation's public key to **SSH public key**, one OpenSSH key per line [1] |

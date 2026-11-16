@@ -12,6 +12,7 @@ Its rows remain unverified until an authorized operator records real results.
 - [Use this list](#use-this-list)
 - [Software intake](#software-intake)
 - [Secure provider defaults](#1-secure-provider-defaults)
+- [Guest boot and TPM](#guest-boot-and-tpm)
 - [Logging integration](#2-logging-integration)
 - [Initial Trust](#3-initial-trust)
 - [Development platform and CI handover](#4-development-platform-and-ci-handover)
@@ -29,6 +30,35 @@ Its rows remain unverified until an authorized operator records real results.
 The fresh-install order is API trust, software intake, infrastructure PKI, then protected network logging.
 Retain persistent local journal/audit records during trust bootstrap and keep independently held ceremony records.
 Stage 3 enrolls the retained host logs with the accepted infrastructure CA; no circular network-logging prerequisite applies.
+
+## Guest boot and TPM
+
+**Physical Proxmox hosts:** [Foundation host commissioning](../docs/03-deployment/foundation/proxmox/step-11-host-security.md)
+routes protected administration, signed host boot and server TPM activation, with native Ansible
+preparation/check operations. BIOS/TPM activation and bootloader conversion remain explicit vendor/native operations.
+
+- [ ] Each selected physical host enforces signed boot, reports local TPM 2.0 and passes service/
+  quorum checks after boot. Record any hardware exception and the firmware/bootloader versions.
+- [ ] Host firmware/TPM maintenance and independent recovery preserve the selected key consumers;
+  the physical TPM is not treated as a guest state-volume backup or automatically cleared.
+
+**Implementation:** unique creation-time TPM 2.0 in all generic Linux roots, guarded existing-VM
+TPM addition, controller-run Linux proof, and fresh Talos signed ISO/TPM/system-volume encryption.
+**Procedure:** [commissioning](../docs/05-operations/01-hosting/guest-hardening.md),
+[existing-VM maintenance](../docs/05-operations/01-hosting/proxmox-guest-security.md) and
+[signed Talos installation](../docs/03-deployment/stage-04-kubernetes/procedures/secure-boot.md).
+
+- [ ] A fresh qualified Linux clone enforces Secure Boot without shim bypass and reports a local
+  TPM 2.0; separately created guests have distinct TPM backing state. The source stays TPM-free.
+- [ ] Existing-VM TPM addition preserves all original disks, EFI, NICs and power state. Repeat
+  is a no-op; a populated TPM is never replaced, reset or moved by this operation.
+- [ ] Fresh signed Talos nodes enroll the intended trust, cold-boot from installed disk after ISO
+  eject and pass authenticated `verify-security`, including actual TPM unlock for selected volumes.
+- [ ] Serial signed OS updates, target-host migration/HA where selected, and isolated restoration
+  retain boot enforcement and encrypted unlock using coherent EFI/TPM/OS backups. Independent
+  original secrets, etcd/PVC and application recovery remain usable after loss of that VM.
+
+These are live acceptance checks; native provider/configuration and fixture API tests do not mark them passed.
 
 ## Software intake
 

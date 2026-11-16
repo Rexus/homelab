@@ -1,0 +1,64 @@
+---
+- name: Inspect the private record directory and existing record without following symlinks
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+    checksum_algorithm: sha256
+  loop: ["{{ proxmox_guest_security_record | dirname }}", "{{ proxmox_guest_security_record }}"]
+  register: proxmox_guest_security_record_paths
+  no_log: true
+
+- name: Require an owned private directory and a new record filename
+  ansible.builtin.assert:
+    that:
+      - proxmox_guest_security_record_paths.results[0].stat.isdir | default(false)
+      - not proxmox_guest_security_record_paths.results[0].stat.islnk | default(true)
+      - proxmox_guest_security_record_paths.results[0].stat.mode == '0700'
+      - proxmox_guest_security_record_paths.results[0].stat.writeable | default(false)
+      - not proxmox_guest_security_record_paths.results[1].stat.exists
+    fail_msg: >-
+      Create the private record directory with mode 0700 as the deployment user and select a new
+      record filename. Prepare never replaces an earlier recovery record.
+
+- name: Assemble the original configuration and cluster binding privately
+  ansible.builtin.set_fact:
+    proxmox_guest_security_record_bytes: >-
+      {{ {'schema': 1, 'vmid': proxmox_guest_security_vmid, 'node': proxmox_guest_security_node,
+          'name': proxmox_guest_security_name, 'status': proxmox_guest_security_vm.status,
+          'endpoint': proxmox_guest_security_endpoint,
+          'config': proxmox_guest_security_vm.config,
+          'tpm_storage': proxmox_guest_security_tpm_storage} | to_nice_json }}
+  no_log: true
+
+- name: Capture the original configuration and expected TPM storage privately
+  ansible.builtin.copy:
+    dest: "{{ proxmox_guest_security_record }}"
+    content: "{{ proxmox_guest_security_record_bytes }}"
+    mode: '0600'
+    force: false
+  no_log: true
+
+- name: Calculate the record checksum for explicit review
+  ansible.builtin.stat:
+    path: "{{ proxmox_guest_security_record }}"
+    follow: false
+    checksum_algorithm: sha256
+  register: proxmox_guest_security_prepared
+  no_log: true
+
+- name: Require the prepared record to contain exactly the captured bytes
+  ansible.builtin.assert:
+    that:
+      - proxmox_guest_security_prepared.stat.isreg | default(false)
+      - not proxmox_guest_security_prepared.stat.islnk | default(true)
+      - proxmox_guest_security_prepared.stat.checksum == proxmox_guest_security_record_bytes | hash('sha256')
+    fail_msg: The new record path was created or changed concurrently. Stop and inspect it.
+
+- name: Show the prepared record for check and apply
+  ansible.builtin.debug:
+    msg:
+      - "Record: {{ proxmox_guest_security_record }}"
+      - "Set proxmox_guest_security_record_sha256: {{ proxmox_guest_security_prepared.stat.checksum }}"
+      - >-
+        Review this private configuration record, retain a complete independent backup including EFI
+        and any existing TPM state, then run check. No VM hardware or power state has changed.

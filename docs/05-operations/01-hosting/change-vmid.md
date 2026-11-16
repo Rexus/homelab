@@ -134,6 +134,12 @@ Wait for a successful clone task and require the replacement to remain stopped. 
 disk, including EFI/Cloud-Init and extra workspace/data disks. A full clone copies current attached VM
 disk contents, not snapshot history or detached `unusedN` volumes. [1][2]
 
+For a TPM-bound guest, preserve its **original TPM identity and EFI variables with its OS disks**.
+This is one machine's controlled identity cutover: never run both copies, and do not add a blank
+TPM or reset firmware trust on the replacement. Qualify its encrypted unlock and signed boot before
+retiring the old VM. Use the [boot recovery checks](guest-hardening.md#boot-recovery); this differs
+from creating an independent new VM, which needs a fresh TPM.
+
 ## 6. Restore the original NIC settings
 
 On **the same Proxmox host**, restore every recorded interface before first boot:

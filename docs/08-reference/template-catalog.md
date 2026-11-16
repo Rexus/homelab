@@ -18,11 +18,11 @@ its source image or service, not ownership of the template lifecycle.
 | --- | --- |
 | Tier 0 `templates/proxmox.yml` | Build/publication details: source images, checksums, releases, schematic, node, storage, network, VMID |
 | Tier 0 template module, Packer, scripts, CI, and state | Create, test, update, and recover template artifacts |
-| Shared `templates/proxmox-catalog.tfvars` | Published IDs, source nodes, family, tags and boot hardware; project-selected default |
+| Shared `templates/proxmox-catalog.tfvars` | Published IDs, source nodes, family, tags, boot hardware and TPM-free source evidence; project-selected default |
 | Each tier's Terraform inputs | Select a template ID; define capacity, network, disks and workload tags; optional boot-hardware override |
 | Each tier's `terraform/modules/environment_guests/` | Resolve that tier's template selections, inventory, placement, and combined guest tags |
 | Each tier's `terraform/modules/vm/` | Create Linux clones; tolerate subsequent Proxmox-managed node moves |
-| Tier 0 `terraform/deployments/kubernetes/` | Create Talos clones and configure the control cluster through its API |
+| Each tier's `terraform/deployments/kubernetes/` | Create Talos nodes through the retained clone or fresh signed-ISO route; configure its independent cluster through the API |
 
 The [shared catalog starter](../../shared/templates/proxmox-catalog.tfvars)
 contains no images initially. It is project-owned from generation,
@@ -38,7 +38,7 @@ settings, host inventory, or Terraform state.
    After Terraform apply, template-policy checks and state refresh succeed, the script
    updates the sibling Shared catalog from the applied `template_candidates` output.
    VMID becomes the map key; name becomes `title`; node, family, image tags and
-   BIOS/machine/SCSI/EFI settings follow the applied template.
+   BIOS/machine/SCSI/EFI settings and the boolean `tpm_state_present` follow the applied template.
 2. Test disposable clones on the destination cluster and network. Publication
    and catalog synchronization do not prove guest acceptance.
 3. Review the updated Shared file. Existing VMIDs are refreshed, older entries and
@@ -117,6 +117,15 @@ remain deployment-managed; this preservation does not ignore the VM or its disk 
 Disk I/O-thread defaults still follow the configured controller profile and remain managed disk
 options; review those separately from the preserved boot fields.
 
+Keep reusable clone sources **TPM-free**. Each new service VM selects its own `.tpm` object;
+`tpm = {}` creates TPM 2.0 on its VM-image datastore. The source catalog must explicitly report
+`tpm_state_present = false`. The module rejects a known populated source TPM even when no fresh TPM
+is requested, because the provider can otherwise copy its identity. Absence of that field is not
+proof of an empty TPM. The publisher records applied state, not a live inspection on every clone;
+do not change or repoint an approved source after publication. Existing guest TPM state remains
+preserved during routine reconciliation. Use [TPM maintenance](../05-operations/01-hosting/proxmox-guest-security.md)
+for an existing VM's additive change.
+
 Tier 0's separate Talos command reads the same catalog but uses its own root
 and inputs, without Linux common variables or Ansible configuration.
 
@@ -153,6 +162,13 @@ any boot-hardware fields retain the legacy provider-default behavior for creatio
 fail with an actionable error. Updated VM modules preserve imported boot settings even when the
 selected profile differs or is absent. Record the actual source for future recreation; backfilling
 Shared metadata is not a prerequisite for adopting an existing guest with a wholly absent profile.
+
+New starter VM inputs select `tpm = {}`. Before provisioning them from older catalog entries,
+republish the original TPM-free template to populate `tpm_state_present = false`. For a separately
+maintained template, inspect its actual Proxmox hardware and record the boolean only after confirming
+no TPM is attached. Do not delete a populated TPM to satisfy the check: publish a qualified TPM-free
+source instead. Synchronizing legacy publisher outputs without this evidence removes a stale TPM
+claim; it cannot silently authorize a fresh TPM selection.
 
 ## References
 

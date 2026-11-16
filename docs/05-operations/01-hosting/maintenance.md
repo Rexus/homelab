@@ -19,6 +19,7 @@ For ownership and storage boundaries, see [runtime design](../../01-architecture
 - [Which OS lifecycle applies?](#os-lifecycles)
 - [How are Debian or Rocky/Alma packages updated?](#linux-updates)
 - [How are Talos and Kubernetes updated?](#talos-updates)
+- [How are boot trust and TPM maintained?](#boot-maintenance)
 - [How are CPU, RAM and guest disks resized?](#resize-guests)
 - [How is the changed component accepted?](#post-change)
 - [How is failed or aging hardware replaced?](#replace-hardware)
@@ -39,6 +40,8 @@ Record actual intervals, owners and evidence in project administration:
 | Capacity/failure domains | Review node/storage growth, real physical placement and single shared NAS/power/network dependencies |
 | Access | Review privileged roles, abandoned devices/tokens, source-project protections and logging read scopes |
 | Boot/recovery compatibility | Review firmware/EFI trust, shim/UKI, revocations, TPM/encryption dependencies and whether retained recovery media still boots |
+| Physical Proxmox TPM and signed boot | Before/after firmware, motherboard or bootloader changes, retain consumer recovery material and rerun the [host acceptance procedure](proxmox-host-boot-security.md#maintenance-and-recovery) |
+| Signing hardware | Inspect commissioned USB devices, approved key fingerprints, connector/client credentials and independently retained wrapped-key recovery material |
 
 The proxy/cache controls software access; it is not a patch-selection or automatic reboot controller.
 The kit's maintenance recipes cover their documented supported operations, not a universal
@@ -116,7 +119,9 @@ distributions than every application does; retain each service's exact supported
 
 **IaC now:** generic VM CPU/RAM/disk sizes, existing service-volume filesystem growth through
 `data_volume`, template publication, Linux baseline/security reconciliation and selected Proxmox
-HA policy. Talos inputs declare node capacity, initial machine configuration and release pins.
+HA policy. New generic VMs can select fresh TPM 2.0 state. The existing-VM controller recipe adds a
+missing TPM during a controlled outage. Talos inputs declare node capacity, initial machine
+configuration and release pins.
 Native tools perform the OS/cluster upgrade, host migration, root/LVM growth and any separately
 qualified firmware/encryption changes. These are not hidden operations of `deploy.sh --recipe maintenance`.
 
@@ -286,6 +291,50 @@ Talos OS upgrades and Kubernetes upgrades are separate operations. [4]
 otherwise use original-identity recovery and application backups. Firmware/TPM/encryption failures
 use the [boot recovery dependencies](guest-hardening.md#boot-recovery), not regenerated secrets.
 
+<a id="boot-maintenance"></a>
+
+## How are boot trust and TPM maintained?
+
+For **physical Proxmox servers**, follow [host boot-security maintenance](proxmox-host-boot-security.md#maintenance-and-recovery)
+before firmware, motherboard, trust-database or bootloader changes. Preserve every enrolled
+consumer's independent recovery method; physical TPM keys are not a guest state-volume backup.
+Rerun its read-only Ansible acceptance after the reboot before returning that host to service.
+
+For **guests**, work from the owning tier using the original state and inputs. Retain console access and a
+coherent backup of OS/data disks, EFI variables and TPM state before a boot-security change.
+
+1. Inspect the installed boot profile and TPM through the controller's existing-VM recipe. Use its
+   read-only `inspect` operation first. If the VM needs a TPM 2.0, follow the same recipe's private
+   record, check and controlled-outage sequence. Record the observed TPM and reconcile the owning
+   generic VM inputs through the common hardening procedure. [Existing-VM inspection and TPM addition](proxmox-guest-security.md)
+2. For **Rocky/Alma or Debian**, patch the signed shim, bootloader and kernel through the normal
+   package workflow. Include custom module signatures in the same review. After the canary's cold
+   start, verify Secure Boot and TPM visibility using the common checks. Promote the accepted
+   template revision for future guests. [Linux boot checks](guest-hardening.md#linux-secure-boot)
+3. For **Talos**, retain the Secure Boot installer family, approved schematic/extensions and signing
+   trust across OS upgrades. Use the serial upgrade procedure above, then verify `securitystate`
+   and, when selected, the encrypted system volumes after the canary's installed-disk boot. Changes
+   to its trust or TPM policy require the corresponding recovery test before the next node.
+   [Talos boot checks](guest-hardening.md#talos-boot-security)
+4. For **Proxmox-managed guest EFI**, review OVMF certificate updates and each affected VM's
+   enrolled trust. For vendor-signed Linux guests on releases supporting it, use **VM > Hardware >
+   EFI Disk > Disk Action > Enroll Updated Certificates** after testing the candidate guest's boot
+   and recovery media. Confirm the action's activation/power-state requirements in that release.
+   Enrollment can change TPM measurements, so use the encryption owner's recovery procedure when
+   sealing is configured. Talos follows its own signed-media and trust procedure. [10][12]
+5. For **USB HSM consumers**, retain the commissioned signing identity and wrapping material
+   through device, connector and middleware changes. Use the same-key migration or replica
+   procedure when expanding hardware. Verify signing through the consumer after the change.
+   [HSM operations and expansion](../03-cryptography/usb-hsm.md)
+6. Capture a new backup containing the accepted boot identity. Restore it on isolated capacity and
+   verify boot, storage unlock where selected, API/service identity and the actual application
+   transaction. Complete the common post-change checks before returning it to service.
+
+For a guest with TPM-bound data, retain that VM's original TPM state during recovery. A replacement
+TPM has a different identity. If the original state is lost, use the independently retained unlock
+method or rebuild the node and recover its application data through the selected recovery path.
+Keep those credentials and backups available while PKI, identity and Vault are unavailable.
+
 <a id="resize-guests"></a>
 
 ## How are CPU, RAM and guest disks resized?
@@ -454,3 +503,4 @@ Official constraints reviewed 2026-11-16; follow the installed release's documen
 9. Talos 1.13, [system-volume provisioning](https://docs.siderolabs.com/talos/v1.13/configure-your-talos-cluster/storage-and-disk-management/disk-management/system).
 10. Proxmox, [host bootloader and ESP management](https://github.com/proxmox/pve-docs/blob/master/system-booting.adoc).
 11. BPG Proxmox provider 0.112.0, [VM update/reboot behavior](https://github.com/bpg/terraform-provider-proxmox/blob/v0.112.0/docs/resources/virtual_environment_vm.md).
+12. Proxmox, [guest firmware trust, certificate enrollment and TPM state](https://github.com/proxmox/pve-docs/blob/master/qm.adoc#bios-and-uefi).

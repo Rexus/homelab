@@ -1,0 +1,24 @@
+---
+- name: Admit an explicit populated Linux guest selection before contacting it
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Require a specific inventory group or host pattern
+      ansible.builtin.assert:
+        that:
+          - guest_boot_security_hosts | default('') | trim | length > 0
+          - guest_boot_security_hosts | default('') not in ['all', 'ungrouped', '*', 'localhost']
+          - query('ansible.builtin.inventory_hostnames', guest_boot_security_hosts | default('all:!all')) | length > 0
+          - "'localhost' not in query('ansible.builtin.inventory_hostnames', guest_boot_security_hosts | default('all:!all'))"
+        fail_msg: Set guest_boot_security_hosts to the managed Linux guest or its populated inventory group.
+
+- name: Prove the selected Linux guest boot controls through normal Ansible access
+  hosts: "{{ guest_boot_security_hosts | default('all:!all', true) }}"
+  gather_facts: true
+  gather_subset: ['!all', min, virtual]
+  become: true
+  any_errors_fatal: true
+  roles:
+    - guest_boot_security

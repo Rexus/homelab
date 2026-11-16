@@ -9,13 +9,41 @@ resource "proxmox_virtual_environment_vm" "node" {
   on_boot       = true
   bios          = var.vm_firmware.bios
   machine       = var.vm_firmware.machine
-  boot_order    = ["scsi0"]
+  # Keep the drive and boot order stable so media changes stay hot-swappable.
+  boot_order    = var.secure_boot == null ? ["scsi0"] : ["scsi0", "ide0"]
   scsi_hardware = var.vm_firmware.scsi_hardware
 
-  clone {
-    vm_id     = var.template_vm_id
-    node_name = try(local.template.node_name, null)
-    full      = true
+  dynamic "clone" {
+    for_each = var.secure_boot == null ? [true] : []
+    content {
+      vm_id     = var.template_vm_id
+      node_name = try(local.template.node_name, null)
+      full      = true
+    }
+  }
+  dynamic "cdrom" {
+    for_each = var.secure_boot == null ? [] : [true]
+    content {
+      interface = "ide0"
+      file_id = !var.secure_boot.install_media_attached ? "none" : proxmox_virtual_environment_file.secure_boot_iso[
+        local.secure_boot_shared ? sort(tolist(local.secure_boot_nodes))[0] : each.value.node_name
+      ].id
+    }
+  }
+  dynamic "tpm_state" {
+    for_each = var.secure_boot == null ? [] : [true]
+    content {
+      datastore_id = each.value.datastore_id
+      version      = "v2.0"
+    }
+  }
+  dynamic "operating_system" {
+    for_each = var.secure_boot == null ? [] : [true]
+    content { type = "l26" }
+  }
+  dynamic "serial_device" {
+    for_each = var.secure_boot == null ? [] : [true]
+    content { device = "socket" }
   }
   cpu {
     cores = each.value.cores
@@ -74,7 +102,7 @@ resource "proxmox_virtual_environment_vm" "node" {
   # NoCloud carries networking only; Talos API owns machine config, not Linux users or Ansible.
   lifecycle {
     prevent_destroy = true
-    ignore_changes  = [node_name]
+    ignore_changes  = [node_name, efi_disk, tpm_state]
   }
 }
 
@@ -113,7 +141,7 @@ data "talos_machine_configuration" "node" {
     hostname   = each.key
     # Disable the generated automatic hostname without a conflicting legacy field.
     auto = "off"
-  })], var.machine_config_patches)
+  })], var.machine_config_patches, local.secure_boot_installer_patches, local.secure_boot_volume_patches)
 }
 
 resource "talos_machine_configuration_apply" "node" {
