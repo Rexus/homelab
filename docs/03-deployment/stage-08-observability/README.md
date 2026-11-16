@@ -108,7 +108,8 @@ its accepted installation rejoins at Action 13. Neither path creates a second cl
 | 13 | [Extend existing Tier 0 infrastructure monitoring](step-13-infrastructure-monitoring.md) | 14 |
 | 14a | Existing application sources | 15 |
 | 14b | Optional [approved protected-log copies](step-14b-protected-log-search.md), with or instead of 14a | 15 |
-| 15 | Verify readers, source coverage, failure and recovery | Record acceptance |
+| 15 | Verify readers, source coverage, failure and recovery | 16 |
+| [16](#step-16-secure-the-observability-deployment) | Secure reader/collector access and retain recovery evidence | Record acceptance |
 
 <a id="step-1-prepare-the-investigation-runtime"></a>
 <a id="step-1-prepare-the-runtime"></a>
@@ -584,7 +585,7 @@ The UIs and their routing are already installed. Test their configured access no
 
 **Result:** scoped operational visibility with tested source coverage and recovery limits.
 Record the completed paths in **`<prefix>-architecture/deployments.md`**, retain acceptance evidence
-separately, then continue to [Stage 9](../stage-09-development/README.md).
+separately, then complete Step 16 before continuing to Stage 9.
 
 ## IaC locations
 
@@ -604,6 +605,15 @@ separately, then continue to [Stage 9](../stage-09-development/README.md).
 The selected runtime provides logs, metrics, traces and scoped readers after the actions above.
 Original evidence and independent alerts remain Tier 0-owned. Rendering and installation checks
 alone establish neither live HA nor recovery acceptance.
+
+## Step 16: Secure the observability deployment
+
+Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for the
+selected cluster or VM products and existing infrastructure collectors. Verify read-only/scoped readers,
+private ingestion, credential boundaries and independent database/search recovery. Analytical access
+must not alter protected log originals or assume the independent monitor's authority. Retain the chosen
+node/guest boot profile, close temporary access and record the accepted controls.
+Continue to [Stage 9](../stage-09-development/README.md).
 
 ## References
 

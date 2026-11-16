@@ -265,14 +265,14 @@ class DeploymentNavigation(TierRepositoryTestCase):
                 with self.subTest(tree=str(deployment), owner=root.parent.name):
                     content = root.read_text(encoding="utf-8")
                     numbers = [number for number, _, _ in steps(content)]
-                    counts = [10, 18, 15, 8, 19, 23, 22, 13, 15, 21, 7]
+                    counts = [11, 19, 16, 9, 20, 24, 23, 14, 16, 22, 8]
                     self.assertEqual(numbers, list(range(1, counts[index] + 1)),
                                      "Every operator action must remain on the numbered owner route")
                     if index < len(roots) - 1:
                         self.assertIn(roots[index + 1].resolve(), [link.target for link in links(root)],
                                       "Each completed capability must lead to the next stage")
             foundation = roots[0].read_text(encoding="utf-8")
-            self.assertEqual([number for number, _, _ in steps(foundation)], list(range(1, 11)))
+            self.assertEqual([number for number, _, _ in steps(foundation)], list(range(1, 12)))
             legacy = {"before-starting-hosts-and-networks": 1,
                       "step-1-create-the-first-linux-template-manually": 2,
                       "step-2-prepare-the-bootstrap-execution-host": 3,
@@ -283,6 +283,23 @@ class DeploymentNavigation(TierRepositoryTestCase):
             bootstrap = deployment / "foundation/bootstrap/README.md"
             self.assertEqual([number for number, _, _ in steps(bootstrap.read_text(encoding="utf-8"))],
                              list(range(1, 20)))
+
+    def test_every_stage_ends_with_its_hardening_and_handoff_route(self):
+        for deployment in self.deployment_roots():
+            hardening = (deployment.parent / '05-operations/01-hosting/guest-hardening.md').resolve()
+            self.assertTrue(hardening.is_file())
+            for root in self.owners(deployment):
+                content = root.read_text(encoding='utf-8')
+                _, start, end = steps(content)[-1]
+                closing = content[start:end]
+                with self.subTest(owner=root.parent.name, tree=str(deployment)):
+                    self.assertRegex(closing, r'## Step \d+: Secure ')
+                    self.assertIn(hardening, [link.target for link in links(root, closing)])
+                    final_heading = re.search(r'(?m)^## (Step \d+: Secure .+)$', closing)[1]
+                    self.assertIn(heading_anchor(final_heading),
+                                  [link.fragment for link in links(root, content[:steps(content)[0][1]])
+                                   if link.target == root.resolve()],
+                                  "The opening route must include the final securing step")
 
     def test_foundation_separates_bootstrap_from_hypervisor_guides(self):
         for deployment in self.deployment_roots():

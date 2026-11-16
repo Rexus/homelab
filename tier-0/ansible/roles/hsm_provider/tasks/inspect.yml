@@ -10,6 +10,7 @@
 - name: Require the installed middleware library
   ansible.builtin.stat:
     path: "{{ hsm_provider_library }}"
+    follow: true
   register: hsm_provider_library_state
 
 - name: Reject a missing provider library

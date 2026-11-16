@@ -48,3 +48,15 @@ openxpki_restore_directory: ""
 openxpki_restore_source_directory: ""
 openxpki_restore_manifest_sha256: ""
 openxpki_release_dir: "{{ openxpki_data_mount }}/configuration/{{ openxpki_configuration_sha256 }}"
+
+# Explicit same-key PKCS11 ceremony only; ordinary binding validation has no bypass.
+openxpki_pkcs11_migration_approved: false
+openxpki_pkcs11_migration_operation: prepare
+openxpki_pkcs11_migration_expected_old_sha256: ""
+openxpki_pkcs11_migration_new_src: ""
+openxpki_pkcs11_migration_new_sha256: ""
+openxpki_pkcs11_migration_spki_sha256: ""
+openxpki_pkcs11_migration_backup_dest: ""
+openxpki_pkcs11_migration_backup_sha256: ""
+openxpki_pkcs11_migration_backup_retained: false
+openxpki_pkcs11_migration_resume_accepted: false

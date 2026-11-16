@@ -16,6 +16,22 @@ ROLE = UPSTREAM / 'tier-0/ansible/roles/openxpki'
 
 
 class CertificateAuthorityRuntime(TierRepositoryTestCase):
+    def test_repository_and_portal_preparation_are_exported_as_separate_recipes(self):
+        self.generate()
+        for source in (UPSTREAM / 'tier-0', self.root / 'verify-tier-0'):
+            repository = yaml.safe_load((source / 'ansible/playbooks/deployment/openxpki-repository.yml').read_text())[-1]
+            self.assertEqual(repository['hosts'], 'issuing_ca')
+            self.assertEqual(repository['roles'], ['baseline', {'role': 'openxpki', 'tasks_from': 'repository'}])
+            query = repository['tasks'][0]['ansible.builtin.command']['argv']
+            self.assertEqual(query[:2], ['apt-cache', 'policy'])
+            self.assertEqual(set(query[2:]), {'libopenxpki-perl', 'openxpki-cgi-session-driver', 'openxpki-i18n'})
+            tasks = (source / 'ansible/roles/openxpki/tasks/repository.yml').read_text()
+            for forbidden in ('mariadb-server', 'libopenxpki-perl', 'mysql_db', 'openssl_privatekey'):
+                self.assertNotIn(forbidden, tasks)
+            portal = yaml.safe_load((source / 'ansible/playbooks/deployment/openxpki-portal-request.yml').read_text())[0]
+            self.assertFalse(portal['gather_facts'])
+            self.assertEqual(portal['tasks'][0]['delegate_to'], 'localhost')
+
     def test_resources_and_recipes_stay_in_tier_zero(self):
         import hcl2
         self.generate()

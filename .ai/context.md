@@ -13,6 +13,19 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Repository intent
 
+- Foundation and all ten stage owners end with an explicit numbered securing checkpoint linked to
+  docs/05-operations/01-hosting/guest-hardening.md. Baselines apply during deployment; closeout accepts
+  selected controls, temporary-access cleanup and independent recovery without requiring a later stage.
+  Secure Boot, vTPM and encryption are separate qualified choices, not universal late toggles.
+  docs/05-operations/deployment-commands.md owns the compact setup/configuration/command index.
+- Stage 2 supplies separate repository/pin-discovery and controller-only portal CSR recipes. They do
+  not initialize a CA or approve issuance. Retire seven-day bootstrap portal TLS through the existing
+  requester/approver workflow and issuer reconciliation, preserving the portal key and CA identity.
+- Single USB can grow to a same-family provider pool at the Stage 6 decision point. Preserve original
+  wrapping material and issuer identity from commissioning. The explicit openxpki-pkcs11-migrate
+  recipe changes only the qualified provider binding, with fresh independent backup, planned outage
+  and latest-history rollback; ordinary convergence remains immutable. One remote endpoint is an
+  explicit temporary transition before moving the original device to the second host, never HA.
 - Restricted package consumers select fixed official endpoints or commissioned internal mirrors.
   The Shared baseline source profile is preserve by default; fresh supported proxy consumers select
   official Rocky/Alma/Debian/Ubuntu sources without enabling repositories or weakening trust.
@@ -38,9 +51,11 @@ This file keeps durable context for AI-assisted work across sessions.
   token remoting has no per-object policy; do not promise shared-device isolation from key labels.
   Vault native PKCS#11 seal remains Enterprise/device-mechanism qualified; default unseal is Shamir.
 - The baseline currently uses UEFI without Secure Boot; no later stage enables it automatically.
-  User-selected next work is Secure Boot design/maintenance after completing PicoHSM. Qualify signed
-  media, guest/host trust separately, enrollment, revocation/dbx/SBAT maintenance and EFI/vTPM recovery,
-  including Talos's distinct installation path. Do not silently flip live boot policy or device OTP fuses.
+  The common hardening/maintenance guide now documents supported Linux template inputs and qualifies
+  signed media, guest/host trust separately, enrollment, revocation/dbx/SBAT maintenance and EFI/vTPM
+  recovery. Talos signed-media migration and per-guest TPM provisioning remain distinct implementation
+  work; do not imply they are supplied by an EFI checkbox, installer pin or template TPM.
+  Do not silently flip live boot policy or device OTP fuses.
 - Deployment stage folders use zero-padded two-digit numbers (stage-01 through stage-10) so
   lexical/GitHub sorting follows the installation sequence. Update references and migration targets
   together; retain former route keys so project-owned links survive generated-documentation refresh.

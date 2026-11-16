@@ -1,0 +1,292 @@
+---
+- name: Inspect the retained transaction without following links
+  ansible.builtin.stat:
+    path: "{{ migration_directory }}/transaction.json"
+    follow: false
+  register: migration_transaction_state
+
+- name: Require a previously prepared transaction
+  ansible.builtin.assert:
+    that:
+      - migration_transaction_state.stat.isreg | default(false)
+      - not migration_transaction_state.stat.islnk | default(false)
+
+- name: Read the transaction without exposing its secret digests
+  ansible.builtin.slurp:
+    src: "{{ migration_directory }}/transaction.json"
+  register: migration_transaction_bytes
+  no_log: true
+
+- name: Retain the original transaction and selected target
+  ansible.builtin.set_fact:
+    migration_record: "{{ migration_transaction_bytes.content | b64decode | from_json }}"
+    migration_target_release: "{{ migration_new_release if openxpki_pkcs11_migration_operation == 'apply' else migration_old_release }}"
+  no_log: true
+
+- name: Require the same deployment packages secrets certificate and approved transition
+  ansible.builtin.assert:
+    that:
+      - >-
+        migration_record.old_binding == migration_current_binding | combine({'configuration_sha256': openxpki_pkcs11_migration_expected_old_sha256})
+      - >-
+        migration_record.new_binding == migration_record.old_binding | combine({'configuration_sha256': openxpki_pkcs11_migration_new_sha256})
+      - migration_record.spki_sha256 == openxpki_pkcs11_migration_spki_sha256
+      - migration_record.issuer_fingerprint == openxpki_issuer_fingerprint
+      - openxpki_pkcs11_migration_operation != 'apply' or migration_record.phase == 'prepared'
+      - openxpki_pkcs11_migration_operation != 'apply' or hsm_issuer_key == migration_record.key
+      - openxpki_pkcs11_migration_operation != 'apply' or hsm_provider_library == migration_record.library
+      - openxpki_pkcs11_migration_operation != 'apply' or hsm_issuer_engine_library == migration_record.engine
+      - >-
+        (openxpki_pkcs11_migration_operation == 'rollback' and migration_record.phase == 'preparing') or
+        (openxpki_pkcs11_migration_backup_retained | bool and
+         openxpki_pkcs11_migration_backup_sha256 == migration_record.backup_sha256)
+  no_log: true
+
+- name: Verify the retained original policy before any rollback
+  ansible.builtin.stat:
+    path: "{{ migration_old_release }}/{{ item.key }}"
+    follow: false
+    checksum_algorithm: sha256
+  loop: "{{ migration_record.old_hashes | dict2items }}"
+  register: migration_original_policy
+  no_log: true
+
+- name: Refuse drift in the original policy or protected signer and DataVault secrets
+  ansible.builtin.assert:
+    that: item.stat.isreg | default(false) and item.stat.checksum == item.item.value
+  loop: "{{ migration_original_policy.results }}"
+  no_log: true
+
+- name: Select the immutable old custody subset for rollback
+  ansible.builtin.set_fact:
+    migration_rollback_custody: "{{ migration_record.get('state', {}).get('custody', migration_record.old_custody) }}"
+  no_log: true
+  when: openxpki_pkcs11_migration_operation == 'rollback'
+
+- name: Verify retained old connections environment schema and key custody without reverting history
+  ansible.builtin.stat:
+    path: "{{ item.key }}"
+    follow: false
+    checksum_algorithm: sha256
+  loop: "{{ migration_rollback_custody | default({}) | dict2items }}"
+  when:
+    - openxpki_pkcs11_migration_operation == 'rollback'
+    - >-
+      item.key.startswith(migration_old_release ~ '/') or
+      item.key.startswith(openxpki_data_mount ~ '/keys/') or
+      item.key.startswith(openxpki_data_mount ~ '/identity/') or
+      item.key in [migration_directory ~ '/old-hsm-provider.conf', migration_directory ~ '/old-configuration.tar.gz',
+                   openxpki_data_mount ~ '/schema-initialized']
+  register: migration_rollback_checks
+  no_log: true
+
+- name: Refuse altered old rendered connections or provider environment
+  ansible.builtin.assert:
+    that: >-
+      item.skipped | default(false) or
+      (item.stat.isreg | default(false) and not item.stat.islnk | default(false)
+       and item.stat.checksum == item.item.value)
+  loop: "{{ migration_rollback_checks.results }}"
+  no_log: true
+  when: openxpki_pkcs11_migration_operation == 'rollback'
+
+- name: Verify the selected target configuration and actual key before switching
+  ansible.builtin.include_tasks: pkcs11-migration-provider.yml
+
+- name: Inspect only the managed native configuration links
+  ansible.builtin.stat:
+    path: "/etc/openxpki/{{ item }}"
+    follow: false
+  loop: [config.d, client.d, log.conf]
+  register: migration_links
+
+- name: Refuse unowned paths or unrelated configuration targets
+  ansible.builtin.assert:
+    that:
+      - item.stat.islnk | default(false)
+      - item.stat.lnk_source in [migration_old_release ~ '/' ~ item.item, migration_new_release ~ '/' ~ item.item]
+  loop: "{{ migration_links.results }}"
+
+- name: Keep the transition fail closed until a complete validated configuration is selected
+  block:
+    - name: Reestablish durable writer startup inhibition
+      ansible.builtin.copy:
+        content: "{{ migration_directory }}\n"
+        dest: "{{ openxpki_data_mount }}/{{ item }}"
+        owner: root
+        group: root
+        mode: '0600'
+      loop: [pkcs11-migration-inhibit, pkcs11-migration-traffic-inhibit]
+
+    - name: Stop every writer before checking frozen history or reversing configuration
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+      loop: "{{ migration_units }}"
+
+    - name: Recompute complete frozen history and state before applying
+      ansible.builtin.include_tasks: pkcs11-migration-state.yml
+      when: openxpki_pkcs11_migration_operation == 'apply'
+
+    - name: Refuse intervening history schema custody or staged-configuration changes
+      ansible.builtin.assert:
+        that: migration_state == migration_record.state
+        fail_msg: Frozen state changed; keep writers stopped and investigate before any binding change.
+      no_log: true
+      when: openxpki_pkcs11_migration_operation == 'apply'
+
+    - name: Record the deliberate transition before replacing any active path
+      ansible.builtin.copy:
+        content: "{{ migration_record | combine({'phase': 'switching'}) | to_nice_json }}\n"
+        dest: "{{ migration_directory }}/transaction.json"
+        owner: root
+        group: root
+        mode: '0600'
+      no_log: true
+
+    - name: Switch only the three validated native configuration links
+      ansible.builtin.file:
+        src: "{{ migration_target_release }}/{{ item }}"
+        dest: "/etc/openxpki/{{ item }}"
+        state: link
+        force: true
+      loop: [config.d, client.d, log.conf]
+
+    - name: Select the matching immutable installation artifact
+      ansible.builtin.copy:
+        src: "{{ openxpki_pkcs11_migration_new_src }}"
+        dest: "{{ openxpki_data_mount }}/configuration.tar.gz"
+        owner: root
+        group: root
+        mode: '0600'
+      no_log: true
+      when: openxpki_pkcs11_migration_operation == 'apply'
+
+    - name: Restore only the digest-verified remote original artifact on rollback
+      ansible.builtin.copy:
+        src: "{{ migration_directory }}/old-configuration.tar.gz"
+        dest: "{{ openxpki_data_mount }}/configuration.tar.gz"
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0600'
+      no_log: true
+      when: openxpki_pkcs11_migration_operation == 'rollback'
+
+    - name: Bind the new native module environment without changing credentials
+      ansible.builtin.template:
+        src: "{{ role_path }}/../hsm_provider/templates/issuer-service.conf.j2"
+        dest: /etc/systemd/system/openxpki-serverd.service.d/hsm-provider.conf
+        owner: root
+        group: root
+        mode: '0644'
+      when: openxpki_pkcs11_migration_operation == 'apply'
+
+    - name: Restore the retained original provider environment on rollback
+      ansible.builtin.copy:
+        src: "{{ migration_directory }}/old-hsm-provider.conf"
+        dest: /etc/systemd/system/openxpki-serverd.service.d/hsm-provider.conf
+        remote_src: true
+        owner: root
+        group: root
+        mode: '0644'
+      when: openxpki_pkcs11_migration_operation == 'rollback'
+
+    - name: Verify the product configuration before committing its binding
+      ansible.builtin.command:
+        argv: [oxi, config, verify, --config, /etc/openxpki/config.d]
+      changed_when: false
+      no_log: true
+
+    - name: Commit only the reviewed provider configuration SHA in the immutable binding
+      ansible.builtin.copy:
+        content: >-
+          {{ (migration_record.new_binding if openxpki_pkcs11_migration_operation == 'apply'
+              else migration_record.old_binding) | to_nice_json }}
+        dest: "{{ openxpki_data_mount }}/deployment.json"
+        owner: root
+        group: root
+        mode: '0600'
+      no_log: true
+
+    - name: Record the selected recoverable configuration before restarting writers
+      ansible.builtin.copy:
+        content: >-
+          {{ migration_record | combine({'phase': 'committed'
+             if openxpki_pkcs11_migration_operation == 'apply' else 'rolled-back'}) | to_nice_json }}
+        dest: "{{ migration_directory }}/transaction.json"
+        owner: root
+        group: root
+        mode: '0600'
+      no_log: true
+
+    - name: Reload the selected provider environment while startup is inhibited
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Release startup inhibition only after all precommit checks pass
+      ansible.builtin.file:
+        path: "{{ openxpki_data_mount }}/pkcs11-migration-inhibit"
+        state: absent
+
+    - name: Start only the existing backend before admitting portal or timer traffic
+      ansible.builtin.systemd_service:
+        name: openxpki-serverd.service
+        state: started
+
+    - name: Require native backend connectivity before token acceptance
+      ansible.builtin.command:
+        argv: [oxi, cli, ping]
+      changed_when: false
+      retries: 6
+      delay: 5
+      register: migration_backend_ping
+      until: migration_backend_ping.rc == 0
+
+    - name: Require the native active token to complete its own sign and verify test
+      ansible.builtin.command:
+        argv: [oxi, --auth-key, "{{ openxpki_data_mount }}/keys/cli.pem", api, is_token_usable,
+               --realm, "{{ openxpki_realm }}", --, "alias={{ openxpki_token_alias }}", operation=sign]
+      become: true
+      become_user: openxpki
+      changed_when: false
+      register: migration_runtime_signer
+      retries: 6
+      delay: 5
+      until: migration_runtime_signer.rc == 0 and migration_runtime_signer.stdout | trim == '1'
+      no_log: true
+
+    - name: Admit traffic only after native backend and signing acceptance
+      ansible.builtin.file:
+        path: "{{ openxpki_data_mount }}/pkcs11-migration-traffic-inhibit"
+        state: absent
+
+    - name: Resume the existing client portal and CRL timer
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: started
+      loop: [openxpki-clientd.service, apache2.service, openxpki-crl.timer]
+  rescue:
+    - name: Preserve durable fail-closed startup inhibition
+      ansible.builtin.copy:
+        content: "{{ migration_directory }}\n"
+        dest: "{{ openxpki_data_mount }}/{{ item }}"
+        owner: root
+        group: root
+        mode: '0600'
+      loop: [pkcs11-migration-inhibit, pkcs11-migration-traffic-inhibit]
+
+    - name: Stop every issuer writer after an incomplete transition
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+      loop: "{{ migration_units }}"
+
+    - name: Require explicit recovery instead of resuming a partial transition
+      ansible.builtin.fail:
+        msg: Migration failed closed. Retain the journal and current database; correct the cause or select guarded rollback.
+  always:
+    - name: Remove only the temporary history comparison dump
+      ansible.builtin.file:
+        path: "{{ migration_directory }}/current-database.sql"
+        state: absent

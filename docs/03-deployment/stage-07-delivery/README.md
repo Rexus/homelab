@@ -50,7 +50,8 @@ GitLab and cannot require the new GitLab, Harbor, Spinnaker or ordinary runners 
 | 7 | Accept authorization, promotion, drift and independent recovery | 8 |
 | 8a / 8b | Flux-managed Harbor, or an existing approved registry | 9-11 / 11 |
 | 12 | Optional acceleration/private Tier 2 edge | 13 |
-| 13 | Record acceptance; select Stage 8 when required | Stage 8 |
+| 13 | Record acceptance | 14 |
+| [14](#step-14-secure-the-delivery-deployment) | Secure the selected runtime and operating access | Stage 8 |
 
 ## Contents
 
@@ -61,6 +62,7 @@ GitLab and cannot require the new GitLab, Harbor, Spinnaker or ordinary runners 
 - [7. Acceptance](#7-accept-controller-authorization-and-recovery)
 - [8–11. Artifact supply](#8-select-and-configure-artifact-supply)
 - [12–13. Options and handoff](#12-complete-selected-distribution-and-edge-options)
+- [14. Secure the deployment](#step-14-secure-the-delivery-deployment)
 
 <a id="step-1-deploy-shared-delivery-services"></a>
 <a id="step-1-create-or-accept-the-tier-1-runtime"></a>
@@ -219,8 +221,8 @@ If neither is selected, continue directly to 13.
 ## Step 13: Record acceptance and continue
 
 Record exact owners, accepted revisions, custody receipts, live evidence and named transition exceptions
-in `<prefix>-architecture/deployments.md`. Select [Stage 8](../stage-08-observability/README.md) when
-required; GitLab/general runners remain [Stage 9](../stage-09-development/README.md).
+in `<prefix>-architecture/deployments.md`. Complete Step 14 before selecting the next stage;
+GitLab/general runners remain Stage 9.
 Retain the verified [independent recovery package](../../05-operations/05-delivery.md#prepare-independent-custody).
 No later service is needed to repair this delivery platform.
 
@@ -230,3 +232,11 @@ No later service is needed to repair this delivery platform.
 
 Tier 0 infrastructure runner/Vault handover remains Stage 9's separate trust decision.
 This stage transfers no Tier 0 execution authority.
+
+## Step 14: Secure the delivery deployment
+
+Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for the
+selected runtime and controllers. Verify bounded reconcile/promotion permissions, protected signing and
+registry credentials, denied unapproved publication and independent Git/artifact recovery. Retain the
+approved node/guest boot profile and one owner for each reconciliation scope.
+Record acceptance, then select [Stage 8](../stage-08-observability/README.md) when required.

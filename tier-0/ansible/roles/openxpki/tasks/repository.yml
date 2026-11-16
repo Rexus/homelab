@@ -1,0 +1,60 @@
+---
+- name: Require the qualified issuer platform and approved package-source identity
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Debian'
+      - ansible_distribution_major_version == '12'
+      - ansible_architecture == 'x86_64'
+      - not ansible_check_mode
+      - openxpki_repository_key_sha256 is match('^[a-f0-9]{64}$')
+      - openxpki_repository_uri is match('^https://')
+      - openxpki_repository_key_url is match('^https://')
+    fail_msg: >-
+      Repository preparation requires Debian 12 amd64 and the independently approved
+      OpenXPKI repository-key SHA256. Review the publisher's key record before continuing.
+
+- name: Install native signed-repository prerequisites only
+  ansible.builtin.apt:
+    name: [ca-certificates, python3-debian]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+    policy_rc_d: 101
+
+- name: Prepare the native signing-key directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Fetch the independently approved repository signing key
+  ansible.builtin.get_url:
+    url: "{{ openxpki_repository_key_url }}"
+    dest: /etc/apt/keyrings/openxpki.asc
+    checksum: "sha256:{{ openxpki_repository_key_sha256 }}"
+    owner: root
+    group: root
+    mode: "0644"
+    use_proxy: "{{ repository_proxy_active | default(false) | bool }}"
+  environment: >-
+    {{ {'http_proxy': repository_proxy_url,
+        'https_proxy': repository_proxy_effective_https_url,
+        'no_proxy': shell_proxy_no_proxy}
+       if repository_proxy_active | default(false) | bool else {} }}
+
+- name: Configure the signed native package repository
+  ansible.builtin.deb822_repository:
+    name: openxpki
+    types: [deb]
+    uris: ["{{ openxpki_repository_uri }}"]
+    suites: [bookworm]
+    components: [release]
+    architectures: [amd64]
+    signed_by: /etc/apt/keyrings/openxpki.asc
+    state: present
+
+- name: Refresh the signed package index before selecting or installing versions
+  ansible.builtin.apt:
+    update_cache: true

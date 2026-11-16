@@ -73,7 +73,7 @@ does not qualify the complete platform or SSO path; do not upgrade/downgrade exi
 
 ## Installation route
 
-Follow actions 1-19. They keep node preparation **before** bootstrap and install Cilium **before** ordinary
+Follow actions 1-20. They keep node preparation **before** bootstrap and install Cilium **before** ordinary
 pods. An accepted existing cluster skips new-node provisioning, not the platform/logging gates.
 
 | Actions | Result |
@@ -84,7 +84,8 @@ pods. An accepted existing cluster skips new-node provisioning, not the platform
 | [11-14](#step-11-configure-the-platform-target) | Cilium, node readiness and protected collection |
 | [15a / 15b / 15c](#step-15-qualify-live-storage) | Selected block CSI; optional separate file CSI |
 | [16-18](#step-16-prepare-flux-and-bootstrap-secrets) | Remaining platform and verified Flux reconciliation |
-| [19](#step-19-accept-operation-and-recovery) | Recovery and service gates before Identity |
+| [19](#step-19-accept-operation-and-recovery) | Recovery and service acceptance |
+| [20](#step-20-secure-the-cluster-deployment) | Boot/access controls and operating handoff before Identity |
 
 <a id="step-1-create-the-kubernetes-cluster"></a>
 
@@ -147,6 +148,11 @@ bash scripts/kubernetes-cluster.sh init
 The [cross-tier lifecycle reference](procedures/talos-terraform.md) owns detailed schema/state constraints.
 
 ## Step 5: Edit node hardware, addresses and release pins
+
+Decide boot security before creating nodes. The current NoCloud path does not supply Talos signed
+media/key enrollment or per-node TPM provisioning; review the
+[Talos qualification path](../../05-operations/01-hosting/guest-hardening.md#talos-boot-security)
+if either is required. Step 20 records the observed result, rather than converting an installed node.
 
 Edit **Tier 0**:
 
@@ -497,6 +503,14 @@ No new bootstrap or logging installation is required during this final check.
 Retain original state, Talos secrets/configs, etcd and persistent-data backups, Git source/credentials and
 age keys independently of directory/IdP, Vault or hosted delivery. A fresh bootstrap is not recovery.
 Record results and selections in **`<prefix>-architecture/deployments.md`**.
+
+## Step 20: Secure the cluster deployment
+
+Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for API
+gateways, Talos nodes and the selected platform. Recheck restricted API/admin access, namespace policy,
+audit delivery and independent Talos/etcd/data recovery. Talos Secure Boot uses its signed image and
+trust-enrollment path; adding an EFI flag or vTPM to the existing unsigned path is not that migration.
+Retain the approved boot profile and resource identities before recording this stage complete.
 
 ## Capability available
 

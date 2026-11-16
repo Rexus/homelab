@@ -26,6 +26,31 @@ import hsm_remote_test_support as native_support
 
 
 class HSMRemoteInputs(unittest.TestCase):
+    @unittest.skipUnless(ANSIBLE, 'Requires native Ansible')
+    def test_proxy_library_guard_follows_packaged_symlink_and_rejects_missing_target(self):
+        with tempfile.TemporaryDirectory(prefix='hsm-proxy-library-') as directory:
+            work = Path(directory)
+            library = work / 'libp11-kit.so.0'
+            library.touch()
+            proxy = work / 'p11-kit-proxy.so'
+            proxy.symlink_to(library.name)
+            tasks = yaml.safe_load((ROLE / 'tasks/client.yml').read_text())
+            guard = [task for task in tasks if task['name'] in (
+                'Require the installed native aggregate PKCS11 library',
+                'Fail when the configured library does not match the selected OS and CPU')]
+            play = work / 'play.yml'
+            play.write_text(yaml.safe_dump([{
+                'hosts': 'localhost', 'connection': 'local', 'gather_facts': False,
+                'vars': {'ansible_become': False, 'hsm_remote_proxy_library': str(proxy)},
+                'tasks': guard,
+            }]))
+            for present in (True, False):
+                if not present:
+                    library.unlink()
+                result = subprocess.run([ANSIBLE, '-i', 'localhost,', str(play)],
+                                        capture_output=True, text=True, timeout=45)
+                self.assertEqual(result.returncode == 0, present, result.stdout + result.stderr)
+
     @unittest.skipIf(os.name == 'nt', 'Requires Linux account lookup')
     def test_missing_os_sshd_account_skips_before_any_fixture_mutation(self):
         with mock.patch.object(native_support.pwd, 'getpwnam', side_effect=KeyError('sshd')):
@@ -121,6 +146,9 @@ if (JSON.stringify(actual) !== JSON.stringify(['yes', 'yes', 'no', null, null]))
                     'sources': ['127.0.0.1/32']}},
             )
             for override, expected in [({}, 0), ({'hsm_remote_family': 'mixed'}, 2),
+                                       ({'hsm_remote_backends': {'hsm-1': inputs['hsm_remote_backends']['hsm-1']}}, 2),
+                                       ({'hsm_remote_backends': {'hsm-1': inputs['hsm_remote_backends']['hsm-1']},
+                                         'hsm_remote_single_backend_transition': True}, 0),
                                        ({'hsm_remote_expected_spki_sha256': ''}, 2),
                                        ({'hsm_remote_single_key_custody_confirmed': False}, 2),
                                        ({'hsm_remote_probe_pin': '648219'}, 2),

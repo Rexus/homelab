@@ -1,0 +1,30 @@
+---
+- name: Check controller tooling for the explicit same-key provider ceremony
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    # Existing foundation profile includes both crypto and the native MariaDB collection.
+    control_node_setup: foundation
+    control_node_require_terraform: false
+
+- name: Require one online issuer before any migration connection
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Refuse offline root or multi-issuer targets
+      ansible.builtin.assert:
+        that:
+          - groups.get('issuing_ca', []) | length == 1
+          - groups.get('issuing_ca', []) | intersect(groups.get('root_ca', [])) | length == 0
+          - groups.get('issuing_ca', []) | intersect(groups.get('identity', [])) | length == 0
+
+- name: Perform only the selected explicit same-key PKCS11 migration
+  hosts: issuing_ca
+  become: true
+  any_errors_fatal: true
+  serial: 1
+  tasks:
+    - name: Run the guarded migration without installation or schema initialization
+      ansible.builtin.include_role:
+        name: openxpki
+        tasks_from: pkcs11-migration

@@ -75,6 +75,7 @@ For an existing environment lost to failure, use [backup recovery](../../05-oper
 - [Step 8: Test guest backup and restore](#step-8-test-guest-backup-and-restore)
 - [Step 9: Select the accepted Linux template](#step-9-select-the-accepted-linux-template)
 - [Step 10: Qualify selected HA and balancing](#step-10-qualify-selected-ha-and-balancing)
+- [Step 11: Secure the foundation](#step-11-secure-the-foundation)
 - [Foundation ready](#foundation-ready)
 
 <a id="step-1-prepare-compute-and-templates"></a>
@@ -198,6 +199,10 @@ privileged Linux workstation can perform the same role. No hosted runner is requ
 Before adding a Talos build, select its [version contract](proxmox/templates.md#talos-version-contract).
 The complete reference through Stage 5 uses an approved exact **1.13.x** release; choosing the
 newest Factory entry does not establish compatibility with the later platform/SSO recipes.
+
+If Secure Boot or a TPM is required, select the
+[qualified boot profile](../../05-operations/01-hosting/guest-hardening.md#iac-contract)
+before publishing the image. The closing checkpoint verifies that choice; it does not retrofit it.
 
 The bootstrap workflow already ran `proxmox-templates.sh init` and configured `.env.local`.
 Use those files; no second initialization or credential setup is needed.
@@ -326,7 +331,7 @@ intentional image replacement uses [boot-disk maintenance](../../05-operations/0
 
 ## Step 10: Qualify selected HA and balancing
 
-For **1a**, skip to Foundation ready below; no automatic host failover is claimed.
+For **1a**, continue at Step 11; no automatic host failover is claimed.
 
 For **1b**, resume [HA setup at guest enrollment](proxmox/step-1b-cluster-ha.md#enable-ha).
 Hosts, cluster membership, storage and network eligibility were already prepared: do not reinstall or rejoin them.
@@ -340,12 +345,21 @@ explain the difference between migration, restart and service failover before ch
 
 ### 10a: Native scheduler — main path
 
-Retain the native rebalancing policy qualified in HA setup. Continue at Foundation ready below.
+Retain the native rebalancing policy qualified in HA setup. Continue at Step 11.
 
 ### 10b: ProxLB — alternative scheduling scope
 
 [Qualify the selected scope](proxmox/step-10b-proxlb.md) with no competing placement authority.
-Continue at Foundation ready below; critical HA guests retain their native recovery authority.
+Continue at Step 11; critical HA guests retain their native recovery authority.
+
+## Step 11: Secure the foundation
+
+Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for the
+hosts, bootstrap and accepted templates. Retain independent API/SSH recovery and a full-clone bootstrap
+backup including its workspace disk. Remove disposable clone credentials/resources after acceptance.
+Record the selected boot profile with each template; signed-media/EFI/vTPM changes require their
+qualified maintenance path before consumers inherit them. Persistent local records cover this early
+stage; later identity, Vault and protected logging are not prerequisites for closing Foundation.
 
 <a id="capability-available"></a>
 

@@ -70,11 +70,12 @@ resource "proxmox_virtual_environment_vm" "this" {
   }
 
   # Template provenance and boot hardware initialize new VMs; existing/imported VMs retain theirs.
+  # Preserve an adopted TPM identity too; this module does not provision or rotate TPM state.
   # Proxmox owns later placement. Capacity, disks and networking remain deployment-managed.
   lifecycle {
     ignore_changes = [
       node_name, clone, description, operating_system, serial_device,
-      bios, machine, scsi_hardware, efi_disk, boot_order,
+      bios, machine, scsi_hardware, efi_disk, boot_order, tpm_state,
     ]
 
     precondition {

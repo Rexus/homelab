@@ -146,6 +146,12 @@ exit
 ```
 
 Record the **new board's** serial/reader and the **original key's** fingerprint in its own provider inputs.
+Also compare the restored ID/label, algorithm, signing usage and sensitive/non-extractable attributes
+with the original custody record. `--key-reference` selects destination storage; it does not rename
+the PKCS#11 ID or make the original serial valid on this board. A consumer URI pinned to the original
+serial will keep selecting the original device. Qualify an explicit
+[same-key provider rebind](hardware-migration.md#same-key-provider-rebind) before using this board for
+that consumer; this restore procedure changes no OpenXPKI bundle, database or recovery binding.
 Continue with [single device to provider pool](usb-hsm.md#single-device-to-pool), or retain the board
 offline as a tested recovery device. Keep its credentials under its own custody.
 For a one-board test, retain its original device serial and record the limited test scope instead.

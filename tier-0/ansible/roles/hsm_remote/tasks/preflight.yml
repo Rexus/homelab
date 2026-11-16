@@ -10,7 +10,9 @@
       - hsm_remote_family in ['picohsm', 'yubihsm2']
       - hsm_remote_expected_spki_sha256 is match('^[a-f0-9]{64}$')
       - hsm_remote_key_id is match('^([a-fA-F0-9]{2})+$')
-      - hsm_remote_backends | length >= 2
+      - >-
+        hsm_remote_backends | length >= 2 or
+        (hsm_remote_single_backend_transition | bool and hsm_remote_backends | length == 1)
       - hsm_remote_clients | length > 0
       - hsm_remote_single_key_custody_confirmed | bool
       - hsm_remote_probe_login | bool
@@ -22,7 +24,7 @@
       - hsm_remote_listen_address is match('^[a-zA-Z0-9][a-zA-Z0-9.:-]*$')
       - not hsm_remote_probe_sign | bool or hsm_remote_probe_login | bool
     fail_msg: >-
-      Select a dedicated picohsm or yubihsm2 pool, two accepted backends, client restrictions,
+      Select a dedicated picohsm or yubihsm2 pool, two accepted backends or an explicit single-backend transition, client restrictions,
       one original-key SPKI pin and a qualified RPC version. Mixed-vendor wrapped backups
       and matching labels do not establish one replicated key domain.
 

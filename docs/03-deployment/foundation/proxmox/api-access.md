@@ -21,6 +21,7 @@ This procedure does not deploy guests.
 - [7a/7b. Grant network scope](#step-7-grant-network-scope)
 - [8. Create the user](#step-8-create-the-user)
 - [9. Create the token](#step-9-create-the-token)
+- [9a. Authorize selected USB mappings: optional](#usb-mapping-access)
 - [10. Validate effective permissions](#step-10-validate-effective-permissions)
 - [11. Continue with local inputs](#step-11-continue-with-local-inputs)
 - [Existing or privilege-separated tokens](#existing-or-privilege-separated-tokens)
@@ -255,6 +256,39 @@ pveum user token add automation@pve provision --privsep 0 --comment "Platform pr
 Use separate credentials when job/tier scope differs. For a privilege-separated token,
 use the [matching ACL procedure](#existing-or-privilege-separated-tokens) before validation.
 
+<a id="usb-mapping-access"></a>
+
+### 9a: Authorize selected USB mappings: optional
+
+For USB HSM passthrough, first create the reviewed device/port mapping under **Datacenter > Resource
+Mappings > USB**. Use that exact mapping ID in Terraform `usb_devices[].mapping`.
+Mapped-device use additionally requires `Mapping.Use` on `/mapping/usb/<mapping-id>`; raw physical
+`host` selectors require `root@pam` and are unsuitable for the routine provisioning token. [11]
+
+On **the Proxmox host as an authorized root operator**, create the role once, then grant only the
+selected mapping. Repeat the ACL for each approved device; reuse an accepted existing role:
+
+```bash
+pveum role add PlatformAutomationMapping --privs 'Mapping.Use'
+read -r -p 'Approved USB mapping ID (example ca-1-token): ' USB_MAPPING
+pveum acl modify "/mapping/usb/$USB_MAPPING" --groups platform-automation --roles PlatformAutomationMapping
+```
+
+For a **privilege-separated token**, also grant its matching mapping scope on **the Proxmox host**:
+
+```bash
+pveum acl modify "/mapping/usb/$USB_MAPPING" --tokens 'automation@pve!provision' --roles PlatformAutomationMapping
+```
+
+Verify the actual consuming token on **the Proxmox host**; expect `Mapping.Use`, then continue at Step 10:
+
+```bash
+pveum user permissions 'automation@pve!provision' --path "/mapping/usb/$USB_MAPPING"
+```
+
+Replace the example token/group with the identity used by the owning tier. Mapping use grants no
+mapping-creation or host-administration rights. A mapping also does not replicate a USB device or its keys.
+
 <a id="validate-access"></a>
 
 ## Step 10: Validate effective permissions
@@ -287,6 +321,7 @@ For direct bridge/VLAN attachment, substitute its selected path instead.
 | Target/source node | `Sys.Audit` |
 | Selected attachment with subnet lookup | `SDN.Use` and `SDN.Audit` |
 | Guest operations | The scoped VM role, including access to the clone source |
+| Selected USB device mapping | `Mapping.Use` on its exact `/mapping/usb/<mapping-id>` path |
 
 A plan can pass read checks without proving later upload/NIC-write permission.
 Investigate a 403 at its exact path; do not broaden the grant to `/`.
@@ -423,3 +458,4 @@ Break-glass access remains interactive and outside routine automation.
 8. [Proxmox HA resource API permissions](https://raw.githubusercontent.com/proxmox/pve-ha-manager/master/src/PVE/API2/HA/Resources.pm).
 9. [Proxmox HA rule API permissions](https://raw.githubusercontent.com/proxmox/pve-ha-manager/master/src/PVE/API2/HA/Rules.pm).
 10. [Proxmox VM visibility checks](https://raw.githubusercontent.com/proxmox/pve-manager/master/PVE/API2/Cluster.pm).
+11. [Proxmox USB configuration permission checks](https://github.com/proxmox/qemu-server/blob/master/src/PVE/API2/Qemu.pm).

@@ -6,6 +6,11 @@ from that controller. The guides use Ansible or the product API for remote check
 does not require an interactive guest login. Existing accepted services, physical equipment,
 external storage custody and offline signing approvals retain their stated owners.
 
+Every stage ends with a numbered securing and handoff step. Apply the baseline during deployment;
+the final checkpoint accepts its access, boot policy and independent recovery before marking the stage
+complete. Use the [common guest hardening and maintenance guide](../05-operations/01-hosting/guest-hardening.md)
+for supported Secure Boot/vTPM choices, later capacity changes and updates.
+
 <a id="figure-deployment-sequence"></a>
 
 ```mermaid
@@ -110,10 +115,10 @@ use their dedicated scripts. Every command runs from the named repository root.
 | --- | --- | --- | --- |
 | Tier 0 | `templates` | Foundation: approved source images | [Publication](../05-operations/01-hosting/templates/template-lifecycle.md#local-workflow) |
 | Tier 0 | `template-refresh` | Maintenance: staged Linux image refresh after source-template acceptance | [Staged Linux refresh](../05-operations/01-hosting/templates/template-refresh.md) |
-| Tier 0 | `syslog` | Stage 3: independent log hosts | [Protected logging, Steps 1–8](stage-03-logging/README.md) |
+| Tier 0 | `syslog` | Stage 3: independent log hosts | [Protected logging](stage-03-logging/README.md) |
 | Tier 0 | `foundation` | Stages 2/5/6: issuer/directory resources and optional independent monitor | [Trust](stage-02-trust/README.md), [directory deployment](stage-05-identity/procedures/freeipa.md), [monitor provisioning](stage-06-secrets/procedures/independent-monitoring.md#step-1-prepare-the-monitoring-runtime) |
 | Tier 0 | `hsm` | Stage 2 option: native USB/provider hosts; issuer binding and PKCS#11 remoting use their explicit recipes | [USB HSM option](stage-02-trust/step-1b-usb-hsm.md), [remoting](stage-02-trust/procedures/pkcs11-remoting.md) |
-| Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes, Steps 1–19](stage-04-kubernetes/README.md) |
+| Tier 0 | `kubernetes` | Stage 4: control cluster | [Kubernetes](stage-04-kubernetes/README.md) |
 | Tier 0 | `cluster-endpoint` | Before Stage 4/7/10: private independent API gateways | [API endpoint](stage-04-kubernetes/procedures/api-endpoint.md) |
 | Tier 0 | `vault` | Stage 6 option: dedicated secrets VM | [Vault VM option](stage-06-secrets/step-1b-vault-vm.md) |
 | Tier 0 | `vault` with separate `signing` inputs/environment, then `deployment/openbao-signing.yml` | Stage 6 option 11b: independent OpenBao guests/state and signing API; retains existing HashiCorp Vault | [Independent signing API](stage-06-secrets/step-11b-openbao.md) |
@@ -187,7 +192,9 @@ Edit in **`<prefix>-shared/`**.
 ## Follow a stage
 
 1. Verify foundation readiness, open the named working repository, then read the
-   stage's prerequisites and intended result.
+   stage's prerequisites and intended result. Select any required
+   [boot/encryption controls](../05-operations/01-hosting/guest-hardening.md#control-decisions)
+   before creating its images or guests; the final checkpoint verifies them.
 2. Follow the numbered steps in the main README. At a decision, select an adjacent
    option such as Trust's `step-1b-usb-hsm.md`, then return to the stated step.
 3. Complete every selected option and its return-point checks before leaving the stage.

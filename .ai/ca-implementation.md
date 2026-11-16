@@ -1,6 +1,6 @@
 # CA implementation checklist
 
-Design adopted 2026-10-17; implementation coverage rechecked 2026-11-15.
+Design adopted 2026-10-17; implementation coverage rechecked 2026-11-16.
 Software-first mechanisms and original-key PKCS#11 installation are supplied; live CA acceptance remains outstanding.
 Operational tests are in the separate [manual verification list](operational-verification.md#3-initial-trust).
 This file tracks code coverage and optional integrations, not deployed-system acceptance.
@@ -29,6 +29,9 @@ and is not implied installed by the supplied issuer runtime.
 
 ## Supplied implementation
 
+- [x] Separate signed-repository preparation and native package-candidate discovery before installation,
+  requiring the publisher's independently approved key checksum. Controller-only portal CSR generation
+  retains the original portal key; the normal approval and runtime recipes retire bootstrap TLS.
 - [x] Tier 0 Debian template option, consumer ID/title references in Shared and foundation
   extra-disk forwarding without resource-address/state migration.
 - [x] Guarded blank-disk filesystem/UUID preparation and separate offline root execution scope;
@@ -44,7 +47,13 @@ and is not implied installed by the supplied issuer runtime.
   issuer identity, database/history, configuration and DataVault material.
   Native backend selection covers software and exact-original-provider PKCS#11; the hardware key
   is checked through its provider and never exported. Explicit controller staging is supplied.
-  Replacement-device serial/PIN rebinding remains a separate configuration migration, not automatic restore.
+  Replacement-device serial rebinding uses the separate ceremony below, not automatic restore;
+  PIN rotation requires its own qualified transition.
+- [x] Explicit same-key PKCS#11 local-to-remote provider migration: constrained immutable-bundle revision,
+  actual key/signature proof, paused encrypted recovery capture, original-state drift guards and
+  prepare/apply/rollback with the latest database retained. Preserve the existing application PIN;
+  rekeying, PIN rotation and schema/package upgrades are outside this recipe. A two-board upgrade
+  admits one remote endpoint explicitly before freeing the original local device for the second host.
 - [x] FreeIPA external CSR/pause/completion sequence with explicit CA-enabled replica.
   Existing domains are preserved; renewal/rechaining requires a separate migration procedure.
 - [x] Public HTTP-01, production chain/name checks, verified origins and serialized renewal

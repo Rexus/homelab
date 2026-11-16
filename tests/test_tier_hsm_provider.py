@@ -47,6 +47,7 @@ class GeneratedHSMProvider(TierRepositoryTestCase):
         ):
             expected = (UPSTREAM / 'tier-0' / relative).read_text().replace(
                 '../../../../shared/', '../../../../verify-shared/')
+            expected = expected.replace('# Guide: docs/', '# Guide: ../verify-architecture/docs/auto-docs/')
             self.assertEqual((tier / relative).read_text(), expected, relative)
         defaults = yaml.safe_load((ROLE / 'defaults/main.yml').read_text())
         self.assertFalse(defaults['hsm_issuer_create_csr'])
@@ -148,6 +149,19 @@ class NativeProviderChecks(unittest.TestCase):
             code, output = self.run_tasks(task_file, syntax=True)
             self.assertEqual(code, 0, output)
 
+    def test_packaged_library_symlink_is_accepted_but_a_broken_target_blocks_device_access(self):
+        selected = self.root / 'packaged-pkcs11.so'
+        selected.symlink_to(self.library.name)
+        code, output = self.run_tasks('inspect', {'hsm_provider_library': str(selected)})
+        self.assertEqual(code, 0, output)
+        self.assertEqual(json.loads(self.calls.read_text()),
+                         ['--module', str(selected), '--list-token-slots'])
+        self.calls.unlink()
+        self.library.unlink()
+        code, output = self.run_tasks('inspect', {'hsm_provider_library': str(selected)})
+        self.assertNotEqual(code, 0, output)
+        self.assertFalse(self.calls.exists(), 'A broken shared-library target must fail before device access')
+
     def test_issuer_credential_guard_accepts_only_ready_nonfactory_credentials(self):
         inputs = {'hsm_provider_custody_ready': True, 'hsm_issuer_pin': 'synthetic-changed-credential'}
         code, output = self.run_tasks('issuer-credentials', inputs)
@@ -226,6 +240,14 @@ class NativeProviderChecks(unittest.TestCase):
                   'hsm_issuer_engine_library': str(self.library), 'hsm_issuer_key': key}
         code, output = self.run_tasks('issuer-identity', inputs)
         self.assertEqual(code, 0, output)
+        engine_link = self.root / 'pkcs11-engine.so'
+        engine_link.symlink_to(self.library.name)
+        signer['engine_section'] = f'MODULE_PATH = {self.library}\ndynamic_path = {engine_link}\nPIN = __PIN__'
+        configuration.write_text(yaml.safe_dump({'token': {'ca-signer': signer}}))
+        code, output = self.run_tasks('issuer-identity', dict(inputs, hsm_issuer_engine_library=str(engine_link)))
+        self.assertEqual(code, 0, output)
+        signer['engine_section'] = f'MODULE_PATH = {self.library}\ndynamic_path = {self.library}\nPIN = __PIN__'
+        configuration.write_text(yaml.safe_dump({'token': {'ca-signer': signer}}))
         for override in (
             {'openxpki_create_issuer_key': True},
             {'hsm_issuer_key': key.replace('123456', 'other-device')},

@@ -1,0 +1,64 @@
+---
+- name: Wait for managed guest bootstrap before repository preparation
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: issuing_ca
+
+- name: Prepare the issuer package source and report candidate versions
+  hosts: issuing_ca
+  become: true
+  any_errors_fatal: true
+  serial: 1
+  pre_tasks:
+    - name: Require the connected issuer and approved signing-key checksum before configuration
+      ansible.builtin.assert:
+        that:
+          - groups.get('issuing_ca', []) | length == 1
+          - groups.get('issuing_ca', []) | intersect(groups.get('root_ca', [])) | length == 0
+          - groups.get('issuing_ca', []) | intersect(groups.get('identity', [])) | length == 0
+          - ansible_distribution == 'Debian'
+          - ansible_distribution_major_version == '12'
+          - ansible_architecture == 'x86_64'
+          - not ansible_check_mode
+          - openxpki_repository_key_sha256 | default('') is match('^[a-f0-9]{64}$')
+          - openxpki_repository_uri | default('') is match('^https://')
+          - openxpki_repository_key_url | default('') is match('^https://')
+        fail_msg: >-
+          Select only the Debian 12 amd64 issuing_ca host and set the independently
+          approved openxpki_repository_key_sha256 in ansible/group_vars/issuer.yml.
+  roles:
+    - baseline
+    - role: openxpki
+      tasks_from: repository
+  tasks:
+    - name: Read candidate versions from the signed native package index
+      ansible.builtin.command:
+        argv:
+          - apt-cache
+          - policy
+          - libopenxpki-perl
+          - openxpki-cgi-session-driver
+          - openxpki-i18n
+      register: openxpki_repository_candidates
+      changed_when: false
+      environment:
+        LC_ALL: C
+
+    - name: Require installable candidates for the complete issuer package set
+      ansible.builtin.assert:
+        that:
+          - "'Candidate: (none)' not in openxpki_repository_candidates.stdout"
+          - "openxpki_repository_candidates.stdout | regex_findall('(?m)^\\s+Candidate:') | length == 3"
+        fail_msg: >-
+          The signed package index did not provide all three issuer packages. Check the
+          approved repository, connectivity and Debian release before selecting versions.
+
+    - name: Show versions to review and pin before installing the issuer
+      ansible.builtin.debug:
+        msg:
+          - "{{ openxpki_repository_candidates.stdout_lines }}"
+          - >-
+            Copy each accepted Candidate version into openxpki_package_versions in
+            ansible/group_vars/issuer.yml. Candidate (none) is not an installable version.
+            Review the selected package/configuration/schema compatibility first.
+            This recipe has not installed OpenXPKI or initialized CA keys or database state.

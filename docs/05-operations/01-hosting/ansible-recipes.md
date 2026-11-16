@@ -82,6 +82,8 @@ The signing play is a gated backend renderer, not a service, VIP or HA installer
 | --- | --- | --- |
 | 0 / `foundation` | `deployment/identity-freeipa.yml` | `maintenance/foundation.yml`: read-only directory service/API checks |
 | 0 / `foundation`, issuer override | `deployment/openxpki.yml` | `maintenance/openxpki.yml`: read-only service/configuration/API checks |
+| 0 / issuer preparation | `deployment/openxpki-repository.yml`: verify the approved repository and list package candidates; `deployment/openxpki-portal-request.yml`: controller CSR from the existing portal key | [Stage 2](../../03-deployment/stage-02-trust/README.md): approve exact package pins before installation, replace temporary portal TLS after issuance works |
+| 0 / issuer, explicit same-key provider migration | `deployment/openxpki-pkcs11-migrate.yml`: guarded prepare/apply/rollback | [Provider migration](../03-cryptography/hardware-migration.md#same-key-provider-rebind): planned outage, fresh independent recovery and unchanged CA identity/history; separate from routine convergence |
 | 0 / issuer, explicit custody | `deployment/openxpki-bundle.yml` (controller), `deployment/openxpki-key.yml` | `maintenance/openxpki-backup.yml` and `maintenance/openxpki-restore.yml`: separately approved recovery operations |
 | 0 / `syslog` | `deployment/foundation-logging.yml` | `maintenance/syslog.yml`: baseline and isolated receiver convergence; no package upgrades, evidence/queue deletion or retention changes |
 | 0 / `vault` | `deployment/vault-vm.yml` | `maintenance/vault.yml`: reconcile existing role configuration |

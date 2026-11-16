@@ -1,0 +1,60 @@
+---
+- name: Find persistent custody and publication files without following links
+  ansible.builtin.find:
+    paths: >-
+      {{ [openxpki_data_mount ~ '/keys', openxpki_data_mount ~ '/identity',
+          openxpki_data_mount ~ '/public', migration_old_release, migration_new_release] }}
+    recurse: true
+    hidden: true
+    file_type: any
+    follow: false
+  register: migration_state_files
+  no_log: true
+
+- name: Refuse linked custody or publication state
+  ansible.builtin.assert:
+    that: item.isdir | default(false) or item.isreg | default(false)
+  loop: "{{ migration_state_files.files }}"
+  no_log: true
+
+- name: Fingerprint unchanged custody schema and rendered connections
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+    checksum_algorithm: sha256
+  loop: >-
+    {{ migration_state_files.files | selectattr('isreg') | map(attribute='path') | list
+       + [openxpki_data_mount ~ '/schema-initialized', migration_directory ~ '/old-configuration.tar.gz',
+          migration_directory ~ '/old-hsm-provider.conf'] }}
+  register: migration_state_checks
+  no_log: true
+
+- name: Require complete regular persistent state
+  ansible.builtin.assert:
+    that: item.stat.isreg | default(false) and not item.stat.islnk | default(false)
+  loop: "{{ migration_state_checks.results }}"
+  no_log: true
+
+- name: Dump frozen history without timestamp comments
+  ansible.mariadb.mariadb_db:
+    name: openxpki
+    state: dump
+    target: "{{ migration_directory }}/current-database.sql"
+    login_unix_socket: /run/mysqld/mysqld.sock
+    config_file: ""
+    single_transaction: true
+    hex_blob: true
+    dump_extra_args: --skip-comments --skip-dump-date --order-by-primary
+
+- name: Fingerprint the complete frozen database
+  ansible.builtin.stat:
+    path: "{{ migration_directory }}/current-database.sql"
+    checksum_algorithm: sha256
+  register: migration_database_checksum
+
+- name: Retain the frozen history and custody identity
+  ansible.builtin.set_fact:
+    migration_state:
+      database_sha256: "{{ migration_database_checksum.stat.checksum }}"
+      custody: "{{ dict(migration_state_checks.results | map(attribute='item') | zip(migration_state_checks.results | map(attribute='stat.checksum'))) }}"
+  no_log: true

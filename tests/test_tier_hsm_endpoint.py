@@ -16,7 +16,7 @@ class HSMEndpoint(TierRepositoryTestCase):
         design = (UPSTREAM / "docs/01-architecture/08-cryptography/04-usb-hsm.md").read_text()
         for phrase in ("E1: Client failover", "E2: Private VIP", "E3: Private VIP and proxies",
                        "p11-kit", "restricted SSH", "YubiHSM 2", "PicoHSM", "public-key fingerprints",
-                       "default Shamir", "does not make backups interchangeable", "No implicit product migration"):
+                       "Vault starts with Shamir", "does not make backups interchangeable", "No implicit product migration"):
             self.assertIn(phrase, design)
         deployment = (UPSTREAM / "docs/03-deployment/stage-02-trust/step-1b-usb-hsm.md").read_text()
         self.assertIn("scripts/deploy.sh hsm", deployment)

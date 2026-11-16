@@ -1,0 +1,5 @@
+[Unit]
+ConditionPathExists=!{{ openxpki_data_mount }}/pkcs11-migration-inhibit
+{% if item != 'openxpki-serverd.service' %}
+ConditionPathExists=!{{ openxpki_data_mount }}/pkcs11-migration-traffic-inhibit
+{% endif %}

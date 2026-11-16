@@ -28,8 +28,8 @@ options branch from the relevant decision and return to the main path.
 | --- | --- | --- |
 | **1: Software intake** | Configure approved consumers; Tier 2 owns the ordinary proxy/cache | [Software intake](../../03-deployment/stage-01-software-intake/README.md) |
 | **2: Cryptographic trust** | Offline root and online issuer; optional hardware protection and approved Tier 0 consumers of verified intake | [Trust](../../03-deployment/stage-02-trust/README.md) |
-| **3: Protected logging** | Independent collector, protected evidence and offline inspection | [Logging, Steps 1–8](../../03-deployment/stage-03-logging/README.md) |
-| **4: Kubernetes** | Control-cluster lifecycle, basic platform, node/API logging and recovery | [Kubernetes, Steps 1–19](../../03-deployment/stage-04-kubernetes/README.md) |
+| **3: Protected logging** | Independent collector, protected evidence and offline inspection | [Logging](../../03-deployment/stage-03-logging/README.md) |
+| **4: Kubernetes** | Control-cluster lifecycle, basic platform, node/API logging and recovery | [Kubernetes](../../03-deployment/stage-04-kubernetes/README.md) |
 | **5: Identity** | Dedicated FreeIPA pair and Keycloak/OIDC on the accepted cluster | [Identity](../../03-deployment/stage-05-identity/README.md) |
 | **6: Secrets** | Vault, audit and recovery; supporting NetBox, Headlamp and independent alerts | [Secrets](../../03-deployment/stage-06-secrets/README.md), [monitoring](../../03-deployment/stage-06-secrets/procedures/independent-monitoring.md) |
 | **7: Delivery** | Retain independent Flux/recovery; Tier 1 selects its application controller | [Delivery](../../03-deployment/stage-07-delivery/README.md) |

@@ -1,0 +1,20 @@
+---
+- name: Prepare the portal TLS request on the protected controller
+  hosts: issuing_ca
+  gather_facts: false
+  pre_tasks:
+    - name: Require the single connected issuer inventory
+      ansible.builtin.assert:
+        that:
+          - groups.get('issuing_ca', []) | length == 1
+          - groups.get('issuing_ca', []) | intersect(groups.get('root_ca', [])) | length == 0
+          - groups.get('issuing_ca', []) | intersect(groups.get('identity', [])) | length == 0
+      delegate_to: localhost
+      become: false
+  tasks:
+    - name: Prepare only the public portal request without contacting the issuer
+      ansible.builtin.import_role:
+        name: openxpki
+        tasks_from: portal-request
+      delegate_to: localhost
+      become: false

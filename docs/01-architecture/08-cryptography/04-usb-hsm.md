@@ -166,6 +166,13 @@ compatibility does not prove seal compatibility. Never activate with factory cre
 Two tokens do not form a key cluster. Remoting neither replicates objects nor resumes sessions;
 replicated application state does not back up HSM keys. A single-node learning API provides no HA.
 
+A single local device can be the initial deployment. Preserve its supported wrapped-key recovery
+material from the first ceremony; additional same-family devices retain distinct physical identities.
+Moving the unchanged issuer key to a pool changes provider access, not CA authority or history.
+The [growth procedure](../../05-operations/03-cryptography/usb-hsm.md#single-device-to-pool) owns that
+transition; [Stage 6](../../03-deployment/stage-06-secrets/step-1c-seal-integration.md#review-single-device-growth-before-adding-consumers)
+revisits it before additional consumers, independently of the secret service's seal choice.
+
 ## Implementation
 
 Stage 2 provisions hosts and native USB attachment through the owning Terraform root.

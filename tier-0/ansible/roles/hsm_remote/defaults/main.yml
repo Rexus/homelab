@@ -7,6 +7,8 @@ hsm_remote_family: ""
 hsm_remote_expected_spki_sha256: ""
 hsm_remote_key_id: ""
 hsm_remote_backends: {}
+# Temporary two-board upgrade: one new remote endpoint while the original stays issuer-local.
+hsm_remote_single_backend_transition: false
 hsm_remote_clients: {}
 hsm_remote_account: hsmrpc
 hsm_remote_port: 2222

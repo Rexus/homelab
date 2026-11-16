@@ -1,6 +1,6 @@
 # Receiver storage and runtime
 
-For a first deployment, follow [Stage 3, Steps 1–8](../README.md#installation-order).
+For a first deployment, follow [Stage 3's complete installation route](../README.md#installation-order).
 This reference covers existing-volume adoption, storage records and receiver diagnosis.
 Storage prepared by the main guide is reused automatically during receiver installation.
 

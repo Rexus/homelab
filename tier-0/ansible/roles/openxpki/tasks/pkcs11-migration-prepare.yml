@@ -1,0 +1,222 @@
+---
+- name: Require independent encrypted recovery custody
+  ansible.builtin.assert:
+    that:
+      - openxpki_backup_recipient is match('^age1[a-z0-9]+$')
+      - openxpki_token_alias is match('^[A-Za-z0-9_-]+$')
+
+- name: Inspect the protected controller recovery parent
+  ansible.builtin.stat:
+    path: "{{ openxpki_pkcs11_migration_backup_dest | dirname }}"
+    follow: false
+  delegate_to: localhost
+  become: false
+  register: migration_backup_parent
+
+- name: Inspect the new controller recovery destination without following links
+  ansible.builtin.stat:
+    path: "{{ openxpki_pkcs11_migration_backup_dest }}"
+    follow: false
+  delegate_to: localhost
+  become: false
+  register: migration_backup_destination
+
+- name: Refuse overwriting recovery custody or exposing it through an unprotected parent
+  ansible.builtin.assert:
+    that:
+      - migration_backup_parent.stat.isdir | default(false)
+      - not migration_backup_parent.stat.islnk | default(false)
+      - migration_backup_parent.stat.mode == '0700'
+      - not migration_backup_destination.stat.exists
+      - not migration_backup_destination.stat.islnk | default(false)
+
+- name: Verify the reviewed new controller artifact
+  ansible.builtin.stat:
+    path: "{{ openxpki_pkcs11_migration_new_src }}"
+    follow: false
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  register: migration_new_artifact
+
+- name: Refuse unapproved new bytes
+  ansible.builtin.assert:
+    that:
+      - migration_new_artifact.stat.isreg | default(false)
+      - not migration_new_artifact.stat.islnk | default(false)
+      - migration_new_artifact.stat.checksum == openxpki_pkcs11_migration_new_sha256
+
+- name: Restrict the bundle change to the existing signer locator and native engine
+  ansible.builtin.command:
+    argv: ["{{ ansible_playbook_python }}", "{{ role_path }}/files/pkcs11-migration-bundle.py",
+           --old, "{{ migration_old_src }}", --new, "{{ openxpki_pkcs11_migration_new_src }}",
+           --realm, "{{ openxpki_realm }}", --key, "{{ hsm_issuer_key }}",
+           --library, "{{ hsm_provider_library }}", --engine, "{{ hsm_issuer_engine_library }}"]
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  register: migration_bundle_validation
+  no_log: true
+
+- name: Verify the installed immutable files against their original artifact
+  ansible.builtin.stat:
+    path: "{{ migration_old_release }}/{{ item.key }}"
+    follow: false
+    checksum_algorithm: sha256
+  loop: "{{ migration_bundle_validation.stdout | from_json | dict2items }}"
+  register: migration_installed_files
+  no_log: true
+
+- name: Refuse installed policy or secret drift
+  ansible.builtin.assert:
+    that:
+      - item.stat.isreg | default(false)
+      - not item.stat.islnk | default(false)
+      - item.stat.checksum == item.item.value
+  loop: "{{ migration_installed_files.results }}"
+  no_log: true
+
+- name: Claim this one-time migration directory without overwriting a previous attempt
+  ansible.builtin.command:
+    argv: [mkdir, -m, '0750', "{{ migration_directory }}"]
+  changed_when: true
+
+- name: Permit the service account to traverse only the migration probe workspace
+  ansible.builtin.file:
+    path: "{{ migration_directory }}"
+    owner: root
+    group: openxpki
+    mode: '0750'
+
+- name: Retain the original configuration and hardware environment
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ migration_directory }}/{{ item.dest }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: '0600'
+  loop:
+    - {src: "{{ openxpki_data_mount }}/configuration.tar.gz", dest: old-configuration.tar.gz}
+    - {src: /etc/systemd/system/openxpki-serverd.service.d/hsm-provider.conf, dest: old-hsm-provider.conf}
+
+- name: Record the recoverable unchanged binding before any service pause
+  ansible.builtin.set_fact:
+    migration_record:
+      phase: preparing
+      old_binding: "{{ migration_current_binding }}"
+      new_binding: "{{ migration_current_binding | combine({'configuration_sha256': openxpki_pkcs11_migration_new_sha256}) }}"
+      spki_sha256: "{{ openxpki_pkcs11_migration_spki_sha256 }}"
+      issuer_fingerprint: "{{ openxpki_issuer_fingerprint }}"
+      key: "{{ hsm_issuer_key }}"
+      library: "{{ hsm_provider_library }}"
+      engine: "{{ hsm_issuer_engine_library }}"
+      old_hashes: "{{ migration_bundle_validation.stdout | from_json }}"
+  no_log: true
+
+- name: Fingerprint retained old rendered connections and provider environment
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+    checksum_algorithm: sha256
+  loop:
+    - "{{ migration_old_release }}/config.d/system/database.yaml"
+    - "{{ migration_old_release }}/client.d/service/webui/default.yaml"
+    - "{{ migration_directory }}/old-hsm-provider.conf"
+    - "{{ migration_directory }}/old-configuration.tar.gz"
+    - "{{ openxpki_data_mount }}/schema-initialized"
+  register: migration_old_custody
+  no_log: true
+
+- name: Require complete original connection and environment custody
+  ansible.builtin.assert:
+    that: item.stat.isreg | default(false) and not item.stat.islnk | default(false)
+  loop: "{{ migration_old_custody.results }}"
+  no_log: true
+
+- name: Retain pre-pause rollback digests even if later preparation fails
+  ansible.builtin.set_fact:
+    migration_record: >-
+      {{ migration_record | combine({'old_custody': dict(migration_old_custody.results
+         | map(attribute='item') | zip(migration_old_custody.results | map(attribute='stat.checksum')))}) }}
+  no_log: true
+
+- name: Persist the initial transaction record
+  ansible.builtin.copy:
+    content: "{{ migration_record | to_nice_json }}\n"
+    dest: "{{ migration_directory }}/transaction.json"
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+
+- name: Stage the new release without changing active configuration
+  ansible.builtin.file:
+    path: "{{ migration_new_release }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Extract only the previously validated safe bundle
+  ansible.builtin.unarchive:
+    src: "{{ openxpki_pkcs11_migration_new_src }}"
+    dest: "{{ migration_new_release }}"
+    owner: root
+    group: root
+  no_log: true
+
+- name: Preserve the two installed connection files byte for byte
+  ansible.builtin.copy:
+    src: "{{ migration_old_release }}/{{ item.path }}"
+    dest: "{{ migration_new_release }}/{{ item.path }}"
+    remote_src: true
+    owner: root
+    group: "{{ item.group }}"
+    mode: '0640'
+  loop:
+    - {path: config.d/system/database.yaml, group: openxpki}
+    - {path: client.d/service/webui/default.yaml, group: openxpkiclient}
+  no_log: true
+
+- name: Apply existing native service-group permissions to the staged configuration
+  ansible.builtin.file:
+    path: "{{ migration_new_release }}/{{ item.path }}"
+    state: directory
+    recurse: true
+    owner: root
+    group: "{{ item.group }}"
+    mode: u=rwX,g=rX,o=
+  loop:
+    - {path: config.d, group: openxpki}
+    - {path: client.d, group: openxpkiclient}
+
+- name: Create only the writable public-signature output for the application probe
+  ansible.builtin.copy:
+    content: ''
+    dest: "{{ migration_directory }}/provider-probe.sig"
+    owner: openxpki
+    group: openxpki
+    mode: '0600'
+
+- name: Qualify the staged provider as the issuer service identity
+  ansible.builtin.include_tasks: pkcs11-migration-provider.yml
+  vars:
+    migration_target_release: "{{ migration_new_release }}"
+
+- name: Verify staged native configuration without starting it
+  ansible.builtin.command:
+    argv: [oxi, config, verify, --config, "{{ migration_new_release }}/config.d"]
+  changed_when: false
+  no_log: true
+
+- name: Mark the fully validated staged release without touching the original receipt
+  ansible.builtin.copy:
+    content: "{{ openxpki_pkcs11_migration_new_sha256 }}\n"
+    dest: "{{ migration_new_release }}/.extracted"
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Capture the frozen independently recoverable original deployment
+  ansible.builtin.include_tasks: pkcs11-migration-backup.yml

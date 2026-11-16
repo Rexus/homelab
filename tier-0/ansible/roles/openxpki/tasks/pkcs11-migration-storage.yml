@@ -1,0 +1,46 @@
+---
+# Reuse native mount/alias checks; the ceremony validates its two exact bindings separately.
+- name: Inspect original mount and boot declarations without preparing storage
+  ansible.builtin.import_tasks: storage-inspect.yml
+
+- name: Resolve the original persistent filesystem pin
+  ansible.builtin.set_fact:
+    migration_data_uuid: >-
+      {{ openxpki_data_uuid if openxpki_data_uuid | length > 0 else
+         (openxpki_data_fstab | map(attribute='source') | first | default('') | regex_replace('^UUID=', '')) }}
+
+- name: Require the original mounted issuer volume and live database bind
+  ansible.builtin.assert:
+    that:
+      - openxpki_volume_mounts | length == 1
+      - openxpki_mysql_mounts | length == 1
+      - openxpki_data_fstab | length == 1
+      - openxpki_mysql_fstab | length == 1
+      - migration_data_uuid is match('^[A-Fa-f0-9-]{16,64}$')
+      - openxpki_volume_mounts[0].uuid == migration_data_uuid
+      - openxpki_mysql_mounts[0].uuid == migration_data_uuid
+      - openxpki_volume_mounts[0].fsroot == '/'
+      - openxpki_mysql_mounts[0].fsroot == '/mysql'
+      - openxpki_volume_mounts[0].fstype == openxpki_data_fstype
+      - openxpki_data_fstab[0].source in ['UUID=' ~ migration_data_uuid, openxpki_data_device]
+      - openxpki_data_fstab[0].fstype == openxpki_data_fstype
+      - "'rw' in openxpki_volume_mounts[0].options.split(',')"
+      - "['rw', 'nodev', 'nosuid', 'noexec'] | difference(openxpki_mysql_mounts[0].options.split(',')) | length == 0"
+    fail_msg: Recover the original volume and database bind before migration; this ceremony never mounts or formats storage.
+
+- name: Refuse linked release and custody directory roots
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  loop:
+    - "{{ openxpki_data_mount }}"
+    - "{{ openxpki_data_mount }}/configuration"
+    - "{{ migration_old_release }}"
+    - "{{ openxpki_data_mount }}/keys"
+    - "{{ openxpki_data_mount }}/identity"
+  register: migration_storage_paths
+
+- name: Require original regular custody directories
+  ansible.builtin.assert:
+    that: item.stat.isdir | default(false) and not item.stat.islnk | default(false)
+  loop: "{{ migration_storage_paths.results }}"

@@ -57,6 +57,8 @@ Existing hosts are registered here; they are not created or imported into Terraf
 
 | Task | Procedure |
 | --- | --- |
+| Close a deployment stage or commission retained guests | [Guest hardening and commissioning](guest-hardening.md) |
+| Patch Proxmox/Linux/Talos, resize guests or replace hardware | [Common maintenance procedures](maintenance.md) |
 | Configure host failover, VM separation or planned migration | [Proxmox HA operations](proxmox-ha.md) |
 | Change a VMID while keeping its MAC and network settings | [Full-clone VMID cutover](change-vmid.md) |
 | Change host SSH, time, audit or firewall settings | [Linux security setup](linux-security.md), [security operations](host-security.md) |

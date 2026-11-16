@@ -34,7 +34,7 @@ Choose the device-specific preparation, then use the shared VM/provider steps be
 
 | Device | Prepare before attaching it to the issuer |
 | --- | --- |
-| **YubiHSM 2** | Approved SDK, changed authentication credentials, existing issuer key and tested vendor wrapping/recovery custody [4][6] |
+| **YubiHSM 2** | Complete the [first-key recovery choices](#yubihsm-first-key-recovery-choices) below before creating the issuer key; retain the original wrapped objects and wrap key [4][6] |
 | **PicoHSM, blank board** | Complete [firmware, DKEK, initial key and wrapped backup](procedures/picohsm.md); return here with its serial, key ID and public fingerprint |
 | **PicoHSM, existing key or additional board** | Preserve the original key; use [wrapped-key restoration](../../05-operations/03-cryptography/picohsm-replica.md) for an additional device |
 
@@ -61,6 +61,39 @@ CMAC/key-derivation features have PKCS#11 module limitations. Do not infer AES-G
 seal mechanism from this RSA/ECDSA issuer path; qualify the precise consumer and module. [5]
 YubiHSM wrapped backups and PicoHSM DKEK backups are not interchangeable. A same-key pool uses
 two qualified devices from one family; the other family can serve a different key domain.
+
+### YubiHSM first-key recovery choices
+
+Run this physical commissioning on the protected ceremony host with only the intended device
+available, using the approved SDK's native shell and the vendor backup procedure. Do this **before
+the original production key is created**, even if only one device is available now. [6][9]
+
+1. Record firmware/SDK, device serial and PKCS#11 serial separately. Replace/delete the factory
+   administrator credential after testing its replacement. Create a signing-only application
+   authentication key in the issuer's selected domain; retain separate administrative/backup custody.
+2. For a future same-key replica, create the original asymmetric issuer key with its required signing
+   capabilities **and `exportable-under-wrap`**. For example, an ECDSA issuer needs `sign-ecdsa` plus
+   `exportable-under-wrap`. Keep the signing credential free of backup, import, deletion and key-generation
+   privileges. Do not assume these object capabilities can be added to an existing key later. [9][10]
+3. Provision a retained wrap key under independent protected custody. For the vendor's symmetric
+   backup route, the destination must later receive the **same wrap-key material**. Give the backup
+   wrap object `export-wrapped`/`import-wrapped`, the required object domains and delegated capabilities
+   covering the original objects. The backup operator's authentication key also needs the matching
+   permissions/domains. A wrap key generated only inside a lost device is not an independent backup. [6]
+4. Export the approved original issuer object with native `get-wrapped`. Retain its object type/ID,
+   label, algorithm, domains/capabilities, public SPKI/fingerprint and any PKCS#11 metadata objects needed
+   by the selected SDK. Back up required authentication objects or document tested independent
+   reprovisioning; do not clone administrator credentials into an online signing role. [6][11]
+5. Rehearse native `put-wrap-key`/`put-wrapped` on an isolated compatible recovery device and require
+   the original public fingerprint, signing and denied-operation tests. Keep the original wrap material,
+   wrapped objects and recovery credentials outside the controller and independently recoverable.
+   With no recovery device, record that qualification remains outstanding; do not assert readiness.
+
+This permits **vendor-wrapped backup only**, not plaintext private-key export to the controller.
+Yubico maps PKCS#11 `CKA_EXTRACTABLE` to wrapped-export permission; do not force a generic
+`CKA_EXTRACTABLE=false` policy and also promise later replication. If policy forbids even wrapped
+export, retain that restriction and plan a new-key issuer rollover when the sole device is lost or
+capacity changes. A lost original wrap key/blob cannot be replaced by generating another. [6][11]
 
 An offline root stays on its offline ceremony host. The connected issuer playbook excludes
 `root_ca`; do not bring offline root custody online.
@@ -89,6 +122,10 @@ usb_devices      = [{ mapping = "ca-1-token" }]
 Each entry accepts exactly one approved `host`
 bus-port/ID or existing Proxmox `mapping`, with optional `usb3`. [1] The module, normalized guest
 inputs and foundation root all forward that field to the native VM resource.
+
+For the routine provisioning token, use `mapping` and complete its
+[scoped mapping permission](../foundation/proxmox/api-access.md#usb-mapping-access) before apply.
+The mapping must exist and identify the intended physical device on that node.
 
 Retain the original issuer VMID, template, disks, inventory and state. Use an existing approved
 device mapping or physical port and complete the selected
@@ -162,6 +199,29 @@ It installs middleware/CCID support and prints public reader/token inventory as 
 changing keys or granting application access. Copy that exact reader name into the field above.
 The normal binding below then verifies access as `openxpki`. Retain YubiHSM's separate connector
 settings when selecting that profile instead.
+
+For **YubiHSM on that Debian issuer**, select its approved SDK packages from the configured package
+source and replace the device fields in **`ansible/group_vars/hsm.yml`** with:
+
+```yaml
+hsm_provider: yubihsm2
+hsm_provider_mode: usb
+hsm_provider_packages: [yubihsm-connector, yubihsm-pkcs11, libengine-pkcs11-openssl]
+hsm_provider_library: /usr/lib/x86_64-linux-gnu/pkcs11/yubihsm_pkcs11.so
+hsm_provider_expected_serial: "COPY_THE_PKCS11_TOKEN_SERIAL"
+hsm_yubihsm_serial: "COPY_THE_PHYSICAL_DEVICE_SERIAL"
+hsm_provider_user: openxpki
+hsm_provider_group: openxpki
+hsm_issuer_engine_library: /usr/lib/x86_64-linux-gnu/engines-3/pkcs11.so
+hsm_issuer_key: "pkcs11:serial=COPY_THE_PKCS11_TOKEN_SERIAL;id=%00%01;type=private"
+hsm_issuer_create_csr: false
+```
+
+Verify package/library paths against the accepted SDK. The URI example assumes the module reports
+key ID `0001`; percent-encode the **actual CKA_ID bytes**, retaining leading zero bytes when reported.
+The signing key ID, application authentication-key ID and physical/PKCS#11 serials are separate
+identities. Retrieve the original key's ID/public fingerprint from commissioning, and use its
+least-privilege authentication login, not an administrator or wrap credential. [4][9][11]
 
 For PicoHSM, the role installs a native Polkit rule granting only declared service users PC/SC
 context access and access to the exact selected readers. It does not disable PC/SC authorization.
@@ -281,7 +341,7 @@ just to add capacity; device replication and CA/database replication are separat
 
 ## References
 
-Sources checked 2026-11-11.
+Sources checked 2026-11-16; device commissioning and restoration require physical qualification.
 
 1. [bpg native USB attachment](https://github.com/bpg/terraform-provider-proxmox/blob/main/docs/resources/virtual_environment_vm.md)
 2. [OpenXPKI PKCS#11 engine and key identifier contract](https://github.com/openxpki/openxpki/blob/master/core/server/OpenXPKI/Crypto/Backend/OpenSSL/Engine/PKCS11.pm)
@@ -291,3 +351,6 @@ Sources checked 2026-11-11.
 6. [YubiHSM wrapped backup requirements](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-backup-restore.html)
 7. [PicoHSM DKEK backup and restore](https://docs.picokeys.com/picohsm/backup-restore/)
 8. [PC/SC maintainer's native Polkit authorization guidance](https://blog.apdu.fr/posts/2023/11/pcsc-lite-and-polkit/)
+9. [YubiHSM domains, object capabilities and separate operator/backup roles](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-intro-access-control.html)
+10. [YubiHSM immutable object properties](https://developers.yubico.com/YubiHSM2/Releases/Known_issues.html)
+11. [YubiHSM PKCS#11 attribute mapping and metadata objects](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-tools-pkcs11.html)

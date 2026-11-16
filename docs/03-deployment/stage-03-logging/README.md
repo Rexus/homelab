@@ -38,6 +38,7 @@ explicit interfaces; [coverage and live acceptance](../../08-reference/implement
 6. [Select receiver topology](#step-6-select-receiver-topology).
 7. [Protect retained records](#step-7-protect-retained-records).
 8. [Record recovery and completion](#step-8-record-recovery-and-completion).
+9. [Secure the logging deployment](#step-9-secure-the-logging-deployment).
 
 
 <a id="1-provision-the-bootstrap-receiver"></a>
@@ -354,7 +355,16 @@ Keep early local logs until their forwarding and retained copies are verified.
 
 Update the architecture repository's [deployment checklist](../readiness.md)
 and record source coverage, retention/access policy, monitoring gaps and measured recovery limits.
-Continue to [Stage 4: Kubernetes](../stage-04-kubernetes/README.md).
+Complete Step 9 before continuing to Stage 4.
+
+## Step 9: Secure the logging deployment
+
+Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for
+receivers and selected archive/investigation hosts. Verify peer-name enforcement, producer-scoped
+access, retention protections and independent certificate/queue/data recovery. Keep pinned data-volume
+UUIDs and receipt custody in the operating record. Apply selected boot protection through its qualified
+OS/image procedure, then repeat the logging drill after any reboot or storage change.
+Record acceptance and continue to [Stage 4: Kubernetes](../stage-04-kubernetes/README.md).
 
 ## Maintain and extend
 

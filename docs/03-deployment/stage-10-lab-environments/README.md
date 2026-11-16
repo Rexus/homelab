@@ -98,7 +98,7 @@ these definitions, inventory or state into Tier 0 or Shared.
 
 ## Main path
 
-Follow Steps 1-7. Select only the runtimes and application options needed for this environment.
+Follow Steps 1-8. Select only the runtimes and application options needed for this environment.
 
 | Step | Path or option | Continue when |
 | --- | --- | --- |
@@ -111,7 +111,8 @@ Follow Steps 1-7. Select only the runtimes and application options needed for th
 | 4a / 4b | Keep private, or add [public HTTPS](step-4b-public-https.md); use the existing edge pool or provision it first | Return to 5 after website acceptance |
 | 5a / 5b | Protected OS/audit forwarding, and optional [instrumented application collection](step-5b-telemetry.md) | Verify selected source-to-query delivery; go to 6 |
 | 6 | Update, rollback and recovery rehearsal | 7 |
-| 7 | Record ownership and accepted options | Ongoing operations |
+| 7 | Record ownership and accepted options | 8 |
+| [8](#step-8-secure-the-workload-deployment) | Secure the selected runtime and close commissioning access | Ongoing operations |
 
 ## Step 1: Define the approved request
 
@@ -429,6 +430,14 @@ Record the runtime, application, exposure and collection choices in
 **`<prefix>-architecture/deployments.md`**. Retain separate acceptance evidence, named resource/state
 owners and independent recovery. Hand recurring tasks to [lab operations](../../05-operations/01-hosting/kubernetes-and-labs.md).
 Keep lifecycle, credentials and separately authorized custody ceremonies with their existing owners.
+
+## Step 8: Secure the workload deployment
+
+Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for
+the selected VM/container/cluster runtime and application. Verify tenant isolation, selected exposure,
+scoped credentials, denied unapproved access and recovery for any retained state. Record the chosen
+boot/image profile and resource owner; disposable workloads remain explicitly disposable rather than
+becoming permanent merely because a stage completed. Close temporary access before the final handoff.
 
 ## Capability available
 

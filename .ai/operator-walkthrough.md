@@ -1,6 +1,6 @@
 # Operator walkthrough checklist
 
-Guide sequences rechecked 2026-11-15 against the current worktree, from the
+Guide sequences rechecked 2026-11-16 against the current worktree, from the
 perspective of a software engineer with newly installed servers and UniFi switches.
 This is the maintainer's working checklist, not generated
 project documentation or a claim of production readiness.
@@ -18,6 +18,73 @@ Validation: 75 distinct focused regression checks passed, with targeted navigati
 the final correction; 576 Bash blocks passed syntax checks. Original Markdown anchors were retained.
 
 ## Current source consistency review
+
+### Trust preparation, stage commissioning and operating commands, 2026-11-16
+
+Reviewed Stage 2's inactive-runtime preparation through first issuance, recovery and portal TLS.
+Separate native recipes now prepare the approved signed APT repository and report package
+candidates before installation, and create a portal CSR using the existing controller-held key.
+The final trust action replaces the temporary portal certificate through the existing approval
+and runtime paths. The data-volume UUID handoff is explicit. These operations neither initialize
+another CA nor change the original issuer key, certificate, schema or credential binding.
+
+Foundation and all ten stages end with a numbered securing/commissioning checkpoint, included
+in their opening route. It verifies selected controls and independently recoverable state without
+requiring a later stage. The common guest-hardening guide separates observed Secure Boot, vTPM,
+encryption and availability. The maintenance guide covers input changes, package/image upgrades,
+reboot and capacity handling for Proxmox, EL/Debian and Talos. Generic VM adoption now preserves
+existing TPM state in all three tiers; the modules still expose no complete per-guest TPM creation
+or signed Talos media/enrollment lifecycle.
+
+Operations links a compact command/configuration index beside its README. It covers registered
+Linux setups, dedicated template/Kubernetes/CI roots, native recipes and selected options using
+the actual owning inputs and complete commands. Custodial operations retain their own procedures.
+
+Native Ansible 2.16 checks passed for repository refusal/candidate completeness, CSR generation
+and second-run idempotence, unchanged portal key/public identity, runtime guards and syntax.
+The stage-navigation/command checks passed, including all command-sheet Bash fences and
+source/generated guide links. A native Terraform/BPG provider plan passed across all three VM
+modules, preserving imported TPM/boot identity while retaining managed CPU/disk/network changes.
+Logs: `.tmp/trust-preparation-checks-20261116.log`, `.tmp/trust-preparation-final-20261116.log`,
+`.tmp/trust-journeys-checks-20261116.log` and `.tmp/trust-command-handoff-20261116.log`.
+The provider-plan run used Terraform 1.14.8 / BPG 0.112.0; its output is in the agent transcript.
+
+The HSM review corrected middleware/engine symlink inspection and made first-key wrapped recovery,
+same-family replicas, serial selection and the Vault seal boundary explicit. The two-board growth
+route keeps the original issuer-local device through a single-remote-endpoint cutover, then frees
+it for the second provider. Stage 6 revisits that choice before adding consumers. This is not a
+transparent consumer failover or a Community Vault hardware seal.
+
+An explicit same-key OpenXPKI migration now constrains the bundle revision, proves the existing
+key, freezes current history, publishes independent encrypted recovery and changes only the reviewed
+provider binding. Native transaction fixtures passed prepare/apply, changed-secret/history refusal,
+failed-start inhibition and rollback retaining later history; ordinary reconciliation stays strict.
+HSM/database/systemd boundaries are doubled there, with real file operations, OpenSSL and age custody.
+A separate disposable native systemd timer/service admission check passed. Both endpoint checks
+also passed under the bounded Ansible 2.16 runtime in `.tmp/trust-hsm-endpoint-bounded-20261116.log`.
+Backend resume is an explicit accepted commit boundary: background work may write before the later
+portal/timer admission checks. Failure recovery always retains that latest history.
+
+The final migration follow-up passed concurrent-file/directory backup-publication refusal, tampered
+old connection/environment custody, unchanged key proof and latest-history rollback. Native timer
+admission used disposable systemd units and cleaned them afterward. Exact selectors/evidence are in
+`.tmp/hsm-migration-validation-20261116.txt`, `.tmp/hsm-migration-focused-20261116.log` and
+`.tmp/hsm-migration-native-timer-20261116.log`. The broader HSM audit's stale wording failure was
+corrected; its collection-version failure passed under the bounded runtime in the final integration run.
+
+The missing scoped USB-mapping permission was verified against the upstream Qemu permission checks.
+Foundation API setup now supplies optional exact-path `Mapping.Use` grants for group and separated-token
+access, linked before both USB attachment routes. Raw physical host selectors remain outside the normal
+token's supported path. This was a source/command review, not a live Proxmox permission exercise.
+
+Final integration: ten checks passed for bounded-runtime HSM inspection, exact generated payloads,
+source/generated links, public guide reachability, stage closeout routes and command-sheet contracts.
+Final parsing passed 218 Python files, 835 YAML inputs, 29 shell files and 884 Bash blocks.
+Logs: `.tmp/trust-final-integration-20261116.log` and `.tmp/trust-final-syntax-20261116.log`.
+
+No physical HSM, live CA approval/issuance, Proxmox boot conversion, TPM unlock, Talos signed
+upgrade or independent hardware recovery was exercised. Those remain operational acceptance,
+not implied by the checkpoint or source tests.
 
 ### Template runtime PyPI policy gap, 2026-11-15
 

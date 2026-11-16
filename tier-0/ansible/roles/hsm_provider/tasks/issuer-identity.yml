@@ -16,6 +16,7 @@
 - name: Inspect the installed OpenSSL PKCS11 engine
   ansible.builtin.stat:
     path: "{{ hsm_issuer_engine_library }}"
+    follow: true
   register: hsm_issuer_engine_state
 
 - name: Require the separately selected engine package

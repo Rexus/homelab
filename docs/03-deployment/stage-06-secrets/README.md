@@ -49,7 +49,7 @@ This stage integrates secret-service and operator access with that provider.
 
 ## Installation route
 
-Follow actions 1-22. Choose one Vault placement; later actions reuse that accepted service and the
+Follow actions 1-23. Choose one Vault placement; later actions reuse that accepted service and the
 existing identity/cluster inputs. The signing service is an optional independent deployment.
 
 | Actions / choice | Result |
@@ -61,6 +61,7 @@ existing identity/cluster inputs. The signing service is an optional independent
 | [12](#step-12-prepare-the-independent-monitoring-host) | Managed monitor or accepted independent host, outside observed clusters |
 | [13-19](#step-13-configure-netbox-and-its-private-inputs) | NetBox, its backup/audit integrations, then Headlamp |
 | [20-22](#step-20-install-independent-monitoring-and-alerts) | Independent monitoring, access/recovery acceptance and records |
+| [23](#step-23-secure-the-secrets-deployment) | Commissioning access closed; boot and recovery choices verified |
 
 <a id="step-1-deploy-the-secret-service"></a>
 <a id="step-2-deploy-operational-services"></a>
@@ -71,6 +72,10 @@ Use the [runtime figure](#figure-control-applications) to select **1a: Kubernete
 [**1b: dedicated Vault VM**](step-1b-vault-vm.md). Install only one. The VM option includes its own
 TLS, installation, ceremony and native API configuration; after that path rejoin at **action 9**.
 Actions 2-8 below are the Kubernetes realization only.
+
+If Stage 2 used one USB device, review [retaining local custody or expanding to a provider pool](step-1c-seal-integration.md#review-single-device-growth-before-adding-consumers)
+now, before adding consumers. Preserve the issuer's original signing identity; a pool and Vault's
+seal are separate decisions. The default Shamir installation needs no HSM pool.
 
 The main seal is Shamir. If selecting [**1c: seal integration**](step-1c-seal-integration.md), qualify and
 configure its provider/recovery dependency **before initializing either placement**. It is not a post-install
@@ -419,7 +424,15 @@ checks with IdP, Vault or Tier 1 services unavailable; record actual results rat
 
 Record Vault placement/seal, optional signing/authentication, operational tools and backup/restore/alert
 evidence in **`<prefix>-architecture/deployments.md`**. Keep ongoing tasks in the linked product runbooks;
-first installation is complete, so those runbooks need not restart this stage's resource provisioning.
+those runbooks need not restart this stage's resource provisioning. Complete Step 23 before closing it.
+
+## Step 23: Secure the secrets deployment
+
+Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for the
+selected Vault runtime, signing/provider hosts and operational tools. Verify TLS, least-privilege policy,
+audit and independent unseal/recovery before removing bootstrap authority. Preserve the selected seal
+and original Raft state; adding a vTPM or more USB devices does not migrate that seal automatically.
+Retain independent alert access and the accepted boot profile, then record security and recovery evidence.
 
 ## Capability available
 

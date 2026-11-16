@@ -124,7 +124,8 @@ No new guest needs an interactive login for package, disk, mount or service conf
 | 15a / 15b | Keep mutable Linux, or add image-based Linux | 16 |
 | 16-19 | Accept direct-CI trust, create exact Vault authority, install the protected runner and test jobs | 20 |
 | 20 | Transfer original state and enable one protected writer | 21 |
-| 21 | Verify independent recovery and record acceptance | Stage 10 |
+| 21 | Verify independent recovery and record acceptance | 22 |
+| [22](#step-22-secure-the-development-deployment) | Secure runner, state and service access | Stage 10 |
 
 <a id="step-1-deploy-source-control-and-sso"></a>
 <a id="1-select-source-control-placement"></a>
@@ -715,4 +716,12 @@ An empty checkout, successful `init` or two backups is not a tested original-sta
 
 Record selected source-control, runner and image paths plus protected execution in
 **`<prefix>-architecture/deployments.md`**; retain acceptance/recovery evidence separately.
-Continue to [Stage 10: Lab environments](../stage-10-lab-environments/README.md).
+Complete Step 22 before continuing to Stage 10.
+
+## Step 22: Secure the development deployment
+
+Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for
+source control, data services and selected runners. Verify the sole protected infrastructure writer,
+ephemeral job credentials, runner isolation, protected logs and independent original-state recovery.
+Retain the accepted image/boot policy; ordinary build jobs receive no host or Tier 0 administration.
+Record the final controls and continue to [Stage 10: Lab environments](../stage-10-lab-environments/README.md).

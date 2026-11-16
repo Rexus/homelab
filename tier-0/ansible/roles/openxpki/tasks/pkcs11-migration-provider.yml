@@ -1,0 +1,108 @@
+---
+- name: Select rollback identity exclusively from the retained original configuration
+  when: openxpki_pkcs11_migration_operation == 'rollback'
+  block:
+    - name: Read the original signer locator and engine
+      ansible.builtin.slurp:
+        src: "{{ migration_old_release }}/config.d/realm/{{ openxpki_realm }}/crypto.yaml"
+      register: migration_rollback_crypto
+      no_log: true
+
+    - name: Derive the old URI module engine and serial without using pool locators
+      ansible.builtin.set_fact:
+        migration_rollback_signer: "{{ (migration_rollback_crypto.content | b64decode | from_yaml).token['ca-signer'] }}"
+      no_log: true
+
+    - name: Restore the original key identity for native checks
+      ansible.builtin.set_fact:
+        migration_rollback_library: "{{ migration_rollback_signer.engine_section | regex_findall('(?m)^MODULE_PATH\\s*=\\s*(\\S+)\\s*$') | first }}"
+        migration_rollback_engine: "{{ migration_rollback_signer.engine_section | regex_findall('(?m)^dynamic_path\\s*=\\s*(\\S+)\\s*$') | first }}"
+      no_log: true
+
+    - name: Require retained old provider inputs rather than current pool locators
+      ansible.builtin.assert:
+        that:
+          - hsm_issuer_key == migration_rollback_signer.key
+          - hsm_provider_library == migration_rollback_library
+          - hsm_issuer_engine_library == migration_rollback_engine
+          - hsm_issuer_key is search('(?:^pkcs11:|;)serial=' ~ (hsm_provider_expected_serial | string | regex_escape) ~ '(;|$)')
+        fail_msg: Load the retained old provider inputs and restore its attachment before rollback; pool inputs cannot substitute.
+      no_log: true
+
+- name: Keep the existing probe output writable for repeated application-user signatures
+  ansible.builtin.file:
+    path: "{{ migration_directory }}/provider-probe.sig"
+    state: touch
+    owner: openxpki
+    group: openxpki
+    mode: '0600'
+
+- name: Validate the existing target provider without installing or initializing it
+  ansible.builtin.include_role:
+    name: hsm_provider
+    tasks_from: "{{ migration_provider_check }}"
+    public: true
+  loop: [preflight, issuer-identity, inspect, issuer-public-key]
+  loop_control:
+    loop_var: migration_provider_check
+  vars:
+    openxpki_release_dir: "{{ migration_target_release }}"
+
+- name: Require the target hardware key to match the unchanged issuer certificate
+  ansible.builtin.assert:
+    that: hsm_issuer_public_key.stdout | trim == openxpki_issuer_certificate.public_key | trim
+  no_log: true
+
+- name: Compute the target public SPKI fingerprint
+  community.crypto.openssl_publickey_info:
+    content: "{{ hsm_issuer_public_key.stdout }}"
+  register: migration_public_key
+
+- name: Require the independently recorded original SPKI
+  ansible.builtin.assert:
+    that: >-
+      migration_public_key.fingerprints.sha256 | replace(':', '') | lower
+      == openxpki_pkcs11_migration_spki_sha256
+
+- name: Read the protected native signer secret without changing it
+  ansible.builtin.slurp:
+    src: "{{ migration_target_release }}/config.d/system/crypto.yaml"
+  register: migration_system_crypto
+  no_log: true
+
+- name: Require the unchanged native application PIN on the destination
+  ansible.builtin.assert:
+    that: (migration_system_crypto.content | b64decode | from_yaml).secret.default.value == hsm_issuer_pin
+  no_log: true
+
+- name: Write only a public challenge and original public key
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "{{ migration_directory }}/{{ item.name }}"
+    owner: root
+    group: openxpki
+    mode: '0640'
+  loop:
+    - {name: provider-probe.txt, content: "{{ openxpki_deployment_id }} same-key provider acceptance\n"}
+    - {name: provider-public.pem, content: "{{ openxpki_issuer_certificate.public_key }}"}
+
+- name: Sign the challenge through the selected existing private key
+  become: true
+  become_user: openxpki
+  ansible.builtin.command:
+    argv: [openssl, dgst, -engine, pkcs11, -keyform, ENGINE, -sha384,
+           -sign, "{{ hsm_issuer_key }}", -passin, 'env:HSM_ISSUER_PIN',
+           -out, "{{ migration_directory }}/provider-probe.sig", "{{ migration_directory }}/provider-probe.txt"]
+  environment: >-
+    {{ hsm_provider_environment | combine({'OPENSSL_CONF': '/etc/hsm-provider/issuer-openssl.cnf',
+       'HSM_ISSUER_PIN': hsm_issuer_pin},
+       {'YUBIHSM_PKCS11_CONF': '/etc/hsm-provider/yubihsm_pkcs11.conf'}
+       if hsm_provider_driver == 'yubihsm' else {}) }}
+  no_log: true
+  changed_when: false
+
+- name: Verify the actual target signature with the original issuer public key
+  ansible.builtin.command:
+    argv: [openssl, dgst, -sha384, -verify, "{{ migration_directory }}/provider-public.pem",
+           -signature, "{{ migration_directory }}/provider-probe.sig", "{{ migration_directory }}/provider-probe.txt"]
+  changed_when: false

@@ -49,6 +49,7 @@ key/provider work. Offline signing and token activation remain explicit custodia
 | [11-13. Sign, activate and verify issuance](#step-11-sign-the-approved-request-offline) | Root ceremony, public certificate import, native token activation |
 | [14. Accept recovery](#step-14-accept-issuance-and-recovery) | Evidence retained independently |
 | [15a / 15b. Optional integrations](#step-15-select-additional-integrations) | API certificate transition and/or verified publication |
+| [16. Secure the installation](#step-16-secure-the-installation) | Replace bootstrap TLS, close commissioning and retain recovery |
 
 ## Step 1: Prepare issuer and key custody
 
@@ -89,6 +90,9 @@ shows which keys and access boundaries belong to each.
 | **1d: single USB** | [Local YubiHSM 2 or PicoHSM](step-1d-single-usb.md); [commission a blank Pico](procedures/picohsm.md) before binding its original key | Action 10b |
 
 The [local key-custody reference](procedures/local-key-custody.md) explains the software/device boundary.
+Single USB is a valid completed installation. Keep its same-family wrapped-key recovery material
+from commissioning; [Stage 6's provider-growth review](../stage-06-secrets/step-1c-seal-integration.md#review-single-device-growth-before-adding-consumers)
+is the later decision point for adding a provider pool before additional consumers.
 
 For local USB, complete [device commissioning and attachment inputs](step-1d-single-usb.md#1-select-custody-and-preserve-key-identity)
 before action 4. Record the existing key URI and issuer-host middleware paths for the policy builder.
@@ -288,6 +292,34 @@ database bind during action 9; no guest disk-formatting or mounting step is requ
 
 ## Step 8: Prepare runtime credentials and TLS
 
+First obtain the package-source pins. On **the protected controller**, compare the downloaded
+key's SHA256 with the publisher's independently reviewed
+[key record](https://github.com/openxpki/openxpki/blob/master/QUICKSTART.md#preparation):
+
+```bash
+curl --fail --silent --show-error --connect-timeout 5 --max-time 30 \
+  https://packages.openxpki.org/v3/bookworm/Release.key \
+  -o "$HOME/.local/share/pki/openxpki-release.asc"
+sha256sum "$HOME/.local/share/pki/openxpki-release.asc"
+```
+
+Require a match with the approved publisher record, ignoring its display spacing/case. A checksum
+downloaded from the same unreviewed source is not independent approval. Set that 64-character lowercase
+value in **`<prefix>-tier-0/ansible/group_vars/issuer.yml`** as `openxpki_repository_key_sha256`.
+For disconnected execution, inspect the already staged approved key instead of downloading it;
+set `openxpki_repository_uri` and `openxpki_repository_key_url` to the accepted HTTPS mirror from
+Stage 1, retaining the publisher's key identity. The issuer still needs its native Debian package supply.
+Then prepare the signed repository and report candidate versions from **`<prefix>-tier-0/`**:
+
+```bash
+bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki-repository.yml --ansible-vars ansible/group_vars/issuer.yml
+```
+
+**Expected:** `apt-cache policy` output for `libopenxpki-perl`, `openxpki-cgi-session-driver` and
+`openxpki-i18n`. Copy each approved `Candidate:` value into `openxpki_package_versions` under that
+package name; stop on `(none)`. Review compatibility with the policy bundle's configuration/schema
+revision before accepting those pins. This recipe prepares APT, not the CA database or signing identity.
+
 Edit **`<prefix>-tier-0/ansible/group_vars/issuer.yml`**:
 
 | Field | Set |
@@ -332,6 +364,7 @@ bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki.
 
 **Expected:** dedicated UUID-mounted data area, packages, MariaDB, portal and publication endpoint;
 signing daemons remain stopped. Return `openxpki_initialize_database` to `false` immediately after success.
+Retain the reported data-volume UUID in `openxpki_data_uuid` and the independent recovery record.
 Do not initialize again to recover a partial/existing CA.
 
 ## Step 10: Prepare the issuing request
@@ -433,6 +466,10 @@ administrator and public objects from an intended reader. Record evidence and di
 trust material only. Keep the preissued-leaf path explicit; the Community ACME adapter still requires separate
 qualification and is not an installed cert-manager integration.
 
+For initial Stage 2 audit acceptance, inspect and retain the issuer's persistent local CA events and OS
+journal with the independent recovery set. Record central receipt in Stage 3 and independent alerting
+when its Stage 6 monitor is commissioned; the full operating matrix applies as those paths are added.
+
 ## Step 15: Select additional integrations
 
 <a id="3a-adopt-platform-pki-for-proxmox--optional"></a>
@@ -453,6 +490,54 @@ Its Figure 1 introduces the separately deployed Tier 1 worker at this decision p
 quarantine/failure handling and the selected consumers, then return here. This extends Stage 1 supply after
 issued HTTPS identities exist; it does not require Kubernetes, Vault, Harbor or protected network logging.
 Retain its local decision/audit records until Stage 3 enrolls the worker.
+
+## Step 16: Secure the installation
+
+1. Generate the portal TLS request from **`<prefix>-tier-0/`**, with the original
+   `OPENXPKI_TLS_KEY_FILE` still loaded:
+
+   ```bash
+   bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki-portal-request.yml --ansible-vars ansible/group_vars/issuer.yml
+   ```
+
+   **Expected:** `<openxpki_ceremony_directory>/ca-1-portal.csr` on the protected controller.
+   In the portal, submit that CSR under `tls_server` as the requester, then approve with the
+   separate approver account. Download the issued leaf and issuing chain in leaf-first PEM order.
+   Keep the portal key; this is not an issuer/root key ceremony.
+
+2. On **the protected controller**, select that returned full chain:
+
+   ```bash
+   read -r -e -p 'Issued portal full-chain PEM (example /home/automation/.local/share/pki/portal-fullchain.pem): ' OPENXPKI_TLS_CERT_FILE
+   export OPENXPKI_TLS_CERT_FILE
+   ```
+
+   Run **Step 9's command** to install it using the existing key. Verify the portal from an
+   approved client using the accepted root and service name before retiring bootstrap TLS.
+   Preserve the unchanged package/configuration/schema and database-secret binding.
+
+   From **`<prefix>-tier-0/` on an approved portal client**, verify the installed TLS chain using
+   the existing configured name and returned root, without repeating those values:
+
+   ```bash
+   ANSIBLE_CONFIG=ansible/ansible.cfg ansible issuing_ca --playbook-dir ansible \
+     -i ansible/inventory/hosts.yml -c local -e @ansible/group_vars/all.yml \
+     -e @ansible/group_vars/foundation.yml -e @ansible/group_vars/issuer.yml \
+     -m ansible.builtin.uri \
+     -a '{"url":"https://{{ openxpki_portal_fqdn }}/","ca_path":"{{ openxpki_root_certificate_src }}","status_code":[200,302],"follow_redirects":"none"}'
+   ```
+
+   **Expected:** verified HTTPS and HTTP 200 or the portal's 302 redirect. Complete a real
+   requester/approver login too; the TLS check alone does not verify authorization.
+
+3. Complete the [common hardening and maintenance checks](../../05-operations/01-hosting/guest-hardening.md)
+   for `ca-1` and any selected provider/intake hosts. Preserve independent recovery, the hardware
+   key's recovery material when selected, and persistent local audit records pending Stage 3.
+   Close root custody, clear one-time initialization/key-creation flags and retire temporary access.
+   Select boot protection through the supported OS/image path; do not toggle an unsigned image blindly.
+
+Record the accepted security controls and any explicitly deferred boot-protection work in
+**`<prefix>-architecture/deployments.md`** before continuing.
 
 ## Capability available
 

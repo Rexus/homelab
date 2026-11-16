@@ -178,6 +178,11 @@ This example uses **one encrypted DKEK share and one custodian**. The DKEK prote
 it is not the signing key. Use the same original share on later replicas. More custodians require
 selecting that share policy before initialization. [4]
 
+Choose this recovery/replication policy now, before generating the original issuer key. Retain the
+original share material as well as the wrapped key: a new DKEK domain cannot open an old backup.
+Wrapped recovery does not require a plaintext private-key export or relaxing the signing key's
+normal sensitive/non-extractable attributes. Keep DKEK/SO custody separate from application signing.
+
 Run **once**, in the same ceremony shell:
 
 ```bash
@@ -230,7 +235,7 @@ Continue only when the expected share has been imported and none remain pending.
 First list objects. Preserve an existing issuer key and continue at action 10:
 
 ```bash
-pkcs11-tool --module "$PICO_MODULE" --slot "$PICO_SLOT" --list-objects
+pkcs11-tool --module "$PICO_MODULE" --slot "$PICO_SLOT" --login --list-objects
 ```
 
 For a new key, this example selects **ECDSA P-384**, PKCS#11 ID `01`, label `issuer`.
@@ -242,7 +247,9 @@ pkcs11-tool --module "$PICO_MODULE" --slot "$PICO_SLOT" --login \
   --keypairgen --key-type EC:secp384r1 --usage-sign --id 01 --label issuer
 ```
 
-The private key is generated on the board. Never repeat generation to add a replica. [6]
+The private key is generated on the board. Verify its reported ID, signing usage and sensitive/
+non-extractable attributes; the DKEK-wrapped backup is the separate recovery path. Never repeat
+generation to add a replica. [4][6]
 
 ## 10. Record and wrap the original key
 

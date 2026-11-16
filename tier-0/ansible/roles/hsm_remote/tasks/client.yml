@@ -74,6 +74,7 @@
 - name: Require the installed native aggregate PKCS11 library
   ansible.builtin.stat:
     path: "{{ hsm_remote_proxy_library }}"
+    follow: true
   register: hsm_remote_proxy_state
 
 - name: Fail when the configured library does not match the selected OS and CPU

@@ -1,4 +1,4 @@
-# Step 1b: Replicated USB HSM services
+# Step 1b: USB HSM provider pool
 
 **Working repository:** `<prefix>-tier-0` on the protected controller (source: `tier-0/`).
 
@@ -73,6 +73,10 @@ preserve all guests already managed by an existing foundation state.
 **Start small:** one board uses [option 1d](step-1d-single-usb.md). Prepare its retained wrapping
 domain now, then [expand to a provider pool](../../05-operations/03-cryptography/usb-hsm.md#single-device-to-pool)
 when additional devices are available. The original issuer and signing key retain their identities.
+With two boards total, initially select only `hsm-1` for the restored replica and the explicit
+single-backend remoting transition. Keep the original on `ca-1` until guarded cutover, then move it
+to `hsm-2` and accept both endpoints. The [upgrade sequence](../../05-operations/03-cryptography/usb-hsm.md#single-device-to-pool)
+owns this order; the intermediate single remote endpoint provides no provider failover.
 
 **OS selection:** these separate `hsm-1` / `hsm-2` provider hosts can use Rocky/Alma EL10 or a
 qualified Debian provider profile. Only the supplied OpenXPKI **issuer** installer requires
@@ -103,6 +107,14 @@ Physical installation, device initialization, key generation/import/backup cerem
 remain separately authorized operations. Prepare approved package sources through baseline inputs;
 do not log into a new guest to install middleware. The role accepts Debian and RedHat systemd hosts;
 the selected SDK still needs qualification on the exact OS/CPU. The issuer retains its Debian contract.
+
+Choose original-key recovery attributes at first commissioning: the
+[YubiHSM wrap policy](step-1d-single-usb.md#yubihsm-first-key-recovery-choices) or
+[PicoHSM retained DKEK](procedures/picohsm.md#6-create-the-retained-dkek-share).
+Base host installation admits a **reported serial**, not a key fingerprint or replicated domain.
+Complete original-key comparison and sign/verify before admitting a token for application use.
+The optional remoting role below automates SPKI/signing checks for its selected signing domain;
+without it, those checks belong to the qualified native application/custodian procedure.
 
 The optional [native PKCS#11 remoting extension](procedures/pkcs11-remoting.md) supplies restricted
 SSH endpoints, client configuration and original-key sign/verify probes. It requires two same-family
@@ -140,7 +152,11 @@ hosts need matching Terraform, inventory, IP and per-device inputs.
 Each VM's `usb_devices` accepts one `host` bus-port/vendor:product selector or an existing `mapping`
 per attachment, with optional `usb3`. Prefer an approved port or resource mapping when identical
 devices share a host. The physical token and selected Proxmox mapping are existing prerequisites;
-attachment to the VM is automated. Raw host passthrough can require stronger API privileges. [1]
+attachment to the VM is automated. [1]
+
+Use `mapping` with the ordinary provisioning token and grant its
+[exact USB mapping scope](../foundation/proxmox/api-access.md#usb-mapping-access) before apply.
+Raw physical `host` selectors require `root@pam`; the normal scoped token cannot use them.
 
 Keep each mapping restricted to its reviewed physical device/node. Initial placement and a resource
 mapping do not guarantee runtime affinity or copy keys. Complete the selected
@@ -186,10 +202,13 @@ tokens are not a replicated key domain, and the transport does not make an appli
 Record that later option and finish Stage 2's selected provider/remoting checks here;
 the signing API is not a Stage 2 completion dependency.
 
-For a supported provider on the infrastructure issuer, follow the
+For an issuer-local device, follow the
 [single-device issuer binding](step-1d-single-usb.md#3-bind-the-inactive-issuer-to-its-original-key).
-It validates the approved OpenXPKI PKCS#11 signer configuration and uses an existing key for a CSR.
-It does not turn independent issuer/provider hosts into application replicas.
+For a **fresh inactive issuer using the remote pool**, prepare its
+[native client and explicit proxy binding](procedures/pkcs11-remoting.md#fresh-inactive-issuer)
+before its original-key CSR. An existing issuer instead needs the qualified
+[same-key rebind](../../05-operations/03-cryptography/hardware-migration.md#same-key-provider-rebind).
+Neither path turns independent issuer/provider hosts into application replicas.
 
 ### 3. Verify the complete service
 

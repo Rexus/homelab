@@ -4,6 +4,9 @@ Open the deployed capability, find its inputs, then select a maintenance or reco
 The names match [architecture](../01-architecture/README.md); the numbers order this
 operating manual, independently of the [installation stages](../03-deployment/README.md).
 
+Use the **[deployment command cheat sheet](deployment-commands.md)** to find each setup's owning
+repository, configuration files and commands for Terraform or Ansible changes.
+
 ## Recover a failed system
 
 Start with [recovery order](06-resilience/README.md#recovery-order). Restore the
@@ -34,6 +37,7 @@ Start with [recovery order](06-resilience/README.md#recovery-order). Restore the
 
 | Task | Guide |
 | --- | --- |
+| Apply deployment input or Ansible configuration changes | [Deployment commands by setup and stage](deployment-commands.md#linux-setups) |
 | Change a VMID and retain its network identity | [Full-clone cutover and state rebinding](01-hosting/change-vmid.md) |
 | Capture the independent recovery set | [Recovery-set checklist](06-resilience/backups/recovery-set.md) |
 | Schedule and verify backup copies | [Backup tasks](06-resilience/README.md#backups) |

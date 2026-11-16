@@ -7,6 +7,7 @@ the [CA design](../01-architecture/08-cryptography/01-certificate-authority.md) 
 ## Contents
 
 - [Local inputs](#local-inputs)
+- [Preparation and portal TLS](#preparation-and-portal-tls)
 - [Storage](#storage)
 - [Production configuration bundle](#production-configuration-bundle)
 - [Reconciliation and activation](#reconciliation-and-activation)
@@ -51,7 +52,22 @@ Do not put these secrets, configuration archives, private keys or CA state in Gi
 The [application recovery guide](../05-operations/03-cryptography/issuer-recovery.md) covers software
 and original-provider PKCS#11 backups. New manifests record the backend and exact hardware key URI;
 legacy software manifests remain accepted. Device-key recovery stays separate. A different hardware
-serial/PIN requires a qualified configuration migration, not ordinary restore or reconciliation.
+serial requires an explicit configuration migration; PIN rotation is a separate qualified operation.
+
+`deployment/openxpki-pkcs11-migrate.yml` supplies the bounded
+[same-key provider transition](../05-operations/03-cryptography/hardware-migration.md#same-key-provider-rebind).
+It permits only the reviewed key locator/native engine changes, preserving the application PIN,
+other secrets, package/schema set and latest history. Prepare leaves writers stopped for independent
+backup acceptance; apply and rollback retain explicit commit/resume boundaries and durable failure guards.
+
+## Preparation and portal TLS
+
+For a fresh issuer, [Stage 2 Step 8](../03-deployment/stage-02-trust/README.md#step-8-prepare-runtime-credentials-and-tls)
+uses `deployment/openxpki-repository.yml` to prepare the pinned-key APT source and report native
+package candidates before application installation. It does not initialize the database or a signer.
+`deployment/openxpki-portal-request.yml` later creates only a public CSR from the existing
+controller-held portal key; the normal requester/approver workflow and issuer reconciliation own
+issuance and certificate installation.
 
 ## Storage
 

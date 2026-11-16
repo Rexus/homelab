@@ -39,6 +39,7 @@ See [coverage](../../08-reference/implementation-support.md#stage-coverage).
 | [10–13: connect bootstrap](#step-10-configure-bootstrap-intake) | Package and shell settings applied and verified |
 | [14–16: connect Proxmox](#step-14-configure-proxmox-update-inputs) | Existing hosts retrieve their approved APT updates |
 | [17–18: restrict and record](#step-17-retire-temporary-egress) | Replacement paths verified, bypass denied and completion recorded |
+| [19: secure the deployment](#step-19-secure-the-intake-deployment) | Commissioning access closed and operating controls recorded |
 
 New pair: **1a → 2a → 3–18**. Existing pair update: **2b → 9–18**.
 Existing accepted supply: **1b → 9–18**; it creates no cache resources.
@@ -476,6 +477,14 @@ Update **`<prefix>-architecture/deployments.md`** with the selected route/option
 bootstrap/host consumers. Keep independent recovery artifacts and the selected endpoint/checks.
 This establishes supply and access policy, not installed patches, approved releases or an offline mirror.
 Native verification/failure defaults still require review of repository-specific overrides and publisher keys.
+
+## Step 19: Secure the intake deployment
+
+Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for cache
+guests and the existing consumers configured here. Confirm restricted source/client lists, denied direct
+egress, independent administration and retained bootstrap artifacts. Preserve the verified package-trust
+and selected boot policy; enabling Secure Boot is a separately qualified image change, not proxy setup.
+Record the accepted controls before marking this stage complete.
 
 ## Capability available
 

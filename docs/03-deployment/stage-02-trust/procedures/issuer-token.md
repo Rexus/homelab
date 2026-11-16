@@ -2,7 +2,9 @@
 
 Bind the separately signed public certificate to the existing software key through
 controller-run Ansible. This is an explicit custodian operation, separate from routine reconciliation.
-Hardware custody retains its qualified provider/token procedure.
+For PicoHSM or YubiHSM custody, use [hardware token activation](../step-1d-single-usb.md#5-complete-activation-and-acceptance)
+with `deployment/hsm-token.yml`. The software recipe below requires a filesystem private key;
+it cannot activate a hardware key by selecting a different password or alias.
 
 **Working repository:** `<prefix>-tier-0/` on the protected controller.
 **Prerequisites:** active backend, pinned public root/issuer certificates, recoverable

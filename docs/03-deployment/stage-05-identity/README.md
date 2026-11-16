@@ -77,6 +77,7 @@ the primary and replica after authorized offline signing. Keycloak/database inst
 | [15-17a / 17b](#step-15-render-database-preparation) | Per-database NAS destination or qualified object/WAL path |
 | [18-20](#step-18-render-the-completed-keycloak-selection) | Keycloak/federation installed and accepted |
 | [21-23](#step-21-roll-out-kubernetes-api-human-sso) | Native API OIDC, real human access and independent recovery accepted |
+| [24](#step-24-secure-the-identity-deployment) | Permanent access and recovery controls verified |
 
 <a id="step-1-deploy-the-directory-pair"></a>
 
@@ -454,6 +455,15 @@ using the commissioned human client and retained X509 identity. Record the cold-
 private endpoint access and protected audit evidence. Preserve independent credentials before restricting
 bootstrap access. The [service SSO gate](procedures/service-sso.md) is reused when later consumers install;
 those services are not deployed in this stage.
+
+## Step 24: Secure the identity deployment
+
+Complete the [common hardening checkpoint](../../05-operations/01-hosting/guest-hardening.md) for
+directory hosts and the IdP runtime. Verify actual allowed/denied/group-removal behavior, scoped service
+accounts, protected audit and independent directory/IdP/database recovery. Retain break-glass access
+before restricting bootstrap privileges. Boot protection remains the selected host/node profile;
+do not change it by recreating accepted directory state or rotating its CA implicitly.
+Record the accepted controls with the identity handoff.
 
 ## Capability available
 

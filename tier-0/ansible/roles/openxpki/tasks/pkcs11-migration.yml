@@ -1,0 +1,156 @@
+---
+- name: Require explicit same-key migration inputs before any change
+  ansible.builtin.assert:
+    that:
+      - openxpki_pkcs11_migration_approved | bool
+      - ansible_distribution == 'Debian' and ansible_distribution_major_version == '12'
+      - ansible_architecture == 'x86_64'
+      - not ansible_check_mode
+      - openxpki_data_mount is match('^/srv/[A-Za-z0-9_-]+$')
+      - openxpki_realm is match('^[a-z][a-z0-9-]+$')
+      - openxpki_token_alias is match('^[A-Za-z0-9_-]+$')
+      - openxpki_pkcs11_migration_operation in ['prepare', 'apply', 'rollback']
+      - openxpki_pkcs11_migration_operation == 'prepare' or openxpki_pkcs11_migration_resume_accepted | bool
+      - openxpki_pkcs11_migration_expected_old_sha256 is match('^[a-f0-9]{64}$')
+      - openxpki_pkcs11_migration_new_sha256 is match('^[a-f0-9]{64}$')
+      - openxpki_pkcs11_migration_expected_old_sha256 != openxpki_pkcs11_migration_new_sha256
+      - openxpki_configuration_sha256 == openxpki_pkcs11_migration_expected_old_sha256
+      - openxpki_pkcs11_migration_spki_sha256 is match('^[a-f0-9]{64}$')
+      - openxpki_pkcs11_migration_new_src is match('^/')
+      - openxpki_pkcs11_migration_backup_dest is match('^/')
+      - not openxpki_initialize_database | bool
+      - not openxpki_create_issuer_key | bool
+      - openxpki_activate_runtime | bool
+      - openxpki_managed_cli | bool
+      - hsm_provider_user == 'openxpki'
+      - hsm_provider_group == 'openxpki'
+      - openxpki_pkcs11_migration_operation == 'rollback' or (hsm_provider == 'pkcs11' and hsm_provider_mode == 'client')
+    fail_msg: This ceremony only relocates an existing PKCS11 issuer to a prepared client; no upgrade, rekey or schema import.
+
+- name: Select fixed migration custody and release paths
+  ansible.builtin.set_fact:
+    migration_directory: "{{ openxpki_data_mount }}/pkcs11-migration-{{ openxpki_pkcs11_migration_new_sha256 }}"
+    migration_old_release: "{{ openxpki_data_mount }}/configuration/{{ openxpki_pkcs11_migration_expected_old_sha256 }}"
+    migration_new_release: "{{ openxpki_data_mount }}/configuration/{{ openxpki_pkcs11_migration_new_sha256 }}"
+    migration_units: [openxpki-crl.timer, openxpki-crl.service, apache2.service, openxpki-clientd.service, openxpki-serverd.service]
+    migration_start_units: [openxpki-serverd.service, openxpki-clientd.service, apache2.service, openxpki-crl.timer]
+    migration_old_src: "{{ openxpki_configuration_src }}"
+
+- name: Inspect the original binding without following links
+  ansible.builtin.stat:
+    path: "{{ openxpki_data_mount }}/deployment.json"
+    follow: false
+  register: migration_binding_state
+
+- name: Require an existing original deployment
+  ansible.builtin.assert:
+    that:
+      - migration_binding_state.stat.isreg | default(false)
+      - not migration_binding_state.stat.islnk | default(false)
+
+- name: Read current binding for normal read-only preflight
+  ansible.builtin.slurp:
+    src: "{{ openxpki_data_mount }}/deployment.json"
+  register: migration_binding_bytes
+  no_log: true
+
+- name: Retain the exact current binding
+  ansible.builtin.set_fact:
+    migration_current_binding: "{{ migration_binding_bytes.content | b64decode | from_json }}"
+  no_log: true
+
+- name: Refuse an unrelated or changed binding
+  ansible.builtin.assert:
+    that:
+      - migration_current_binding.configuration_sha256 in [openxpki_pkcs11_migration_expected_old_sha256, openxpki_pkcs11_migration_new_sha256]
+      - openxpki_pkcs11_migration_operation == 'rollback' or migration_current_binding.configuration_sha256 == openxpki_pkcs11_migration_expected_old_sha256
+
+- name: Define the exact current binding without weakening ordinary reconciliation
+  ansible.builtin.set_fact:
+    migration_expected_binding:
+      deployment_id: "{{ openxpki_deployment_id }}"
+      configuration_sha256: "{{ migration_current_binding.configuration_sha256 }}"
+      package_versions: "{{ openxpki_package_versions }}"
+      secret_digest: "{{ [openxpki_database_password, openxpki_session_password, openxpki_session_secret] | to_json | hash('sha256') }}"
+  no_log: true
+
+- name: Require unchanged deployment package and secret identity on either guarded configuration
+  ansible.builtin.assert:
+    that: migration_current_binding == migration_expected_binding
+  no_log: true
+
+- name: Validate original mounted storage without the ordinary old-configuration guard
+  ansible.builtin.include_tasks: pkcs11-migration-storage.yml
+
+- name: Verify the independently retained original controller artifact
+  ansible.builtin.stat:
+    path: "{{ migration_old_src }}"
+    follow: false
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  register: migration_original_artifact
+  when: openxpki_pkcs11_migration_operation != 'rollback'
+
+- name: Require the exact original controller archive on every operation
+  ansible.builtin.assert:
+    that:
+      - migration_original_artifact.stat.isreg | default(false)
+      - not migration_original_artifact.stat.islnk | default(false)
+      - migration_original_artifact.stat.checksum == openxpki_pkcs11_migration_expected_old_sha256
+  when: openxpki_pkcs11_migration_operation != 'rollback'
+
+- name: Require the unchanged original valid issuer certificate
+  ansible.builtin.import_tasks: signer.yml
+
+- name: Inspect installed package versions without installing anything
+  ansible.builtin.package_facts:
+    manager: auto
+
+- name: Refuse package version drift during provider migration
+  ansible.builtin.assert:
+    that:
+      - item.key in ansible_facts.packages
+      - ansible_facts.packages[item.key] | map(attribute='version') | list == [item.value]
+  loop: "{{ openxpki_package_versions | dict2items }}"
+
+- name: Recheck the proposed controller artifact before any transfer
+  ansible.builtin.stat:
+    path: "{{ openxpki_pkcs11_migration_new_src }}"
+    follow: false
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  register: migration_proposed_artifact
+  when: openxpki_pkcs11_migration_operation != 'rollback'
+
+- name: Require the unchanged reviewed new archive
+  ansible.builtin.assert:
+    that:
+      - migration_proposed_artifact.stat.isreg | default(false)
+      - not migration_proposed_artifact.stat.islnk | default(false)
+      - migration_proposed_artifact.stat.checksum == openxpki_pkcs11_migration_new_sha256
+  when: openxpki_pkcs11_migration_operation != 'rollback'
+
+- name: Inspect the retained current installation artifact
+  ansible.builtin.stat:
+    path: "{{ openxpki_data_mount }}/configuration.tar.gz"
+    follow: false
+    checksum_algorithm: sha256
+  register: migration_current_artifact
+
+- name: Refuse a missing unrelated or linked installation artifact
+  ansible.builtin.assert:
+    that:
+      - migration_current_artifact.stat.isreg | default(false)
+      - not migration_current_artifact.stat.islnk | default(false)
+      - migration_current_artifact.stat.checksum in [openxpki_pkcs11_migration_expected_old_sha256, openxpki_pkcs11_migration_new_sha256]
+      - openxpki_pkcs11_migration_operation == 'rollback' or migration_current_artifact.stat.checksum == openxpki_pkcs11_migration_expected_old_sha256
+
+- name: Prepare a frozen recovery set and validate the new provider
+  ansible.builtin.include_tasks: pkcs11-migration-prepare.yml
+  when: openxpki_pkcs11_migration_operation == 'prepare'
+
+- name: Apply or reverse only the guarded provider binding
+  ansible.builtin.include_tasks: pkcs11-migration-switch.yml
+  when: openxpki_pkcs11_migration_operation in ['apply', 'rollback']

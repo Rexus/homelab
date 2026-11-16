@@ -1,0 +1,217 @@
+---
+- name: Prepare the native encryption tool before quiescing writers
+  ansible.builtin.apt:
+    name: age
+    state: present
+
+- name: Inspect current writers before the explicit outage
+  ansible.builtin.command:
+    argv: [systemctl, is-active, "{{ item }}"]
+  loop: "{{ migration_start_units }}"
+  changed_when: false
+  failed_when: false
+  register: migration_active_units
+
+- name: Require the accepted running issuer before capturing its final history
+  ansible.builtin.assert:
+    that: item.rc == 0 and item.stdout | trim == 'active'
+  loop: "{{ migration_active_units.results }}"
+
+- name: Install durable startup inhibition for every issuer writer and timer
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ item }}.d"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop: "{{ migration_units }}"
+
+- name: Make the migration stop survive reboot and ordinary service reconciliation
+  ansible.builtin.template:
+    src: pkcs11-migration-inhibit.conf.j2
+    dest: "/etc/systemd/system/{{ item }}.d/70-pkcs11-migration.conf"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ migration_units }}"
+
+- name: Load native startup conditions before the pause
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Inhibit issuer startup until an explicit successful apply or rollback
+  ansible.builtin.copy:
+    content: "{{ migration_directory }}\n"
+    dest: "{{ openxpki_data_mount }}/{{ item }}"
+    owner: root
+    group: root
+    mode: '0600'
+  loop: [pkcs11-migration-inhibit, pkcs11-migration-traffic-inhibit]
+
+- name: Capture the original recovery set while leaving writers fail closed
+  block:
+    - name: Stop every issuer writer and timer before snapshotting history
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+      loop: "{{ migration_units }}"
+
+    - name: Record exact quiesced history schema keys identity and both configurations
+      ansible.builtin.include_tasks: pkcs11-migration-state.yml
+
+    - name: Create private plaintext recovery staging
+      ansible.builtin.file:
+        path: "{{ migration_directory }}/recovery"
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+
+    - name: Capture the complete original logical recovery set
+      ansible.builtin.copy:
+        src: "{{ openxpki_data_mount }}/{{ item }}"
+        dest: "{{ migration_directory }}/recovery/"
+        remote_src: true
+        mode: preserve
+      loop: [configuration.tar.gz, configuration, keys, identity, public, deployment.json, schema-initialized]
+      no_log: true
+
+    - name: Include the frozen database rather than live database files
+      ansible.builtin.copy:
+        src: "{{ migration_directory }}/current-database.sql"
+        dest: "{{ migration_directory }}/recovery/database.sql"
+        remote_src: true
+        mode: '0600'
+
+    - name: Read the original native signer for recovery metadata
+      ansible.builtin.slurp:
+        src: "{{ migration_old_release }}/config.d/realm/{{ openxpki_realm }}/crypto.yaml"
+      register: migration_original_crypto
+      no_log: true
+
+    - name: Include the original recovery manifest and frozen-state evidence
+      ansible.builtin.copy:
+        content: >-
+          {{ {'format': 2, 'deployment_id': openxpki_deployment_id,
+              'configuration_sha256': openxpki_pkcs11_migration_expected_old_sha256,
+              'issuer_fingerprint': openxpki_issuer_fingerprint, 'package_versions': openxpki_package_versions,
+              'realm': openxpki_realm, 'signer_backend': 'pkcs11',
+              'pkcs11_key_uri': (migration_original_crypto.content | b64decode | from_yaml).token['ca-signer'].key,
+              'frozen_state': migration_state} | to_nice_json }}
+        dest: "{{ migration_directory }}/recovery/recovery.json"
+        owner: root
+        group: root
+        mode: '0600'
+      no_log: true
+
+    - name: Archive the recoverable application and custody set
+      community.general.archive:
+        path: "{{ migration_directory }}/recovery/*"
+        dest: "{{ migration_directory }}/recovery.tar.gz"
+        format: gz
+        mode: '0600'
+
+    - name: Encrypt the recovery set for independent custody
+      ansible.builtin.command:
+        argv: [age, --recipient, "{{ openxpki_backup_recipient }}", --output,
+               "{{ migration_directory }}/recovery.tar.gz.age", "{{ migration_directory }}/recovery.tar.gz"]
+      changed_when: true
+
+    - name: Fingerprint the independently encrypted recovery set
+      ansible.builtin.stat:
+        path: "{{ migration_directory }}/recovery.tar.gz.age"
+        checksum_algorithm: sha256
+      register: migration_encrypted_backup
+
+    - name: Publish independent recovery custody exclusively
+      block:
+        - name: Allocate private encrypted-backup staging beside the final controller destination
+          ansible.builtin.tempfile:
+            state: directory
+            path: "{{ openxpki_pkcs11_migration_backup_dest | dirname }}"
+            prefix: .pkcs11-backup-
+          delegate_to: localhost
+          become: false
+          register: migration_controller_stage
+
+        - name: Transfer encrypted recovery only into private controller staging
+          ansible.builtin.fetch:
+            src: "{{ migration_directory }}/recovery.tar.gz.age"
+            dest: "{{ migration_controller_stage.path }}/recovery.age"
+            flat: true
+
+        - name: Restrict staged encrypted recovery custody
+          ansible.builtin.file:
+            path: "{{ migration_controller_stage.path }}/recovery.age"
+            mode: '0600'
+          delegate_to: localhost
+          become: false
+
+        - name: Verify staged recovery against the fresh encrypted archive fingerprint
+          ansible.builtin.stat:
+            path: "{{ migration_controller_stage.path }}/recovery.age"
+            checksum_algorithm: sha256
+          delegate_to: localhost
+          become: false
+          register: migration_controller_archive
+
+        - name: Require the captured recovery bytes before exclusive publication
+          ansible.builtin.assert:
+            that: migration_controller_archive.stat.checksum == migration_encrypted_backup.stat.checksum
+
+        - name: Publish without replacing a concurrently created recovery destination
+          ansible.builtin.command:
+            argv: [ln, -T, --, "{{ migration_controller_stage.path }}/recovery.age", "{{ openxpki_pkcs11_migration_backup_dest }}"]
+          delegate_to: localhost
+          become: false
+          changed_when: true
+      always:
+        - name: Remove only private controller staging while retaining any published hard link
+          ansible.builtin.file:
+            path: "{{ migration_controller_stage.path }}"
+            state: absent
+          delegate_to: localhost
+          become: false
+          when: migration_controller_stage.path is defined
+
+    - name: Record frozen state only after backup capture and transfer succeed
+      ansible.builtin.set_fact:
+        migration_record: >-
+          {{ migration_record | combine({'phase': 'prepared', 'state': migration_state,
+             'backup_sha256': migration_encrypted_backup.stat.checksum}) }}
+      no_log: true
+
+    - name: Persist prepared transaction custody
+      ansible.builtin.copy:
+        content: "{{ migration_record | to_nice_json }}\n"
+        dest: "{{ migration_directory }}/transaction.json"
+        owner: root
+        group: root
+        mode: '0600'
+      no_log: true
+
+    - name: Show only the independent backup acceptance inputs
+      ansible.builtin.debug:
+        msg:
+          backup: "{{ openxpki_pkcs11_migration_backup_dest }}"
+          sha256: "{{ migration_encrypted_backup.stat.checksum }}"
+          next: Retain and verify independent custody, then select apply with this SHA; writers remain stopped.
+  rescue:
+    - name: Stop every writer after an incomplete backup capture
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+      loop: "{{ migration_units }}"
+
+    - name: Keep the original state inhibited until explicit recovery
+      ansible.builtin.fail:
+        msg: Backup capture failed; original state is retained and startup is inhibited. Recover or select guarded rollback.
+  always:
+    - name: Remove only this migration's plaintext recovery staging
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ migration_directory }}/recovery"
+        - "{{ migration_directory }}/recovery.tar.gz"
+        - "{{ migration_directory }}/current-database.sql"

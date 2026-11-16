@@ -80,7 +80,8 @@ class VmAdoption(TierRepositoryTestCase):
                 observed = copy.deepcopy(creation['after'])
                 observed.update(id='701', clone=[], description='Approved source image',
                                 operating_system=[{'type': 'l26'}], serial_device=[{'device': 'socket'}],
-                                boot_order=['scsi0', 'net0'])
+                                boot_order=['scsi0', 'net0'],
+                                tpm_state=[{'datastore_id': 'disk-store', 'version': 'v2.0'}])
                 for index, disk in enumerate(observed['disk']):
                     disk.update(file_format='raw', path_in_datastore=f'vm-701-disk-{index + 1}')
                 observed['efi_disk'][0]['file_format'] = 'raw'
@@ -103,10 +104,18 @@ class VmAdoption(TierRepositoryTestCase):
                     self.assertTrue(any(path[0] == 'clone' for path in previous['replace_paths']))
                 finally:
                     source.write_text(current)
+                # Omitted TPM configuration must not remove an adopted guest's TPM identity.
+                source.write_text(current.replace('boot_order, tpm_state,', 'boot_order,'))
+                try:
+                    unprotected_tpm = self.plan(fixture)
+                    self.assertEqual(unprotected_tpm['after']['tpm_state'], [])
+                finally:
+                    source.write_text(current)
                 adopted = self.plan(fixture)
                 self.assertNotIn('delete', adopted['actions'])
                 self.assertNotIn('create', adopted['actions'])
-                for attribute in ('description', 'operating_system', 'serial_device', 'efi_disk', 'boot_order'):
+                for attribute in ('description', 'operating_system', 'serial_device', 'efi_disk',
+                                  'boot_order', 'tpm_state'):
                     self.assertEqual(adopted['after'][attribute], observed[attribute], attribute)
                 for actual, original in zip(adopted['after']['disk'], observed['disk'], strict=True):
                     for attribute in ('interface', 'datastore_id', 'path_in_datastore', 'file_format',
@@ -122,7 +131,7 @@ class VmAdoption(TierRepositoryTestCase):
                 changed_profile = self.plan(fixture)
                 self.assertNotIn('delete', changed_profile['actions'])
                 self.assertNotIn('create', changed_profile['actions'])
-                for attribute in ('bios', 'machine', 'scsi_hardware', 'efi_disk', 'boot_order'):
+                for attribute in ('bios', 'machine', 'scsi_hardware', 'efi_disk', 'boot_order', 'tpm_state'):
                     self.assertEqual(changed_profile['after'][attribute], observed[attribute], attribute)
                 catalog_entry.update(hardware)
                 configuration['module']['vm']['memory'] = 4096
@@ -139,7 +148,7 @@ class VmAdoption(TierRepositoryTestCase):
                     catalog_entry.pop(field)
                 main.write_text(json.dumps(configuration))
                 missing_firmware = self.plan(fixture)
-                for attribute in ('bios', 'machine', 'scsi_hardware', 'efi_disk', 'boot_order'):
+                for attribute in ('bios', 'machine', 'scsi_hardware', 'efi_disk', 'boot_order', 'tpm_state'):
                     self.assertEqual(missing_firmware['after'][attribute], observed[attribute], attribute)
                 catalog_entry.update(hardware)
                 catalog_entry.update(bios='seabios', machine='pc', scsi_hardware='lsi')

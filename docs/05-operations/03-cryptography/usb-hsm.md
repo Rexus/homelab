@@ -85,7 +85,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.y
    drain this member through the application's native procedure. With a single gateway, approve
    the signing outage and preserve queued requests before stopping service. Do not claim continued
    signing availability in that branch. Preserve session state and independent backups in either case.
-2. For **OS-baseline reconciliation only**, from Tier 0 select one inventory host
+2. For **baseline and provider reconciliation**, from Tier 0 select one inventory host
    and inspect the target list first: [3]
 
    Run from **`<prefix>-tier-0/`** on the protected execution host.
@@ -105,8 +105,10 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.y
    ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml ansible/playbooks/maintenance/hsm.yml -e @ansible/group_vars/all.yml -e @ansible/group_vars/hsm.yml --limit "${HSM_HOST:?Select one gateway}"
    ```
 
-   This does not upgrade firmware/application/provider, drain traffic or install a VIP.
-   Those operations require the selected product's qualified maintenance procedure.
+   The recipe reuses `deployment/hsm-gateways.yml`: it reconciles baseline, declared middleware,
+   native configuration and serial inspection. Review those inputs before running it. Firmware,
+   key ceremonies, application upgrades, traffic draining and VIP installation retain their own
+   qualified procedures. Optional remoting needs its separate server/client reconciliation.
 4. Verify device identity, readiness, permitted/denied operations and protected audit
    delivery before admitting traffic. Repeat separately for the next member.
 
@@ -155,18 +157,67 @@ real failure domains. Matching replica counts alone do not prove HA.
 Keep the original issuer VM, database, certificates and signing key. The expansion adds provider
 hosts and device copies; it does not create another CA or automatically make the issuer highly available.
 
-| Phase | Edit or run | Continue when |
-| --- | --- | --- |
-| 1. Retain original custody | Preserve the original CA recovery set and device wrapping material; [issuer recovery](issuer-recovery.md) | Original public-key fingerprint and backups are independently available |
-| 2. Prepare each additional device | **PicoHSM:** [restore the original wrapped key](picohsm-replica.md). **YubiHSM:** use its qualified original-wrap-key restore procedure | Each device signs with the same recorded original key; serials and credentials remain device-specific |
-| 3. Prepare provider VMs | Follow [USB pool action 1](../../03-deployment/stage-02-trust/step-1b-usb-hsm.md#1-prepare-the-service-hosts); initialize `hsm`, edit its VM/node/USB map, inventory and provider inputs | Only the selected new `hsm-*` guests and attachments appear in the plan; `ca-1` stays in foundation state |
-| 4. Select shared access | If needed, install [native PKCS#11 remoting](../../03-deployment/stage-02-trust/procedures/pkcs11-remoting.md), pinning each endpoint and the original SPKI | Authorized sign/verify and denied-client tests pass on every endpoint |
-| 5. Migrate the consumer | Plan the application's native module/endpoint configuration and original-state recovery using [hardware migration](hardware-migration.md) | The original CA/key/data remain intact; rollback and explicit reconnect behavior are accepted |
+**Starting point:** an accepted single-device issuer with independent recovery custody. This is a
+useful review at [Stage 6 seal selection](../../03-deployment/stage-06-secrets/step-1c-seal-integration.md),
+before adding consumers. A pool can also host independent keys; the same-key procedure below applies
+only to an approved replicated signing domain, never arbitrary keys or a mixed-vendor wrapping domain.
+
+**With two devices in total:** keep the original on `ca-1`. First deploy only `hsm-1` with the newly
+restored replica and complete the guarded issuer cutover to it. Then remove the original device's
+foundation attachment, add `hsm-2` with that device and qualify the second endpoint. The intermediate
+single-remote-provider installation has no provider failover; retain the original local rollback path
+until the first cutover passes.
+
+1. **Recover the original material.** Capture the [current issuer recovery set](issuer-recovery.md).
+   Retrieve the independently recorded SPKI SHA-256, object ID/label, attributes, original wrapped key
+   and wrapping material. PicoHSM needs the original DKEK shares/passwords; YubiHSM needs the original
+   wrap material and exportable-under-wrap objects selected at
+   [first commissioning](../../03-deployment/stage-02-trust/step-1d-single-usb.md#yubihsm-first-key-recovery-choices).
+   Stop if unavailable or if the original key/domain cannot support wrapped recovery; retain local
+   custody or perform a separately approved new-key CA rollover. Do not reset the sole production
+   device or replace its key to make the upgrade pass. [1][2][4]
+2. **Restore and qualify each destination.** For PicoHSM follow [original-key restore](picohsm-replica.md).
+   For YubiHSM follow its [native wrapped-object restore](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-backup-restore.html)
+   with the retained wrap key, domains and delegated capabilities. Compare the original SPKI and
+   required operation attributes, then sign/verify and test denials. Record each destination's own
+   serial, reader and least-privilege credential; matching labels alone do not admit a replica. [4]
+3. **Deploy independent hosts.** Follow [USB pool action 1](../../03-deployment/stage-02-trust/step-1b-usb-hsm.md#1-prepare-the-service-hosts).
+   Initialize `hsm`; edit Terraform VM/node/USB inputs, inventory, IPs and per-device provider inputs.
+   Remove single-device serial/reader values from global `hsm.yml` and put each provider's values in
+   inventory/host vars; `-e @hsm.yml` overrides host vars if those values remain global.
+   Plan before apply and require only the intended provider changes. Keep `ca-1` in foundation state.
+   Select separate physical failure domains and enforce USB mobility restrictions. With two boards,
+   initially declare only `hsm-1` with the new replica; keep the original on `ca-1` through guarded
+   cutover. Move that original to `hsm-2` only afterwards, removing its foundation attachment before
+   applying its HSM attachment. One USB device has one VM owner.
+4. **Authorize transport.** Complete [native remoting](../../03-deployment/stage-02-trust/procedures/pkcs11-remoting.md)
+   when selected: accepted SSH host pins, dedicated application SSH keys, source CIDRs/firewall,
+   compatible p11-kit versions and the original SPKI pin on every endpoint. Base `hsm-inspect.yml`
+   verifies serial visibility only; remoting adds public-key/signing checks. No listener is admitted
+   by merely copying a serial into configuration.
+   For the initial one-endpoint phase, explicitly select `hsm_remote_single_backend_transition: true`;
+   after admitting `hsm-2`, set it false and reconcile/check the complete two-endpoint domain.
+5. **Accept signing policy.** Keep exposed tokens dedicated to the selected signing key. SSH authorizes
+   token access, while native HSM permissions and the application's existing issuance/API policy
+   authorize operations. Deny administrative/export operations to online signing credentials; test
+   unauthorized clients and forbidden requests. Keep the root offline and recovery credentials outside
+   this pool. Do not add Vault seal objects to this single-signing-key remoting domain.
+6. **Rehearse and cut over the consumer.** Follow the
+   [same-key rebind](hardware-migration.md#same-key-provider-rebind) on an isolated restored copy first.
+   Record the new module/engine, selected physical serial/object ID, PIN source and transport trust.
+   A copied key on a new serial needs an explicit consumer change. During the approved pause, retain
+   the current database/history, switch only the qualified binding and verify the original certificate
+   and SPKI, issuance/CRL publication, restart and explicit alternate-endpoint selection. Routine
+   deployment supplies no automatic live OpenXPKI rebind or replay of failed operations.
+7. **Accept recovery or roll back.** Remove one token/host and prove the actual consumer reconnects or
+   switches within the accepted outage budget; a transport probe using the survivor proves only that
+   endpoint. Restore original keys/state without online replicas. On failure keep new endpoints drained
+   and restore the retained original attachment/configuration through its owning state. Resume one
+   issuer writer with the **latest** history; never roll back the database over post-cutover writes.
+   Retire old access only after acceptance, retaining recovery material and obligations.
 
 Use the same device family for a replicated wrapping domain. A Pico DKEK does not restore a YubiHSM
-wrapped key. Keep a single USB device assigned to one VM: moving the original board from `ca-1` to
-`hsm-1` requires a planned issuer pause, removal of its **foundation** attachment, then the **hsm**
-attachment. Do not copy the issuer guest into the HSM Terraform root or discard its state.
+wrapped key. Cross-vendor transfer, application HA and seal compatibility require separate qualification.
 
 Provider provisioning and selected remoting are automated. An already deployed issuer's immutable
 configuration is not automatically upgraded by adding the pool; its consumer cutover still needs
@@ -175,8 +226,9 @@ Sessions are reestablished explicitly; more boards do not provide transparent re
 
 ## References
 
-Native interfaces checked 2026-11-08.
+Native interfaces checked 2026-11-16. No live device, consumer-switching or recovery claim is made.
 
 1. [YubiHSM provider and connector configuration](https://developers.yubico.com/yubihsm-shell/yubihsm-pkcs11.html).
 2. [Pico HSM wrapped-key backup and restore](https://docs.picokeys.com/picohsm/backup-restore/).
 3. [Ansible host listing and target limits](https://docs.ansible.com/projects/ansible/latest/cli/ansible-playbook.html).
+4. [YubiHSM native wrapped-object backup and restoration](https://docs.yubico.com/hardware/yubihsm-2/hsm-2-user-guide/hsm2-backup-restore.html).

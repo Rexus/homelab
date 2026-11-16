@@ -1,0 +1,34 @@
+---
+- name: Require the existing portal key and a protected CSR output directory
+  ansible.builtin.assert:
+    that:
+      - openxpki_tls_key_src is match('^/')
+      - openxpki_ceremony_directory is match('^/.+')
+      - openxpki_ceremony_directory != '/'
+      - openxpki_portal_fqdn is match('^[A-Za-z0-9][A-Za-z0-9.-]+[.][A-Za-z0-9-]+$')
+      - "'.invalid' not in openxpki_portal_fqdn"
+    fail_msg: >-
+      Load the original OPENXPKI_TLS_KEY_FILE, the configured portal FQDN and
+      openxpki_ceremony_directory. This recipe requests a portal leaf, not a new issuer key.
+
+- name: Prepare the private controller ceremony directory
+  ansible.builtin.file:
+    path: "{{ openxpki_ceremony_directory }}"
+    state: directory
+    mode: "0700"
+
+- name: Create the portal request from its existing controller-held key
+  community.crypto.openssl_csr:
+    path: "{{ openxpki_ceremony_directory }}/{{ inventory_hostname }}-portal.csr"
+    privatekey_path: "{{ openxpki_tls_key_src }}"
+    common_name: "{{ openxpki_portal_fqdn }}"
+    subject_alt_name: ["DNS:{{ openxpki_portal_fqdn }}"]
+    mode: "0600"
+
+- name: Show the public portal CSR for the normal approval workflow
+  ansible.builtin.debug:
+    msg: >-
+      Submit {{ openxpki_ceremony_directory }}/{{ inventory_hostname }}-portal.csr
+      through the existing tls_server requester/approver workflow. Retain the original
+      portal key; set OPENXPKI_TLS_CERT_FILE to the returned leaf-first full chain and
+      reconcile deployment/openxpki.yml. No issuance or approval was performed here.

@@ -13,7 +13,10 @@
     - name: Refuse an empty or partially selected key domain
       ansible.builtin.assert:
         that:
-          - hsm_remote_backends | default({}) | length >= 2
+          - >-
+            hsm_remote_backends | default({}) | length >= 2 or
+            (hsm_remote_single_backend_transition | default(false) | bool and
+             hsm_remote_backends | default({}) | length == 1)
           - >-
             hsm_remote_backends.keys() | list | difference(
             groups.get(hsm_remote_server_hosts | default('hsm_gateways'), [])) | length == 0

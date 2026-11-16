@@ -3,6 +3,8 @@
 Check `- [x]` after completing the linked deployment path. Strike through unselected options with `~~text~~`.
 After Terraform-only, note **VMs ready; configuration pending** until Ansible/service setup is complete.
 Link acceptance evidence from the [platform record](docs/README.md).
+Complete each stage's final securing step before checking its deployment box. Record selected
+boot protections and explicit exceptions using the [hardening and maintenance guide](docs/auto-docs/05-operations/01-hosting/guest-hardening.md).
 
 ## Contents
 
