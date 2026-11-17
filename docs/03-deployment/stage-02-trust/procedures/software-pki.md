@@ -3,7 +3,7 @@
 <a id="deploy-a-fresh-software-backed-pki"></a>
 <a id="contents"></a>
 
-The continuous first-install workflow is now [Stage 2, actions 1-15](../README.md).
+The continuous first-install workflow is [Stage 2, actions 1-16](../README.md).
 Select software custody there and follow it top to bottom; this page is the policy/custody reference,
 not another runtime installation. Hardware custody uses its own original-key provider contract.
 
@@ -47,9 +47,12 @@ Restrict host administration and qualify the
 
 | Work | Continue in the Stage 2 guide |
 | --- | --- |
-| Private policy, account hashes and immutable archive | [Actions 4-6](../README.md#step-4-prepare-the-private-policy) |
-| Host, disk and inactive runtime | [Actions 7-9](../README.md#step-7-provision-the-issuer-and-attached-storage) |
-| Software key and public CSR | [Action 10a](../README.md#step-10-prepare-the-issuing-request) |
+| ORCA, its first backup and public root files | [Offline-root first visit](offline-root.md#first-visit) |
+| Host and disk | [Action 4](../README.md#step-4-provision-the-issuer-and-attached-storage) |
+| Selected software or hardware provider | [Action 5](../README.md#step-5-commission-the-selected-issuer-key-provider) |
+| Private policy, account hashes and immutable archive | [Actions 6-7](../README.md#step-6-prepare-policy-and-secrets) |
+| Inactive runtime | [Actions 8-9](../README.md#step-8-prepare-runtime-credentials-and-tls) |
+| Software HSM, hardware or file-key CSR | [Action 10](../README.md#step-10-prepare-the-issuing-request) |
 | Authorized offline signing | [Action 11](../README.md#step-11-sign-the-approved-request-offline) |
 | Public certificates and native token activation | [Actions 12-13](../README.md#step-12-install-public-certificates-and-start-the-prepared-backend) |
 | Issuance and independent restore | [Action 14](../README.md#step-14-accept-issuance-and-recovery) |

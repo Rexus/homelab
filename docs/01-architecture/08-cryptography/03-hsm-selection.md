@@ -266,6 +266,10 @@ model groups compatible partitions; this is not equivalent to a generic HTTP pro
 Certificate signing and secret-service unseal are separate integrations:
 [seal design](06-vault-seal.md). Procedure selection belongs in
 [the trust-stage decision](../../03-deployment/stage-02-trust/README.md#step-1-prepare-issuer-and-key-custody).
+The selected implementation supplies [SoftHSM2](../../03-deployment/stage-02-trust/step-1a-software-hsm.md)
+for A and [one PicoHSM/YubiHSM](../../03-deployment/stage-02-trust/step-1d-single-usb.md) for B.
+ORCA keeps separate root custody in either case. A-to-B is a deliberate key migration, while
+B-to-C can preserve a qualified same-family wrapped key; neither transition is automatic.
 
 ## References
 

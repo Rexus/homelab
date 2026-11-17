@@ -28,6 +28,7 @@ packer_cache/
 
 # Local template catalog and transferred image artifacts
 **/templates/proxmox.yml
+**/templates/offline-root/orca.conf
 **/templates/artifacts/*
 !**/templates/artifacts/.gitkeep
 

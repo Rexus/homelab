@@ -16,16 +16,18 @@ These procedures do not require replicated gateways or a published signing endpo
 
 ## Option A: software
 
-1. Select the issuer application's native keystore or a compatible software provider.
-   SoftHSM exposes PKCS#11 for environments without a hardware device. [1]
-2. Isolate the service account and protect provider storage and backups. Use disposable
-   keys for rehearsal; do not copy production root keys into a test token.
-3. Follow the selected provider's installation and initialization procedure, then
-   configure the issuer's supported provider interface.
-4. Test the required signing mechanisms, authorization and independent restore.
+Use [Step 1a: SoftHSM2](../step-1a-software-hsm.md) for the supplied no-hardware PKCS#11 path.
+Ansible prepares its private storage, native middleware and token, then binds the retained identity
+to `ca-1`. Initialization is explicit; ordinary runs preserve the token and its key. [1]
 
 Software-token success proves interface behavior, not resistance to host compromise.
-The existing hsm setup can supply test hosts; token installation remains operator work.
+The token directory, serial/SPKI pins and separately held PINs belong in issuer recovery. SoftHSM
+does not turn a USB pool into shared software state. A move to hardware requires the
+[qualified key migration](../../../05-operations/03-cryptography/hardware-migration.md).
+
+Existing encrypted key-file issuers retain their original profile and passphrase. Use
+[Stage 2 action 10c](../README.md#10c-encrypted-key-file-profile) for its explicit fresh-key operation;
+neither software profile changes an existing issuer identity automatically.
 
 ## Option B: single USB device
 

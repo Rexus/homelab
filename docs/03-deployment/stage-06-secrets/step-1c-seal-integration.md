@@ -57,6 +57,11 @@ pair and rehearse recovery; neither repository issuer profile is an accepted sea
 
 ### Review single-device growth before adding consumers
 
+For [Stage 2's software HSM](../stage-02-trust/step-1a-software-hsm.md), retain the original software
+token and its stopped-VM recovery set. Copying those files does not produce a PicoHSM/YubiHSM
+replica; a move to hardware needs a qualified key import or a new intermediate-key transition.
+Vault Community still starts with Shamir or an independent Transit seal.
+
 If Stage 2 started with one USB issuer device, this is a useful point to review capacity, host-loss
 and recovery requirements. Follow the existing [single-device to provider-pool upgrade](../../05-operations/03-cryptography/usb-hsm.md#single-device-to-pool):
 retain the original wrapped key/material, commission same-family destinations, deploy independent

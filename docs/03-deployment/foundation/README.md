@@ -185,7 +185,7 @@ If **1c** was selected, finish [SDN attachment inputs](proxmox/step-1c-sdn.md#st
 Return here for **Step 4**. After Stage 1 establishes the selected software-supply route, use
 [Proxmox update access](../../05-operations/02-software-intake/host-updates.md) to configure and test host
 updates through it. Host-management tasks use SSH. The `foundation` Terraform root owns the selected
-CA/directory VMs. [Stage 2](../stage-02-trust/README.md#step-7-provision-the-issuer-and-attached-storage)
+CA/directory VMs. [Stage 2](../stage-02-trust/README.md#step-4-provision-the-issuer-and-attached-storage)
 uses Terraform-only provisioning followed by issuer-specific recipes; Stage 5 selects the identity recipe.
 
 > [!TIP]

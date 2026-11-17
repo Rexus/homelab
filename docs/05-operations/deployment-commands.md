@@ -13,6 +13,7 @@ Finish each selected stage's functional checks and [hardening checkpoint](01-hos
 ## Contents
 
 - [Context and initialization](#context-and-initialization)
+- [Offline Root CA](#offline-root-ca)
 - [Linux setups](#linux-setups)
 - [Templates, Kubernetes and Vault CI](#templates-kubernetes-and-vault-ci)
 - [Boot-security commands](#boot-security-commands)
@@ -58,6 +59,23 @@ The wrapper layers `all.<name>.yml`, `<stem>.<name>.yml`, and existing `common.<
 `terraform.<name>.tfvars`. Init does not create Terraform overlays or reserve IDs/IPs;
 complete [environment isolation](../08-reference/repository-scripts.md#environment-isolation) first.
 
+## Offline Root CA
+
+ORCA uses a separate offline machine, not a Terraform guest. See the [numbered first visit and
+signing path](../03-deployment/stage-02-trust/procedures/offline-root.md). Public configuration is
+`templates/offline-root/orca.conf`; secrets and original CA state stay on offline custody media.
+
+| Run from | Action | Command |
+| --- | --- | --- |
+| Tier 0 on the connected preparation host | Initialize editable public inputs | `bash scripts/offline-root.sh init` |
+| Same Tier 0 root | Build a new pinned public kit | `bash scripts/offline-root.sh bundle .local-archive/orca-kit` |
+| Copied kit root, offline | Prepare/verify retained tools and policy | `bash scripts/offline-root.sh prepare` |
+| Same offline kit root, **new root only** | Explicit initial root creation | `bash scripts/offline-root.sh create` |
+| Same offline kit root | Inspect the original certificate and state | `bash scripts/offline-root.sh status` |
+| Same offline kit root | Sign the independently approved CSR/key from the guide | `bash scripts/offline-root.sh sign "$ORCA_REQUEST" "$ORCA_REQUEST_KEY"` |
+| Same offline kit root | Issue root CRL/export public objects | `bash scripts/offline-root.sh crl` |
+| Same offline kit root, after each change | Encrypt the complete native root backup | `bash scripts/offline-root.sh backup` |
+
 ## Linux setups
 
 **Copy commands from the table and run them from the owning tier root.** `TF` means
@@ -68,6 +86,7 @@ The setup name fixes the Terraform root/state even when an explicit Ansible play
 | --- | --- | --- | --- | --- |
 | 1 [outbound cache](../03-deployment/stage-01-software-intake/README.md): `cache` | 2 | TF; `cache.yml` | `bash scripts/deploy.sh cache` | `bash scripts/deploy.sh cache --ansible-only` |
 | 2 [issuer](../03-deployment/stage-02-trust/README.md): `foundation` | 0 | TF; `foundation.yml`, `issuer.yml`; private policy file from guide | `bash scripts/deploy.sh foundation --terraform-only` | [Issuer command below](#issuer-runtime) |
+| 2 optional [software HSM](../03-deployment/stage-02-trust/step-1a-software-hsm.md) on existing `ca-1` | 0 | `issuer.yml`, `hsm_software.yml`; selected `hsm_software_operation` and private PINs | Uses the existing `foundation` VM/data disk | `bash scripts/deploy.sh foundation --ansible-only --playbook deployment/hsm-software.yml --ansible-vars ansible/group_vars/issuer.yml --ansible-vars ansible/group_vars/hsm_software.yml` |
 | 2 optional [HSM provider hosts](../03-deployment/stage-02-trust/step-1b-usb-hsm.md): `hsm` | 0 | TF; `hsm.yml`; per-host serials in inventory/host vars | `bash scripts/deploy.sh hsm` | `bash scripts/deploy.sh hsm --ansible-only` |
 | 2 optional [verified intake](../03-deployment/stage-02-trust/step-15b-verified-intake.md): `intake` | 1 | TF; `intake.yml` | `bash scripts/deploy.sh intake` | `bash scripts/deploy.sh intake --ansible-only` installs; `bash scripts/deploy.sh intake --recipe maintenance` acquires/verifies/publishes |
 | 3 [protected logging](../03-deployment/stage-03-logging/README.md): `syslog` | 0 | TF; `syslog.yml`, `logging_producers.yml` | `bash scripts/deploy.sh syslog` | `bash scripts/deploy.sh syslog --ansible-only`; retention recipes remain separate |

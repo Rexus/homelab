@@ -14,8 +14,9 @@ class CertificateAuthorityContracts(TierRepositoryTestCase):
                              'Enterprise-only', 'acme2certifier', 'DataVault', 'missing signing identity'):
                 self.assertIn(expected, design)
             for issuer in ('Infrastructure', 'Identity'):
-                self.assertIn(f'Root -.-> {issuer}', design)
-            self.assertIn('block:T0', design)
+                # Dashed trust edges may carry labels in either native Mermaid layout.
+                self.assertRegex(design, rf'Root -\.(?: [^.\n]+ \.)?-> {issuer}\b')
+            self.assertRegex(design, r'(?:block:T0|subgraph T0)\b')
             self.assertIn('Authorized subordinate signing; no network route', design)
             self.assertIn('Vault remains a secret service', design)
             reference = (docs / '01-architecture/03-reference-platform.md').read_text()

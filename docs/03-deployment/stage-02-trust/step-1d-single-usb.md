@@ -13,8 +13,8 @@ commissioning and independent recovery remain custodial work. No provider-pool V
 then action 11 signing. **Design:** [custody choices](../../01-architecture/08-cryptography/03-hsm-selection.md).
 
 **First installation:** complete device commissioning in action 1 now. Initialize and edit the USB
-attachment in action 2 before [Stage 2 actions 4–6](README.md#step-4-prepare-the-private-policy),
-so the immutable policy names the commissioned original key. Provision once at Stage 2 action 7,
+attachment in action 2 before [Stage 2 action 4](README.md#step-4-provision-the-issuer-and-attached-storage),
+so the immutable policy names the commissioned original key. Provision once at Stage 2 action 4,
 then install the inactive runtime at action 9. Return to this option's actions 3–4 at
 [10b](README.md#step-10-prepare-the-issuing-request). Action 5 rejoins signing and token activation.
 
@@ -138,14 +138,18 @@ device mapping or physical port and complete the selected
 [cluster mobility restrictions](../foundation/proxmox/step-1b-cluster-ha.md#terraform-against-the-cluster);
 a mapping does not copy keys or establish failover. Do not manage this issuer from the HSM pool's state.
 
-Plan from **`<prefix>-tier-0/`**:
+**Fresh issuer:** declare these fields before [Stage 2 action 4](README.md#step-4-provision-the-issuer-and-attached-storage),
+then return there for the first provisioning run. Follow the main path through policy construction
+and inactive-runtime installation at action 9, then continue at action 3 below. Skip the separate
+attachment commands below; they are for an existing issuer.
+
+**Existing inactive issuer only:** plan from **`<prefix>-tier-0/`**:
 
 ```bash
 bash scripts/deploy.sh foundation --terraform-only --plan-only
 ```
 
-For an existing issuer, require an attachment change without issuer/disk replacement. On a fresh
-installation, include these fields before Stage 2 action 7 and use that first provisioning run.
+Require an attachment change without issuer/disk replacement.
 Apply a pending attachment change from **`<prefix>-tier-0/`**:
 
 ```bash
@@ -155,9 +159,9 @@ bash scripts/deploy.sh foundation --terraform-only
 The unattended variant is `--auto-approve` on the same apply command. Terraform attaches the
 selected USB device; no manual guest or Proxmox attachment command is required.
 
-Install the inactive runtime through the [issuer procedure](procedures/issuer.md), including its
-Terraform-owned data disk and Ansible-managed mount. Keep `openxpki_create_issuer_key: false` and
-`openxpki_activate_runtime: false`. Skip the software key-creation step for this hardware branch.
+Use the retained inactive runtime, or finish [the main installer](README.md#step-9-install-the-inactive-runtime)
+if it is not installed yet. Keep `openxpki_create_issuer_key: false` and
+`openxpki_activate_runtime: false`. Skip encrypted software-key creation for this hardware branch.
 
 ## 3. Bind the inactive issuer to its original key
 
@@ -234,7 +238,7 @@ context access and access to the exact selected readers. It does not disable PC/
 Obtain the reader description through the controller-run provider inspection; no guest login is
 needed. Native PC/SC and physical-token acceptance must run as the real issuer service user. [8]
 
-The native PKCS#11 policy built at [Stage 2 actions 4–6](README.md#step-4-prepare-the-private-policy)
+The native PKCS#11 policy built at [Stage 2 actions 6–7](README.md#step-6-prepare-policy-and-secrets)
 must already use the same key URI, module and engine paths. The supplied builder selects
 `token.ca-signer.engine: PKCS11`, `key_store: ENGINE` and a protected native PIN secret.
 The binding role validates that immutable artifact instead of editing it on the running host. [2]

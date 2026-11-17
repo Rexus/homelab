@@ -1,0 +1,14 @@
+---
+# Online Debian issuer only; independent of offline-root custody.
+hsm_software_operation: configure
+hsm_software_root: "{{ openxpki_data_mount | default('/srv/openxpki') }}/softhsm2"
+hsm_software_config: /etc/hsm-provider/softhsm2.conf
+hsm_software_token_label: infrastructure-issuer
+hsm_software_key_label: ca-signer
+hsm_software_key_id: '01'
+hsm_software_rsa_bits: 4096
+hsm_software_expected_serial: ''
+hsm_software_expected_spki_sha256: ''
+hsm_software_so_pin: "{{ lookup('ansible.builtin.env', 'SOFTHSM_SO_PIN') }}"
+hsm_software_user_pin: "{{ lookup('ansible.builtin.env', 'HSM_ISSUER_PIN') }}"
+hsm_software_library: /usr/lib/softhsm/libsofthsm2.so

@@ -2,8 +2,9 @@
      role="img" aria-labelledby="title description">
   <title id="title">Stage 2 offline root and online infrastructure issuer</title>
   <desc id="description">The issuer-only foundation selection contains ca-1 on the cryptography
-    network. Authorized operators use its HTTPS portal. OpenXPKI retains its database, software
-    issuer key and configuration on scsi1. The separately controlled offline root signs the issuer
+    network. Authorized operators use its HTTPS portal. OpenXPKI uses the selected PKCS11 signing
+    provider and retains its database, local key-provider state and configuration on scsi1.
+    The separately controlled Offline Root CA, ORCA, signs the issuer
     certificate during a ceremony. Public signed objects transfer upward into the online runtime.
     Original root and issuer recovery material remain in offline custody below connected services.</desc>
   <defs>
@@ -41,26 +42,31 @@
           <rect x="290" y="150" width="590" height="260"/>
           <text x="585" y="175">ca-1 / issuer VM</text>
           <g id="Portal" class="traffic">
-            <polygon points="330,205 460,205 475,240 460,275 330,275 315,240"/>
-            <text x="395" y="235">Apache HTTPS</text>
-            <text x="395" y="257">portal</text>
+            <polygon points="325,210 425,210 440,245 425,280 325,280 310,245"/>
+            <text x="375" y="239">HTTPS</text>
+            <text x="375" y="261">portal</text>
           </g>
           <g id="Engine" class="control">
-            <rect x="600" y="205" width="260" height="75"/>
-            <text x="730" y="235">OpenXPKI</text>
-            <text x="730" y="258">Online issuing CA</text>
+            <rect x="480" y="210" width="185" height="70"/>
+            <text x="572" y="239">OpenXPKI</text>
+            <text x="572" y="261">Online issuing CA</text>
+          </g>
+          <g id="Provider" class="custody">
+            <rect x="710" y="210" width="150" height="70"/>
+            <text x="785" y="239">Key provider</text>
+            <text x="785" y="261">Selected custody</text>
           </g>
           <g id="State" class="data">
-            <path d="M600 337 C600 320 860 320 860 337 L860 382 C860 399 600 399 600 382 Z"/>
-            <path d="M600 337 C600 354 860 354 860 337" fill="none"/>
-            <text x="730" y="363">scsi1 / /srv/openxpki</text>
-            <text x="730" y="385">DB / software key / configuration</text>
+            <path d="M480 337 C480 320 860 320 860 337 L860 382 C860 399 480 399 480 382 Z"/>
+            <path d="M480 337 C480 354 860 354 860 337" fill="none"/>
+            <text x="670" y="363">scsi1 / /srv/openxpki</text>
+            <text x="670" y="385">DB / configuration / local key state</text>
           </g>
-          <path class="connection" data-from="Portal" data-to="Engine" d="M475 240 H600"/>
-          <text x="537" y="211" class="edge-label">Authorized</text>
-          <text x="537" y="229" class="edge-label">workflow</text>
-          <path class="connection" data-from="Engine" data-to="State" d="M730 280 V324"/>
-          <text x="780" y="307" class="edge-label">Persist</text>
+          <path class="connection" data-from="Portal" data-to="Engine" d="M440 245 H480"/>
+          <path class="connection" data-from="Engine" data-to="Provider" d="M665 245 H710"/>
+          <text x="688" y="201" class="edge-label">PKCS#11</text>
+          <path class="connection" data-from="Engine" data-to="State" d="M572 280 V324"/>
+          <text x="622" y="307" class="edge-label">Persist</text>
         </g>
       </g>
     </g>
@@ -69,14 +75,14 @@
       <text x="585" y="535">Offline Custody</text>
       <g id="Root" class="custody">
         <rect x="270" y="555" width="250" height="105"/>
-        <text x="395" y="582">clca / offline root CA</text>
+        <text x="395" y="582">ORCA / Offline Root CA</text>
         <text x="395" y="609">Root key / original state</text>
-        <text x="395" y="636">Controlled signing ceremony</text>
+        <text x="395" y="636">On-demand clca ceremony</text>
       </g>
       <g id="Recovery" class="custody">
         <rect x="560" y="555" width="340" height="105"/>
         <text x="730" y="582">Independent issuer recovery kit</text>
-        <text x="730" y="609">Original state / signer passphrase</text>
+        <text x="730" y="609">Original state / provider recovery</text>
         <text x="730" y="636">DataVault secret / backup binding</text>
       </g>
     </g>
@@ -90,7 +96,7 @@
     <text x="110" y="233">Authorized</text>
     <text x="110" y="255">operator</text>
   </g>
-  <path class="connection" data-from="Operator" data-to="Portal" d="M200 240 H315"/>
+  <path class="connection" data-from="Operator" data-to="Portal" d="M200 245 H310"/>
   <rect x="220" y="214" width="70" height="20" fill="#f8fafc" stroke="none"/>
   <text x="255" y="229" class="edge-label">HTTPS</text>
 </svg>

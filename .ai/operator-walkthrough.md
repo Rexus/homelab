@@ -19,6 +19,32 @@ the final correction; 576 Bash blocks passed syntax checks. Original Markdown an
 
 ## Current source consistency review
 
+### ORCA and issuer-key walkthrough, 2026-11-17
+
+Stage 2 now owns an explicit first ORCA visit, selected software/hardware issuer custody and the
+second visit to sign ca-1. The public on-demand root kit pins native clca, renders initial policy,
+guards offline/encrypted/separate custody and serializes explicit root operations. It exports only
+public objects and age-encrypted native backups. Existing pre-kit roots keep their original native
+workflow; ordinary deployment never creates a connected root VM or reinitializes an authority.
+
+Fresh software PKCS11 custody uses the Debian 12 hsm_software role before policy construction.
+Provisioning moves to action 4, provider identity to 5 and matching policy/bundle to 6–7. The
+original real serial/SPKI/URI is bound after inactive runtime installation. SoftHSM recovery uses
+complete stopped-VM/data-disk backups plus independent PINs, explicitly distinct from the logical
+application archive. Single USB remains a completed starting path with the Stage 6 pool-growth route.
+Command index, project completion sheet, architecture mapping, operations and opening figures agree.
+
+Validation: 34 native lifecycle/guard/generated-payload tests and 31 documentation/navigation/diagram
+checks passed; 74 Bash guide blocks parse. Real clca creation/signing/CRL/encrypted backup/restore
+used isolated networking and explicit physical-media fixtures. Real SoftHSM token/CSR/cold-copy tests
+pass. Eight normal/narrow light/dark diagram cases rendered; deployment/hierarchy previews were
+visually inspected. These results do not qualify physical media, real Pico/Yubi hardware, live
+Debian/OpenXPKI installation, Proxmox backup restoration or production authority recovery.
+The final cold-restore review also removed the pinned tools, not only CA state: prepare now validates
+the retained policy/binding and reinstalls missing verified tools without replacing mismatched tools
+or changing CA state. Five focused recovery/guard tests and three final routing checks passed.
+Logs: `.tmp/trust-native-review-20261117.log` and `.tmp/trust-docs-review-final-20261117.log`.
+
 ### Deployment recovery and maintenance notices, 2026-11-16
 
 Deployment entry points now link their actual operations from short contextual notices, keeping

@@ -1,0 +1,33 @@
+---
+- name: Prepare controller tooling for the software PKCS11 issuer
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: hsm
+    control_node_require_terraform: false
+
+- name: Require the sole online issuer before connecting
+  hosts: localhost
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Exclude offline root and directory hosts
+      ansible.builtin.assert:
+        that:
+          - groups.get('issuing_ca', []) | length == 1
+          - groups.get('issuing_ca', []) | intersect(groups.get('root_ca', [])) | length == 0
+          - groups.get('issuing_ca', []) | intersect(groups.get('identity', [])) | length == 0
+
+- name: Wait for the existing issuer VM
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: issuing_ca
+
+- name: Prepare or explicitly commission a software issuer token
+  hosts: issuing_ca
+  become: true
+  any_errors_fatal: true
+  serial: 1
+  roles:
+    - role: baseline
+      when: hsm_software_operation | default('configure') == 'configure'
+    - hsm_software

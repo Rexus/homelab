@@ -1,0 +1,17 @@
+---
+- name: Validate the bounded software issuer operation
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Prepare storage and middleware without creating any token or key
+  ansible.builtin.import_tasks: configure.yml
+  when: hsm_software_operation == 'configure'
+
+- name: Require prepared files and original storage for all token operations
+  ansible.builtin.import_tasks: inspect.yml
+
+- name: Perform only the explicitly selected native token operation
+  ansible.builtin.import_tasks: token.yml
+
+- name: Grant only the installed inactive issuer access to its accepted software token
+  ansible.builtin.import_tasks: bind.yml
+  when: hsm_software_operation == 'bind'

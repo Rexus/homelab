@@ -51,13 +51,14 @@ Bootstrap and host consumers: [Tier 0](../${repo_prefix}-tier-0/README.md).
 
 Run from [Tier 0](../${repo_prefix}-tier-0/README.md); offline signing remains manual.
 
-- [ ] Root custody established — [Steps 1-6](docs/auto-docs/03-deployment/stage-02-trust/README.md#step-1-prepare-issuer-and-key-custody).
-  - [ ] Software custody selected — [Software PKI](docs/auto-docs/03-deployment/stage-02-trust/procedures/software-pki.md).
+- [ ] ORCA created/restored, public root objects recorded and independent recovery tested — [First visit](docs/auto-docs/03-deployment/stage-02-trust/procedures/offline-root.md#first-visit).
+- [ ] Issuer key provider commissioned — [Step 5](docs/auto-docs/03-deployment/stage-02-trust/README.md#step-5-commission-the-selected-issuer-key-provider).
+  - [ ] **1a, no hardware:** software HSM initialized, serial/SPKI pinned and original token backed up — [SoftHSM](docs/auto-docs/03-deployment/stage-02-trust/step-1a-software-hsm.md).
   - [ ] **Alternative:** USB HSM hosts and provider commissioned — [USB HSM](docs/auto-docs/03-deployment/stage-02-trust/step-1b-usb-hsm.md).
     - [ ] **Option:** restricted PKCS#11 remoting and every original key verified — [Native remoting](docs/auto-docs/03-deployment/stage-02-trust/procedures/pkcs11-remoting.md).
   - [ ] **Alternative:** network HSM integrated — [Network HSM](docs/auto-docs/03-deployment/stage-02-trust/step-1c-network-hsm.md).
   - [ ] **Alternative:** single USB HSM with offline backup — [Single USB](docs/auto-docs/03-deployment/stage-02-trust/step-1d-single-usb.md).
-- [ ] Infrastructure issuer deployed and signed — [Steps 7-14](docs/auto-docs/03-deployment/stage-02-trust/README.md#step-7-provision-the-issuer-and-attached-storage).
+- [ ] Infrastructure issuer deployed and signed — [Steps 4-14](docs/auto-docs/03-deployment/stage-02-trust/README.md#step-4-provision-the-issuer-and-attached-storage).
 - [ ] **Option 15a:** Proxmox API certificates moved to platform PKI — [Transition](docs/auto-docs/05-operations/01-hosting/proxmox-tls.md#step-2-adopt-the-platform-pki).
 - [ ] **Option 15b:** verified intake deployed in [Tier 1](../${repo_prefix}-tier-1/README.md) — [Installer](docs/auto-docs/03-deployment/stage-02-trust/step-15b-verified-intake.md).
   - [ ] Consumers switched to selected accepted repositories — [Consumer guide](docs/auto-docs/03-deployment/stage-02-trust/step-15b-verified-consumers.md).

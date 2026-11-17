@@ -40,6 +40,17 @@ This file keeps durable context for AI-assisted work across sessions.
   handled before package dependency installation. Keep source endpoints and proxy policy aligned;
   no automatic arbitrary mirror fallback or broad allowlist is added.
 
+- Stage 2's ORCA workflow uses tier-0/scripts/offline-root.sh and public orca.conf inputs. Connected
+  init/bundle produces only pinned tools/policy; prepare/create/sign/crl/backup runs on a separately
+  controlled offline Linux system with encrypted work and independent transfer/backup devices.
+  Retain the original root instance across the first root-only visit, issuer/FreeIPA signing and CRL
+  updates. No connected root VM, network route or signing key is created by normal deployment.
+  Fresh software-PKCS11 custody is Step 1a; provision ca-1 at 4, initialize its SoftHSM at 5, build
+  policy against its real serial at 6–7, install inactive runtime at 8–9 and bind/create CSR at 10a.
+  Preserve encrypted PEM profiles for existing installations. SoftHSM recovery requires a stopped
+  complete VM/all disks and independent PINs; the logical issuer archive alone excludes token state.
+  Single USB remains a complete hardware starting path; Stage 6 links same-family provider-pool
+  growth without moving ORCA online or claiming Community Vault PKCS11 sealing.
 - Stage 2's fresh foundation input selects ca-1 only; directory members are an explicit Stage 5 choice.
   foundation initialization also creates missing issuer.yml, preserving existing local inputs/state.
   OpenXPKI currently requires Debian 12 amd64; HSM provider/ceremony hosts may use EL10. Keep the Debian

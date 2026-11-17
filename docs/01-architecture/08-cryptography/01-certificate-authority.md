@@ -38,8 +38,9 @@ flowchart BT
   class T0 tier0
   classDef tier0Heading fill:#c8c8c8,stroke:#c8c8c8,color:#262626
 ```
-*Figure: The offline root authorizes two sibling issuers. Upward arrows represent certificate
-signing, so neither routine issuance nor shared root trust grants access to the other issuer.*
+*Figure: Authorized subordinate signing; no network route. The offline root authorizes two sibling
+issuers. Upward arrows represent certificate signing, so neither routine issuance nor shared root
+trust grants access to the other issuer.*
 
 These arrows represent certificate signing, not network connections. The directory
 pair replicates one identity CA; it does not create an unrelated issuer per host.
@@ -175,6 +176,11 @@ Routine reconciliation must fail on a missing signing identity, never generate a
 CA or overwrite issuance/revocation state. Image rollback is not database rollback.
 
 ## Alternatives and realization
+
+The offline root is called **ORCA (Offline Root CA)** in the deployment guides. Its reusable kit
+prepares tools and policy separately from online automation; the retained root is opened only for
+authorized signing and CRL ceremonies. The [first visit and later signing](../../03-deployment/stage-02-trust/procedures/offline-root.md)
+and [routine recovery/maintenance](../../05-operations/03-cryptography/offline-root.md) implement that boundary.
 
 The reference uses OpenXPKI Community as the permanent infrastructure issuer and
 portal, with local MariaDB state and clca for offline root ceremonies. FreeIPA retains its own identity CA

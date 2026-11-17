@@ -1,0 +1,83 @@
+---
+- name: Prepare the Terraform-owned issuer volume using the existing disk guard
+  ansible.builtin.include_role:
+    name: data_volume
+  vars:
+    data_volume_device: "{{ openxpki_data_device | default('/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1') }}"
+    data_volume_path: "{{ openxpki_data_mount | default('/srv/openxpki') }}"
+    data_volume_fstype: "{{ openxpki_data_fstype | default('xfs') }}"
+    data_volume_label: openxpki
+    data_volume_expected_uuid: "{{ openxpki_data_uuid | default('') }}"
+    data_volume_uuid_input: openxpki_data_uuid
+    data_volume_min_free_bytes: 2147483648
+    data_volume_allowed_bind_mounts:
+      - {path: /var/lib/mysql, fsroot: /mysql}
+    data_volume_environment: >-
+      {{ {'http_proxy': repository_proxy_url,
+          'https_proxy': repository_proxy_effective_https_url,
+          'no_proxy': shell_proxy_no_proxy}
+         if repository_proxy_active | default(false) | bool else {} }}
+
+- name: Install native middleware and Python PKCS11 bindings without starting services
+  ansible.builtin.apt:
+    name: [softhsm2, opensc, libengine-pkcs11-openssl, python3-pykcs11, python3-cryptography]
+    state: present
+    update_cache: true
+    policy_rc_d: 101
+
+- name: Inspect software custody paths without following links
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  loop:
+    - /etc/hsm-provider
+    - "{{ hsm_software_root }}"
+    - "{{ hsm_software_root }}/tokens"
+    - "{{ hsm_software_config }}"
+  register: hsm_software_paths
+
+- name: Refuse linked or inappropriate software custody paths
+  ansible.builtin.assert:
+    that:
+      - not item.stat.islnk | default(false)
+      - not item.stat.exists or item.stat.isdir | default(false) or item.item == hsm_software_config
+      - not item.stat.exists or item.item != hsm_software_config or item.stat.isreg | default(false)
+  loop: "{{ hsm_software_paths.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Create missing custody directories under root until the runtime account exists
+  ansible.builtin.file:
+    path: "{{ item.item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ '0755' if item.item == '/etc/hsm-provider' else '0700' }}"
+  loop: "{{ hsm_software_paths.results }}"
+  when: not item.stat.exists and item.item != hsm_software_config
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Install the dedicated nonsecret software-token configuration
+  ansible.builtin.template:
+    src: softhsm2.conf.j2
+    dest: "{{ hsm_software_config }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Prepare native helper installation directory
+  ansible.builtin.file:
+    path: /usr/local/libexec
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Install the narrow native PKCS11 ceremony helper without credentials
+  ansible.builtin.copy:
+    src: softhsm_issuer.py
+    dest: /usr/local/libexec/hsm-software-token.py
+    owner: root
+    group: root
+    mode: '0700'

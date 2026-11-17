@@ -29,6 +29,13 @@ and is not implied installed by the supplied issuer runtime.
 
 ## Supplied implementation
 
+- [x] Pinned public ORCA kit with literal public inputs, keyless preparation, explicit native root
+  creation/signing/CRLs and encrypted independent native-state backups. Network/media/concurrency,
+  original-identity and partial-operation guards are supplied; physical custody remains operator work.
+- [x] Native Debian 12 SoftHSM2 issuer profile with explicit token/key initialization, real serial/SPKI
+  policy pins, inactive-runtime binding and CSR generation. Initial recovery uses complete stopped-VM
+  backups including token/configuration/data; generic logical PKCS11 application recovery is not a
+  standalone software-token restore. Hardware wrapping and Vault sealing remain separate contracts.
 - [x] Separate signed-repository preparation and native package-candidate discovery before installation,
   requiring the publisher's independently approved key checksum. Controller-only portal CSR generation
   retains the original portal key; the normal approval and runtime recipes retire bootstrap TLS.

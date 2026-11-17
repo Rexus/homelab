@@ -1,0 +1,49 @@
+---
+- name: Validate the installed inactive runtime and original mounted volume
+  ansible.builtin.include_role:
+    name: openxpki
+    tasks_from: preflight
+    public: true
+
+- name: Require the existing native application account instead of creating it early
+  ansible.builtin.getent:
+    database: passwd
+    key: openxpki
+
+- name: Require identical provider and software-token identity inputs
+  ansible.builtin.assert:
+    that:
+      - hsm_provider == 'pkcs11'
+      - hsm_provider_mode == 'client'
+      - hsm_provider_library == hsm_software_library
+      - hsm_provider_user == 'openxpki'
+      - hsm_provider_group == 'openxpki'
+      - hsm_provider_expected_serial == hsm_software_identity.serial
+      - hsm_issuer_key == hsm_software_identity.key_uri
+      - hsm_provider_environment == {'SOFTHSM2_CONF': hsm_software_config}
+
+- name: Permit only root and the issuer group to traverse the software custody directory
+  ansible.builtin.file:
+    path: "{{ hsm_software_root }}"
+    state: directory
+    owner: root
+    group: openxpki
+    mode: '0750'
+
+- name: Grant the issuer account exclusive token-file access without changing identity records
+  ansible.builtin.file:
+    path: "{{ hsm_software_root }}/tokens"
+    state: directory
+    recurse: true
+    owner: openxpki
+    group: openxpki
+    mode: u=rwX,go=
+
+- name: Reuse the existing provider installation and public serial checks
+  ansible.builtin.include_role:
+    name: hsm_provider
+
+- name: Reuse immutable PKCS11 policy binding and optional original-key CSR generation
+  ansible.builtin.include_role:
+    name: hsm_provider
+    tasks_from: issuer

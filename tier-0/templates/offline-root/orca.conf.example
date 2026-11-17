@@ -1,0 +1,28 @@
+# Public inputs only. Read by scripts/offline-root.sh; no shell expansion is performed.
+# Prepare/mount encrypted working media on the separate offline ceremony computer.
+ORCA_INSTANCE=/mnt/orca-work/root
+ORCA_TOOLS=/mnt/orca-work/tools
+ORCA_TRANSFER=/mnt/orca-transfer
+ORCA_BACKUP=/mnt/orca-backup
+
+ORCA_ORGANIZATION="Example Organization"
+ORCA_COMMON_NAME="Example Offline Root CA"
+ORCA_PUBLICATION_URL=http://pki.example.internal/download
+
+# Leave source empty to download the exact pinned official archive on the stager.
+# Alternatively use an approved local Git checkout at this exact clean revision.
+ORCA_CLCA_SOURCE=
+ORCA_CLCA_REVISION=d560135cf4bbdc1916fa4c5545012085b96d4a21
+
+# Public age recipient from the independent backup custodian (age-keygen -o ...).
+# Never put its private identity or a CA passphrase in this file or the kit.
+ORCA_BACKUP_RECIPIENT=REPLACE_WITH_AGE_PUBLIC_RECIPIENT
+
+# Optional validity in days. Subordinate validity must fit inside remaining root life.
+ORCA_ROOT_DAYS=3650
+ORCA_ISSUER_DAYS=1825
+ORCA_CRL_DAYS=90
+
+# After create: copy its ROOT certificate SHA-256 fingerprint here (64 hex digits).
+# Verify this independently before later ceremonies. sign/crl require an exact match.
+ORCA_ROOT_FINGERPRINT=

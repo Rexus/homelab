@@ -1,0 +1,28 @@
+---
+# Copy to hsm_software.yml; keep PINs in protected controller environment, never here.
+# Schema: ansible/roles/hsm_software/defaults/main.yml
+# Guide: docs/03-deployment/stage-02-trust/step-1a-software-hsm.md
+hsm_software_token_label: infrastructure-issuer
+hsm_software_key_label: ca-signer
+hsm_software_key_id: '01'
+hsm_software_rsa_bits: 4096
+# Copy both public values printed by explicit initialization before binding.
+hsm_software_expected_serial: ''
+hsm_software_expected_spki_sha256: ''
+
+# Existing native PKCS11 issuer contract; no hardware driver behavior changes.
+hsm_provider: pkcs11
+hsm_provider_mode: client
+hsm_provider_user: openxpki
+hsm_provider_group: openxpki
+hsm_provider_packages: [softhsm2, opensc, libengine-pkcs11-openssl]
+hsm_provider_library: /usr/lib/softhsm/libsofthsm2.so
+hsm_provider_environment:
+  SOFTHSM2_CONF: /etc/hsm-provider/softhsm2.conf
+hsm_provider_expected_serial: "{{ hsm_software_expected_serial }}"
+hsm_provider_custody_ready: false
+hsm_issuer_engine_library: /usr/lib/x86_64-linux-gnu/engines-3/pkcs11.so
+# Copy the exact URI printed by initialization, including the generated serial.
+hsm_issuer_key: ''
+hsm_issuer_create_csr: false
+hsm_issuer_common_name: Example Infrastructure Issuing CA

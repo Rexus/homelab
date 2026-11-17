@@ -1,0 +1,46 @@
+---
+- name: Inspect the exact mounted issuer filesystem before reading token state
+  ansible.builtin.command:
+    argv: [findmnt, --json, --mountpoint, "{{ openxpki_data_mount | default('/srv/openxpki') }}", --output, 'TARGET,UUID,FSROOT']
+  changed_when: false
+  register: hsm_software_mount
+
+- name: Require the original complete filesystem and optional independent UUID pin
+  ansible.builtin.assert:
+    that:
+      - mounts | length == 1
+      - mounts[0].target == openxpki_data_mount | default('/srv/openxpki')
+      - mounts[0].fsroot == '/'
+      - mounts[0].uuid | default('') is match('^[a-fA-F0-9-]{16,64}$')
+      - openxpki_data_uuid | default('') == '' or mounts[0].uuid == openxpki_data_uuid
+  vars:
+    mounts: "{{ (hsm_software_mount.stdout | from_json).filesystems }}"
+
+- name: Require prepared token storage configuration and native tooling
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  loop:
+    - "{{ hsm_software_root }}"
+    - "{{ hsm_software_root }}/tokens"
+    - "{{ hsm_software_config }}"
+    - /usr/local/libexec/hsm-software-token.py
+  register: hsm_software_prepared
+
+- name: Refuse missing or linked software custody paths
+  ansible.builtin.assert:
+    that:
+      - item.stat.exists
+      - not item.stat.islnk | default(false)
+  loop: "{{ hsm_software_prepared.results }}"
+  loop_control:
+    label: "{{ item.item }}"
+
+- name: Check software configuration against the selected token directory
+  ansible.builtin.slurp:
+    src: "{{ hsm_software_config }}"
+  register: hsm_software_config_file
+
+- name: Reject drift to a different software-token object store
+  ansible.builtin.assert:
+    that: hsm_software_config_file.content | b64decode == lookup('ansible.builtin.template', 'softhsm2.conf.j2')

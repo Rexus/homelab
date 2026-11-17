@@ -1,0 +1,48 @@
+---
+- name: Require separate nondefault PINs for explicit token initialization
+  ansible.builtin.assert:
+    that:
+      - hsm_software_so_pin | length >= 16
+      - hsm_software_so_pin | length <= 255
+      - hsm_software_user_pin | length >= 16
+      - hsm_software_user_pin | length <= 255
+      - hsm_software_so_pin != hsm_software_user_pin
+  no_log: true
+  when: hsm_software_operation == 'initialize'
+
+- name: Inspect or explicitly create the native token using protected standard input
+  ansible.builtin.command:
+    argv: [/usr/bin/python3, /usr/local/libexec/hsm-software-token.py]
+    stdin: >-
+      {{ {'operation': hsm_software_operation, 'root': hsm_software_root,
+          'library': hsm_software_library, 'label': hsm_software_token_label,
+          'key_label': hsm_software_key_label, 'key_id': hsm_software_key_id | string,
+          'rsa_bits': hsm_software_rsa_bits | int,
+          'expected_serial': hsm_software_expected_serial,
+          'expected_spki_sha256': hsm_software_expected_spki_sha256,
+          'issuer_data': openxpki_data_mount | default('/srv/openxpki'),
+          'so_pin': hsm_software_so_pin if hsm_software_operation == 'initialize' else '',
+          'user_pin': hsm_software_user_pin if hsm_software_operation == 'initialize' else ''} | to_json }}
+  environment:
+    SOFTHSM2_CONF: "{{ hsm_software_config }}"
+  register: hsm_software_native
+  failed_when: false
+  changed_when: hsm_software_native.rc == 0 and (hsm_software_native.stdout | from_json).changed
+  no_log: true
+
+- name: Stop failed native operations without revealing protected input
+  ansible.builtin.assert:
+    that: hsm_software_native.rc == 0
+    fail_msg: >-
+      Software token operation failed. Preserve the original custody directory and any
+      initialization.pending marker. Check the selected operation, original serial/SPKI
+      pins and PIN custody; recover partial or missing state instead of reinitializing.
+
+- name: Retain only the public software-token identity from the protected operation
+  ansible.builtin.set_fact:
+    hsm_software_identity: "{{ hsm_software_native.stdout | from_json }}"
+  no_log: true
+
+- name: Show public identity for hsm_software.yml and the pinned PKCS11 policy
+  ansible.builtin.debug:
+    var: hsm_software_identity

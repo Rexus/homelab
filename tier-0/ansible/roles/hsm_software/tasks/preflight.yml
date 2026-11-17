@@ -1,0 +1,39 @@
+---
+- name: Require the qualified platform and bounded online issuer inputs
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Debian'
+      - ansible_distribution_major_version == '12'
+      - ansible_architecture == 'x86_64'
+      - not ansible_check_mode
+      - hsm_software_operation in ['configure', 'initialize', 'inspect', 'bind']
+      - hsm_software_root == (openxpki_data_mount | default('/srv/openxpki')) ~ '/softhsm2'
+      - openxpki_data_mount | default('/srv/openxpki') is match('^/srv/[A-Za-z0-9_-]+$')
+      - hsm_software_config == '/etc/hsm-provider/softhsm2.conf'
+      - hsm_software_library == '/usr/lib/softhsm/libsofthsm2.so'
+      - hsm_software_token_label is match('^[A-Za-z0-9_-]{3,32}$')
+      - hsm_software_key_label is match('^[A-Za-z0-9_-]{3,32}$')
+      - hsm_software_key_id | string is match('^(?:[a-f0-9]{2}){1,16}$')
+      - hsm_software_rsa_bits | int in [3072, 4096]
+      - not openxpki_create_issuer_key | default(false) | bool
+    fail_msg: Select a Debian 12 amd64 online issuer, a separate data disk and the explicit software-token operation.
+
+- name: Inspect current issuer state without stopping an active service
+  ansible.builtin.service_facts:
+
+- name: Refuse token mutation or access changes on an active issuer
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.services.get('openxpki-serverd.service', {}).get('state', '') != 'running'
+      - not openxpki_activate_runtime | default(false) | bool
+    fail_msg: Stop issuance through the accepted maintenance path first; inspect remains read-only.
+  when: hsm_software_operation != 'inspect'
+
+- name: Require independent serial and public key pins before application binding
+  ansible.builtin.assert:
+    that:
+      - hsm_software_expected_serial is match('^[a-f0-9]{16}$')
+      - hsm_software_expected_spki_sha256 is match('^[a-f0-9]{64}$')
+      - "'openxpki-serverd.service' in ansible_facts.services"
+    fail_msg: Install the inactive runtime first, then copy initialization's serial and SPKI SHA256 into hsm_software.yml.
+  when: hsm_software_operation == 'bind'

@@ -1,107 +1,263 @@
-# Establish offline root custody
+# Create and operate the Offline Root CA (ORCA)
 
-Use a separately controlled offline system for the root, not an online issuer VM
-with its NIC disconnected. The reference tool is clca Community; software, USB and
-network key-provider choices retain their own custody/recovery requirements.
+Prepare the kit once, create ORCA on a separate offline computer, then reopen that same instance
+for issuer signing or root CRL updates. The kit automates tool/policy preparation; native clca
+creates the key and signs. Root keys and CA history stay offline.
 
-<a id="figure-1-offline-signing-handoff"></a>
+**Expected result:** the [trust figure](../README.md#figure-1-offline-root-and-online-issuer) shows
+ORCA below the connected issuer. The first visit returns public root files; the second returns
+`ca-1`'s signed certificate. The issuer's HSM choice does not change ORCA's key.
 
-```mermaid
-%%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
-block-beta
-  columns 2
-  Requests["1. Issuer / FreeIPA CSR<br/>Approved public-key<br/>fingerprint"]
-  Ceremony["2. Offline root ceremony<br/>Review identity<br/>and constraints"]
-  Online["4. Owning CA imports<br/>Private key stays<br/>in original custody"]
-  Return["3. Verified return<br/>Signed subordinate<br/>and public chain"]
-  Requests --> Ceremony
-  Ceremony --> Return
-  Return --> Online
-  classDef default fill:#f8fafc,stroke:#64748b,color:#1f2937
-  classDef data fill:#eeeafa,stroke:#78639b,color:#42325d
-  classDef custody fill:#fff2d1,stroke:#926820,color:#584013
-  classDef control fill:#e2f3ed,stroke:#397366,color:#173f36
-  class Requests,Return data
-  class Ceremony custody
-  class Online control
-```
+**Work from:** Tier 0 on the connected preparation host for actions 2–3; the copied kit root on
+the separate offline Linux computer for ceremonies. Keep `root_ca` empty in connected inventory.
+A VM on the ordinary connected Proxmox cluster is not offline root custody.
 
-**Workflow:** **Figure 1: Offline signing handoff.** Controlled media carry public requests into custody;
-only signed public objects return to the owning online CA. The arrows are manual transfers,
-not a routed connection or VM installer.
-Tier 0 [offline ceremony templates](../../../../tier-0/templates) provide supporting material;
-the custody environment, approval and physical transfer remain manual.
-
-**Working repository:** `<prefix>-tier-0` (source: `tier-0/`) stores policy and public
-handoff records only. Ceremony execution and authoritative root state stay offline.
-**Design:** [certificate hierarchy](../../../01-architecture/08-cryptography/01-certificate-authority.md#trust-hierarchy).
-**Prerequisites:** authorized custodians, approved ceremony environment/media, verified
-tool/provider artifacts and independent recovery storage. No root installer or signing
-automation is supplied; use the selected revision's [clca procedure][1].
+> [!TIP]
+> **Recovery and maintenance:** [Reopen, restore or update ORCA](../../../05-operations/03-cryptography/offline-root.md).
+> Existing pre-kit clca instances retain [their original native workflow](offline-software-root.md).
 
 ## Contents
 
-- [Step 1: Prepare and rehearse custody](#step-1-prepare-and-rehearse-custody)
-- [Step 2: Authorize subordinate signing](#step-2-authorize-subordinate-signing)
-- [Step 3: Publish and close the ceremony](#step-3-publish-and-close-the-ceremony)
+- [First visit: create ORCA](#first-visit)
+- [1. Prepare tools and independent recovery](#1-prepare-tools-and-independent-recovery)
+- [2. Initialize public configuration](#2-initialize-public-configuration)
+- [3. Build and transfer the pinned kit](#3-build-and-transfer-the-pinned-kit)
+- [4. Mount custody media and disconnect](#4-mount-custody-media-and-disconnect)
+- [5. Prepare and create the root](#5-prepare-and-create-the-root)
+- [6. Export public files and back up](#6-export-public-files-and-back-up)
+- [Second visit: sign a subordinate](#sign-a-subordinate)
 - [References](#references)
 
-## Step 1: Prepare and rehearse custody
+<a id="first-visit"></a>
+<a id="step-1-prepare-and-rehearse-custody"></a>
 
-For the selected software-first deployment, use the
-[concrete clca ceremony](offline-software-root.md) and native configuration examples.
+## 1. Prepare tools and independent recovery
 
-1. Verify the offline system, tools and update media outside the ceremony boundary.
-   Rehearse the selected software key or OpenSSL engine/provider path using disposable
-   material. clca supports these key interfaces; device compatibility remains a test. [1]
-2. Approve root identity, algorithms, validity, CA constraints, subordinate profiles,
-   publication URLs, CRL schedule and recovery policy. Existing root state is restored
-   and verified, never replaced because a file or HSM cannot be found.
-3. Under explicit initial-creation approval, follow clca's initialization procedure in
-   a protected CA-instance directory. Preserve the root key/provider reference, CA
-   database, issued-certificate/CRL records and configuration together. Serialize all
-   operations on that instance; clca does not support concurrent writers. [1]
+Use a separately controlled **Linux computer** and three separate physical devices: encrypted
+working storage, public transfer media and backup media. The last two need existing writable
+filesystems; prepare blank removable media with your normal disk utility. The kit verifies distinct
+physical backing. No Ansible or Galaxy installation is needed on the ceremony computer.
 
-Keep `root_ca` empty in the connected inventory. It is no longer a child of
-`foundation`, and no connected root VM is supplied in the current guest example.
-An older generated inventory must be reviewed before adopting the new recipes.
-A ceremony VLAN does not protect keys from a connected
-hypervisor's administrators. Reproducible boot images contain tools/templates, never
-the only copy of authoritative CA state.
+**Before attaching root storage**, prepare its OS and tools through an accepted package source.
+For **Rocky/AlmaLinux 10**, with the approved EPEL source available for `age`:
 
-## Step 2: Authorize subordinate signing
+```bash
+sudo dnf install -y bash coreutils findutils openssl perl util-linux iproute tar age cryptsetup e2fsprogs
+```
 
-Follow the controlled handoff in [Figure 1](#figure-1-offline-signing-handoff):
+For **Debian 12+ / Ubuntu**:
 
-1. Receive and inspect the infrastructure issuer CSR. Verify its approved public key,
-   identity, requested scope and provider ownership through an independent record.
-2. Issue only the approved subordinate profile/constraints with the selected clca
-   revision. Verify the resulting chain, key match and permitted CA scope before export.
-   This procedure does not approve arbitrary client-submitted CA extensions.
-3. Later repeat a separate authorized handoff for FreeIPA's CA CSR; these are sibling
-   issuers, not two independent roots or one CA per directory server. Keep root keys,
-   passphrases, database and HSM recovery material out of the return package.
+```bash
+sudo apt-get update
+sudo apt-get install -y bash coreutils findutils openssl perl util-linux iproute2 tar age cryptsetup e2fsprogs
+```
 
-## Step 3: Publish and close the ceremony
+On **the recovery custodian's separate offline system**, in its private recovery directory:
 
-1. Generate the required root CRL and transfer only signed public trust objects to the
-   approved publication endpoint. Record fingerprints, serials, validity, next CRL due
-   date, requests, approvals and media handling. Revocation enforcement is tested at clients.
-2. Back up the complete CA instance after each change. clca's archive backup is not by
-   itself encryption, independent custody or HSM-key recovery. [1] Apply the
-   [backup policy](../../../05-operations/06-resilience/backups/virtual-machines.md#backup-policy)
-   and preserve recovery material under separate authorization.
-3. Verify the offline recovery copy and close the ceremony: disconnect/secure devices
-   and media, remove temporary transfer material under policy and confirm no online
-   system has root-key access. Return to the requesting procedure: infrastructure software keys continue at
-   [prepared-backend activation](issuer.md#10-start-the-prepared-backend); FreeIPA continues at
-   [primary/replica completion](../../stage-05-identity/procedures/freeipa.md#step-3-complete-the-primary-and-replica).
-   Hardware-backed issuers use their qualified provider/token activation, not the software-key commands.
+```bash
+umask 077
+age-keygen -o orca-recovery.agekey
+age-keygen -y orca-recovery.agekey
+```
+
+Retain `orca-recovery.agekey` separately from the root and its backup archives. Copy only the printed
+`age1...` public recipient to the preparation host. Keep the root passphrase separately too.
+
+## 2. Initialize public configuration
+
+On **bootstrap / the connected preparation host**, from **`<prefix>-tier-0/`**:
+
+```bash
+bash scripts/offline-root.sh init
+```
+
+Edit **`templates/offline-root/orca.conf`**. `init` preserves an existing file.
+
+| Field | Set |
+| --- | --- |
+| `ORCA_ORGANIZATION`, `ORCA_COMMON_NAME` | Approved organization and stable root name, e.g. `Example Organization` / `Example Offline Root CA` |
+| `ORCA_PUBLICATION_URL` | Future public-object base URL, e.g. `http://ca.internal.example.com/download`, without a trailing slash |
+| `ORCA_BACKUP_RECIPIENT` | Recovery custodian's public `age1...` recipient |
+| `ORCA_INSTANCE`, `ORCA_TOOLS` | Separate directories on encrypted working storage; defaults `/mnt/orca-work/root` and `/mnt/orca-work/tools` |
+| `ORCA_TRANSFER`, `ORCA_BACKUP` | Separately mounted transfer and backup paths; defaults `/mnt/orca-transfer` and `/mnt/orca-backup` |
+| `ORCA_ROOT_DAYS`, `ORCA_ISSUER_DAYS`, `ORCA_CRL_DAYS` | Approve the 3650 / 1825 / 90 day defaults, or set the intended policy before creation |
+
+Retain the supplied exact clca revision. Leave `ORCA_CLCA_SOURCE` empty for the checked official
+archive, or select an approved clean checkout of that exact revision. The builder checks the revision
+and native payload hash. No private keys or passphrases belong in this public configuration.
+
+## 3. Build and transfer the pinned kit
+
+On **the connected preparation host**, from **`<prefix>-tier-0/`**:
+
+```bash
+bash scripts/offline-root.sh bundle .local-archive/orca-kit
+```
+
+**Expected:** a new public kit with native clca, policy templates, configuration, source pins and
+`manifest.sha256`. An existing destination is refused. Record the printed manifest hash independently,
+then transfer the entire kit directory on the public media.
+
+On **the offline computer**, from **the copied kit root**:
+
+```bash
+sha256sum manifest.sha256
+sha256sum --check --strict manifest.sha256
+```
+
+Require the independently recorded manifest hash and successful file checks. Retain this original
+kit and public configuration for later ceremonies/recovery. It contains tools, not root state.
+
+## 4. Mount custody media and disconnect
+
+On **the ceremony computer**, identify the actual devices:
+
+```bash
+lsblk -o NAME,PATH,SIZE,FSTYPE,TYPE,MOUNTPOINTS,MODEL
+```
+
+For **existing encrypted working storage**, unlock and mount the retained volume. For **a blank
+working partition only**, the example below creates LUKS2 and ext4. Choose an identified removable
+partition, such as a stable `/dev/disk/by-id/usb-WORK_DEVICE-part1` path.
+
+> [!CAUTION]
+> This action erases the selected working partition. For retained root storage, unlock its existing
+> LUKS volume instead; never format or regenerate a root to recover it.
+
+Run on **the ceremony computer**, before CA state exists on that new partition:
+
+```bash
+(
+  set -e
+  read -r -p 'Blank working partition: ' ORCA_WORK_PARTITION
+  test -b "$ORCA_WORK_PARTITION"
+  lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINTS "$ORCA_WORK_PARTITION"
+  read -r -p "Type ERASE $ORCA_WORK_PARTITION to format it: " ORCA_ERASE
+  test "$ORCA_ERASE" = "ERASE $ORCA_WORK_PARTITION"
+  sudo cryptsetup luksFormat --type luks2 "$ORCA_WORK_PARTITION"
+  sudo cryptsetup open "$ORCA_WORK_PARTITION" orca-work
+  sudo mkfs.ext4 /dev/mapper/orca-work
+  sudo install -d /mnt/orca-work
+  sudo mount /dev/mapper/orca-work /mnt/orca-work
+  sudo chown "$(id -u):$(id -g)" /mnt/orca-work
+)
+```
+
+Mount the **existing** transfer and backup filesystems through your normal removable-media workflow.
+Set their actual mount paths in the kit's **`templates/offline-root/orca.conf`** if different from the
+defaults. The current user needs write access. Working, transfer and backup storage must be on three
+different physical devices; partitions on one disk do not qualify.
+
+Disconnect Ethernet, disable Wi-Fi/Bluetooth networking and remove other network paths. Confirm on
+**the offline computer**:
+
+```bash
+ip -br link
+ip -4 route show table all default
+ip -6 route show table all default
+```
+
+**Expected:** only loopback is up; no default routes. The wrapper enforces these checks before root
+changes. Physical custody also excludes a connected hypervisor or other online administrator.
+
+## 5. Prepare and create the root
+
+From **the copied kit root on the offline computer**:
+
+```bash
+bash scripts/offline-root.sh prepare
+```
+
+**Expected:** pinned tools and rendered policy on encrypted working storage; no key or certificate.
+Repeating `prepare` verifies and preserves the existing accepted instance. clca does not support concurrent writers;
+the wrapper locks each complete operation on this instance. [1]
+
+For **a new, explicitly approved root only**, from **the same kit root**:
+
+```bash
+bash scripts/offline-root.sh create
+```
+
+Type the exact confirmation shown and answer native OpenSSL/clca prompts. Independently retain the
+new strong passphrase. A repeated creation, existing key or partial initialization is refused.
+Recover original state after a failed creation; do not delete it and try again.
+
+**Expected:** encrypted RSA-4096 key, root certificate, CA database and policy. Independently record
+the printed root SHA256, then copy it to **`ORCA_ROOT_FINGERPRINT`** in the kit configuration.
+Later signing and CRL operations require this same identity.
+
+## 6. Export public files and back up
+
+From **the copied kit root on the offline computer**:
+
+```bash
+bash scripts/offline-root.sh crl
+bash scripts/offline-root.sh backup
+```
+
+**Expected:** a new public return directory with `root.pem`, `root.cer`, `root.crl`, `root-crl.pem`
+and checksums; a separate encrypted `.tar.gz.age` archive on backup media. Only public objects enter
+transfer media. Native clca's backup is not encrypted; the wrapper creates it temporarily on encrypted
+working storage and encrypts it before export. [1]
+
+With the recovery custodian, [verify a restored copy](../../../05-operations/03-cryptography/offline-root.md#restore-and-test-a-copy)
+before accepting custody. Schedule the next ceremony within 60 days for the 90-day CRL policy.
+Unmount/lock working storage, secure the backup and take the root offline again.
+
+**First visit complete:** return to [Stage 2 Step 2](../README.md#step-2-initialize-the-issuer-inputs).
+Keep the public files until Step 12 publishes them. No subordinate CSR exists yet.
+
+<a id="sign-a-subordinate"></a>
+<a id="step-2-authorize-subordinate-signing"></a>
+
+## Second visit: sign a subordinate
+
+1. On **the protected controller**, in the directory holding the returned CSR, inspect it and
+   calculate its public-key fingerprint:
+
+   ```bash
+   openssl req -in ca-1-issuer.csr -verify -noout -subject
+   openssl req -in ca-1-issuer.csr -pubkey -noout | openssl pkey -pubin -outform DER | sha256sum
+   ```
+
+   For FreeIPA use its actual CSR filename. Approve subject/key through an independent record.
+   Put only the CSR on public transfer media.
+
+2. On **the offline computer**, reopen the original kit and mounted custody media. From **the kit root**:
+
+   ```bash
+   bash scripts/offline-root.sh status
+   ```
+
+   Compare the original root fingerprint with the independent record; require no incomplete
+   operation. Retain that value in `ORCA_ROOT_FINGERPRINT`. Do not run `create` again.
+
+3. From **the kit root on the offline computer**, select the received CSR and approved hash:
+
+   ```bash
+   read -r -p 'CSR on transfer media (example /mnt/orca-transfer/ca-1-issuer.csr): ' ORCA_REQUEST
+   read -r -p 'Approved public-key SHA256 (64 hex digits from requester record): ' ORCA_REQUEST_KEY
+   bash scripts/offline-root.sh sign "$ORCA_REQUEST" "$ORCA_REQUEST_KEY"
+   ```
+
+   Review the displayed subject/key/root and enter the exact approval requested.
+   **Expected:** a subordinate with `CA:true`, `pathlen:0`, the approved key and a valid chain,
+   returned as `issuer.pem` with public root objects. A repeated CSR is refused.
+
+4. Run **action 6** to refresh the CRL and back up the changed history. Return the signed `issuer.pem`
+   and matching root objects to [Stage 2 Step 12](../README.md#step-12-install-public-certificates-and-start-the-prepared-backend),
+   or [FreeIPA completion](../../stage-05-identity/procedures/freeipa.md#step-3-complete-the-primary-and-replica).
+   Use the signing command's return directory for `issuer.pem`; `crl` prints a later root-only
+   directory. Preserve both public results, never the root key, passphrase or CA database.
+
+<a id="step-3-publish-and-close-the-ceremony"></a>
+
+The publication URL receives signed public objects only. Independently distribute the accepted
+root fingerprint/trust anchor, then verify certificate/CRL retrieval before accepting issuance.
+Later ceremonies and host/tool updates follow [ORCA operations](../../../05-operations/03-cryptography/offline-root.md).
 
 ## References
 
-Source checked 2026-10-17.
+Source checked 2026-11-17.
 
-[1]: https://github.com/openxpki/clca/blob/master/README.md
-
-1. [clca key interfaces, CA instances, lifecycle and backup][1]
+1. [Native clca lifecycle, offline use, profiles and backup](https://github.com/openxpki/clca/blob/d560135cf4bbdc1916fa4c5545012085b96d4a21/README.md).

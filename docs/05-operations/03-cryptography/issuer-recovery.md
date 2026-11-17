@@ -18,6 +18,13 @@ PIN even when its wrapped key matches. It therefore needs a separately qualified
 [provider/configuration migration](hardware-migration.md), not a silent rewrite of this archive.
 This recipe covers application-host recovery with the original provider identity available.
 
+**SoftHSM2 scope:** its token is software state, not an external hardware object. The logical archive
+below does not include `/srv/openxpki/softhsm2`. For the supplied software-HSM path, capture an
+independent **stopped full-VM backup with every data disk**, then use
+[complete VM recovery](../06-resilience/recovery/virtual-machines.md) and the
+[original-token checks](../../03-deployment/stage-02-trust/step-1a-software-hsm.md#7-retain-and-rehearse-recovery).
+Retain PINs separately. Restoring only this logical archive cannot recreate a lost token/key.
+
 <a id="contents"></a>
 
 ## Tasks

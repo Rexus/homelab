@@ -35,7 +35,9 @@ and [Stage 6: Secrets](../../03-deployment/stage-06-secrets/README.md).
 
 | Owner | Inputs and supported task |
 | --- | --- |
+| **Offline ceremony kit** | `templates/offline-root/orca.conf`: [ORCA signing, CRLs and recovery](offline-root.md) |
 | **`<prefix>-tier-0/`** | `ansible/group_vars/issuer.yml` and protected issuer inputs: [CA controls and renewal](certificate-authority.md) |
+| **`<prefix>-tier-0/`**, software HSM | `ansible/group_vars/hsm_software.yml`, original serial/SPKI pins and private PIN custody: [SoftHSM path](../../03-deployment/stage-02-trust/step-1a-software-hsm.md) |
 | **`<prefix>-tier-0/`** | `ansible/group_vars/hsm.yml`, provider/remoting inputs and original key records: [HSM operations](usb-hsm.md) |
 | **`<prefix>-tier-0/`**, Kubernetes Vault | `ansible/group_vars/control_applications.yml`, selected Secret owner and original unseal custody: [cluster Vault](../../03-deployment/stage-06-secrets/procedures/vault-kubernetes.md) |
 | **`<prefix>-tier-0/`**, VM Vault | `ansible/group_vars/vault.yml`, original inventory/state and protected API inputs: [VM audit/SSO reconciliation](../../03-deployment/stage-06-secrets/step-1b-vault-vm.md#step-4-configure-audit-and-sso) |
@@ -47,6 +49,7 @@ and [Stage 6: Secrets](../../03-deployment/stage-06-secrets/README.md).
 
 | Question | Procedure |
 | --- | --- |
+| How is ORCA reopened, backed up or restored? | [Offline Root CA](offline-root.md) |
 | Is the issuer healthy; how are certificates renewed or revoked? | [Certificate authority](certificate-authority.md) |
 | How is an issuer recovered? | [Issuer recovery](issuer-recovery.md) |
 | How are HSM replicas maintained or signing custody changed? | [USB HSM](usb-hsm.md), [Pico wrapped-key restore](picohsm-replica.md), [single-device expansion](usb-hsm.md#single-device-to-pool), [hardware migration](hardware-migration.md) |
