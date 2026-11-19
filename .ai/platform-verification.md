@@ -7,6 +7,24 @@ Record deployed revision, result, UTC time, evidence and reviewer privately.
 
 ## Prerequisites
 
+- [ ] Ceremony ISO boots on the selected physical workstation or accepted Proxmox host with no NIC,
+  agent, persistent OS disk or root secrets. Image replacement and loss of the runtime preserve the
+  original encrypted root, policy, counters and independently recoverable backup.
+- [ ] Selected FIDO2 disk unlock requires the intended key, PIN and touch; an independent retained
+  passphrase reopens the original volume without the key. The accepted replacement live image
+  supports that enrollment. Root-key authorization and backup recovery remain separate.
+- [ ] Root and issuer CRL URLs match the issued certificates, preserve the existing paths during
+  alias adoption, and return valid signed current objects from intended reader networks. Any external
+  publication replica/health-checked endpoint passes freshness and actual failover checks separately.
+- [ ] Separate ceremony provisioning, power and human-console identities pass positive and negative
+  effective-ACL tests, including inherited ordinary-automation grants and revocation of provisioning
+  during an active ceremony. No power-only identity can alter hardware, images, mappings or ACLs.
+- [ ] A routine CRL ceremony uses the original key, creates a verifiable current CRL and decryptable
+  independent backup, writes a receipt, and powers off only after success. Wrong clock, missing media,
+  signature or backup failure leaves no success signal and preserves diagnosis/recovery.
+- [ ] Public-CRL watchdog alerts the actual duty operators for missed ceremony deadline, near expiry,
+  invalid/stale/unreachable publication, and missed checker heartbeat. External escalation/repeat
+  and acknowledgment work independently of the observed cluster; a VM wake is never accepted as renewal.
 - [ ] Independent cluster API endpoints, DHCP/DNS/time and accepted image intake work without later tiers.
 - [ ] CSI behavior, node mounts, storage failure/recovery and backup target credentials are qualified.
 - [ ] Selected release requests fit actual node allocatable resources, storage and the required

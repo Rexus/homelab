@@ -19,6 +19,7 @@
       - openxpki_package_versions.keys() | sort == ['libopenxpki-perl', 'openxpki-cgi-session-driver', 'openxpki-i18n']
       - openxpki_realm is match('^[a-z][a-z0-9-]+$')
       - openxpki_portal_fqdn is match('^[a-zA-Z0-9.-]+$')
+      - openxpki_publication_fqdn | default(openxpki_portal_fqdn) is match('^[a-zA-Z0-9.-]+$')
       - openxpki_listen_address is match('^[0-9.]+$')
       - openxpki_listen_address not in ['0.0.0.0', '127.0.0.1']
       - openxpki_admin_networks | length > 0

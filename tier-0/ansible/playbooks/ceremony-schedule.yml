@@ -1,0 +1,14 @@
+---
+- name: Prepare the native power-only client before installing an optional wake timer
+  ansible.builtin.import_playbook: control-node.yml
+  vars:
+    control_node_setup: ceremony-power
+    control_node_require_terraform: false
+
+- name: Install or remove a single approved ceremony activation on the controller
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  roles:
+    - ceremony_schedule

@@ -1,0 +1,6 @@
+---
+ceremony_schedule_enabled: false
+ceremony_schedule_session: ""
+ceremony_schedule_calendar: ""
+ceremony_schedule_repository: "{{ playbook_dir }}/../.."
+ceremony_schedule_ansible_playbook: "{{ ansible_playbook_python | dirname }}/ansible-playbook"

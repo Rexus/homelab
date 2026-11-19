@@ -1,0 +1,19 @@
+---
+# A dedicated connected Debian builder prepares only public tools, never custody media.
+ceremony_build_revision: REPLACE_WITH_NEW_REVISION
+ceremony_build_orca_kit: artifacts/orca-kit
+ceremony_build_orca_kit_sha256: REPLACE_WITH_ACCEPTED_KIT_MANIFEST_SHA256
+ceremony_build_output_dir: artifacts/ceremony
+ceremony_build_yubihsm_packages: []
+ceremony_build_mirror: https://deb.debian.org/debian
+ceremony_build_security_mirror: https://deb.debian.org/debian-security
+ceremony_build_proxy_url: "{{ repository_proxy_url if repository_proxy_enabled | default(false) | bool else '' }}"
+ceremony_build_timeout: 7200
+ceremony_build_repo_root: "{{ (role_path ~ '/../../..') | realpath }}"
+ceremony_build_kit_path: >-
+  {{ ceremony_build_orca_kit if ceremony_build_orca_kit is match('^/')
+     else ceremony_build_repo_root ~ '/' ~ ceremony_build_orca_kit }}
+ceremony_build_fetch_path: >-
+  {{ ceremony_build_output_dir if ceremony_build_output_dir is match('^/')
+     else ceremony_build_repo_root ~ '/' ~ ceremony_build_output_dir }}
+ceremony_build_workspace: "/var/lib/ceremony-build/{{ ceremony_build_revision }}"

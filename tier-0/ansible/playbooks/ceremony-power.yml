@@ -1,0 +1,16 @@
+---
+- name: Prepare the declared native power-operation client
+  ansible.builtin.import_playbook: control-node.yml
+  vars:
+    control_node_setup: ceremony-power
+    control_node_require_terraform: false
+
+- name: Inspect or start an explicitly selected ceremony session with power-only credentials
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  roles:
+    - ceremony_power

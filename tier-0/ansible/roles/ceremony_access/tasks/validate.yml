@@ -1,0 +1,75 @@
+---
+- name: Read the controller epoch without a local-time conversion
+  ansible.builtin.command:
+    argv: [date, -u, '+%s']
+  changed_when: false
+  register: ceremony_access_controller_clock
+
+- name: Validate bounded ceremony access selections before contacting Proxmox
+  ansible.builtin.assert:
+    that:
+      - ceremony_access_action in ['configure', 'lock', 'unlock', 'verify']
+      - ceremony_access_sessions is mapping
+      - ceremony_access_sessions | length > 0
+      - ceremony_access_audit_host in groups.get('hypervisors', [])
+      - ceremony_access_endpoint is match('^https://[^/@?#]+(:[0-9]+)?/?$')
+      - ceremony_access_admin_user == 'root@pam'
+      - ceremony_access_pool is match('^[A-Za-z][A-Za-z0-9_-]+$')
+      - ceremony_access_iso_datastore is match('^ceremony-[A-Za-z0-9_-]+$')
+      - ceremony_access_iso_directory is match('^/var/lib/vz/ceremony-[A-Za-z0-9_-]+$')
+      - ceremony_access_token_id is match('^[A-Za-z][A-Za-z0-9_-]+$')
+      - ceremony_access_token_expire is integer and ceremony_access_token_expire is not boolean
+      - ceremony_access_window_seconds is integer
+      - ceremony_access_window_seconds >= 60 and ceremony_access_window_seconds <= 14400
+      - ceremony_access_excluded_users is sequence and ceremony_access_excluded_users is not string
+      - ceremony_access_excluded_users | length > 0
+      - ceremony_access_custodians is sequence and ceremony_access_custodians is not string
+      - ceremony_access_usb_mappings is sequence and ceremony_access_usb_mappings is not string
+      - ceremony_access_provisioner == 'ceremony-provision@pve'
+      - ceremony_access_operator == 'ceremony-power@pve'
+      - ceremony_access_credentials_directory is match('^/')
+    fail_msg: >-
+      Select exact session VMIDs/nodes, a hypervisors inventory member for the read-only audit,
+      the verified HTTPS API root, and a dedicated ceremony-* ISO store/directory.
+      The two token owners and privilege sets are fixed; keep administrator credentials out of .env files.
+
+- name: Validate each exact future or existing ceremony VM
+  ansible.builtin.assert:
+    that:
+      - item.key is match('^[a-z][a-z0-9-]{2,7}$')
+      - item.value is mapping
+      - item.value.keys() | difference(['vm_id', 'node_name']) | length == 0
+      - item.value.vm_id is integer and item.value.vm_id is not boolean
+      - item.value.vm_id >= 100 and item.value.vm_id <= 999999999
+      - item.value.node_name in groups.get('hypervisors', [])
+    fail_msg: Match ceremony_access_sessions to ceremony_sessions in the ceremony Terraform inputs.
+  loop: "{{ ceremony_access_sessions | dict2items }}"
+
+- name: Reject duplicate VMIDs or overlapping access identities
+  ansible.builtin.assert:
+    that:
+      - >-
+        ceremony_access_sessions.values() | map(attribute='vm_id') | unique | length
+        == ceremony_access_sessions | length
+      - ceremony_access_custodians | intersect(ceremony_access_excluded_users) | length == 0
+      - >-
+        [ceremony_access_provisioner, ceremony_access_operator] |
+        intersect(ceremony_access_excluded_users + ceremony_access_custodians) | length == 0
+      - >-
+        ceremony_access_action in ['lock', 'verify'] or
+        ceremony_access_token_expire > ceremony_access_controller_clock.stdout | int
+    fail_msg: Use distinct VMIDs/users and an explicit future token expiration for configure/unlock.
+
+- name: Validate human and excluded ordinary identities
+  ansible.builtin.assert:
+    that:
+      - item is match('^[A-Za-z][A-Za-z0-9_.-]+@[A-Za-z][A-Za-z0-9_.-]+$')
+      - item != 'root@pam'
+    fail_msg: List existing user IDs without token suffixes; root remains a trusted hypervisor administrator.
+  loop: "{{ ceremony_access_excluded_users + ceremony_access_custodians }}"
+
+- name: Validate selected existing USB mapping IDs
+  ansible.builtin.assert:
+    that:
+      - item is match('^[A-Za-z0-9][A-Za-z0-9_-]+$')
+  loop: "{{ ceremony_access_usb_mappings }}"

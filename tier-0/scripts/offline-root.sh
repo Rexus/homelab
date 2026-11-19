@@ -26,6 +26,7 @@ Usage: bash scripts/offline-root.sh ACTION [ARGUMENTS]
   sign CSR_FILE APPROVED_KEY_SHA256  Offline: verify CSR public-key hash and pinned root; sign level2.
   crl                               Offline: issue a CRL and export public root/CRL history.
   backup                            Offline: native clca archive encrypted with age to separate custody.
+  maintain [--poweroff]              Offline: renew/verify CRL, back up, write receipt; optionally shut down.
 
 Run from the tier repository for init/bundle, then from the copied kit root offline.
 Edit only templates/offline-root/orca.conf. Hashes are 64 hexadecimal digits.
@@ -34,6 +35,8 @@ CSR key hash: openssl req -in issuer.csr -pubkey -noout |
 Passphrases are requested by native clca/OpenSSL, never config or command arguments.
 Offline dependencies: bash, GNU coreutils/findutils/tar, openssl, perl, iproute2,
   util-linux (findmnt, lsblk, flock), age. No offline package downloads occur.
+maintain requires the retained root and unlocked custody media; it never boots/unlocks them.
+--poweroff requires root and systemd. Failure never requests shutdown; public CRL publication is separate.
 EOF
 }
 
@@ -343,6 +346,7 @@ export_public() {
     fi
     if [[ $# == 1 ]]; then openssl x509 -in "$1" -out "$release/issuer.pem"; fi
     (cd -- "$release"; sha256sum ./* > manifest.sha256)
+    public_release=$release
     printf 'Public return directory: %s\nPublish root.cer and root.crl at %s\n' "$release" "$ORCA_PUBLICATION_URL"
 }
 
@@ -379,11 +383,16 @@ sign() {
 }
 
 crl() {
+    local verification
     assert_root
     [[ ! -e "$ORCA_INSTANCE/crl/$(date +%Y%m%d%H%M%S).crl" ]] || die "Wait one second; preserve the existing CRL history."
     begin_operation crl
     native issuecrl
-    openssl crl -in "$ORCA_INSTANCE/crl/ca.crl" -CAfile "$ORCA_INSTANCE/ca/cacert.pem" -verify -noout
+    # Older OpenSSL builds can return zero for a failed CRL signature; require its positive verdict.
+    verification=$(LC_ALL=C openssl crl -in "$ORCA_INSTANCE/crl/ca.crl" \
+        -CAfile "$ORCA_INSTANCE/ca/cacert.pem" -verify -noout 2>&1) || die "CRL verification failed."
+    grep -Fxq 'verify OK' <<< "$verification" || die "CRL signature verification failed; retain the pending operation."
+    printf '%s\n' "$verification"
     export_public
     end_operation
 }
@@ -407,7 +416,57 @@ backup() {
     cp -- "$target.sha256" "$ORCA_INSTANCE/history/$(basename -- "$target").sha256"
     sync -f "$target"
     sync -f "$ORCA_INSTANCE"
+    backup_archive=$target
     printf 'Encrypted native archive: %s\nVerify decryption and recovery separately with the backup custodian.\n' "$target"
+}
+
+maintain() {
+    local poweroff=no now last next receipt
+    if [[ $# == 1 && "$1" == --poweroff ]]; then poweroff=yes; elif [[ $# != 0 ]]; then
+        die "Usage: maintain [--poweroff]."
+    fi
+    need age
+    if [[ "$poweroff" == yes ]]; then
+        [[ $EUID == 0 ]] || die "Run maintain --poweroff as root on the ceremony system."
+        need systemctl
+        [[ -d /run/systemd/system ]] || die "--poweroff requires a running systemd system."
+    fi
+    assert_root
+    [[ ! -e "$ORCA_INSTANCE/.orca-pending" ]] || die "Incomplete operation recorded; recover before maintenance."
+    [[ -w "$ORCA_BACKUP" && -w "$ORCA_TRANSFER" && -w "$ORCA_INSTANCE/history" ]] ||
+        die "Working history, transfer and backup media must be writable before renewal."
+    openssl x509 -in "$ORCA_INSTANCE/ca/cacert.pem" -checkend "$(( ORCA_CRL_DAYS * 86400 ))" -noout ||
+        die "CRL lifetime exceeds remaining root validity; review root rollover before renewal."
+    status
+    crl
+    last=$(openssl crl -in "$ORCA_INSTANCE/crl/ca.crl" -noout -lastupdate)
+    next=$(openssl crl -in "$ORCA_INSTANCE/crl/ca.crl" -noout -nextupdate)
+    now=$(date -u +%s)
+    (( $(date -u -d "${last#*=}" +%s) <= now && $(date -u -d "${next#*=}" +%s) > now )) ||
+        die "New CRL is not current; inspect the clock and retained CRL before publication."
+    backup
+    # Receipt is public evidence, not a signature or a substitute for a recovery rehearsal.
+    receipt=$public_release/ceremony-receipt.txt
+    {
+        printf 'operation=crl-maintenance\ncompleted_utc=%s\n' "$(date -u +%FT%TZ)"
+        printf 'root_sha256=%s\nclca_revision=%s\n' "${ORCA_ROOT_FINGERPRINT,,}" "$CLCA_REVISION"
+        openssl crl -in "$ORCA_INSTANCE/crl/ca.crl" -noout -crlnumber -lastupdate -nextupdate
+        printf 'public_directory=%s\nbackup_archive=%s\n' "$public_release" "$backup_archive"
+        sha256sum "$public_release/root.crl" "$backup_archive"
+        printf 'publication=pending\nrecovery_test=separate-custodian-required\n'
+    } > "$receipt"
+    cp -- "$receipt" "$ORCA_INSTANCE/history/$(basename -- "$public_release").receipt"
+    cp -- "$receipt" "$backup_archive.receipt"
+    cleanup
+    scratch=
+    sync -f "$ORCA_INSTANCE"
+    sync -f "$ORCA_BACKUP"
+    sync -f "$ORCA_TRANSFER"
+    printf 'CRL maintenance complete. Receipt: %s\nPublish and verify the public CRL from the connected controller.\n' "$receipt"
+    if [[ "$poweroff" == yes ]]; then
+        offline_guard
+        systemctl poweroff
+    fi
 }
 
 action=${1:-help}; [[ $# == 0 ]] || shift
@@ -420,7 +479,7 @@ case "$action" in
             printf '%s\n' 'Edit templates/offline-root/orca.conf, then run bundle on the connected stager.'
         fi
         exit 0 ;;
-    bundle|prepare|create|status|sign|crl|backup) ;;
+    bundle|prepare|create|status|sign|crl|backup|maintain) ;;
     *) usage >&2; die "Unknown action $action." ;;
 esac
 [[ $(uname -s) == Linux ]] || die "Run on Linux; use a separate disconnected ceremony computer for root operations."
@@ -429,7 +488,7 @@ for command in realpath sha256sum find tar openssl; do need "$command"; done
 while IFS= read -r variable; do unset "$variable"; done < <(compgen -v ORCA_)
 read_inputs
 if [[ "$action" == bundle ]]; then bundle "$@"; exit 0; fi
-[[ "$action" == sign || $# == 0 ]] || die "$action takes no arguments."
+[[ "$action" == sign || "$action" == maintain || $# == 0 ]] || die "$action takes no arguments."
 if [[ "$action" == status ]]; then status; exit 0; fi
 for command in ip findmnt lsblk flock perl; do need "$command"; done
 offline_guard

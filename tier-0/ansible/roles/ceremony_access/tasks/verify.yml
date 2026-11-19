@@ -1,0 +1,21 @@
+---
+- name: Read effective permissions including both owner and separated-token grants
+  ansible.builtin.command:
+    argv: >-
+      {{ ['pveum', 'user', 'token', 'permissions', item.split('!')[0], item.split('!')[1], '--output-format', 'json']
+         if '!' in item else ['pveum', 'user', 'permissions', item, '--output-format', 'json'] }}
+  delegate_to: "{{ ceremony_access_audit_host }}"
+  become: true
+  changed_when: false
+  loop: >-
+    {{ [ceremony_access_provisioner, ceremony_access_provisioner ~ '!' ~ ceremony_access_token_id,
+        ceremony_access_operator, ceremony_access_operator ~ '!' ~ ceremony_access_token_id] +
+       ceremony_access_excluded_users }}
+  register: ceremony_access_permissions
+
+- name: Validate every effective direct and inherited resource grant
+  ansible.builtin.include_tasks: verify-identity.yml
+  loop: "{{ ceremony_access_permissions.results }}"
+  loop_control:
+    loop_var: ceremony_access_identity
+    label: "{{ ceremony_access_identity.item }}"

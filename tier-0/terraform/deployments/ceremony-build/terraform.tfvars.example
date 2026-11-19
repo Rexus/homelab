@@ -1,0 +1,16 @@
+# Variable definitions: terraform/deployments/ceremony-build/variables.tf
+# Public image builder only; no HSM, root media or private ceremony input belongs here.
+# Select the approved Debian 12 amd64 template prepared in Foundation, before Trust.
+# An existing Debian builder can instead use vm_instances = {} and its inventory entry.
+vm_instances = {
+  "cbuild-1" = {
+    vm_id            = 622
+    template_vm_id   = 9301
+    size             = "large"
+    storage_class    = "local"
+    disk_size_gb     = 60
+    network_zone_key = "management"
+    tags             = ["image-build", "maintenance", "security"]
+  }
+}
+lxc_instances = {}

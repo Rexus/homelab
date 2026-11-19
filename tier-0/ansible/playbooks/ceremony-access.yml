@@ -1,0 +1,21 @@
+---
+- name: Prepare native access-management dependencies
+  ansible.builtin.import_playbook: control-node.yml
+  vars:
+    control_node_setup: ceremony-access
+    control_node_require_terraform: false
+
+- name: Maintain dedicated ceremony access without retained administrator API credentials
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  vars_prompt:
+    - name: ceremony_access_admin_password
+      prompt: Administrator password for this run (leave empty when supplying the short-lived commissioning token)
+      private: true
+      default: ""
+  roles:
+    - ceremony_access

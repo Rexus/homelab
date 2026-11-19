@@ -1,0 +1,24 @@
+---
+- name: Require one dedicated public-image builder
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Refuse an empty or ambiguous builder selection
+      ansible.builtin.assert:
+        that: groups.get('ceremony_builders', []) | length == 1
+        fail_msg: Select exactly one dedicated Debian 12 amd64 builder in ceremony_builders.
+
+- name: Wait for the connected public-image builder
+  ansible.builtin.import_playbook: ../../../../shared/ansible/playbooks/guest-ready.yml
+  vars:
+    guest_ready_group: ceremony_builders
+
+- name: Build and fetch public ceremony media without private input
+  hosts: ceremony_builders
+  become: true
+  any_errors_fatal: true
+  roles:
+    - baseline
+    - ceremony_image

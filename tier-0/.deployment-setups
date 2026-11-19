@@ -2,6 +2,8 @@ foundation
 syslog
 vault
 hsm
+ceremony-build
+ceremony
 immutable-template
 template-refresh
 infrastructure-runner

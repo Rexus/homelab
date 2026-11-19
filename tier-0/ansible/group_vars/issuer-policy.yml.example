@@ -3,7 +3,8 @@
 openxpki_bundle_directory: /home/automation/.local/share/pki/configuration-001
 openxpki_bundle_realm: infrastructure
 openxpki_bundle_portal_fqdn: ca.internal.example.invalid
-openxpki_bundle_publication_url: http://ca.internal.example.invalid/download/
+# Stable public-object name; its DNS initially targets ca-1, independently of portal naming.
+openxpki_bundle_publication_url: http://pki.internal.example.invalid/download/
 openxpki_bundle_dns_suffixes: [internal.example.invalid]
 # A fresh bundle selects software by default. Select pkcs11 for a previously commissioned HSM key.
 # Secrets come from OPENXPKI_SIGNER_PASSWORD (software), HSM_ISSUER_PIN (pkcs11)

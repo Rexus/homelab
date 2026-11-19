@@ -1,0 +1,70 @@
+---
+- name: Read the lease hypervisor epoch without interpreting a naive datetime
+  ansible.builtin.command:
+    argv: [date, -u, '+%s']
+  delegate_to: "{{ ceremony_access_audit_host }}"
+  become: true
+  changed_when: false
+  register: ceremony_access_lease_clock
+  when: ceremony_access_action == 'unlock'
+
+- name: Select one absolute revocation deadline for this provisioning window
+  ansible.builtin.set_fact:
+    ceremony_access_lease_deadline: "{{ ceremony_access_lease_clock.stdout | int + ceremony_access_window_seconds }}"
+  when: ceremony_access_action == 'unlock'
+
+- name: Install the fixed local provisioning revocation service on the trusted hypervisor
+  ansible.builtin.template:
+    src: ceremony-provision-lease.service.j2
+    dest: /etc/systemd/system/ceremony-provision-lease.service
+    owner: root
+    group: root
+    mode: '0644'
+  delegate_to: "{{ ceremony_access_audit_host }}"
+  become: true
+
+- name: Inspect any previous lease timer
+  ansible.builtin.stat:
+    path: /etc/systemd/system/ceremony-provision-lease.timer
+  delegate_to: "{{ ceremony_access_audit_host }}"
+  become: true
+  register: ceremony_access_lease_timer
+
+- name: Cancel the previous fixed lease before selecting a new one
+  ansible.builtin.systemd_service:
+    name: ceremony-provision-lease.timer
+    enabled: false
+    state: stopped
+    daemon_reload: true
+  delegate_to: "{{ ceremony_access_audit_host }}"
+  become: true
+  when: ceremony_access_lease_timer.stat.exists
+
+- name: Finish any previous revocation job before suspending routine power
+  ansible.builtin.systemd_service:
+    name: ceremony-provision-lease.service
+    state: stopped
+    daemon_reload: true
+  delegate_to: "{{ ceremony_access_audit_host }}"
+  become: true
+
+- name: Install the absolute provisioning revocation deadline
+  ansible.builtin.template:
+    src: ceremony-provision-lease.timer.j2
+    dest: /etc/systemd/system/ceremony-provision-lease.timer
+    owner: root
+    group: root
+    mode: '0644'
+  delegate_to: "{{ ceremony_access_audit_host }}"
+  become: true
+  when: ceremony_access_action == 'unlock'
+
+- name: Arm the local lease without storing administrator credentials
+  ansible.builtin.systemd_service:
+    name: ceremony-provision-lease.timer
+    enabled: true
+    state: restarted
+    daemon_reload: true
+  delegate_to: "{{ ceremony_access_audit_host }}"
+  become: true
+  when: ceremony_access_action == 'unlock'

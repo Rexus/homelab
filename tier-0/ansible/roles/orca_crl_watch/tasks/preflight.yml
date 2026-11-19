@@ -1,0 +1,33 @@
+---
+- name: Require an accepted independent Linux monitor or explicit temporary bootstrap exception
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.os_family in ['RedHat', 'Debian']
+      - ansible_facts.service_mgr == 'systemd'
+      - orca_crl_watch_outside_observed_clusters is sameas true or orca_crl_watch_bootstrap_fallback_accepted is sameas true
+      - not (orca_crl_watch_outside_observed_clusters is sameas true and orca_crl_watch_bootstrap_fallback_accepted is sameas true)
+      - inventory_hostname not in groups.get('root_ca', [])
+      - inventory_hostname not in groups.get('issuing_ca', [])
+      - inventory_hostname not in groups.get('hypervisors', [])
+      - inventory_hostname not in groups.get('talos', [])
+      - inventory_hostname not in groups.get('crypto_admin', [])
+      - inventory_hostname not in groups.get('ceremony_builders', [])
+    fail_msg: >-
+      Supply an existing systemd Linux host outside ORCA, the online issuer and every observed Proxmox
+      cluster. Set orca_crl_watch_outside_observed_clusters=true only after verifying that separation.
+      A temporary bootstrap install instead requires orca_crl_watch_bootstrap_fallback_accepted=true;
+      it cannot detect failures shared with its own observed cluster.
+
+- name: Require public trust inputs and a dedicated independent deadman endpoint
+  ansible.builtin.assert:
+    that:
+      - orca_crl_watch_crl_url | length > 0
+      - orca_crl_watch_root_certificate_src | length > 0
+      - orca_crl_watch_root_fingerprint | length > 0
+      - orca_crl_watch_success_url | length > 0
+    fail_msg: >-
+      Set orca_crl_watch_crl_url, root_certificate_src, root_fingerprint and success_url (each with
+      the orca_crl_watch_ prefix). Create a unique Healthchecks-compatible check outside the observed
+      environment: hourly period, 15-minute grace, responsible operator and backup recipients,
+      repeated/escalated notifications until acknowledged/resolved. Test delivery and the missed-ping
+      path as an operator acceptance step. Never reuse a process heartbeat.

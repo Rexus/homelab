@@ -58,6 +58,8 @@ Service labels identify interfaces; numbered VM names identify individual machin
 | `otel` / `metric` | Telemetry gateway / metrics backend | Dedicated-VM alternative. |
 | `util` | Lab utility guest | `util-1`. |
 | `cadm` | Cryptography administration helper | Optional `cadm-1`. |
+| `cbuild` | Public ceremony-image builder | `cbuild-1`; no private custody material. |
+| `orca` | Offline root ceremony runtime | Optional `orca-1`; original encrypted state kept separately. |
 
 ## Proxmox tags
 

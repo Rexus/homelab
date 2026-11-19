@@ -1,0 +1,39 @@
+---
+- name: Select the exact expected grants for this dedicated identity
+  ansible.builtin.set_fact:
+    ceremony_access_identity_grants: >-
+      {{ ceremony_access_expected_acls | selectattr('ugid', 'equalto', ceremony_access_identity.item) | list }}
+
+- name: Reject inherited permissions beyond the fixed selected resources
+  ansible.builtin.assert:
+    that:
+      - item.key in (ceremony_access_identity_grants | map(attribute='path') | list)
+      - >-
+        item.value.keys() | difference(ceremony_access_roles[
+          (ceremony_access_identity_grants | selectattr('path', 'equalto', item.key) | first).roleid]) | length == 0
+    fail_msg: >-
+      Unexpected effective permission for {{ ceremony_access_identity.item }} on {{ item.key }}.
+      Review its groups, inherited ACLs and token separation before starting a ceremony.
+  loop: "{{ (ceremony_access_identity.stdout | from_json) | dict2items }}"
+  when:
+    - ceremony_access_identity.item.split('!')[0] in [ceremony_access_provisioner, ceremony_access_operator]
+    - item.value | length > 0
+
+- name: Require every selected privilege for both dedicated ACL sides
+  ansible.builtin.assert:
+    that:
+      - >-
+        ceremony_access_roles[item.roleid] | difference(
+          (ceremony_access_identity.stdout | from_json).get(item.path, {}).keys()) | length == 0
+    fail_msg: Missing effective owner/token privileges for {{ ceremony_access_identity.item }} on {{ item.path }}.
+  loop: "{{ ceremony_access_identity_grants }}"
+  when: ceremony_access_identity.item.split('!')[0] in [ceremony_access_provisioner, ceremony_access_operator]
+
+- name: Require ordinary automation to have no effective access to ceremony resources
+  ansible.builtin.assert:
+    that: (ceremony_access_identity.stdout | from_json).get(item.path, {}) | length == 0
+    fail_msg: >-
+      Ordinary identity {{ ceremony_access_identity.item }} still reaches {{ item.path }}.
+      Narrow its inherited/pool access before starting a ceremony; a new narrow identity alone is insufficient.
+  loop: "{{ ceremony_access_identity_grants }}"
+  when: ceremony_access_identity.item in ceremony_access_excluded_users

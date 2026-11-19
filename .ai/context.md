@@ -13,6 +13,32 @@ This file keeps durable context for AI-assisted work across sessions.
 
 ## Repository intent
 
+- The Trust stage separates connected public staging (`boot-1`), on-demand HSM administration
+  (`cadm-1`) and offline ORCA signing sessions. The ceremony image contains public tools only;
+  root identity/history, PINs, wrapping material and recovery custody never enter its build inputs.
+  Physical root custody is preferred; an optional NIC-less VM explicitly trusts its hypervisor.
+  Rebuild/test OS images while custody is detached; preserve the exact clca/policy/state binding.
+  `offline-root.sh maintain [--poweroff]` runs locally after custodian start/unlock, verifies and
+  renews the CRL, creates an encrypted backup/receipt, cleans temporary plaintext and requests
+  shutdown only on success. It never downloads updates, starts/unlocks the root or publishes online.
+  Keep expiry reminders and public publication separate; no unattended root credentials are stored.
+  The common ISO supplies a complete live OS/workbench to administration and root sessions, not
+  signing identities. Work-volume unlock, encrypted root-key authorization and age backup recovery
+  are separate credentials. Current ORCA uses passphrases plus an independently held age identity;
+  The image supplies native FIDO2 tooling and the optional local YubiKey/PIN/touch LUKS2 procedure;
+  retain independent passphrase recovery. Hardware unlock still needs device/image qualification.
+  Root exchange returns public certificates/CRLs; issuer keys stay with their own providers.
+  Tool/OS updates require compatible restored-copy signing tests; do not promise timeless compatibility.
+  `ca-1` currently serves read-only root/issuer CRLs as well as issuance. Fresh public-object naming
+  uses `pki` separately from the `ca` portal; existing defaults/embedded URLs are preserved. Root CRL
+  signing stays offline, issuer CRL signing stays online. Independent read-only publication replicas
+  are a documented growth contract, not a provisioned HA path or replicated issuer state.
+  Ceremony VM provisioning, routine power control and human console custody have separate scoped
+  Proxmox identities. Existing inherited general-automation grants must also be excluded/reviewed;
+  a new narrow token alone does not remove them. Disable provisioning authority during ceremonies.
+  Scheduled wake is not proof of renewal: an independent public-CRL watchdog verifies the pinned
+  root/signature, expected ceremony interval and expiry, with an independently monitored heartbeat.
+  Missed checker heartbeats must escalate too; no timer stores signing/unlock credentials.
 - Foundation and all ten stage owners end with an explicit numbered securing checkpoint linked to
   docs/05-operations/01-hosting/guest-hardening.md. Baselines apply during deployment; closeout accepts
   selected controls, temporary-access cleanup and independent recovery without requiring a later stage.

@@ -51,7 +51,10 @@ Bootstrap and host consumers: [Tier 0](../${repo_prefix}-tier-0/README.md).
 
 Run from [Tier 0](../${repo_prefix}-tier-0/README.md); offline signing remains manual.
 
+- [ ] Ceremony host selected, accepted public image tested and custody kept separate from bootstrap — [Ceremony environment](docs/auto-docs/03-deployment/stage-02-trust/procedures/ceremony-environment.md).
 - [ ] ORCA created/restored, public root objects recorded and independent recovery tested — [First visit](docs/auto-docs/03-deployment/stage-02-trust/procedures/offline-root.md#first-visit).
+  - [ ] **Option:** FIDO2 disk unlock and independent passphrase recovery tested — [YubiKey path](docs/auto-docs/03-deployment/stage-02-trust/procedures/orca-disk-unlock.md).
+  - [ ] Ceremony/CRL deadline alarm, backup recipients and missed-checker escalation tested — [Alarm drill](docs/auto-docs/05-operations/03-cryptography/offline-root.md#alarm-when-a-ceremony-or-publication-is-missed).
 - [ ] Issuer key provider commissioned — [Step 5](docs/auto-docs/03-deployment/stage-02-trust/README.md#step-5-commission-the-selected-issuer-key-provider).
   - [ ] **1a, no hardware:** software HSM initialized, serial/SPKI pinned and original token backed up — [SoftHSM](docs/auto-docs/03-deployment/stage-02-trust/step-1a-software-hsm.md).
   - [ ] **Alternative:** USB HSM hosts and provider commissioned — [USB HSM](docs/auto-docs/03-deployment/stage-02-trust/step-1b-usb-hsm.md).
@@ -59,6 +62,7 @@ Run from [Tier 0](../${repo_prefix}-tier-0/README.md); offline signing remains m
   - [ ] **Alternative:** network HSM integrated — [Network HSM](docs/auto-docs/03-deployment/stage-02-trust/step-1c-network-hsm.md).
   - [ ] **Alternative:** single USB HSM with offline backup — [Single USB](docs/auto-docs/03-deployment/stage-02-trust/step-1d-single-usb.md).
 - [ ] Infrastructure issuer deployed and signed — [Steps 4-14](docs/auto-docs/03-deployment/stage-02-trust/README.md#step-4-provision-the-issuer-and-attached-storage).
+  - [ ] Embedded root/issuer publication URLs verified from an intended reader — [Publication](docs/auto-docs/05-operations/03-cryptography/certificate-authority.md#where-are-root-and-issuer-crls-served).
 - [ ] **Option 15a:** Proxmox API certificates moved to platform PKI — [Transition](docs/auto-docs/05-operations/01-hosting/proxmox-tls.md#step-2-adopt-the-platform-pki).
 - [ ] **Option 15b:** verified intake deployed in [Tier 1](../${repo_prefix}-tier-1/README.md) — [Installer](docs/auto-docs/03-deployment/stage-02-trust/step-15b-verified-intake.md).
   - [ ] Consumers switched to selected accepted repositories — [Consumer guide](docs/auto-docs/03-deployment/stage-02-trust/step-15b-verified-consumers.md).

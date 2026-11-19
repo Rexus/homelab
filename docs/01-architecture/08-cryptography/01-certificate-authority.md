@@ -53,6 +53,7 @@ does not combine FreeIPA's certificate inventory or administration with that por
 - [Trust hierarchy](#trust-hierarchy)
 - [Service boundaries](#service-boundaries)
 - [Enrollment and publication](#enrollment-and-publication)
+- [Revocation and publication availability](#revocation-and-publication-availability)
 - [Custody and recovery](#custody-and-recovery)
 - [Alternatives and realization](#alternatives-and-realization)
 - [References](#references)
@@ -79,6 +80,60 @@ Keycloak, Vault, cluster ingress or Tier 1/2 services. Optional federated portal
 retains independently tested recovery access.
 
 ## Enrollment and publication
+
+### What leaves the offline root?
+
+The root signs an approved issuer's **public key**. A certificate signing request (CSR) carries
+that public key and the requested identity. The issuer keeps its own private key;
+the root does not create or distribute that key. Public CA certificates establish trust only
+after a relying party accepts the root through its trusted distribution process.
+
+`root.pem` / `root.cer` contain the root's **public** key and certificate. `issuer.pem` certifies
+the issuer's different public key. `root.crl` is the root's signed revocation list. None contains
+a private signing key; encrypted backup archives follow a separate recovery path.
+
+<a id="figure-root-signing-exchange"></a>
+
+```mermaid
+%%{init: {"theme":"base","fontFamily":"Arial, sans-serif","themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px","actorBkg":"#edf0f3","actorBorder":"#697682","actorTextColor":"#293642","signalColor":"#627581","signalTextColor":"#1f2937","labelBoxBkgColor":"#fff2d1","labelBoxBorderColor":"#926820","labelTextColor":"#584013","loopTextColor":"#584013","noteBkgColor":"#fff2d1","noteBorderColor":"#926820","noteTextColor":"#584013"},"sequence":{"wrap":true,"actorMargin":32,"width":185,"messageMargin":18,"mirrorActors":false}}}%%
+sequenceDiagram
+  participant Issuer as Online issuer
+  participant Custodian as Custodian
+  participant Root as Offline root
+  participant Publication as Public-object endpoint
+  participant Client as Relying client
+  rect rgb(252, 235, 220)
+    Issuer->>Issuer: Keep private key locally, create public CSR
+    Issuer-->>Custodian: Public CSR and recorded key hash
+  end
+  rect rgb(255, 242, 209)
+    Custodian->>Root: Transfer and approve public CSR
+    Root->>Root: Unlock original state, authorize signing
+    Note over Root: Private root key stays offline
+    Root-->>Custodian: Issuer certificate, root certificate / CRL
+  end
+  rect rgb(231, 240, 252)
+    Custodian->>Issuer: Install signed issuer certificate and root trust
+    Custodian->>Publication: Transfer public root certificate / CRL
+    Issuer->>Publication: Publish issuer certificate / signed issuer CRL
+    Custodian->>Client: Distribute accepted root trust and fingerprint
+    Client->>Publication: Fetch public certificates / CRLs
+    Publication-->>Client: Public certificates / signed CRLs
+    Client->>Client: Verify trust and signatures
+  end
+```
+
+*Figure: Offline authorization followed by public trust distribution. The custodian transfers
+public requests/results; the arrows do not introduce a network route to the root. Both private
+signing keys stay with their owners. An independently encrypted root backup is separate recovery
+custody, not public key distribution.*
+
+The reference maps these roles to ORCA, the protected controller and `ca-1`'s publication endpoint.
+Issuer and publication are separate responsibilities even when they share that initial host.
+The [second root visit](../../03-deployment/stage-02-trust/procedures/offline-root.md#sign-a-subordinate)
+supplies the signed issuer certificate; the deployment then publishes `root.cer` and `root.crl`.
+
+### Routine online issuance
 
 ```mermaid
 %%{init: {"theme":"base","flowchart":{"nodeSpacing":20,"rankSpacing":24,"padding":12,"subGraphTitleMargin":{"top":4,"bottom":12}},"themeVariables":{"lineColor":"#627581","edgeLabelBackground":"#f8fafc","fontFamily":"Arial, sans-serif","fontSize":"14px"},"fontFamily":"Arial, sans-serif"}}%%
@@ -153,10 +208,41 @@ submitted profile names or ACME External Account Binding alone do not grant issu
 OpenXPKI's enrollment policy supports signer authorization and profile mapping. [5]
 
 CA administration and subordinate-CA signing are never normal enrollment permissions.
-Publication remains reachable during the required outage envelope without portal login;
+The design requires publication to remain reachable during the required outage envelope without portal login;
 clients verify signed objects. Publishing revocation data and enforcing it at a client
 are separate responsibilities. No OCSP responder is implied by the Community CA;
 that is a separately selected component when required. [6]
+
+## Revocation and publication availability
+
+A **CRL is a signed file**, not another CA or server. The signer and the HTTP server serving that
+file have different responsibilities. Certificates identify their distribution URL. [8]
+
+| List | Signed by | Covers | Reference publication |
+| --- | --- | --- | --- |
+| `root.crl` | Offline root | Subordinate CA certificates, including the infrastructure issuer | Controlled transfer to the public-object endpoint |
+| `issuer.crl` | Infrastructure issuer | Service certificates issued by that authority | Native online CRL workflow |
+
+**Small installation:** the selected realization runs both issuance and read-only publication on
+`ca-1`. A stable `pki` name initially points there; the administrative portal uses `ca`. This is one
+publication host, not a highly available service. The independent deadline checker detects stale or
+unreachable root publication; it does not renew the root CRL.
+
+**Availability growth:** independently hosted, read-only publication replicas are a suitable next
+step when readers must survive issuer/host maintenance. Preserve the exact embedded URLs behind a
+qualified health-checked endpoint. Replicate only verified signed public objects; check signature,
+issuer, freshness and rollback, and monitor each replica and the consumer-facing route. HTTP can
+serve these signed objects without requiring the same PKI to validate its own download channel. [8]
+
+This is publication redundancy, not replicated CA state or signing authority. It cannot issue a new
+CRL when its signer is unavailable, and an expired copied CRL is still expired. The current installer
+does **not** provision this replica/endpoint path. An existing qualified publication service can
+satisfy that contract; DNS round-robin alone does not establish failover.
+
+Choose the stable publication name before signing production certificates. For existing certificates,
+retain their original URL and path, moving its serving target when required rather than silently
+changing issuance policy. See [installation inputs](../../03-deployment/stage-02-trust/README.md#step-3-select-the-image-host-and-data-disk)
+and [publication operations](../../05-operations/03-cryptography/certificate-authority.md#where-are-root-and-issuer-crls-served).
 
 ## Custody and recovery
 
@@ -182,6 +268,21 @@ prepares tools and policy separately from online automation; the retained root i
 authorized signing and CRL ceremonies. The [first visit and later signing](../../03-deployment/stage-02-trust/procedures/offline-root.md)
 and [routine recovery/maintenance](../../05-operations/03-cryptography/offline-root.md) implement that boundary.
 
+Separate the replaceable operating environment from the persistent signing identity. An approved
+public live image can carry the tools; independent encrypted storage retains the root key, database
+and CRL counters. Build updates without root custody attached, then reopen the same state offline.
+The [ceremony environment](../../03-deployment/stage-02-trust/procedures/ceremony-environment.md)
+also separates hardware administration from ordinary deployment. A VM additionally trusts its
+hypervisor; removing its NIC does not isolate it from host administrators.
+
+The live image is a shared tool kit, not a shared signing identity. See
+[the live-session lifecycle and separate unlock credentials](../../03-deployment/stage-02-trust/procedures/ceremony-environment.md#understand-the-live-image)
+before selecting custody. In the current ORCA wrapper the root key is an encrypted software key;
+selecting an HSM for `ca-1` does not move the root key into that device.
+The optional [FIDO2 disk-unlock path](../../03-deployment/stage-02-trust/procedures/orca-disk-unlock.md)
+adds token/PIN/touch to routine volume access while retaining independent passphrase recovery;
+it does not change root-key authorization or signing-provider custody.
+
 The reference uses OpenXPKI Community as the permanent infrastructure issuer and
 portal, with local MariaDB state and clca for offline root ceremonies. FreeIPA retains its own identity CA
 as the root's sibling issuer. HashiCorp Vault remains a secret service. These choices
@@ -199,7 +300,7 @@ and [cryptographic trust operations](../../05-operations/03-cryptography/README.
 
 ## References
 
-Sources checked 2026-10-17.
+Sources 1-7 checked 2026-10-17; CRL publication reference checked 2026-11-17.
 
 1. [FreeIPA Ansible server role: externally signed CA](https://github.com/freeipa/ansible-freeipa/blob/master/roles/ipaserver/README.md)
 2. [clca: offline CA state and supported key interfaces](https://github.com/openxpki/clca/blob/master/README.md)
@@ -208,3 +309,4 @@ Sources checked 2026-10-17.
 5. [OpenXPKI enrollment authorization and profiles](https://openxpki.readthedocs.io/en/master/lifecycle/enrollment.html)
 6. [OpenXPKI maintainer clarification: separate OCSP responder](https://sourceforge.net/p/openxpki/mailman/openxpki-users/thread/1193537499.1054529.1632739794972%40mail.yahoo.com/)
 7. [OpenXPKI configuration and DataVault recovery material](https://github.com/openxpki/openxpki-config/blob/community/QUICKSTART.md)
+8. [RFC 5280: CRL distribution points and signed revocation lists](https://www.rfc-editor.org/rfc/rfc5280.html#section-4.2.1.13)

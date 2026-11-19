@@ -1,0 +1,33 @@
+[Unit]
+Description=Verify public ORCA CRL and ceremony schedule with independent deadman alerts
+Wants=network-online.target time-sync.target
+After=network-online.target time-sync.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+LoadCredential=config.json:/etc/orca-crl-watch/config.json
+ExecStart=/usr/bin/python3 /usr/local/libexec/orca-crl-watch.py --config %d/config.json --state /var/lib/orca-crl-watch/observation.json
+StateDirectory=orca-crl-watch
+StateDirectoryMode=0700
+UMask=0077
+Environment=LC_ALL=C
+UnsetEnvironment=http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY no_proxy NO_PROXY
+Restart=on-failure
+RestartSec=5min
+TimeoutStartSec=120
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=orca-crl-watch

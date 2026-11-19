@@ -1,0 +1,33 @@
+---
+# Existing independent host; this path has no dependency on a later observability deployment.
+# Pass -e @ansible/group_vars/all.yml and -e @ansible/group_vars/orca_crl_watch.yml explicitly.
+- name: Prepare the native package-consumer collection before dynamically loading its tasks
+  ansible.builtin.import_playbook: ../control-node.yml
+  vars:
+    control_node_setup: orca-crl-watch
+    control_node_require_terraform: false
+  when: query('ansible.builtin.inventory_hostnames', orca_crl_watch_hosts | default('infrastructure_monitoring')) | length == 1
+
+- name: Require one existing watchdog host before any installation
+  hosts: localhost
+  gather_facts: false
+  become: false
+  any_errors_fatal: true
+  tasks:
+    - name: Reject an empty selection or shared heartbeat across multiple monitors
+      ansible.builtin.assert:
+        that:
+          - query('ansible.builtin.inventory_hostnames', orca_crl_watch_hosts | default('infrastructure_monitoring')) | length == 1
+        fail_msg: >-
+          Add ONE existing independent Linux host to infrastructure_monitoring in
+          ansible/inventory/hosts.yml, or set orca_crl_watch_hosts to one existing inventory host.
+          Supply ansible/group_vars/orca_crl_watch.yml explicitly. Each watchdog requires its own
+          unique external check; an empty group or several hosts must never silently pass.
+
+- name: Install the public ORCA CRL watchdog on the accepted existing monitor
+  hosts: "{{ orca_crl_watch_hosts | default('infrastructure_monitoring') }}"
+  gather_facts: true
+  become: true
+  any_errors_fatal: true
+  roles:
+    - orca_crl_watch

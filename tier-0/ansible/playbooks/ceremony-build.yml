@@ -1,0 +1,3 @@
+---
+- name: Build the approved public ceremony live image
+  ansible.builtin.import_playbook: deployment/ceremony-build.yml

@@ -1,0 +1,25 @@
+# Variable definitions: terraform/deployments/ceremony/variables.tf
+# Optional VM path. Prefer physical offline boot for root custody outside the hypervisor trust boundary.
+# Existing cadm-1 in another setup keeps its original owner/state; omit it here until explicitly migrated.
+ceremony_hypervisor_trust_accepted = false
+ceremony_iso_path                 = "../../../artifacts/ceremony/ceremony-REPLACE_WITH_REVISION.iso"
+ceremony_iso_sha256               = "REPLACE_WITH_ACCEPTED_ISO_SHA256"
+ceremony_iso_datastore_id         = "ceremony-iso"
+ceremony_pool_id                  = "ceremony"
+
+# Start/stop through the console ceremony procedure. Apply must run only with sessions shut down.
+# No persistent VM disk, NIC, cloud-init, guest agent, HSM credential or root state is created.
+ceremony_sessions = {
+  "cadm-1" = {
+    vm_id     = 621
+    node_name = "pve01"
+    # usb_mappings = ["issuer-token", "issuer-recovery"]
+  }
+  "orca-1" = {
+    vm_id     = 623
+    node_name = "pve01"
+    # Root prepare requires encrypted work and physically independent transfer/backup devices.
+    # Add "orca-unlock" for the optional FIDO2 disk-unlock key; no key/PIN enters Terraform.
+    # usb_mappings = ["orca-work", "orca-transfer", "orca-backup", "orca-unlock"]
+  }
+}

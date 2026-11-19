@@ -9,7 +9,8 @@ Prepare that separate authority in [Stage 2 Step 1](../README.md#step-1-prepare-
 it later signs this issuer's CSR.
 
 **Working repository:** `<prefix>-tier-0` on the protected controller.
-**Ceremony host:** preferably a dedicated trusted Linux workstation. The existing manual bootstrap VM
+**Ceremony host:** a dedicated trusted Linux workstation or the
+[on-demand `cadm-1` environment](ceremony-environment.md). The existing manual bootstrap VM
 `boot-1` is an explicit learning/constrained-site choice, not an automatic ceremony host.
 See [host responsibilities](../../../01-architecture/08-cryptography/04-usb-hsm.md#ceremony-and-deployment-hosts).
 The board runs PicoHSM firmware; it does not run Debian, Rocky or AlmaLinux. Those are host OS choices.
@@ -56,13 +57,16 @@ qualified first. A Pico is not a certified tamper-resistant enterprise HSM.
 Choose one path:
 
 - **Physical workstation:** temporarily connect the Pico directly to the protected Linux workstation.
+- **Dedicated `cadm-1`:** follow the [ceremony environment's device-attachment path](ceremony-environment.md)
+  and commission from its local console. Keep the selected board unavailable to `ca-1` until the
+  ceremony is complete, then remove its ceremony attachment before provisioning the issuer.
 - **Existing `boot-1`, board remaining on Proxmox:** in the Proxmox GUI, open **boot-1 → Hardware →
   Add → USB Device → Use USB Port**, then select the board's exact physical port. Record the node/port.
   This temporary attachment is part of the manual bootstrap/device ceremony; remove it before the
   Terraform-owned issuer claims that port. Never attach one device to two VMs. [2]
 
 Only the board being commissioned should be available to the ceremony host.
-When choosing `boot-1`, also accept trust in its Proxmox host and administrators. This procedure
+When choosing a VM, also accept trust in its Proxmox host and administrators. This procedure
 commissions the **online issuer's device**; keep offline root signing on its separate custody host.
 
 ## 3. Flash the blank board
@@ -99,6 +103,27 @@ The board reboots and the BOOTSEL drive disappears. If it has already been unmou
 verify that state rather than copying again. Current PicoHSM firmware uses USB ID `2e8a:10fd`. [1]
 
 ## 4. Prepare middleware through Ansible
+
+### 4a. Accepted live ceremony image
+
+The accepted **`cadm-1` live image** already contains native OpenSC/CCID tools and the PicoHSM
+USB reader registration. No repository checkout, Ansible installation or package download belongs
+in this NIC-less session. On **its local console**, verify the prepared middleware:
+
+```bash
+PICO_MODULE=/usr/lib/x86_64-linux-gnu/opensc-pkcs11.so
+test -r "$PICO_MODULE"
+opensc-tool --version
+systemctl is-active pcscd.socket
+sudo pkcs11-tool --module "$PICO_MODULE" --list-slots
+printf 'PICO_MODULE=%s\n' "$PICO_MODULE"
+```
+
+Require the intended reader/token, then continue at **action 5**. Use the printed module path
+when that action asks for `PICO_MODULE`; the temporary root shell starts a new environment.
+These checks do not initialize a token or change keys/PINs.
+
+### 4b. Existing installed Linux workstation or bootstrap
 
 When using a separate workstation, transfer the reviewed generated **Tier 0** and sibling **Shared**
 repositories together, retaining their relative directory names. Prepare its Linux/Ansible tools through

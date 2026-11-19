@@ -1,0 +1,50 @@
+---
+# Tier 0: copy to orca_crl_watch.yml. Pass both all.yml and this local file explicitly with -e @<path>.
+# 1. Inventory an existing independent Linux/systemd host in infrastructure_monitoring before Stage 2.
+#    It must be outside ORCA and ALL observed Proxmox clusters. No observability stack is needed.
+orca_crl_watch_outside_observed_clusters: false
+# Temporary boot-1 fallback: leave the above false, set this true, and explicitly select its inventory host.
+# This has weaker failure independence. Do not set both flags true.
+orca_crl_watch_bootstrap_fallback_accepted: false
+# orca_crl_watch_hosts: infrastructure_monitoring
+
+# Package installation consumes ansible/group_vars/all.yml repository_proxy_* and
+# baseline_package_source_profile through only the Shared package-consumer/proxy tasks.
+# Set accepted fixed official sources or selected internal mirrors there before running this recipe.
+# Host-specific inventory overrides can retain an independent monitor's accepted mirror/proxy route.
+# No full baseline, hostname, timezone, shell proxy or network configuration is applied.
+
+# 2. Supply the PUBLIC root certificate from accepted custody; never a downloaded replacement root.
+#    Obtain its SHA256 certificate fingerprint with openssl x509 -in root.pem -noout -fingerprint -sha256.
+#    root_certificate_src is relative to the Tier 0 repository root (absolute paths also work).
+orca_crl_watch_crl_url: "http://pki.example.internal/download/root.crl"
+orca_crl_watch_root_certificate_src: ""
+orca_crl_watch_root_fingerprint: ""
+
+# 3. Create ONE unique private ping URL in an independent Healthchecks-compatible service.
+#    Set hourly period + 15-minute grace. Configure operator AND backup recipients, repeated alerts
+#    and escalation until acknowledgment/resolution. Test notifications AND the missed-ping alarm.
+#    Keep endpoint tokens in Ansible Vault/private inputs, never commit the real URL to a public repo.
+orca_crl_watch_success_url: ""
+# Empty derives <success_url>/fail; URLs with query parameters require an explicit failure URL.
+orca_crl_watch_failure_url: ""
+# HTTPS verifies the system CA trust store. Allow HTTP only for a deliberately accepted private endpoint.
+orca_crl_watch_allow_http_deadman: false
+# Internal public CRL requests stay direct; they do not inherit the outbound alert proxy.
+orca_crl_watch_crl_proxy_url: ""
+# Alerts use the accepted package proxy below, or replace this with a separate approved outbound URL.
+# Use "" here when the independent host has accepted direct outbound access instead.
+orca_crl_watch_deadman_proxy_url: >-
+  {{ repository_proxy_url | default('') if repository_proxy_enabled | default(false) | bool else '' }}
+# Legacy orca_crl_watch_proxy_url remains an alert-only fallback when deadman_proxy_url is omitted.
+# Both routes are explicit; the systemd service clears inherited proxy and bypass environment variables.
+
+# Age is measured from signed CRL thisUpdate, NOT from installation or a successful heartbeat.
+# At 45 days warn; at 60 days critical; <=7 days to expiry is independently critical.
+# Warnings also send /fail and suppress success. Neither a retry nor reinstall resets the ceremony age.
+orca_crl_watch_warning_after_days: 45
+orca_crl_watch_ceremony_interval_days: 60
+orca_crl_watch_expiry_safety_days: 7
+orca_crl_watch_max_crl_days: 90
+orca_crl_watch_clock_skew_seconds: 300
+orca_crl_watch_http_timeout_seconds: 15

@@ -16,6 +16,9 @@ ProxyRequests Off
 
 <VirtualHost {{ openxpki_listen_address }}:80>
     ServerName {{ openxpki_portal_fqdn }}
+{% if openxpki_publication_fqdn | default(openxpki_portal_fqdn) != openxpki_portal_fqdn %}
+    ServerAlias {{ openxpki_publication_fqdn }}
+{% endif %}
     Alias /download/ "{{ openxpki_data_mount }}/public/"
     <LocationMatch "^/(?!download/)">
         Require all denied

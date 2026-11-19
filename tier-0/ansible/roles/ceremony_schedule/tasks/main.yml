@@ -1,0 +1,23 @@
+---
+- name: Validate a bounded explicitly selected ceremony activation
+  ansible.builtin.assert:
+    that:
+      - ceremony_schedule_enabled is boolean
+      - ceremony_schedule_session is match('^[a-z][a-z0-9-]{2,7}$')
+      - ceremony_access_sessions is mapping
+      - ceremony_schedule_session in ceremony_access_sessions
+      - ceremony_access_endpoint is match('^https://[^/@?#]+(:[0-9]+)?/?$')
+      - ceremony_schedule_repository is match('^/[A-Za-z0-9/._ -]+$')
+      - ceremony_schedule_ansible_playbook is match('^/[A-Za-z0-9/._ -]+$')
+      - >-
+        not ceremony_schedule_enabled or ceremony_schedule_calendar is
+        match('^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} UTC$')
+    fail_msg: Choose a configured session and one approved future UTC activation; leave enabled=false to remove its timer.
+
+- name: Prepare and install the enabled single-window timer
+  ansible.builtin.include_tasks: install.yml
+  when: ceremony_schedule_enabled
+
+- name: Remove the explicitly selected activation timer and its copied power credential
+  ansible.builtin.include_tasks: remove.yml
+  when: not ceremony_schedule_enabled

@@ -85,25 +85,91 @@ operations; ordinary deployment preserves keys.
 
 ## Ceremony and deployment hosts
 
-A **ceremony host** is the trusted computer temporarily used to initialize a device, enter its
-administrative credentials and handle wrapped-key recovery. It is a role, not another name for bootstrap.
-The online issuer/provider later uses the commissioned device with narrower signing permissions.
+A **ceremony environment** is a trusted, temporary place for privileged key operations. Separate
+connected preparation, device administration and offline root authority, even when their operating
+images share public tools.
 
-| Host choice | Intended use |
-| --- | --- |
-| Dedicated trusted workstation | Preferred for production commissioning and recovery; prepare verified tools, restrict connectivity during the ceremony, then return recovery material to independent custody |
-| Existing `boot-1` | Explicit learning or constrained-site option for the online issuer's device; pause deployment jobs, restrict access and remove temporary device/recovery attachments afterward |
-| Offline root workstation | Separate root-signing custody; a normal connected bootstrap VM does not satisfy this role |
+![Connected preparation, on-demand device administration and separate offline root custody](../../08-reference/diagrams/ceremony-environment.svg)
 
-Reusing bootstrap shares its trust with deployment tools, downloaded artifacts and administrators.
-USB passthrough also trusts the Proxmox host and its administrators; a VM on that host is not an
-independent offline boundary. A compromised ceremony host can capture entered PINs or misuse an
-attached device even when the private key cannot be exported in plaintext.
+*Figure: The reference realization separates `boot-1`, its public image builder, `cadm-1` and ORCA.
+Dashed transfers carry verified public tools, not root secrets or an online route to ORCA.
+The three root media have independent physical backing; a VM does not make its hypervisor offline.*
 
-Record the selected host and ceremony evidence. Keep recovery shares and their unlock secrets
-independent of bootstrap, its VM backups and the online issuer. The
-[PicoHSM procedure](../../03-deployment/stage-02-trust/procedures/picohsm.md) owns preparation and cleanup;
-device-family recovery requirements still apply. [3][6]
+| Responsibility | Allowed work | Retained custody |
+| --- | --- | --- |
+| Connected stager / `boot-1` | Fetch/build public tools, run IaC, carry public CSRs and certificates | Deployment inputs; no root state, HSM administration PINs or recovery secrets |
+| Device administration / `cadm-1` | Initialize a selected HSM, change credentials, create approved objects and test wrapped recovery | Independent vendor-compatible recovery material; runtime may be replaced |
+| Offline root / ORCA | Sign approved subordinate requests and renew the root CRL | Original encrypted CA state, policy, serial and CRL history; separate transfer and backup media |
+| Online issuer / `ca-1` | Issue certificates using the commissioned subordinate key | Its own issuer state and narrowly authorized provider credential |
+
+Use separate API identities for ceremony provisioning and start/stop. The operator receives only
+`VM.Audit` and `VM.PowerMgmt` on the selected session IDs; provisioning separately owns the selected
+pool, ISO upload store and accepted USB mappings. Neither API identity authorizes root signing or
+holds root-unlock secrets. The [API access procedure](../../03-deployment/foundation/proxmox/api-access.md#ceremony-automation-identity)
+owns the exact grants and removes inherited general automation access to these sessions. Disable the
+provisioning token before a ceremony so it cannot replace the selected ISO or alter device attachment.
+These scopes do not reduce the authority of an existing hypervisor administrator.
+
+Prefer a dedicated physical workstation for commissioning and root custody. An optional ceremony
+VM explicitly trusts the host and its administrators: passthrough does not prevent PIN capture,
+guest-memory inspection or misuse of an attached HSM. Reusing `boot-1` remains an explicit
+constrained-site fallback for the **online issuer's device**, with automation paused and temporary
+attachments removed afterward. It is not the normal root environment.
+
+Public image replacement preserves the original signing identity and state. Build updates while
+connected, rehearse with disposable keys and separate test media, then boot the accepted image before
+attaching real custody media. Images contain public tools only. A package refresh is not proof of a
+byte-for-byte reproducible image or permission to change the retained root's pinned tooling policy.
+
+The same selected ISO supplies a general ceremony workbench: `cadm-1` boots its OS and HSM tools,
+while a separate root session opens retained CA state. Device attachment does not supply an OS,
+and normal online signing does not run through `cadm-1`. The
+[live-session and credential figures](../../03-deployment/stage-02-trust/procedures/ceremony-environment.md#understand-the-live-image)
+separate disposable runtime, persistent keys and disk/root/backup unlock responsibilities.
+
+### Operator-assisted root maintenance
+
+```mermaid
+%%{init: {"theme":"base","fontFamily":"Arial, sans-serif","themeVariables":{"fontFamily":"Arial, sans-serif","fontSize":"14px","actorBkg":"#edf0f3","actorBorder":"#697682","actorTextColor":"#293642","signalColor":"#627581","signalTextColor":"#1f2937","labelBoxBkgColor":"#fff2d1","labelBoxBorderColor":"#926820","labelTextColor":"#584013","loopTextColor":"#584013","noteBkgColor":"#fff2d1","noteBorderColor":"#926820","noteTextColor":"#584013"},"sequence":{"mirrorActors":false,"wrap":true}}}%%
+sequenceDiagram
+  participant Operator as Custodian
+  participant Root as Offline root runtime
+  participant Media as Independent custody media
+  rect rgb(255, 242, 209)
+    Operator->>Root: Boot accepted image, verify kit and clock
+    Operator->>Media: Unlock retained root, mount transfer and backup
+    Operator->>Root: Run local maintenance, enter passphrase
+    Root->>Media: Validate original identity and retained history
+    Root->>Root: Renew and verify current CRL
+    Root->>Media: Encrypt backup, write public receipt, sync
+    alt All checks and backup succeed
+      Root-->>Operator: Public CRL and receipt ready for later publication
+      opt Poweroff explicitly selected
+        Root->>Root: Request local shutdown
+      end
+    else A check or backup fails
+      Root-->>Operator: Stop and leave runtime available for diagnosis
+    end
+  end
+```
+
+*Figure: Maintenance automates the work after a custodian has started and unlocked the root.
+Publication happens later on the connected side. The helper never starts a VM, unlocks media or downloads updates.*
+
+The local `maintain [--poweroff]` helper combines renewal, encrypted backup and a public receipt.
+It does not remove human approval or keep root-unlock secrets on the stager. A scoped runtime operator
+may start a NIC-less VM at a custodian's request; signing and unlocking still happen locally at its console.
+A scheduled check of the **published** CRL validates its signature against the pinned public root,
+then warns when the expected ceremony interval is exceeded and escalates as expiry approaches.
+An independent dead-man alarm detects a missed checker run. With the reference 90-day CRL, plan
+ceremonies within 60 days; a due or failed check calls the custodian, never unlocks the root.
+The [root operations guide](../../05-operations/03-cryptography/offline-root.md) owns scheduling and alarms.
+
+Follow [ceremony-environment deployment](../../03-deployment/stage-02-trust/procedures/ceremony-environment.md)
+for the selected image and host path, then the [PicoHSM commissioning procedure](../../03-deployment/stage-02-trust/procedures/picohsm.md)
+or the selected vendor procedure. Keep device recovery secrets independent of bootstrap, its backups
+and the issuer. [3][6] [Root operations](../../05-operations/03-cryptography/offline-root.md) owns
+later ceremonies and recovery of the original CA state.
 
 ## Request and response
 

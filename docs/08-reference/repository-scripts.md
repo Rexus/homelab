@@ -40,6 +40,7 @@ these shared implementations.
 | `shared/scripts/deploy.sh` | runs precheck, Terraform, and Ansible | to deploy, plan, or destroy a setup |
 | `shared/scripts/gitlab-iac.sh` | executes explicitly trusted CI with Vault ID tokens and private saved plans | [Stage 9 handover](../03-deployment/stage-09-development/procedures/handover.md); not a tenant request API |
 | `tier-0/scripts/proxmox-templates.sh` | initializes, plans publication/adoption, applies templates or explicitly replaces one boot disk | [Template lifecycle](../05-operations/01-hosting/templates/template-lifecycle.md), [boot-disk maintenance](../05-operations/01-hosting/templates/template-disk.md) |
+| `tier-0/scripts/offline-root.sh` | stages a public pinned kit; performs local offline root signing, CRL renewal and encrypted backup | [ORCA deployment](../03-deployment/stage-02-trust/procedures/offline-root.md), [maintenance and success-only shutdown](../05-operations/03-cryptography/offline-root.md) |
 | `shared/scripts/log-evidence.py` via Tier 0's `scripts/log-evidence.sh` | generates synthetic manifests and reconciles received/restored records | [Logging drill](../05-operations/06-resilience/logging-drill.md); no faults or service changes |
 | `shared/scripts/kubernetes-cluster.sh` via each tier's `scripts/kubernetes-cluster.sh` | initializes cluster inputs, plans, bootstraps, and exports private credentials/plan JSON; currently Talos | [Kubernetes cluster](../03-deployment/stage-04-kubernetes/procedures/kubernetes.md) |
 

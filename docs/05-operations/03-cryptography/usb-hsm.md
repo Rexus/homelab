@@ -14,6 +14,11 @@ inspection branch below and [CA operations](certificate-authority.md) for that i
 **Before starting:** actual application unit/provider, approved device/key records,
 independent wrapping/recovery material and an accepted failure/capacity budget.
 
+For initialization, administrative PIN changes or wrapped-key recovery, use the
+[separate ceremony environment](../../03-deployment/stage-02-trust/procedures/ceremony-environment.md).
+Run privileged device commands locally there, then remove its device attachment before the
+issuer/provider resumes ownership. Public identity inspection can still run from the controller.
+
 | Configuration in **`<prefix>-tier-0/`** | Owning task |
 | --- | --- |
 | `ansible/group_vars/hsm.yml`, inventory/host vars | Provider, physical serial, native middleware and assigned reader |

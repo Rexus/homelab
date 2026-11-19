@@ -1,0 +1,14 @@
+---
+# Full deploy still has a harmless endpoint; no connection to offline sessions is attempted.
+- name: Explain the console-only ceremony boundary
+  hosts: localhost
+  connection: local
+  become: false
+  gather_facts: false
+  tasks:
+    - name: Report the intentionally manual custody boundary
+      ansible.builtin.debug:
+        msg: >-
+          Terraform prepared stopped ISO sessions only. Inspect their NIC-free hardware and exact USB
+          identities, then use the selected session console. No Ansible guest connection, HSM initialization,
+          root unlock, signing, CRL renewal or custody-media formatting is performed by deployment.

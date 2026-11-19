@@ -1,0 +1,28 @@
+# Recipe/schema: ansible/roles/ceremony_image/defaults/main.yml
+# Only the connected public image builder is reachable through Ansible.
+platform_host_ips:
+  cbuild-1: 10.10.10.51
+
+# A new revision is required for every change to public tools, packages or build policy.
+# Native FIDO2 disk-unlock tooling is included; enrollment remains a local optional ceremony.
+# After adding this tooling, select a NEW revision; the existing input seal rejects revision reuse.
+# Upstream guide: docs/03-deployment/stage-02-trust/procedures/orca-disk-unlock.md.
+# Device paths/UUIDs are public runtime selections; PINs/passphrases never belong in build inputs.
+ceremony_build_revision: REPLACE_WITH_NEW_REVISION
+# First run offline-root.sh init, set its public inputs, then bundle artifacts/orca-kit.
+ceremony_build_orca_kit: artifacts/orca-kit
+ceremony_build_orca_kit_sha256: REPLACE_WITH_ACCEPTED_KIT_MANIFEST_SHA256
+ceremony_build_output_dir: artifacts/ceremony
+
+# Empty selects native OpenSC/PicoHSM tooling; no YubiHSM SDK is claimed in that image.
+# To include YubiHSM support, supply the complete approved Debian 12 amd64 SDK .deb set.
+# Include dependencies and CLI/PKCS11/connector packages; each input requires its accepted SHA256.
+ceremony_build_yubihsm_packages: []
+# ceremony_build_yubihsm_packages:
+#   - src: artifacts/yubihsm-sdk/REPLACE_WITH_APPROVED_PACKAGE.deb
+#     sha256: REPLACE_WITH_ACCEPTED_PACKAGE_SHA256
+
+# The accepted package proxy and official Debian sources come from group_vars/all.yml.
+# Restricted builds must allow the declared mirrors; no arbitrary mirror fallback is used.
+ceremony_build_mirror: https://deb.debian.org/debian
+ceremony_build_security_mirror: https://deb.debian.org/debian-security

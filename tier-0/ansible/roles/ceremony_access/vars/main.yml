@@ -1,0 +1,18 @@
+---
+# Fixed privilege sets: site inputs select resources, never additional privileges.
+ceremony_access_roles:
+  CeremonyProvisionVM:
+    - VM.Allocate
+    - VM.Audit
+    - VM.Config.CDROM
+    - VM.Config.CPU
+    - VM.Config.Memory
+    - VM.Config.HWType
+    - VM.Config.Options
+    - VM.PowerMgmt
+  CeremonyPower: [VM.Audit, VM.PowerMgmt]
+  CeremonyConsole: [VM.Audit, VM.Console]
+  CeremonyISO: [Datastore.Audit, Datastore.AllocateTemplate]
+  CeremonyNode: [Sys.Audit]
+  CeremonyPool: [Pool.Audit, Pool.Allocate]
+  CeremonyMapping: [Mapping.Use]

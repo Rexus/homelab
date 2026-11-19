@@ -1,0 +1,15 @@
+[Unit]
+Description=Revoke ceremony provisioning and restore power-only access
+After=pve-cluster.service
+Requires=pve-cluster.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/sbin/pveum user modify ceremony-provision@pve --enable 0
+ExecStart=/usr/sbin/pveum user modify ceremony-power@pve --enable 1
+TimeoutStartSec=60
+NoNewPrivileges=true
+Restart=on-failure
+RestartSec=30s

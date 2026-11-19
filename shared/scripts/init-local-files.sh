@@ -52,7 +52,8 @@ is_ansible_only_setup() {
   [[ "$setup_name" =~ ^[a-z0-9][a-z0-9-]*$ ]] || return 1
   stem="$(setup_group_vars_stem "$setup_name")"
   [[ -f "$repo_root/ansible/group_vars/$stem.yml.example" &&
-     -f "$repo_root/ansible/playbooks/deployment/$setup_name.yml" ]]
+     ( -f "$repo_root/ansible/playbooks/deployment/$setup_name.yml" ||
+       -f "$repo_root/ansible/playbooks/$setup_name.yml" ) ]]
 }
 
 normalize_setup_name() {

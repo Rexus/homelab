@@ -1,0 +1,16 @@
+{{ {
+  'crl_url': orca_crl_watch_crl_url,
+  'root_certificate': '/etc/orca-crl-watch/root.pem',
+  'root_fingerprint': orca_crl_watch_root_fingerprint,
+  'success_url': orca_crl_watch_success_url,
+  'failure_url': orca_crl_watch_failure_url,
+  'allow_http_deadman': orca_crl_watch_allow_http_deadman,
+  'crl_proxy_url': orca_crl_watch_crl_proxy_url,
+  'deadman_proxy_url': orca_crl_watch_deadman_proxy_url,
+  'warning_after_days': orca_crl_watch_warning_after_days,
+  'ceremony_interval_days': orca_crl_watch_ceremony_interval_days,
+  'expiry_safety_days': orca_crl_watch_expiry_safety_days,
+  'max_crl_days': orca_crl_watch_max_crl_days,
+  'clock_skew_seconds': orca_crl_watch_clock_skew_seconds,
+  'http_timeout_seconds': orca_crl_watch_http_timeout_seconds
+} | to_nice_json }}

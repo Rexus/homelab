@@ -1,0 +1,123 @@
+---
+- name: Identify the unprivileged controller account used by the scheduled client
+  ansible.builtin.command:
+    argv: [id, -un]
+  changed_when: false
+  register: ceremony_schedule_account
+
+- name: Identify the controller account UID
+  ansible.builtin.command:
+    argv: [id, -u]
+  changed_when: false
+  register: ceremony_schedule_uid
+
+- name: Refuse a root runtime or unsafe service account name
+  ansible.builtin.assert:
+    that:
+      - ceremony_schedule_uid.stdout | int > 0
+      - ceremony_schedule_account.stdout is match('^[a-z_][a-z0-9_-]*$')
+    fail_msg: Install from the unprivileged bootstrap/controller account with sudo available; the scheduled client must not run as root.
+
+- name: Inspect the prepared client, selected inputs and retained operator token
+  ansible.builtin.stat:
+    path: "{{ item }}"
+    follow: false
+  loop:
+    - "{{ ceremony_schedule_ansible_playbook }}"
+    - "{{ ceremony_schedule_repository }}/ansible/playbooks/ceremony-power.yml"
+    - "{{ ceremony_schedule_repository }}/ansible/group_vars/ceremony_access.yml"
+    - "{{ ceremony_schedule_repository }}/.env.ceremony-operator"
+  register: ceremony_schedule_paths
+
+- name: Require existing executable tooling and protected non-symlink credential inputs
+  ansible.builtin.assert:
+    that:
+      - ceremony_schedule_paths.results | map(attribute='stat.isreg', default=false) | list is all
+      - ceremony_schedule_paths.results[0].stat.executable
+      - ceremony_schedule_paths.results[3].stat.mode == '0600'
+      - not ceremony_schedule_paths.results[3].stat.islnk
+    fail_msg: Prepare ceremony-power dependencies and retain .env.ceremony-operator with mode 0600 before scheduling.
+
+- name: Validate the absolute systemd calendar without installing it
+  ansible.builtin.command:
+    argv: [systemd-analyze, calendar, --iterations=1, "{{ ceremony_schedule_calendar }}"]
+  changed_when: false
+
+- name: Read the controller epoch
+  ansible.builtin.command:
+    argv: [date, -u, '+%s']
+  changed_when: false
+  register: ceremony_schedule_clock
+
+- name: Parse the explicitly approved UTC window
+  ansible.builtin.command:
+    argv: [date, -u, --date, "{{ ceremony_schedule_calendar }}", '+%s']
+  changed_when: false
+  register: ceremony_schedule_epoch
+
+- name: Require a future activation covered by the operator token lifetime
+  ansible.builtin.assert:
+    that:
+      - ceremony_schedule_epoch.stdout | int > ceremony_schedule_clock.stdout | int + 60
+      - ceremony_access_token_expire | int > ceremony_schedule_epoch.stdout | int + 60
+    fail_msg: Choose a future attended window and rotate the operator token if its expiry does not cover that activation.
+
+- name: Read only the already-scoped operator credential
+  ansible.builtin.slurp:
+    src: "{{ ceremony_schedule_repository }}/.env.ceremony-operator"
+  register: ceremony_schedule_credentials
+  no_log: true
+
+- name: Select the retained power-only fields without evaluating shell content
+  ansible.builtin.set_fact:
+    ceremony_schedule_token_ids: "{{ (ceremony_schedule_credentials.content | b64decode) | regex_findall('(?m)^PROXMOX_API_TOKEN_ID=([^\\r\\n]+)$') }}"
+    ceremony_schedule_token_secrets: "{{ (ceremony_schedule_credentials.content | b64decode) | regex_findall('(?m)^PROXMOX_API_TOKEN_SECRET=([^\\r\\n]+)$') }}"
+    ceremony_schedule_endpoints: "{{ (ceremony_schedule_credentials.content | b64decode) | regex_findall('(?m)^PROXMOX_API_URL=([^\\r\\n]+)$') }}"
+  no_log: true
+
+- name: Reject another identity, endpoint, malformed or injected credential values
+  ansible.builtin.assert:
+    that:
+      - ceremony_schedule_token_ids == ['ceremony-power@pve!' ~ ceremony_access_token_id]
+      - ceremony_schedule_endpoints == [ceremony_access_endpoint]
+      - ceremony_schedule_token_secrets | length == 1
+      - ceremony_schedule_token_secrets[0] is match('^[a-fA-F0-9-]{36}$')
+  no_log: true
+
+- name: Create the root-protected scheduled credential directory
+  ansible.builtin.file:
+    path: /etc/homelab/ceremony
+    state: directory
+    owner: root
+    group: root
+    mode: '0700'
+  become: true
+
+- name: Save only the selected power credential for systemd to read before dropping privileges
+  ansible.builtin.template:
+    src: ceremony-wake.env.j2
+    dest: "/etc/homelab/ceremony/wake-{{ ceremony_schedule_session }}.env"
+    owner: root
+    group: root
+    mode: '0600'
+  become: true
+  no_log: true
+  diff: false
+
+- name: Install the fixed native start recipe and non-catch-up timer
+  ansible.builtin.template:
+    src: "ceremony-wake.{{ item }}.j2"
+    dest: "/etc/systemd/system/ceremony-wake-{{ ceremony_schedule_session }}.{{ item }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: [service, timer]
+  become: true
+
+- name: Enable the single approved future activation
+  ansible.builtin.systemd_service:
+    name: "ceremony-wake-{{ ceremony_schedule_session }}.timer"
+    daemon_reload: true
+    enabled: true
+    state: restarted
+  become: true

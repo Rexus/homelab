@@ -1,0 +1,54 @@
+---
+- name: Start the fixed resource permission plan
+  ansible.builtin.set_fact:
+    ceremony_access_vm_paths: "{{ ceremony_access_sessions.values() | map(attribute='vm_id') | map('string') | map('regex_replace', '^', '/vms/') | list }}"
+    ceremony_access_nodes: "{{ ceremony_access_sessions.values() | map(attribute='node_name') | unique | list }}"
+    ceremony_access_provision_grants:
+      - {path: "/storage/{{ ceremony_access_iso_datastore }}", roleid: CeremonyISO}
+      - {path: "/pool/{{ ceremony_access_pool }}", roleid: CeremonyPool}
+    ceremony_access_expected_acls: []
+
+- name: Add only the selected VM allocation and node-read paths
+  ansible.builtin.set_fact:
+    ceremony_access_provision_grants: >-
+      {{ ceremony_access_provision_grants +
+         [{'path': item, 'roleid': ('CeremonyProvisionVM' if item.startswith('/vms/') else
+                                  'CeremonyNode' if item.startswith('/nodes/') else 'CeremonyMapping')}] }}
+  loop: >-
+    {{ ceremony_access_vm_paths +
+       (ceremony_access_nodes | map('regex_replace', '^', '/nodes/') | list) +
+       (ceremony_access_usb_mappings | map('regex_replace', '^', '/mapping/usb/') | list) }}
+
+- name: Grant the provisioner owner and separated token the same bounded resources
+  ansible.builtin.set_fact:
+    ceremony_access_expected_acls: >-
+      {{ ceremony_access_expected_acls +
+         [dict(item, type='user', ugid=ceremony_access_provisioner),
+          dict(item, type='token', ugid=ceremony_access_provisioner ~ '!' ~ ceremony_access_token_id)] }}
+  loop: "{{ ceremony_access_provision_grants }}"
+
+- name: Grant only VM audit and power to the routine owner and separated token
+  ansible.builtin.set_fact:
+    ceremony_access_expected_acls: >-
+      {{ ceremony_access_expected_acls +
+         [{'path': item, 'roleid': 'CeremonyPower', 'type': 'user', 'ugid': ceremony_access_operator},
+          {'path': item, 'roleid': 'CeremonyPower', 'type': 'token',
+           'ugid': ceremony_access_operator ~ '!' ~ ceremony_access_token_id}] }}
+  loop: "{{ ceremony_access_vm_paths }}"
+
+- name: Grant console access separately to existing human custodians
+  ansible.builtin.set_fact:
+    ceremony_access_expected_acls: >-
+      {{ ceremony_access_expected_acls +
+         [{'path': item.0, 'roleid': 'CeremonyConsole', 'type': 'user', 'ugid': item.1}] }}
+  loop: "{{ ceremony_access_vm_paths | product(ceremony_access_custodians) | list }}"
+
+- name: Exclude ordinary automation from ceremony VMs and replaceable public inputs
+  ansible.builtin.set_fact:
+    ceremony_access_expected_acls: >-
+      {{ ceremony_access_expected_acls +
+         [{'path': item.0, 'roleid': 'NoAccess', 'type': 'user', 'ugid': item.1}] }}
+  loop: >-
+    {{ (ceremony_access_vm_paths + ['/storage/' ~ ceremony_access_iso_datastore, '/pool/' ~ ceremony_access_pool] +
+        (ceremony_access_usb_mappings | map('regex_replace', '^', '/mapping/usb/') | list)) |
+       product(ceremony_access_excluded_users) | list }}

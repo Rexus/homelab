@@ -78,9 +78,11 @@ all:
         #   hsm_proxy_ingress_backend_port: 8443
     crypto_admin:
       hosts: {}
-      # Optional ceremony administration guest from the hsm setup.
-      # hosts:
-      #   cadm-1: {}
+      # Legacy connected administration helpers keep their existing owner/state.
+      # New ceremony sessions have no NIC/SSH and are deliberately absent here.
+    ceremony_builders:
+      hosts:
+        cbuild-1: {}
     infrastructure_runner:
       hosts:
         iac-1: {}
@@ -116,6 +118,7 @@ all:
         vault: null
         hsm_gateways: null
         crypto_admin: null
+        ceremony_builders: null
         infrastructure_runner: null
         cluster_endpoint: null
         immutable_template_builders: null

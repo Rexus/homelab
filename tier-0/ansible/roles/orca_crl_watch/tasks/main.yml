@@ -1,0 +1,101 @@
+---
+- name: Validate independent host and public trust inputs before installation
+  ansible.builtin.import_tasks: preflight.yml
+
+- name: Explain the explicitly weaker bootstrap fallback
+  ansible.builtin.debug:
+    msg: >-
+      TEMPORARY BOOTSTRAP WATCHDOG: public CRL checks are active, but shared host/cluster failure
+      independence is absent. Keep the external missed-heartbeat alarm and move to an independent host.
+  when: orca_crl_watch_bootstrap_fallback_accepted
+
+- name: Apply only the accepted native package proxy before refreshing metadata
+  ansible.builtin.include_role:
+    name: baseline
+    tasks_from: repository_proxy
+    public: false
+  vars:
+    repository_proxy_configure_sources: false
+
+- name: Prepare accepted package sources verification and strict metadata refresh
+  ansible.builtin.include_role:
+    name: baseline
+    tasks_from: package_consumer
+    public: false
+
+- name: Install native public CRL inspection dependencies
+  ansible.builtin.package:
+    name: [python3, openssl, ca-certificates]
+    state: present
+
+- name: Create watchdog configuration and executable directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - {path: /etc/orca-crl-watch, mode: '0755'}
+    - {path: /usr/local/libexec, mode: '0755'}
+
+- name: Install the bounded public CRL checker
+  ansible.builtin.copy:
+    src: orca_crl_watch.py
+    dest: /usr/local/libexec/orca-crl-watch.py
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install only the accepted public root certificate and reject private key or bundle input
+  ansible.builtin.copy:
+    src: >-
+      {{ orca_crl_watch_root_certificate_src
+         if orca_crl_watch_root_certificate_src is match('^/')
+         else orca_crl_watch_repo_root ~ '/' ~ orca_crl_watch_root_certificate_src }}
+    dest: /etc/orca-crl-watch/root.pem
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/bin/python3 /usr/local/libexec/orca-crl-watch.py --validate-root %s
+
+- name: Validate and install private deadman configuration without sending a notification
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: /etc/orca-crl-watch/config.json
+    owner: root
+    group: root
+    mode: "0600"
+    validate: /usr/bin/python3 /usr/local/libexec/orca-crl-watch.py --config %s --validate-only
+  no_log: true
+
+- name: Install sandboxed checker and persistent hourly calendar timer
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - orca-crl-watch.service
+    - orca-crl-watch.timer
+  notify: Reload ORCA public CRL watchdog units
+
+- name: Load installed watchdog units before enabling the timer
+  ansible.builtin.meta: flush_handlers
+
+- name: Enable the hourly public CRL watchdog and its scheduled notification path
+  ansible.builtin.systemd_service:
+    name: orca-crl-watch.timer
+    enabled: true
+    state: started
+
+- name: Show watchdog acceptance checks and operational limits
+  ansible.builtin.debug:
+    msg:
+      - "Installed orca-crl-watch.timer: hourly, Persistent=true; failed checks retry every five minutes."
+      - "Inspect systemctl list-timers orca-crl-watch.timer and journalctl -u orca-crl-watch.service."
+      - "The scheduled service sends real notifications and may run immediately on persistent catch-up; Ansible does not send test pings."
+      - "Operator acceptance: run systemctl start orca-crl-watch.service, verify healthy delivery, then test external failure and missed-ping escalation."
+      - "Pause only this timer for the missed-ping test and stop any service retry; restore it after verified delivery."
+      - "No root signing keys, unlock secrets or Proxmox authority are used. Alerts require working, tested external delivery; no impossible-to-miss guarantee."

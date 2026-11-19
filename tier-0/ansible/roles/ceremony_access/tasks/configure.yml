@@ -1,0 +1,152 @@
+---
+- name: Preserve any existing dedicated store binding before reconciling access
+  ansible.builtin.import_tasks: storage-guard.yml
+
+- name: Read existing direct ACLs for the dedicated identities
+  ansible.builtin.command:
+    argv: [pveum, acl, list, --output-format, json]
+  delegate_to: "{{ ceremony_access_audit_host }}"
+  become: true
+  changed_when: false
+  register: ceremony_access_old_acls
+
+- name: Remove unexpected direct grants belonging to the two dedicated identities
+  community.proxmox.proxmox_access_acl:
+    path: "{{ item.path }}"
+    type: "{{ item.type }}"
+    ugid: "{{ item.ugid }}"
+    roleid: "{{ item.roleid }}"
+    state: absent
+  loop: "{{ ceremony_access_old_acls.stdout | from_json }}"
+  when:
+    - item.type in ['user', 'token']
+    - item.ugid.split('!')[0] in [ceremony_access_provisioner, ceremony_access_operator]
+    - "{'path': item.path, 'type': item.type, 'ugid': item.ugid, 'roleid': item.roleid} not in ceremony_access_expected_acls"
+  no_log: true
+
+- name: Reconcile exact ceremony-only privilege sets
+  community.proxmox.proxmox_role:
+    roleid: "{{ item.key }}"
+    privs: "{{ item.value }}"
+    state: present
+  loop: "{{ ceremony_access_roles | dict2items }}"
+  no_log: true
+
+- name: Create or reconcile the dedicated ISO-only directory datastore
+  community.proxmox.proxmox_storage:
+    name: "{{ ceremony_access_iso_datastore }}"
+    type: dir
+    dir_options:
+      path: "{{ ceremony_access_iso_directory }}"
+    nodes: "{{ ceremony_access_nodes }}"
+    shared: false
+    content: [iso]
+    state: present
+    update: false
+  no_log: true
+
+- name: Create the dedicated organizational ceremony pool
+  community.proxmox.proxmox_pool:
+    poolid: "{{ ceremony_access_pool }}"
+    comment: On-demand ceremony sessions only
+    state: present
+  no_log: true
+
+- name: Issue dedicated privilege-separated tokens with the provisioner initially disabled
+  community.proxmox.proxmox_user:
+    userid: "{{ item.user }}"
+    groups: []
+    enable: "{{ item.enabled }}"
+    expire: 0
+    comment: Dedicated ceremony identity managed by IaC
+    tokens:
+      - tokenid: "{{ ceremony_access_token_id }}"
+        privsep: true
+        expire: "{{ ceremony_access_token_expire }}"
+        comment: "{{ item.comment }}"
+  loop:
+    - {user: "{{ ceremony_access_provisioner }}", enabled: false, label: provisioner, comment: Ceremony provisioning only}
+    - {user: "{{ ceremony_access_operator }}", enabled: false, label: operator, comment: Ceremony audit and power only}
+  register: ceremony_access_issued
+  no_log: true
+
+- name: Read current group membership for the dedicated users
+  ansible.builtin.command:
+    argv: [pveum, user, list, --full, '1', --output-format, json]
+  delegate_to: "{{ ceremony_access_audit_host }}"
+  become: true
+  changed_when: false
+  register: ceremony_access_users
+
+# community.proxmox 2.1.0 translates groups: [] to None and cannot clear old groups.
+- name: Clear inherited group memberships which the native user module cannot empty
+  ansible.builtin.command:
+    argv: [pveum, user, modify, "{{ item.userid }}", --groups, '']
+  delegate_to: "{{ ceremony_access_audit_host }}"
+  become: true
+  changed_when: true
+  loop: "{{ ceremony_access_users.stdout | from_json }}"
+  when:
+    - item.userid in [ceremony_access_provisioner, ceremony_access_operator]
+    - item.groups | default([]) | length > 0
+
+- name: Save newly issued secrets directly to protected ignored environment files
+  ansible.builtin.copy:
+    dest: "{{ ceremony_access_credentials_directory }}/.env.ceremony-{{ item.item.label }}"
+    mode: '0600'
+    content: |
+      PROXMOX_API_URL={{ ceremony_access_endpoint }}
+      PROXMOX_API_TOKEN_ID={{ item.item.user }}!{{ ceremony_access_token_id }}
+      PROXMOX_API_TOKEN_SECRET={{ item.secrets[ceremony_access_token_id] }}
+  loop: "{{ ceremony_access_issued.results }}"
+  when: ceremony_access_token_id in item.secrets | default({})
+  no_log: true
+  diff: false
+
+- name: Require retained credentials when an existing token secret cannot be retrieved
+  ansible.builtin.stat:
+    path: "{{ ceremony_access_credentials_directory }}/.env.ceremony-{{ item }}"
+    follow: false
+  loop: [provisioner, operator]
+  register: ceremony_access_files
+
+- name: Refuse missing or unprotected credential files instead of silently rotating tokens
+  ansible.builtin.assert:
+    that:
+      - item.stat.isreg | default(false)
+      - not item.stat.islnk | default(false)
+      - item.stat.mode == '0600'
+    fail_msg: >-
+      Restore the protected .env.ceremony file or explicitly select a new ceremony_access_token_id
+      and rerun configure to rotate this role's dedicated tokens. Old dedicated tokens are revoked.
+  loop: "{{ ceremony_access_files.results }}"
+
+- name: Read retained token files without printing their contents
+  ansible.builtin.slurp:
+    src: "{{ ceremony_access_credentials_directory }}/.env.ceremony-{{ item }}"
+  loop: [provisioner, operator]
+  register: ceremony_access_retained
+  no_log: true
+
+- name: Reject stale retained files belonging to another token or endpoint
+  ansible.builtin.assert:
+    that:
+      - "('PROXMOX_API_URL=' ~ ceremony_access_endpoint) in (item.content | b64decode).splitlines()"
+      - >-
+        ('PROXMOX_API_TOKEN_ID=' ~ (ceremony_access_provisioner if item.item == 'provisioner' else ceremony_access_operator)
+         ~ '!' ~ ceremony_access_token_id) in (item.content | b64decode).splitlines()
+      - "item.content | b64decode is search('(?m)^PROXMOX_API_TOKEN_SECRET=.+$')"
+    fail_msg: The retained file does not match the selected token. Recover it or rotate with a new token ID.
+  loop: "{{ ceremony_access_retained.results }}"
+  no_log: true
+
+- name: Grant exact owner and token ACLs and ordinary-automation exclusions
+  community.proxmox.proxmox_access_acl:
+    path: "{{ item.path }}"
+    type: "{{ item.type }}"
+    ugid: "{{ item.ugid }}"
+    roleid: "{{ item.roleid }}"
+    propagate: false
+    state: present
+  loop: "{{ ceremony_access_expected_acls }}"
+  no_log: true

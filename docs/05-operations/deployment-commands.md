@@ -14,6 +14,7 @@ Finish each selected stage's functional checks and [hardening checkpoint](01-hos
 
 - [Context and initialization](#context-and-initialization)
 - [Offline Root CA](#offline-root-ca)
+- [Ceremony images and runtimes](#ceremony-images-and-runtimes)
 - [Linux setups](#linux-setups)
 - [Templates, Kubernetes and Vault CI](#templates-kubernetes-and-vault-ci)
 - [Boot-security commands](#boot-security-commands)
@@ -61,8 +62,9 @@ complete [environment isolation](../08-reference/repository-scripts.md#environme
 
 ## Offline Root CA
 
-ORCA uses a separate offline machine, not a Terraform guest. See the [numbered first visit and
-signing path](../03-deployment/stage-02-trust/procedures/offline-root.md). Public configuration is
+ORCA uses a separate offline runtime: a protected physical workstation or the optional
+[NIC-less live VM](../03-deployment/stage-02-trust/procedures/ceremony-environment.md).
+See the [numbered first visit and signing path](../03-deployment/stage-02-trust/procedures/offline-root.md). Public configuration is
 `templates/offline-root/orca.conf`; secrets and original CA state stay on offline custody media.
 
 | Run from | Action | Command |
@@ -75,6 +77,47 @@ signing path](../03-deployment/stage-02-trust/procedures/offline-root.md). Publi
 | Same offline kit root | Sign the independently approved CSR/key from the guide | `bash scripts/offline-root.sh sign "$ORCA_REQUEST" "$ORCA_REQUEST_KEY"` |
 | Same offline kit root | Issue root CRL/export public objects | `bash scripts/offline-root.sh crl` |
 | Same offline kit root, after each change | Encrypt the complete native root backup | `bash scripts/offline-root.sh backup` |
+| Same offline kit root, existing root | Renew/verify CRL, encrypt backup and record receipt | `bash scripts/offline-root.sh maintain` |
+| Same offline kit root, local root shell/systemd | Same sequence; shut down only on success | `bash scripts/offline-root.sh maintain --poweroff` |
+
+## Ceremony images and runtimes
+
+Run from **Tier 0 on bootstrap**, following the
+[ceremony guide](../03-deployment/stage-02-trust/procedures/ceremony-environment.md).
+Initialize each selected setup with `bash scripts/init-local-files.sh --setup <setup>` first.
+These commands contain no root or device-administration credentials.
+
+| Setup | Edit | Provision/build | Later update |
+| --- | --- | --- | --- |
+| `ceremony-build` | `terraform/deployments/ceremony-build/terraform.tfvars`, `ansible/group_vars/ceremony_build.yml` | `bash scripts/deploy.sh ceremony-build` | New build revision, then `bash scripts/deploy.sh ceremony-build --ansible-only` |
+| `ceremony` | `terraform/deployments/ceremony/terraform.tfvars`: accepted ISO/hash, explicit hypervisor trust, session IDs and USB mappings | `bash scripts/deploy.sh ceremony --terraform-only --env-file .env.ceremony-provisioner` | With sessions shut down and custody detached, the same command reviews image/hardware changes |
+
+For the independent public-CRL monitor, initialize `orca-crl-watch`, edit
+`ansible/group_vars/orca_crl_watch.yml`, then run from the same Tier 0 root:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i ansible/inventory/hosts.yml \
+  ansible/playbooks/deployment/orca-crl-watch.yml \
+  -e @ansible/group_vars/all.yml -e @ansible/group_vars/orca_crl_watch.yml
+```
+
+Complete the [alarm and missed-heartbeat drill](03-cryptography/offline-root.md#alarm-when-a-ceremony-or-publication-is-missed).
+
+For an optional attended wake window, initialize `ceremony-schedule`, edit
+`ansible/group_vars/ceremony_schedule.yml`, then run from **Tier 0 on the unprivileged controller**:
+
+```bash
+ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
+  ansible/playbooks/ceremony-schedule.yml -e @ansible/group_vars/ceremony_access.yml \
+  -e @ansible/group_vars/ceremony_schedule.yml
+```
+
+The [scheduler procedure](../03-deployment/foundation/proxmox/api-access.md#5-optionally-schedule-one-approved-activation-window)
+covers credential expiry, rescheduling and removal. It performs no signing or forced shutdown.
+
+Use the [dedicated API identities](../03-deployment/foundation/proxmox/api-access.md#ceremony-automation-identity)
+for VM provisioning and routine power operations. Root signing is performed locally using the ORCA
+commands above; it is never an Ansible connection into the offline runtime.
 
 ## Linux setups
 

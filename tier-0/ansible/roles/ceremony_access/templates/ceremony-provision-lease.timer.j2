@@ -1,0 +1,11 @@
+[Unit]
+Description=Expire the approved ceremony provisioning window
+
+[Timer]
+OnCalendar={{ '%Y-%m-%d %H:%M:%S UTC' | strftime(ceremony_access_lease_deadline | int, utc=true) }}
+Persistent=true
+AccuracySec=1s
+Unit=ceremony-provision-lease.service
+
+[Install]
+WantedBy=timers.target

@@ -61,18 +61,9 @@ vm_instances = {
   #   network_zone_key  = "cryptography"
   #   tags              = ["hsm", "pkcs11", "critical", "restricted", "always-on", "security"]
   # }
-  # Optional cryptography administration helper, default 0. Uncomment together
-  # with the matching Ansible inventory host and hsm.yml platform_host_ips
-  # entry.
-  # "cadm-1" = {
-  #   vm_id            = 621
-  #   size             = "tiny"
-  #   storage_class    = "local"
-  #   disk_size_gb     = 20
-  #   tpm              = {}
-  #   network_zone_key = "ceremony"
-  #   tags             = ["isolated", "maintenance", "security"]
-  # }
+  # New on-demand cadm-1 belongs to the separate ceremony setup.
+  # Existing connected cadm-1 keeps its original configuration/state in hsm until
+  # explicitly retired or migrated. Never declare one guest under both owners.
 }
 
 lxc_instances = {}

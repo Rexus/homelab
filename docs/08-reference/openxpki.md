@@ -31,6 +31,8 @@ files are not automatically discovered by every inventory/playbook combination.
 | `openxpki_min_free_mb` | Minimum available data capacity; defaults 2048 MiB |
 | `openxpki_admin_networks` | IPv4 CIDRs allowed to use the authenticated TLS portal |
 | `openxpki_publication_networks` | Consumer CIDRs allowed to fetch public certificate/CRL objects |
+| `openxpki_portal_fqdn` | Administrative HTTPS name, covered by the portal certificate |
+| `openxpki_publication_fqdn` | Optional additional read-only HTTP alias; defaults to the portal name for existing inputs. Fresh examples select `pki.<internal-domain>` |
 | `openxpki_realm` | Single production realm name in the supplied bundle |
 | `openxpki_initialize_database` | Explicit one-time permission to import schemas into an empty database |
 | `openxpki_activate_runtime` | Explicit permission to enable the signing services after signer/custody preparation; token import follows |
@@ -47,6 +49,13 @@ files are not automatically discovered by every inventory/playbook combination.
 | `OPENXPKI_TLS_KEY_FILE` | Matching independently prepared private key |
 
 Secret-only encrypted overrides are supported during Ansible-only execution.
+
+The native Apache HTTP listener serves only `/download/`. The optional publication alias does not
+add another server, expose the portal over HTTP or require a new HTTPS certificate. Keep
+`ORCA_PUBLICATION_URL` and the issuer policy's `openxpki_bundle_publication_url` aligned with the
+selected stable public-object route. Existing certificate URLs and the original root policy remain
+validity contracts; adding an alias does not rewrite them. Independent publication replicas and
+their health-checked endpoint are a separate integration, not an installed HA feature.
 Do not put these secrets, configuration archives, private keys or CA state in Git.
 
 The [application recovery guide](../05-operations/03-cryptography/issuer-recovery.md) covers software

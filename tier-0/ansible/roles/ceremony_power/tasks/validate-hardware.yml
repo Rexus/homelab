@@ -1,0 +1,14 @@
+---
+- name: Require a NIC-less agent-disabled live session in current and pending configuration
+  ansible.builtin.assert:
+    that:
+      - ceremony_power_configuration is mapping
+      - ceremony_power_configuration.keys() | select('match', '^net[0-9]+$') | list | length == 0
+      - ceremony_power_configuration.get('agent', '0') | string is match('^(0|enabled=0)(,|$)')
+      - >-
+        ceremony_power_configuration.keys() | select('match', '^(scsi|sata|virtio|ide)[0-9]+$') |
+        difference(['ide2']) | length == 0
+      - ceremony_power_configuration.get('ide2', '') is search('media=cdrom')
+    fail_msg: >-
+      Refusing activation: ceremony sessions require no NIC, disabled guest agent and only the live ISO
+      CD-ROM, without persistent OS disks. Review current and pending hardware with provisioning locked.

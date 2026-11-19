@@ -1,0 +1,8 @@
+---
+# Schema: ansible/roles/ceremony_schedule/defaults/main.yml and tasks/main.yml.
+# API scopes: docs/03-deployment/foundation/proxmox/api-access.md#ceremony-automation-identity
+# Disabled until an operator selects a future attended window. No root unlock or signing is scheduled.
+ceremony_schedule_enabled: false
+ceremony_schedule_session: orca-1
+# One approved future UTC window, not a recurring or catch-up timer; e.g. 2027-01-15 09:00:00 UTC.
+ceremony_schedule_calendar: ""

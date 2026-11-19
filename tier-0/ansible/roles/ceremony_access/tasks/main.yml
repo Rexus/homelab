@@ -1,0 +1,150 @@
+---
+- name: Validate selected resources and identity boundaries
+  ansible.builtin.import_tasks: validate.yml
+
+- name: Refuse partial check-mode execution of native ACL mutations
+  ansible.builtin.assert:
+    that: not ansible_check_mode
+    fail_msg: Use ceremony_access_action=verify for a read-only effective-permission audit.
+
+- name: Build the exact owner and token ACL plan
+  ansible.builtin.import_tasks: plan.yml
+
+- name: Require exactly one in-memory administrator authentication method
+  ansible.builtin.assert:
+    that:
+      - >-
+        (ceremony_access_admin_password | default('') | length > 0) !=
+        (lookup('ansible.builtin.env', 'CEREMONY_ADMIN_TOKEN_SECRET') | length > 0)
+      - >-
+        lookup('ansible.builtin.env', 'CEREMONY_ADMIN_TOKEN_SECRET') | length == 0 or
+        lookup('ansible.builtin.env', 'CEREMONY_ADMIN_TOKEN_ID') is match('^[A-Za-z][A-Za-z0-9_-]+$')
+    fail_msg: Use the private password prompt or an ephemeral root-owned commissioning API token; never a routine token.
+  no_log: true
+
+- name: Maintain ceremony access through native verified-TLS APIs
+  module_defaults:
+    group/community.proxmox.proxmox:
+      api_host: "{{ ceremony_access_endpoint | urlsplit('hostname') }}"
+      api_port: "{{ ceremony_access_endpoint | urlsplit('port') | default(8006, true) }}"
+      api_user: "{{ ceremony_access_admin_user }}"
+      api_password: "{{ ceremony_access_admin_password | default('', true) }}"
+      api_token_id: "{{ lookup('ansible.builtin.env', 'CEREMONY_ADMIN_TOKEN_ID') }}"
+      api_token_secret: "{{ lookup('ansible.builtin.env', 'CEREMONY_ADMIN_TOKEN_SECRET') }}"
+      validate_certs: true
+  block:
+    - name: Read dedicated owners before a configuration reconciliation
+      ansible.builtin.command:
+        argv: [pveum, user, list, --full, '1', --output-format, json]
+      delegate_to: "{{ ceremony_access_audit_host }}"
+      become: true
+      changed_when: false
+      register: ceremony_access_current_owners
+      when: ceremony_access_action == 'configure'
+
+    # Native user convergence also reconciles its token list; suspension must retain old secrets until rotation.
+    - name: Suspend existing dedicated owners without changing their retained token lists
+      ansible.builtin.command:
+        argv: [pveum, user, modify, "{{ item.userid }}", --enable, '0']
+      delegate_to: "{{ ceremony_access_audit_host }}"
+      become: true
+      changed_when: true
+      loop: "{{ (ceremony_access_current_owners.stdout | from_json) if ceremony_access_action == 'configure' else [] }}"
+      when:
+        - item.userid in [ceremony_access_provisioner, ceremony_access_operator]
+        - item.enable | default(true) | bool
+
+    - name: Prepare the fixed local revocation lease before provisioning maintenance
+      ansible.builtin.include_tasks: lease.yml
+      when: ceremony_access_action in ['lock', 'unlock']
+
+    - name: Suspend routine power before checking stopped sessions for provisioning
+      community.proxmox.proxmox_user:
+        userid: "{{ ceremony_access_operator }}"
+        enable: false
+        expire: 0
+        tokens:
+          - tokenid: "{{ ceremony_access_token_id }}"
+            privsep: true
+            expire: "{{ ceremony_access_token_expire }}"
+            comment: Ceremony audit and power only
+      when: ceremony_access_action == 'unlock'
+      no_log: true
+
+    - name: Read the selected VMs before any permission maintenance
+      community.proxmox.proxmox_vm_info:
+        vmid: "{{ item.value.vm_id }}"
+      loop: "{{ ceremony_access_sessions | dict2items }}"
+      register: ceremony_access_vm_info
+      no_log: true
+
+    - name: Require stopped or absent sessions before configuring or unlocking provisioner rights
+      ansible.builtin.assert:
+        that: item.proxmox_vms | default([]) | selectattr('status', 'ne', 'stopped') | list | length == 0
+        fail_msg: Shut down the selected ceremony sessions before changing access or enabling provisioning.
+      loop: "{{ ceremony_access_vm_info.results }}"
+      loop_control:
+        label: "{{ item.item.key }}"
+      when: ceremony_access_action in ['configure', 'unlock']
+
+    - name: Configure the dedicated roles and exclusions
+      ansible.builtin.include_tasks: configure.yml
+      when: ceremony_access_action == 'configure'
+
+    - name: Verify effective scope before enabling either routine identity
+      ansible.builtin.include_tasks: verify.yml
+      when: ceremony_access_action in ['configure', 'unlock']
+
+    - name: Read the lease hypervisor clock immediately before granting provisioning
+      ansible.builtin.command:
+        argv: [date, -u, '+%s']
+      delegate_to: "{{ ceremony_access_audit_host }}"
+      become: true
+      changed_when: false
+      register: ceremony_access_enable_clock
+      when: ceremony_access_action == 'unlock'
+
+    - name: Refuse an expired maintenance window before enabling provisioning
+      ansible.builtin.assert:
+        that: ceremony_access_lease_deadline | int > ceremony_access_enable_clock.stdout | int
+        fail_msg: The short provisioning window expired during prechecks; run unlock again with sessions stopped.
+      when: ceremony_access_action == 'unlock'
+
+    - name: Enable or disable only the dedicated provisioning owner
+      community.proxmox.proxmox_user:
+        userid: "{{ ceremony_access_provisioner }}"
+        groups: []
+        enable: "{{ ceremony_access_action == 'unlock' }}"
+        expire: "{{ ceremony_access_lease_deadline if ceremony_access_action == 'unlock' else 0 }}"
+        tokens:
+          - tokenid: "{{ ceremony_access_token_id }}"
+            privsep: true
+            expire: "{{ ceremony_access_token_expire }}"
+            comment: Ceremony provisioning only
+      when: ceremony_access_action in ['lock', 'unlock']
+      no_log: true
+
+    - name: Restore routine power only after provisioning is explicitly locked
+      community.proxmox.proxmox_user:
+        userid: "{{ ceremony_access_operator }}"
+        enable: true
+        expire: 0
+        tokens:
+          - tokenid: "{{ ceremony_access_token_id }}"
+            privsep: true
+            expire: "{{ ceremony_access_token_expire }}"
+            comment: Ceremony audit and power only
+      when: ceremony_access_action in ['configure', 'lock']
+      no_log: true
+
+- name: Check effective privileges through the authorized hypervisor SSH connection
+  ansible.builtin.import_tasks: verify.yml
+
+- name: Report bounded access and custody boundary without credentials
+  ansible.builtin.debug:
+    msg: >-
+      Ceremony access {{ ceremony_access_action }} completed for {{ ceremony_access_vm_paths | join(', ') }}.
+      Provisioning is {{ 'enabled for a bounded maintenance window' if ceremony_access_action == 'unlock' else
+      'disabled' if ceremony_access_action in ['configure', 'lock'] else 'unchanged' }}.
+      The routine token has audit/power only; human console custody is separate.
+      VM activation does not unlock the root or prove successful CRL publication.

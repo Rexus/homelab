@@ -36,6 +36,10 @@ then install the inactive runtime at action 9. Return to this option's actions 3
 
 ## 1. Select custody and preserve key identity
 
+First select the [ceremony environment](procedures/ceremony-environment.md). Use its dedicated
+administration session for device credentials, initialization and wrapped recovery; keep ORCA's
+state/media in its separate session. `boot-1` remains the explicit constrained-site fallback.
+
 Choose the device-specific preparation, then use the shared VM/provider steps below:
 
 | Device | Prepare before attaching it to the issuer |

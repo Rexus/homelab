@@ -1,0 +1,4 @@
+# Runtime sessions are ISO-booted and console-only; no SSH targets or private inputs.
+# Configure ISO approval, pool, nodes, VMIDs and exact USB mappings in:
+# terraform/deployments/ceremony/terraform.tfvars (schema: variables.tf beside it).
+platform_host_ips: {}

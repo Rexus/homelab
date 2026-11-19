@@ -1,0 +1,29 @@
+---
+- name: Inspect the selected optional timer before removal
+  ansible.builtin.stat:
+    path: "/etc/systemd/system/ceremony-wake-{{ ceremony_schedule_session }}.timer"
+  register: ceremony_schedule_existing
+  become: true
+
+- name: Disable future activations without stopping any VM or running ceremony
+  ansible.builtin.systemd_service:
+    name: "ceremony-wake-{{ ceremony_schedule_session }}.timer"
+    enabled: false
+    state: stopped
+  when: ceremony_schedule_existing.stat.exists
+  become: true
+
+- name: Remove only this session's activation units and copied credential
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/etc/systemd/system/ceremony-wake-{{ ceremony_schedule_session }}.timer"
+    - "/etc/systemd/system/ceremony-wake-{{ ceremony_schedule_session }}.service"
+    - "/etc/homelab/ceremony/wake-{{ ceremony_schedule_session }}.env"
+  become: true
+
+- name: Reload systemd after removing the optional timer
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+  become: true

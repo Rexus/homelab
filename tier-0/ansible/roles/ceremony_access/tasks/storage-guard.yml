@@ -1,0 +1,49 @@
+---
+- name: Inspect storage definitions without repointing existing assets
+  community.proxmox.proxmox_storage_info:
+  register: ceremony_access_storage_info
+  no_log: true
+
+- name: Select an existing definition for the dedicated ceremony store
+  ansible.builtin.set_fact:
+    ceremony_access_existing_storage: >-
+      {{ ceremony_access_storage_info.proxmox_storages |
+         selectattr('storage', 'equalto', ceremony_access_iso_datastore) | list }}
+
+- name: Require identical type, directory, content and node scope before adopting an existing store
+  ansible.builtin.assert:
+    that:
+      - item.type == 'dir'
+      - item.path == ceremony_access_iso_directory
+      - item.content | sort == ['iso']
+      - item.nodes | default([]) | sort == ceremony_access_nodes | sort
+      - not item.shared | default(false) | bool
+    fail_msg: >-
+      The existing ceremony datastore differs from the selected dedicated directory/type/content/nodes.
+      Preserve its files and definition; choose a new unused ceremony-* store/directory for a new binding.
+  loop: "{{ ceremony_access_existing_storage }}"
+
+- name: Reject a directory already registered under another datastore name
+  ansible.builtin.assert:
+    that: item.storage == ceremony_access_iso_datastore
+    fail_msg: The selected directory already belongs to another datastore; do not alias normal template storage.
+  loop: >-
+    {{ ceremony_access_storage_info.proxmox_storages | selectattr('path', 'defined') |
+       selectattr('path', 'equalto', ceremony_access_iso_directory) | list }}
+
+- name: Inspect the exact dedicated directory on every selected node without following links
+  ansible.builtin.stat:
+    path: "{{ ceremony_access_iso_directory }}"
+    follow: false
+  delegate_to: "{{ item }}"
+  become: true
+  loop: "{{ ceremony_access_nodes }}"
+  register: ceremony_access_storage_paths
+
+- name: Refuse symlinks and non-directory paths for dedicated ceremony ISO storage
+  ansible.builtin.assert:
+    that:
+      - not item.stat.islnk | default(false)
+      - not item.stat.exists or item.stat.isdir | default(false)
+    fail_msg: Select an absent or real dedicated directory; existing symlinks/files are never adopted or replaced.
+  loop: "{{ ceremony_access_storage_paths.results }}"

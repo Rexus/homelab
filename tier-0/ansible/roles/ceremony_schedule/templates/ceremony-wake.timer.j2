@@ -1,0 +1,11 @@
+[Unit]
+Description=One approved attended {{ ceremony_schedule_session }} activation
+
+[Timer]
+OnCalendar={{ ceremony_schedule_calendar }}
+Persistent=false
+AccuracySec=1s
+Unit=ceremony-wake-{{ ceremony_schedule_session }}.service
+
+[Install]
+WantedBy=timers.target

@@ -174,7 +174,7 @@ else: sys.exit(1)
         for mode in ("link", "route4", "route6"):
             self.fixture["online"] = mode
             self.save_fixture()
-            for action in ("prepare", "create", "crl", "backup"):
+            for action in ("prepare", "create", "crl", "backup", "maintain"):
                 with self.subTest(action=action, mode=mode):
                     result = self.run_action(action, success=False)
                     self.assertIn("non-loopback links", result.stderr)
@@ -327,7 +327,17 @@ else: sys.exit(1)
             self.assertIn("Another ceremony", self.run_action("prepare", success=False).stderr)
         self.assertFalse(self.instance.exists())
 
-    def run_ceremony(self, args, answers):
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "Requires an unprivileged caller")
+    def test_poweroff_requires_local_root_before_attempting_any_key_operation(self):
+        self.bundle_kit()
+        self.run_action("prepare")
+        report = self.run_action("maintain", "--poweroff", success=False)
+        self.assertIn("as root on the ceremony system", report.stderr)
+        self.assertFalse((self.instance / ".orca-pending").exists())
+        self.assertFalse(list(self.transfer.iterdir()))
+        self.assertFalse(list(self.backup.iterdir()))
+
+    def run_ceremony(self, args, answers, success=True):
         import pty
         pid, fd = pty.fork()
         if pid == 0:
@@ -356,7 +366,10 @@ else: sys.exit(1)
                 os.kill(pid, 9)
                 self.fail("Ceremony timeout: " + output.decode(errors="replace"))
             _, status = os.waitpid(pid, 0)
-            self.assertEqual(os.waitstatus_to_exitcode(status), 0, output.decode(errors="replace"))
+            if success:
+                self.assertEqual(os.waitstatus_to_exitcode(status), 0, output.decode(errors="replace"))
+            else:
+                self.assertNotEqual(os.waitstatus_to_exitcode(status), 0, output.decode(errors="replace"))
             self.assertFalse(answers, "Unseen prompts: " + str(answers))
             return output.decode(errors="replace")
         finally:
@@ -402,9 +415,13 @@ else: sys.exit(1)
             ("Enter passphrase:", "test ceremony passphrase"),
         ])
         self.assertIn("already processed", self.run_action("sign", csr, key_hash, namespace=True, success=False).stderr)
-        self.run_ceremony(["crl"], [("Enter passphrase:", "test ceremony passphrase")])
+        report = self.run_ceremony(["maintain"], [("Enter passphrase:", "test ceremony passphrase")])
+        self.assertIn("CRL maintenance complete", report)
+        receipt, = self.transfer.glob("public-*/ceremony-receipt.txt")
+        self.assertIn("publication=pending", receipt.read_text())
+        self.assertIn(hashlib.sha256(cert_der).hexdigest(), receipt.read_text())
+        self.assertTrue(list(self.backup.glob("*.age.receipt")))
         before = (self.instance / "ca/index.txt").read_bytes()
-        self.run_action("backup", namespace=True)
         encrypted, = self.backup.glob("*.age")
         self.assertTrue(encrypted.read_bytes().startswith(b"age-encryption.org/v1"))
         restored = subprocess.run(["age", "--decrypt", "--identity", str(identity), str(encrypted)],
@@ -435,10 +452,38 @@ else: sys.exit(1)
         self.run_action("prepare", namespace=True)
         self.assertEqual((self.instance / "private/cakey.pem").read_bytes(), key_before)
         self.assertEqual((self.instance / "ca/index.txt").read_bytes(), before)
+        # Backup failure after signing must never produce success/receipt or request shutdown.
+        failed_age = self.commands / "age"
+        failed_age.write_text("#!/bin/sh\nexit 1\n")
+        failed_age.chmod(0o755)
+        time.sleep(1.1)
+        receipts_before = list(self.transfer.glob("public-*/ceremony-receipt.txt"))
+        failure = self.run_ceremony(["maintain"], [("Enter passphrase:", "test ceremony passphrase")], success=False)
+        self.assertNotIn("CRL maintenance complete", failure)
+        self.assertEqual(list(self.transfer.glob("public-*/ceremony-receipt.txt")), receipts_before)
+        self.assertFalse(list(self.work.glob(".orca-backup-*")))
+        failed_age.unlink()
+
+        # Rejected options are caught before a new signing operation.
+        counter_before = (self.instance / "ca/crlnumber.txt").read_bytes()
+        self.assertIn("Usage: maintain", self.run_action("maintain", "--download-updates", namespace=True,
+                                                        success=False).stderr)
+        self.assertEqual((self.instance / "ca/crlnumber.txt").read_bytes(), counter_before)
         time.sleep(1.1)  # native clca names CRLs with one-second granularity
         self.run_ceremony(["crl"], [("Enter passphrase:", "test ceremony passphrase")])
         self.assertEqual((self.instance / "private/cakey.pem").read_bytes(), key_before)
         self.assertEqual((self.instance / "ca/index.txt").read_bytes(), before)
+        # Match older OpenSSL's zero-status signature failure: no export/backup may accept it.
+        verifier = self.commands / "openssl"
+        verifier.write_text('#!/bin/bash\nif [[ "$1" == crl && " $* " == *" -verify "* ]]; then\n'
+                            '  echo "verify failure" >&2; exit 0\nfi\nexec /usr/bin/openssl "$@"\n')
+        verifier.chmod(0o755)
+        time.sleep(1.1)
+        exports_before = list(self.transfer.iterdir())
+        report = self.run_ceremony(["maintain"], [("Enter passphrase:", "test ceremony passphrase")], success=False)
+        self.assertIn("CRL signature verification failed", report)
+        self.assertEqual(list(self.transfer.iterdir()), exports_before)
+        self.assertTrue((self.instance / ".orca-pending").is_file())
 
 
 if __name__ == "__main__":

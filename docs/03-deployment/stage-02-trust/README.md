@@ -49,7 +49,7 @@ down this page. Leaf procedures are opened only at the action that uses them.
 
 | Action | Continue at |
 | --- | --- |
-| [1. Create ORCA and choose the issuer key](#step-1-prepare-issuer-and-key-custody) | Separate offline root; software HSM 1a or single USB 1d; advanced pool/appliance options remain available |
+| [1. Create ORCA and choose the issuer key](#step-1-prepare-issuer-and-key-custody) | Separate offline root with optional [FIDO2 disk unlock](procedures/orca-disk-unlock.md); software HSM 1a or single USB 1d; advanced pool/appliance options remain available |
 | [2-4. Configure and provision `ca-1`](#step-2-initialize-the-issuer-inputs) | Same existing foundation state; VM and dedicated data disk |
 | [5-7. Prepare the key provider and policy](#step-5-commission-the-selected-issuer-key-provider) | Original token/key identity, then its matching immutable configuration |
 | [8-10. Install the inactive issuer and prepare its CSR](#step-8-prepare-runtime-credentials-and-tls) | Selected software or hardware key |
@@ -67,8 +67,16 @@ At Step 11, reopen that **same root** to sign the issuer request. An existing ro
 route instead of creation; [pre-kit clca instances](procedures/offline-software-root.md) retain their
 original native workflow and policy.
 
+**Choose the ceremony environment before attaching custody media:** use a dedicated trusted
+workstation, or follow the [on-demand ceremony image and VM path](procedures/ceremony-environment.md).
+Use separate `cadm-1` hardware-administration and ORCA sessions. Bootstrap prepares public inputs
+and runs provisioning; administrative PINs and root secrets are entered locally on the selected
+ceremony system. A VM still trusts its hypervisor; retain physical workstation custody when that
+separation is required. Updates are built and tested before root media is attached.
+
 ORCA's default is an encrypted software root on separately controlled offline storage. Its key
-never goes onto bootstrap, `ca-1`, or an online Proxmox host. `root_ca` stays empty in connected
+never goes onto bootstrap or `ca-1`. The accepted ceremony VM explicitly trusts its hypervisor;
+it has no NIC and keeps root state on independent removable media. `root_ca` stays empty in connected
 inventory. The following choice protects **the issuer's different key**, not ORCA's key.
 
 **Then choose one issuer-key path:**
@@ -134,10 +142,26 @@ Edit in **`<prefix>-tier-0/`**:
 | `.env.local` | Real Proxmox credentials and approved SSH public-key paths |
 | `ansible/group_vars/all.yml` | Accepted Stage 1 package proxy/mirror and standalone `platform_internal_domain`; retain the bootstrap login and approved key |
 
-In independent DNS, reserve the machine name `ca-1.internal.example.com` for the chosen IP and
-the stable service name `ca.internal.example.com` for that machine. Substitute the configured
-internal suffix. Permit controller SSH, restricted administrator HTTPS, approved public-object HTTP
+In independent DNS, reserve the machine name `ca-1.internal.example.com` for the chosen IP,
+`ca.internal.example.com` for the administrative portal, and `pki.internal.example.com` for public
+certificates/CRLs. Initially both service names target `ca-1`. Substitute the configured internal suffix.
+This separates service names, not servers: the supplied baseline has one publication host.
+Permit controller SSH, restricted administrator HTTPS, approved public-object HTTP
 readers and the selected package route before installation. Keep this DNS independent of Stage 5.
+
+For a **fresh installation**, keep the publication name/path consistent in these files:
+
+| File | Set |
+| --- | --- |
+| `templates/offline-root/orca.conf` | `ORCA_PUBLICATION_URL=http://pki.<internal-domain>/download` before creating/signing with the root |
+| Private `issuer-policy.yml` selected in Step 6 | `openxpki_bundle_publication_url: http://pki.<internal-domain>/download/` before building the issuer policy |
+| `ansible/group_vars/issuer.yml` | `openxpki_publication_fqdn: pki.<internal-domain>` for the read-only HTTP alias; retain `openxpki_portal_fqdn: ca.<internal-domain>` |
+
+Use the actual domain, with no angle brackets. **Existing installations keep their original
+embedded URLs reachable**; adding this alias does not rewrite certificates or pinned root policy.
+The [publication design](../../01-architecture/08-cryptography/01-certificate-authority.md#revocation-and-publication-availability)
+explains a later move to independent readers. That replica/health-checked endpoint is not installed
+by this baseline; do not assume the DNS alias provides HA.
 
 For a **fresh issuer-only deployment**, edit `terraform/deployments/foundation/terraform.tfvars`:
 
@@ -219,7 +243,7 @@ Edit **the selected private policy file**:
 | --- | --- |
 | `openxpki_bundle_directory` | New protected absolute build directory, e.g. `/home/automation/.local/share/pki/configuration-001`; retain each immutable bundle |
 | `openxpki_bundle_portal_fqdn` | Stable service name from Step 3, e.g. `ca.internal.example.com`, matching portal TLS |
-| `openxpki_bundle_publication_url` | Approved public-object URL, e.g. `http://ca.internal.example.com/download/`; it becomes reachable after runtime installation |
+| `openxpki_bundle_publication_url` | Approved public-object URL, e.g. `http://pki.internal.example.com/download/`; it becomes reachable after runtime installation |
 | `openxpki_bundle_dns_suffixes` | Approved certificate scope, e.g. `[internal.example.com]` with the actual internal suffix |
 | `openxpki_bundle_users` | Separate named requester/approver accounts and independent Argon2id hashes |
 
@@ -452,6 +476,10 @@ not a ceremony VLAN alone.
 
 ## Step 12: Install public certificates and start the prepared backend
 
+This step publishes ORCA's **public** `root.crl` and root certificate on `ca-1`'s HTTP `/download/`
+endpoint. ORCA itself stays offline. Step 13's native issuer workflow separately publishes
+`issuer.crl` for service certificates. See the [signing/publication sequence](../../01-architecture/08-cryptography/01-certificate-authority.md#figure-root-signing-exchange).
+
 In **Tier 0 `ansible/group_vars/issuer.yml`**, set `openxpki_issuer_certificate_src`,
 `openxpki_root_certificate_src`, `openxpki_issuer_fingerprint` and `openxpki_root_fingerprint`
 from the independently verified ceremony outputs.
@@ -514,6 +542,11 @@ qualification and is not an installed cert-manager integration.
 For initial Stage 2 audit acceptance, inspect and retain the issuer's persistent local CA events and OS
 journal with the independent recovery set. Record central receipt in Stage 3 and independent alerting
 when its Stage 6 monitor is commissioned; the full operating matrix applies as those paths are added.
+
+Before accepting a scheduled root ceremony, install and test the
+[independent public-CRL deadline alarm](../../05-operations/03-cryptography/offline-root.md#alarm-when-a-ceremony-or-publication-is-missed).
+It can use an existing independent host now: require valid publication, missed-heartbeat alerts,
+backup recipients and escalation. It never needs the root key or an online connection to ORCA.
 
 ## Step 15: Select additional integrations
 

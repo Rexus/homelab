@@ -1,0 +1,24 @@
+---
+# Schema: ansible/roles/ceremony_access/defaults/main.yml and tasks/validate.yml.
+# Guide: docs/03-deployment/foundation/proxmox/api-access.md#ceremony-automation-identity
+# Match explicit sessions, pool, node and ISO store to terraform/deployments/ceremony/terraform.tfvars.
+ceremony_access_endpoint: https://pve01.example.internal:8006/
+ceremony_access_audit_host: pve01
+ceremony_access_sessions:
+  cadm-1: {vm_id: 621, node_name: pve01}
+  orca-1: {vm_id: 623, node_name: pve01}
+ceremony_access_pool: ceremony
+ceremony_access_iso_datastore: ceremony-iso
+ceremony_access_iso_directory: /var/lib/vz/ceremony-iso
+ceremony_access_usb_mappings: []
+# List every ordinary API-token owner with broader inherited VM/storage/mapping access.
+# Owner NoAccess also restricts all its privilege-separated and inherited tokens.
+ceremony_access_excluded_users: [automation@pve]
+# Existing human GUI users, with MFA; never the ordinary automation user or either token owner.
+ceremony_access_custodians: []
+ceremony_access_token_id: maintenance
+# Expiry must cover the next approved scheduled wake; proposed 90-day deadline: date -d '+90 days' +%s
+ceremony_access_token_expire: 0
+# configure creates/reconciles and locks provisioner. unlock is bounded; lock disables it immediately.
+ceremony_access_action: configure
+ceremony_access_window_seconds: 3600

@@ -10,7 +10,9 @@ ORCA below the connected issuer. The first visit returns public root files; the 
 
 **Work from:** Tier 0 on the connected preparation host for actions 2–3; the copied kit root on
 the separate offline Linux computer for ceremonies. Keep `root_ca` empty in connected inventory.
-A VM on the ordinary connected Proxmox cluster is not offline root custody.
+A VM trusts its Proxmox host and administrators. If that trust is acceptable, use the separately
+configured [NIC-less live ceremony runtime](ceremony-environment.md); otherwise use a dedicated
+physical workstation. Neither choice puts the root in connected Ansible inventory.
 
 > [!TIP]
 > **Recovery and maintenance:** [Reopen, restore or update ORCA](../../../05-operations/03-cryptography/offline-root.md).
@@ -33,7 +35,9 @@ A VM on the ordinary connected Proxmox cluster is not offline root custody.
 
 ## 1. Prepare tools and independent recovery
 
-Use a separately controlled **Linux computer** and three separate physical devices: encrypted
+Choose the [ceremony environment](ceremony-environment.md) first: an approved public live image
+can supply the tools below without installing anything during the ceremony. Use a separately
+controlled **Linux computer** and three separate physical devices: encrypted
 working storage, public transfer media and backup media. The last two need existing writable
 filesystems; prepare blank removable media with your normal disk utility. The kit verifies distinct
 physical backing. No Ansible or Galaxy installation is needed on the ceremony computer.
@@ -60,6 +64,15 @@ age-keygen -o orca-recovery.agekey
 age-keygen -y orca-recovery.agekey
 ```
 
+The custodian can also use the [official age tools](https://github.com/FiloSottile/age#installation)
+on their trusted **Windows computer**, before the ceremony image exists. In PowerShell, from a
+private encrypted recovery directory:
+
+```powershell
+age-keygen -o orca-recovery.agekey
+age-keygen -y orca-recovery.agekey
+```
+
 Retain `orca-recovery.agekey` separately from the root and its backup archives. Copy only the printed
 `age1...` public recipient to the preparation host. Keep the root passphrase separately too.
 
@@ -76,7 +89,7 @@ Edit **`templates/offline-root/orca.conf`**. `init` preserves an existing file.
 | Field | Set |
 | --- | --- |
 | `ORCA_ORGANIZATION`, `ORCA_COMMON_NAME` | Approved organization and stable root name, e.g. `Example Organization` / `Example Offline Root CA` |
-| `ORCA_PUBLICATION_URL` | Future public-object base URL, e.g. `http://ca.internal.example.com/download`, without a trailing slash |
+| `ORCA_PUBLICATION_URL` | Future public-object base URL, e.g. `http://pki.internal.example.com/download`, without a trailing slash |
 | `ORCA_BACKUP_RECIPIENT` | Recovery custodian's public `age1...` recipient |
 | `ORCA_INSTANCE`, `ORCA_TOOLS` | Separate directories on encrypted working storage; defaults `/mnt/orca-work/root` and `/mnt/orca-work/tools` |
 | `ORCA_TRANSFER`, `ORCA_BACKUP` | Separately mounted transfer and backup paths; defaults `/mnt/orca-transfer` and `/mnt/orca-backup` |
@@ -110,10 +123,15 @@ kit and public configuration for later ceremonies/recovery. It contains tools, n
 
 ## 4. Mount custody media and disconnect
 
+Review [the three separate unlock/recovery credentials](ceremony-environment.md#which-credentials-unlock-what)
+before formatting new media. This supplied path uses a LUKS passphrase for the volume and a separate
+passphrase for the root key. After creating the LUKS2 volume, optionally add
+[YubiKey/FIDO2 disk unlock](orca-disk-unlock.md); it preserves the recovery passphrase and original data.
+
 On **the ceremony computer**, identify the actual devices:
 
 ```bash
-lsblk -o NAME,PATH,SIZE,FSTYPE,TYPE,MOUNTPOINTS,MODEL
+lsblk -o NAME,PATH,SIZE,FSTYPE,TYPE,MOUNTPOINTS,MODEL,SERIAL
 ```
 
 For **existing encrypted working storage**, unlock and mount the retained volume. For **a blank
@@ -140,8 +158,16 @@ Run on **the ceremony computer**, before CA state exists on that new partition:
   sudo install -d /mnt/orca-work
   sudo mount /dev/mapper/orca-work /mnt/orca-work
   sudo chown "$(id -u):$(id -g)" /mnt/orca-work
+  sudo cryptsetup luksUUID "$ORCA_WORK_PARTITION"
 )
 ```
+
+Record the new LUKS UUID with its device model/serial in the independent custody record.
+For existing media, compare against that retained record rather than accepting a discovered replacement.
+
+**Optional FIDO2 path:** after preparing this volume, follow [YubiKey enrollment and recovery](orca-disk-unlock.md).
+Return here with the working volume mounted again using that procedure's unlock action. Keep its
+original passphrase; do not format the volume a second time.
 
 Mount the **existing** transfer and backup filesystems through your normal removable-media workflow.
 Set their actual mount paths in the kit's **`templates/offline-root/orca.conf`** if different from the
@@ -158,7 +184,8 @@ ip -6 route show table all default
 ```
 
 **Expected:** only loopback is up; no default routes. The wrapper enforces these checks before root
-changes. Physical custody also excludes a connected hypervisor or other online administrator.
+changes. Physical-workstation custody also excludes connected-hypervisor administration. The
+optional VM path explicitly accepts its hypervisor and administrators as trusted.
 
 ## 5. Prepare and create the root
 
@@ -254,6 +281,8 @@ Keep the public files until Step 12 publishes them. No subordinate CSR exists ye
 
 The publication URL receives signed public objects only. Independently distribute the accepted
 root fingerprint/trust anchor, then verify certificate/CRL retrieval before accepting issuance.
+The [signing exchange](../../../01-architecture/08-cryptography/01-certificate-authority.md#figure-root-signing-exchange)
+shows the CSR, signed issuer certificate and public root objects; no private signing key is published.
 Later ceremonies and host/tool updates follow [ORCA operations](../../../05-operations/03-cryptography/offline-root.md).
 
 ## References

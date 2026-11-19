@@ -1,0 +1,66 @@
+---
+- name: Inspect the finished public image and receipts on the builder
+  ansible.builtin.stat:
+    path: "{{ ceremony_build_workspace }}/ceremony-{{ ceremony_build_revision }}{{ item }}"
+    checksum_algorithm: sha256
+  loop: [.iso, .iso.sha256, .packages.txt, .build.json]
+  register: ceremony_build_artifacts
+
+- name: Inspect existing controller artifacts before fetching
+  ansible.builtin.stat:
+    path: "{{ ceremony_build_fetch_path }}/ceremony-{{ ceremony_build_revision }}{{ item.item }}"
+    checksum_algorithm: sha256
+    follow: false
+  delegate_to: localhost
+  become: false
+  loop: "{{ ceremony_build_artifacts.results }}"
+  register: ceremony_build_existing
+
+- name: Preserve existing controller artifacts if a revision has different contents
+  ansible.builtin.assert:
+    that:
+      - item.item.stat.isreg | default(false)
+      - not (item.stat.islnk | default(false))
+      - not item.stat.exists or item.stat.checksum | default('') == item.item.stat.checksum
+    fail_msg: Existing controller artifacts differ; preserve them and select a new revision/output directory.
+  loop: "{{ ceremony_build_existing.results }}"
+
+- name: Create the public controller artifact directory
+  ansible.builtin.file:
+    path: "{{ ceremony_build_fetch_path }}"
+    state: directory
+    mode: '0755'
+  delegate_to: localhost
+  become: false
+
+# Files are public and world-readable, avoiding fetch's become/slurp double transfer for a large ISO.
+- name: Fetch the ISO package inventory and immutable build receipt
+  ansible.builtin.fetch:
+    src: "{{ item.stat.path }}"
+    dest: "{{ ceremony_build_fetch_path }}/"
+    flat: true
+    validate_checksum: true
+  become: false
+  loop: "{{ ceremony_build_artifacts.results }}"
+
+- name: Recheck the controller ISO SHA256 after transfer
+  ansible.builtin.stat:
+    path: "{{ ceremony_build_fetch_path }}/ceremony-{{ ceremony_build_revision }}.iso"
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  register: ceremony_build_fetched
+
+- name: Require the exact builder ISO before reporting success
+  ansible.builtin.assert:
+    that: ceremony_build_fetched.stat.checksum == ceremony_build_artifacts.results[0].stat.checksum
+
+- name: Report public review artifacts and the explicit acceptance boundary
+  ansible.builtin.debug:
+    msg:
+      image: "{{ ceremony_build_output_dir }}/ceremony-{{ ceremony_build_revision }}.iso"
+      sha256: "{{ ceremony_build_fetched.stat.checksum }}"
+      review: >-
+        Review .packages.txt and .build.json; rehearse using disposable media before accepting this SHA256
+        in ceremony/terraform.tfvars. The ISO has no root state or secrets. Native OpenSC/Pico tools are
+        included; Yubi SDK exists only when explicitly supplied. Secure Boot/TPM attestation is not qualified.

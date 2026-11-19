@@ -43,6 +43,11 @@ def tier_repo(writer, tier, prefix):
     tier_readme(writer, tier, prefix, setups)
     setup_list = writer.root / ".deployment-setups"
     registered = set(setup_list.read_text(encoding="utf-8").splitlines()) if setup_list.is_file() else set(setups)
+    new_setups = sorted(set(setups) - registered)
+    if new_setups:
+        print(f"New deployment roots available in {tier}: {', '.join(new_setups)}. "
+              "Add the intended names to .deployment-setups before init/deploy. "
+              "The local setup selection and existing state are preserved.")
     report_edge_ownership(writer, tier, registered)
     template_setups = {"immutable-template", "template-refresh"}
     if ((tier == "tier-0" and not template_setups.issubset(registered))

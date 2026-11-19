@@ -1,0 +1,190 @@
+---
+- name: Validate the public image selection before installing build tools
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == 'Debian'
+      - ansible_distribution_major_version == '12'
+      - ansible_architecture == 'x86_64'
+      - ceremony_build_revision is match('^[a-zA-Z0-9][a-zA-Z0-9._-]{0,47}$')
+      - "'REPLACE' not in ceremony_build_revision"
+      - ceremony_build_orca_kit_sha256 is match('^[a-f0-9]{64}$')
+      - ceremony_build_mirror is match('^https://[A-Za-z0-9.-]+(/[A-Za-z0-9._/-]*)?$')
+      - ceremony_build_security_mirror is match('^https://[A-Za-z0-9.-]+(/[A-Za-z0-9._/-]*)?$')
+      - ceremony_build_proxy_url == '' or ceremony_build_proxy_url is match('^http://[A-Za-z0-9.-]+(:[0-9]+)?/?$')
+      - ceremony_build_timeout | int >= 600
+    fail_msg: >-
+      Select a dedicated Debian 12 amd64 builder, a new public image revision, accepted kit manifest hash,
+      HTTPS package mirrors and an optional credential-free HTTP CONNECT proxy. No custody media belongs on this host.
+
+- name: Verify the accepted public ORCA bundle on the controller
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_playbook_python }}"
+      - "{{ role_path }}/files/public-inputs.py"
+      - kit
+      - "{{ ceremony_build_kit_path }}"
+      - "{{ ceremony_build_orca_kit_sha256 }}"
+      - "{{ ceremony_build_repo_root }}"
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  register: ceremony_build_kit_check
+
+- name: Validate explicitly selected public Yubi SDK package inputs
+  ansible.builtin.assert:
+    that:
+      - item.src is defined
+      - item.src is match('^.*[.]deb$')
+      - item.sha256 is match('^[a-f0-9]{64}$')
+    fail_msg: Supply the complete qualified Debian 12 amd64 SDK package set with each local path and accepted SHA256.
+  loop: "{{ ceremony_build_yubihsm_packages }}"
+
+- name: Check selected SDK packages without copying arbitrary directories
+  ansible.builtin.stat:
+    path: "{{ item.src if item.src is match('^/') else ceremony_build_repo_root ~ '/' ~ item.src }}"
+    follow: false
+    checksum_algorithm: sha256
+  delegate_to: localhost
+  become: false
+  loop: "{{ ceremony_build_yubihsm_packages }}"
+  register: ceremony_build_sdk
+
+- name: Require original regular SDK packages with their accepted digests
+  ansible.builtin.assert:
+    that:
+      - item.stat.isreg | default(false)
+      - not (item.stat.islnk | default(false))
+      - item.stat.checksum | default('') == item.item.sha256
+  loop: "{{ ceremony_build_sdk.results }}"
+
+- name: Reject ambiguous SDK basenames before staging
+  ansible.builtin.assert:
+    that: >-
+      ceremony_build_yubihsm_packages | map(attribute='src') | map('basename') | unique | length
+      == ceremony_build_yubihsm_packages | length
+
+- name: Install native Debian live image build tools
+  ansible.builtin.apt:
+    name: [live-build, debootstrap, squashfs-tools, xorriso, isolinux, syslinux-common, python3, ca-certificates]
+    state: present
+    update_cache: true
+
+- name: Record the native build tool versions
+  ansible.builtin.command:
+    argv: [dpkg-query, --show, '--showformat=${binary:Package}=${Version}\n', live-build, debootstrap, squashfs-tools, xorriso]
+  changed_when: false
+  register: ceremony_build_versions
+
+- name: Prepare only this public build revision
+  ansible.builtin.file:
+    path: "{{ ceremony_build_workspace }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - build/config/package-lists
+    - build/config/packages.chroot
+    - build/config/hooks/live
+    - build/config/includes.chroot/opt/orca-kit
+    - build/config/includes.chroot/usr/share/ceremony
+
+- name: Stage the fully validated public ORCA kit
+  ansible.builtin.copy:
+    src: "{{ ceremony_build_kit_path }}/"
+    dest: "{{ ceremony_build_workspace }}/build/config/includes.chroot/opt/orca-kit/"
+    owner: root
+    group: root
+    mode: preserve
+
+- name: Stage the public native live-build recipe and integrity helper
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ ceremony_build_workspace }}/{{ item }}"
+    owner: root
+    group: root
+    mode: '0755'
+  loop: [public-inputs.py, build-image.sh]
+
+- name: Install the native public-tool preparation hook
+  ansible.builtin.copy:
+    src: 0100-ceremony.hook.chroot.sh
+    dest: "{{ ceremony_build_workspace }}/build/config/hooks/live/0100-ceremony.hook.chroot"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Select the complete native offline ceremony tool set
+  ansible.builtin.copy:
+    content: |
+      live-boot live-config live-config-systemd user-setup systemd systemd-sysv sudo
+      bash perl coreutils util-linux findutils grep sed gawk tar gzip xz-utils zstd
+      openssl ca-certificates curl gnupg age cryptsetup-bin e2fsprogs xfsprogs
+      fido2-tools libfido2-1
+      opensc opensc-pkcs11 pcscd libccid pcsc-tools libengine-pkcs11-openssl
+      usbutils iproute2 python3 nano less
+    dest: "{{ ceremony_build_workspace }}/build/config/package-lists/ceremony.list.chroot"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Copy only explicitly accepted Yubi SDK package files
+  ansible.builtin.copy:
+    src: "{{ item.src if item.src is match('^/') else ceremony_build_repo_root ~ '/' ~ item.src }}"
+    dest: "{{ ceremony_build_workspace }}/build/config/packages.chroot/{{ item.src | basename }}"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ ceremony_build_yubihsm_packages }}"
+
+- name: Require Yubi CLI connector and PKCS11 inspection when an SDK is selected
+  ansible.builtin.copy:
+    content: "Selected explicitly; installed tools must be qualified before custody use.\n"
+    dest: "{{ ceremony_build_workspace }}/build/config/includes.chroot/usr/share/ceremony/yubihsm-selected"
+    owner: root
+    group: root
+    mode: '0644'
+  when: ceremony_build_yubihsm_packages | length > 0
+
+- name: Bind mirrors proxy tool versions and selected public packages to this revision
+  ansible.builtin.copy:
+    content: >-
+      {{ {'revision': ceremony_build_revision,
+          'orca_kit_manifest_sha256': ceremony_build_orca_kit_sha256,
+          'orca_public_policy_sha256': (ceremony_build_kit_check.stdout | from_json).public_policy_sha256,
+          'yubihsm_packages': ceremony_build_yubihsm_packages,
+          'builder_tools': ceremony_build_versions.stdout_lines,
+          'live_build_arguments': ['--mode', 'debian', '--architecture', 'amd64', '--distribution', 'bookworm',
+            '--binary-image', 'iso-hybrid', '--debian-installer', 'none', '--archive-areas', 'main',
+            '--apt-secure', 'true', '--apt-recommends', 'false', '--apt-source-archives', 'false',
+            '--security', 'true', '--updates', 'true', '--backports', 'false',
+            '--mirror-bootstrap', ceremony_build_mirror, '--mirror-chroot', ceremony_build_mirror,
+            '--mirror-binary', ceremony_build_mirror,
+            '--mirror-chroot-security', ceremony_build_security_mirror,
+            '--mirror-binary-security', ceremony_build_security_mirror,
+            '--bootappend-live', 'boot=live components nopersistence noswap noeject username=ceremony hostname=ceremony']
+            + (['--apt-http-proxy', ceremony_build_proxy_url] if ceremony_build_proxy_url | length > 0 else [])}
+         | to_nice_json }}
+    dest: "{{ ceremony_build_workspace }}/recipe.json"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Build one frozen public live ISO through the native product CLI
+  ansible.builtin.command:
+    argv: [bash, "{{ ceremony_build_workspace }}/build-image.sh", "{{ ceremony_build_workspace }}", "{{ ceremony_build_revision }}"]
+  environment:
+    http_proxy: "{{ ceremony_build_proxy_url }}"
+    https_proxy: "{{ ceremony_build_proxy_url }}"
+    HTTP_PROXY: "{{ ceremony_build_proxy_url }}"
+    HTTPS_PROXY: "{{ ceremony_build_proxy_url }}"
+    no_proxy: ''
+    NO_PROXY: ''
+    DEBIAN_FRONTEND: noninteractive
+  async: "{{ ceremony_build_timeout | int }}"
+  poll: 15
+  register: ceremony_build_result
+  changed_when: "'built' in ceremony_build_result.stdout_lines"
+
+- name: Fetch and verify the public image and its review records
+  ansible.builtin.import_tasks: fetch.yml

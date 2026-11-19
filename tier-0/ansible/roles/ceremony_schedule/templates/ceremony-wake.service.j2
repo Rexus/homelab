@@ -1,0 +1,24 @@
+[Unit]
+Description=Activate the approved {{ ceremony_schedule_session }} console ceremony
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User={{ ceremony_schedule_account.stdout }}
+WorkingDirectory={{ ceremony_schedule_repository }}
+EnvironmentFile=/etc/homelab/ceremony/wake-{{ ceremony_schedule_session }}.env
+Environment={{ ('ANSIBLE_CONFIG=' ~ ceremony_schedule_repository ~ '/ansible/ansible.cfg') | to_json }}
+Environment=CONTROL_NODE_COLLECTIONS_MODE=check
+Environment=ANSIBLE_LOCAL_TEMP=/run/ceremony-wake-{{ ceremony_schedule_session }}/ansible
+Environment=ANSIBLE_REMOTE_TEMP=/run/ceremony-wake-{{ ceremony_schedule_session }}/remote
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart={{ ceremony_schedule_ansible_playbook | to_json }} -i localhost, {{ (ceremony_schedule_repository ~ '/ansible/playbooks/ceremony-power.yml') | to_json }} -e {{ ('@' ~ ceremony_schedule_repository ~ '/ansible/group_vars/ceremony_access.yml') | to_json }} -e ceremony_power_session={{ ceremony_schedule_session }} -e ceremony_power_action=start
+RuntimeDirectory=ceremony-wake-{{ ceremony_schedule_session }}
+RuntimeDirectoryMode=0700
+TimeoutStartSec=180
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only

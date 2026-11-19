@@ -1,0 +1,12 @@
+[Unit]
+Description=Hourly public ORCA ceremony and CRL freshness check
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+AccuracySec=1min
+OnClockChange=true
+Unit=orca-crl-watch.service
+
+[Install]
+WantedBy=timers.target

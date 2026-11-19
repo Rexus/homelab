@@ -105,6 +105,8 @@ or role. The [published template catalog](../08-reference/template-catalog.md) r
 | `601` | Reserved for the manually created Tier 0 bootstrap host, `boot-1` |
 | `611` | Tier 0 infrastructure runner, `iac-1` |
 | `621` | Tier 0 optional ceremony administration VM, `cadm-1` |
+| `622` | Tier 0 connected public ceremony-image builder, `cbuild-1` |
+| `623` | Tier 0 optional NIC-less root ceremony runtime, `orca-1`; root state remains on independent media |
 | `1101` | Tier 1 control plane, instance 01 |
 | `1301` | Tier 1 development service, `git-1` |
 | `1311-1313` | Tier 1 data services, `db-1`, `kv-1` and `repo-1` |

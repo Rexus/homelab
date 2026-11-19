@@ -35,6 +35,7 @@ copies and the original package/configuration/schema binding.
 - [Is the issuer healthy?](#routine-controls)
 - [How is a service certificate renewed?](#how-is-a-service-certificate-renewed)
 - [How is a certificate revoked and its CRL published?](#how-is-a-certificate-revoked-and-its-crl-published)
+- [Where are root and issuer CRLs served?](#where-are-root-and-issuer-crls-served)
 - [How are CA keys, packages or credentials changed?](#change-and-recovery)
 - [What evidence is required before closing the change?](#acceptance-evidence)
 - [References](#references)
@@ -69,6 +70,40 @@ copies and the original package/configuration/schema binding.
 **Stop:** missing key, wrong identity, stale CRL or failed API/configuration checks.
 Preserve diagnostics; restore the original state rather than creating another key.
 A reachable portal or TCP listener alone is not signing readiness.
+
+## Where are root and issuer CRLs served?
+
+The baseline serves both signed lists from **`ca-1`**, through read-only HTTP `/download/`.
+Fresh deployments use the stable `pki` name; the authenticated administrative portal uses `ca`.
+The [sequence and availability choices](../../01-architecture/08-cryptography/01-certificate-authority.md#revocation-and-publication-availability)
+separate the signer from its public file server.
+
+| File | Who updates it? | Operator action |
+| --- | --- | --- |
+| `root.crl` | ORCA, offline; covers subordinate CAs | [Renew, transfer and publish](offline-root.md#refresh-and-publish-the-root-crl); the issuer cannot sign it |
+| `issuer.crl` | `ca-1`; covers its issued service certificates | [Issuer CRL workflow](#how-is-a-certificate-revoked-and-its-crl-published), also checked by the native six-hour timer |
+
+**To adopt a publication alias on an existing installation:**
+
+1. Inspect a deployed issuer certificate's `crlDistributionPoints` and `authorityInfoAccess` and a
+   leaf certificate's equivalent fields. Retain the exact original hostnames and paths.
+2. Reserve the additional DNS name to the current issuer. Edit **Tier 0
+   `ansible/group_vars/issuer.yml`**, setting `openxpki_publication_fqdn` to that name. Keep existing
+   root/policy URLs and all runtime secrets unchanged.
+3. From **`<prefix>-tier-0/`**, with the original accepted inputs and secrets, update the listener:
+
+   ```bash
+   bash scripts/deploy.sh foundation --ansible-only --playbook deployment/openxpki.yml --ansible-vars ansible/group_vars/issuer.yml
+   ```
+
+4. Retrieve the original URLs and new alias from an intended reader; verify the accepted signatures
+   and CRL dates. Preserve both routes. Record which exact URL the independent root watchdog checks.
+
+For maintenance tolerance beyond this single host, use independently placed read-only replicas behind
+an accepted health-checked endpoint. The current kit does not provision that path. Replicas need only
+verified public objects, never CA keys, PINs or the CA database. They preserve downloads while the
+issuer is down, but cannot renew an expired CRL. Prove each replica's freshness, route failover and
+independent expiry alarms before calling the publication service HA.
 
 ## How is a service certificate renewed?
 

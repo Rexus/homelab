@@ -1,0 +1,18 @@
+---
+ceremony_access_action: configure
+ceremony_access_endpoint: ""
+ceremony_access_admin_user: root@pam
+ceremony_access_audit_host: ""
+ceremony_access_sessions: {}
+ceremony_access_pool: ceremony
+ceremony_access_iso_datastore: ceremony-iso
+ceremony_access_iso_directory: /var/lib/vz/ceremony-iso
+ceremony_access_usb_mappings: []
+ceremony_access_excluded_users: [automation@pve]
+ceremony_access_custodians: []
+ceremony_access_token_id: maintenance
+ceremony_access_token_expire: 0
+ceremony_access_window_seconds: 3600
+ceremony_access_credentials_directory: "{{ playbook_dir }}/../.."
+ceremony_access_provisioner: ceremony-provision@pve
+ceremony_access_operator: ceremony-power@pve

@@ -1,0 +1,80 @@
+---
+- name: Validate the fixed power-only identity and exact configured session
+  ansible.builtin.assert:
+    that:
+      - ceremony_power_action in ['status', 'start']
+      - ceremony_access_sessions is mapping
+      - ceremony_power_session in ceremony_access_sessions
+      - ceremony_access_endpoint is match('^https://[^/@?#]+(:[0-9]+)?/?$')
+      - lookup('ansible.builtin.env', 'PROXMOX_API_URL') == ceremony_access_endpoint
+      - >-
+        lookup('ansible.builtin.env', 'PROXMOX_API_TOKEN_ID') ==
+        'ceremony-power@pve!' ~ ceremony_access_token_id
+      - lookup('ansible.builtin.env', 'PROXMOX_API_TOKEN_SECRET') | length > 0
+    fail_msg: Load .env.ceremony-operator and select status/start and a session from ceremony_access.yml.
+  no_log: true
+
+- name: Inspect and optionally start the selected existing session through native APIs
+  module_defaults:
+    group/community.proxmox.proxmox:
+      api_host: "{{ ceremony_access_endpoint | urlsplit('hostname') }}"
+      api_port: "{{ ceremony_access_endpoint | urlsplit('port') | default(8006, true) }}"
+      api_user: ceremony-power@pve
+      api_token_id: "{{ ceremony_access_token_id }}"
+      api_token_secret: "{{ lookup('ansible.builtin.env', 'PROXMOX_API_TOKEN_SECRET') }}"
+      validate_certs: true
+  block:
+    - name: Inspect only the explicitly selected existing VM
+      community.proxmox.proxmox_vm_info:
+        vmid: "{{ ceremony_access_sessions[ceremony_power_session].vm_id }}"
+        config: current
+      register: ceremony_power_info
+      no_log: true
+
+    - name: Require the selected session to exist on its configured host
+      ansible.builtin.assert:
+        that:
+          - ceremony_power_info.proxmox_vms | length == 1
+          - ceremony_power_info.proxmox_vms[0].node == ceremony_access_sessions[ceremony_power_session].node_name
+          - ceremony_power_info.proxmox_vms[0].name == ceremony_power_session
+          - not ceremony_power_info.proxmox_vms[0].template | default(false) | bool
+        fail_msg: The existing VM must match the selected ceremony session; power operations never create or reconfigure VMs.
+
+    - name: Inspect the configuration that would become active at the next start
+      community.proxmox.proxmox_vm_info:
+        vmid: "{{ ceremony_access_sessions[ceremony_power_session].vm_id }}"
+        config: pending
+      register: ceremony_power_pending
+      when: ceremony_power_action == 'start'
+      no_log: true
+
+    - name: Require the selected VM still to exist before validating start hardware
+      ansible.builtin.assert:
+        that: ceremony_power_pending.proxmox_vms | length == 1
+        fail_msg: The selected live session disappeared; power automation will not recreate it.
+      when: ceremony_power_action == 'start'
+
+    - name: Refuse connected or persistent-OS configurations before scheduled activation
+      ansible.builtin.include_tasks: validate-hardware.yml
+      vars:
+        ceremony_power_configuration: "{{ item }}"
+      loop: >-
+        {{ [ceremony_power_info.proxmox_vms[0].config, ceremony_power_pending.proxmox_vms[0].config]
+           if ceremony_power_action == 'start' else [] }}
+      when: ceremony_power_action == 'start'
+
+    - name: Start the selected session without console, guest execution or hardware changes
+      community.proxmox.proxmox_kvm:
+        node: "{{ ceremony_access_sessions[ceremony_power_session].node_name }}"
+        vmid: "{{ ceremony_access_sessions[ceremony_power_session].vm_id }}"
+        state: started
+      when: ceremony_power_action == 'start'
+      no_log: true
+
+- name: Report activation separately from completion of an offline ceremony
+  ansible.builtin.debug:
+    msg: >-
+      {{ ceremony_power_session }}: {{ 'start requested' if ceremony_power_action == 'start' else
+      ceremony_power_info.proxmox_vms[0].status }}.
+      Power access performs no root unlock, key operation, update or CRL renewal.
+      Keep the provisioner locked; verify successful public CRL publication independently.
