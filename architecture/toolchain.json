@@ -1,0 +1,45 @@
+{
+  "java_version": "21.0.13+9.0.LTS",
+  "downloads": [
+    {
+      "name": "jdk.zip",
+      "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.13%2B9/OpenJDK21U-jdk_x64_windows_hotspot_21.0.13_9.zip",
+      "sha256": "a4dbaa05fca4bd89d84584e58c459bd732efebb1722af80ab13c6516832004f9",
+      "bytes": 205421281
+    },
+    {
+      "name": "pilot.zip",
+      "url": "https://github.com/Systems-Modeling/SysML-v2-Pilot-Implementation/releases/download/2026-09.1/jupyter-sysml-kernel-0.63.1.zip",
+      "sha256": "2ab938037b8d3a02a3518019b6e81b356a994f4a5214727bfedcfd64bad25415",
+      "bytes": 126141158
+    }
+  ],
+  "sysml_pilot_release": "2026-09.1",
+  "kernel_version": "0.63.1",
+  "python": "3.14.3",
+  "scope": "Prototype uses the SysML 2.0 subset present in the pinned pilot; not a complete conformance assessment.",
+  "python_dependencies": "tests/requirements.txt (python-hcl2, PyYAML)",
+  "tested_hcl_parser": "8.2.0",
+  "diagram_review": {
+    "playwright": "1.62.1",
+    "mermaid": "11.17.2",
+    "edge": "157.0.4341.46",
+    "graphviz": "14.0.5"
+  },
+  "syson": {
+    "version": "2026.11.0",
+    "image": "eclipsesyson/syson:v2026.11.0",
+    "workflow": "Git baseline with reviewed requirement/use-case return changes",
+    "python_client": "requests>=2.32,<3; websocket-client>=1.9,<2 (tested 1.9.2)"
+  },
+  "execution": {
+    "tool": "OpenSysML MDK",
+    "version": "v0.12.1",
+    "commit": "b2f0e9b802a334369da94312c35cefbd8726d3bf",
+    "license": "Apache-2.0",
+    "release": "https://github.com/Open-MBEE/OpenSysML/releases/tag/v0.12.1",
+    "linux-amd64-sha256": "a091d9a110c4757357b093f2103f5a0fd04c5369490eda75b74cae8c466b5b5f",
+    "windows-amd64-sha256": "0db9a23388f12ab24a29c8519f591bdd22716786c63b4d9092ddb1553e7cf238",
+    "scope": "Native single-request HTTP action refinement; no packet simulation or cryptographic verification"
+  }
+}

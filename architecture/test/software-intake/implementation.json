@@ -1,0 +1,272 @@
+{
+  "scope": "Isolated Squid/APT implementation comparison; no deployed network or package installation",
+  "executed_at": "2026-11-19T15:07:54.559694+00:00",
+  "sources": {
+    "architecture/use-cases/software-intake/use-cases.sysml": "449d29d0a863d434d1647ee8843ab080dcbd93d17f07e6af6880c2124cd48bd0",
+    "architecture/functions/software-intake/behavior.sysml": "bdd795058b7d8fc8e2eae160997f50898c185db6bdc1f14d419d76db54980fed",
+    "architecture/functions/software-intake/admission-logic.sysml": "f2eed453829b62d2a1f6159ca9ff01b73a9075f3041f27531a2b14b73620f0fa",
+    "architecture/functions/software-intake/retrieval-execution.sysml": "a9efa985b3baae3fd944f26a6f7c39f97ddca6c8c1955e36cac13e09a59a8481",
+    "architecture/test/software-intake/retrieval-runs.sysml": "fbed72ae283d6eae9b4743d7b18c7384720a86aba11a02e005b639972a3ab76d",
+    "architecture/trace/software-intake-execution.sysml": "333139f50081fb53c26638730e8eeccb35fd327ffab5fbbee28761f05e43d446",
+    "tier-2/ansible/roles/cache_proxy/defaults/main.yml": "a9e041b4f710adddc52dfc557fe18344c4fd6e83454ecc5e20ca22ad0799cb44",
+    "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2": "20094a0d92f9126997d908f83b67427f11e412d553c9eebbb2cb2364caa2ea2d",
+    "shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2": "ce361191b81759163ebfa7c6ba254810570f9950a64ef3d16b60778d9ceb1df7",
+    "tests/test_tier_cache_policy.py": "3cabc328d7c45ece443347e21c0c1da781de99abc1df6a0e78067e3effe2ef9c",
+    "tests/apt_repository_fixture.py": "5c3c01d5beb441528ebb8fedc69de50d71b78ed0f8f02427a2378e67d9be3c46",
+    "tests/test_tier_intake_product.py": "c4f705966a39298e063066862241231f864687292ab3d18fc7995bc91f49f8e8",
+    "scripts/architecture/intake_product.py": "b10db6ba03661773ad0b9ed44b707465c89a18300702eefdcb107a5ae0973fb6"
+  },
+  "tools": {
+    "squid": "Squid Cache: Version 6.14",
+    "apt": "apt 2.8.4 (amd64)",
+    "gpg": "gpg (GnuPG) 2.4.4"
+  },
+  "runs": {
+    "RUN-cache-untrusted": {
+      "scenario": "SC-http-cache-untrusted",
+      "name": "Reject untrusted cached content",
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "eligibleFreshResponse": true,
+        "sourceAvailable": false,
+        "contentVerified": false
+      },
+      "expected": {
+        "outcome": "verification-failed",
+        "accepted": false,
+        "cacheLookups": 1,
+        "sourceRequests": 0,
+        "verificationChecks": 1
+      },
+      "observed": {
+        "accepted": false,
+        "outcome": "verification-failed",
+        "sourceRequests": 0,
+        "verificationChecks": 1
+      },
+      "http_status": 200,
+      "proxy_results": [
+        "TCP_MEM_HIT"
+      ],
+      "source_calls": [],
+      "apt_exit": 100,
+      "hash_mismatch": true,
+      "download_sha256": null,
+      "expected_sha256": "25706ebc257e0dfbe6177dcf516b19310149b0c15adf298a03bb88735812e2f0",
+      "cache_prepared": true,
+      "stdout": "Get:1 http://repo.example.test stable/main amd64 intake-cache-untrusted all 1.0 [564 B]\nErr:1 http://repo.example.test stable/main amd64 intake-cache-untrusted all 1.0\n  Hash Sum mismatch\n  Hashes of expected file:\n   - SHA256:25706ebc257e0dfbe6177dcf516b19310149b0c15adf298a03bb88735812e2f0\n   - Filesize:564 [weak]\n  Hashes of received file:\n   - SHA256:c5c0a5c0aad6f55d7f76c2661d22c63add6c726face6591875884300fb5c1008\n   - Filesize:564 [weak]\n  Last modification reported: Thu, 19 Nov 2026 15:08:37 +0000\nFetched 564 B in 0s (4022 B/s)\n",
+      "stderr": "W: Unable to read <fixture>/client/etc/preferences.d/ - DirectoryExists (2: No such file or directory)\nE: Failed to fetch http://repo.example.test/pool/intake-cache-untrusted.deb  Hash Sum mismatch\n   Hashes of expected file:\n    - SHA256:25706ebc257e0dfbe6177dcf516b19310149b0c15adf298a03bb88735812e2f0\n    - Filesize:564 [weak]\n   Hashes of received file:\n    - SHA256:c5c0a5c0aad6f55d7f76c2661d22c63add6c726face6591875884300fb5c1008\n    - Filesize:564 [weak]\n   Last modification reported: Thu, 19 Nov 2026 15:08:37 +0000\n"
+    },
+    "RUN-denied": {
+      "scenario": "SC-http-denied",
+      "name": "Deny even when content is cached",
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": false,
+        "portAllowed": true,
+        "eligibleFreshResponse": true,
+        "sourceAvailable": true,
+        "contentVerified": true
+      },
+      "expected": {
+        "outcome": "denied",
+        "accepted": false,
+        "cacheLookups": 0,
+        "sourceRequests": 0,
+        "verificationChecks": 0
+      },
+      "observed": {
+        "accepted": false,
+        "outcome": "denied",
+        "sourceRequests": 0,
+        "verificationChecks": 0
+      },
+      "http_status": 403,
+      "proxy_results": [
+        "TCP_DENIED"
+      ],
+      "source_calls": [],
+      "apt_exit": 100,
+      "hash_mismatch": false,
+      "download_sha256": null,
+      "expected_sha256": "d93fb34c7a74ee2bae3579be2b3115e2abfe616f79a261021cb28938501749d4",
+      "cache_prepared": true,
+      "stdout": "Err:1 http://repo.example.test stable/main amd64 intake-denied all 1.0\n  403  Forbidden [IP: 127.0.0.1 56961]\n",
+      "stderr": "W: Unable to read <fixture>/client/etc/preferences.d/ - DirectoryExists (2: No such file or directory)\nE: Failed to fetch http://repo.example.test/pool/intake-denied.deb  403  Forbidden [IP: 127.0.0.1 56961]\n"
+    },
+    "RUN-hit-offline": {
+      "scenario": "SC-http-hit",
+      "name": "Reuse fresh content while source is offline",
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "eligibleFreshResponse": true,
+        "sourceAvailable": false,
+        "contentVerified": true
+      },
+      "expected": {
+        "outcome": "accepted",
+        "accepted": true,
+        "cacheLookups": 1,
+        "sourceRequests": 0,
+        "verificationChecks": 1
+      },
+      "observed": {
+        "accepted": true,
+        "outcome": "accepted",
+        "sourceRequests": 0,
+        "verificationChecks": 1
+      },
+      "http_status": 200,
+      "proxy_results": [
+        "TCP_MEM_HIT"
+      ],
+      "source_calls": [],
+      "apt_exit": 0,
+      "hash_mismatch": false,
+      "download_sha256": "400f1f2d12ec595dff02ac914ce9d224ee2c4020dde91c2275e8fff5c1d8c9e7",
+      "expected_sha256": "400f1f2d12ec595dff02ac914ce9d224ee2c4020dde91c2275e8fff5c1d8c9e7",
+      "cache_prepared": true,
+      "stdout": "Get:1 http://repo.example.test stable/main amd64 intake-hit-offline all 1.0 [562 B]\nFetched 562 B in 0s (4094 B/s)\n",
+      "stderr": "W: Unable to read <fixture>/client/etc/preferences.d/ - DirectoryExists (2: No such file or directory)\n"
+    },
+    "RUN-miss": {
+      "scenario": "SC-http-miss",
+      "name": "Retrieve from available source",
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "eligibleFreshResponse": false,
+        "sourceAvailable": true,
+        "contentVerified": true
+      },
+      "expected": {
+        "outcome": "accepted",
+        "accepted": true,
+        "cacheLookups": 1,
+        "sourceRequests": 1,
+        "verificationChecks": 1
+      },
+      "observed": {
+        "accepted": true,
+        "outcome": "accepted",
+        "sourceRequests": 1,
+        "verificationChecks": 1
+      },
+      "http_status": 200,
+      "proxy_results": [
+        "TCP_MISS"
+      ],
+      "source_calls": [
+        {
+          "path": "/pool/intake-miss.deb",
+          "status": 200,
+          "cache_control": "max-age=259200"
+        }
+      ],
+      "apt_exit": 0,
+      "hash_mismatch": false,
+      "download_sha256": "19614aba82af8969210e54d0f9ea44fb67e688a4b7e33d5324419822c2b4663b",
+      "expected_sha256": "19614aba82af8969210e54d0f9ea44fb67e688a4b7e33d5324419822c2b4663b",
+      "cache_prepared": false,
+      "stdout": "Get:1 http://repo.example.test stable/main amd64 intake-miss all 1.0 [556 B]\nFetched 556 B in 0s (3711 B/s)\n",
+      "stderr": "W: Unable to read <fixture>/client/etc/preferences.d/ - DirectoryExists (2: No such file or directory)\n"
+    },
+    "RUN-source-failure": {
+      "scenario": "SC-http-source-failure",
+      "name": "Stop after source failure",
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "eligibleFreshResponse": false,
+        "sourceAvailable": false,
+        "contentVerified": true
+      },
+      "expected": {
+        "outcome": "source-unavailable",
+        "accepted": false,
+        "cacheLookups": 1,
+        "sourceRequests": 1,
+        "verificationChecks": 0
+      },
+      "observed": {
+        "accepted": false,
+        "outcome": "source-unavailable",
+        "sourceRequests": 1,
+        "verificationChecks": 0
+      },
+      "http_status": 503,
+      "proxy_results": [
+        "TCP_MISS"
+      ],
+      "source_calls": [
+        {
+          "path": "/pool/intake-source-failure.deb",
+          "status": 503,
+          "cache_control": "max-age=259200"
+        }
+      ],
+      "apt_exit": 100,
+      "hash_mismatch": false,
+      "download_sha256": null,
+      "expected_sha256": "994ebca1f37463f86b52016d6bd86aed3b281eb97ac51f4c3ff9af6383c18d8b",
+      "cache_prepared": false,
+      "stdout": "Err:1 http://repo.example.test stable/main amd64 intake-source-failure all 1.0\n  503  Service Unavailable [IP: 127.0.0.1 56961]\n",
+      "stderr": "W: Unable to read <fixture>/client/etc/preferences.d/ - DirectoryExists (2: No such file or directory)\nE: Failed to fetch http://repo.example.test/pool/intake-source-failure.deb  503  Service Unavailable [IP: 127.0.0.1 56961]\n"
+    },
+    "RUN-untrusted": {
+      "scenario": "SC-http-untrusted",
+      "name": "Reject untrusted source content",
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "eligibleFreshResponse": false,
+        "sourceAvailable": true,
+        "contentVerified": false
+      },
+      "expected": {
+        "outcome": "verification-failed",
+        "accepted": false,
+        "cacheLookups": 1,
+        "sourceRequests": 1,
+        "verificationChecks": 1
+      },
+      "observed": {
+        "accepted": false,
+        "outcome": "verification-failed",
+        "sourceRequests": 1,
+        "verificationChecks": 1
+      },
+      "http_status": 200,
+      "proxy_results": [
+        "TCP_MISS"
+      ],
+      "source_calls": [
+        {
+          "path": "/pool/intake-untrusted.deb",
+          "status": 200,
+          "cache_control": "max-age=259200"
+        }
+      ],
+      "apt_exit": 100,
+      "hash_mismatch": true,
+      "download_sha256": null,
+      "expected_sha256": "efee64284c389e896ee6bcdb5493545f53d6028671b2318fe4b630a20f83a342",
+      "cache_prepared": false,
+      "stdout": "Get:1 http://repo.example.test stable/main amd64 intake-untrusted all 1.0 [560 B]\nErr:1 http://repo.example.test stable/main amd64 intake-untrusted all 1.0\n  Hash Sum mismatch\n  Hashes of expected file:\n   - SHA256:efee64284c389e896ee6bcdb5493545f53d6028671b2318fe4b630a20f83a342\n   - Filesize:560 [weak]\n  Hashes of received file:\n   - SHA256:aa7b13d239af64da455e4e89323323f6b6b1d747e8e75f7ea2127387f9715678\n   - Filesize:560 [weak]\n  Last modification reported: Thu, 19 Nov 2026 15:08:45 +0000\nFetched 560 B in 0s (3336 B/s)\n",
+      "stderr": "W: Unable to read <fixture>/client/etc/preferences.d/ - DirectoryExists (2: No such file or directory)\nE: Failed to fetch http://repo.example.test/pool/intake-untrusted.deb  Hash Sum mismatch\n   Hashes of expected file:\n    - SHA256:efee64284c389e896ee6bcdb5493545f53d6028671b2318fe4b630a20f83a342\n    - Filesize:560 [weak]\n   Hashes of received file:\n    - SHA256:aa7b13d239af64da455e4e89323323f6b6b1d747e8e75f7ea2127387f9715678\n    - Filesize:560 [weak]\n   Last modification reported: Thu, 19 Nov 2026 15:08:45 +0000\n"
+    }
+  },
+  "metadata": {
+    "trusted_exit": 0,
+    "unknown_key_exit": 100,
+    "unknown_key_rejected": true
+  },
+  "differences": []
+}

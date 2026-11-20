@@ -1,0 +1,265 @@
+{
+  "nodes": [
+    {
+      "key": "L-Proxy",
+      "role": "edge",
+      "at": [
+        40,
+        80
+      ]
+    },
+    {
+      "key": "L-Cache",
+      "role": "data",
+      "at": [
+        348,
+        80
+      ]
+    },
+    {
+      "key": "P-storage-network",
+      "role": "network",
+      "at": [
+        656,
+        80
+      ],
+      "optional": true
+    },
+    {
+      "key": "R-Pair",
+      "role": "edge",
+      "at": [
+        40,
+        220
+      ]
+    },
+    {
+      "key": "disks",
+      "role": "data",
+      "at": [
+        348,
+        220
+      ]
+    },
+    {
+      "key": "vms",
+      "role": "boundary",
+      "at": [
+        40,
+        370
+      ]
+    },
+    {
+      "key": "P-storage",
+      "role": "services",
+      "at": [
+        348,
+        370
+      ]
+    },
+    {
+      "key": "P-network",
+      "role": "services",
+      "at": [
+        656,
+        370
+      ]
+    },
+    {
+      "key": "P-virtualization",
+      "role": "services",
+      "at": [
+        40,
+        540
+      ]
+    },
+    {
+      "key": "P-fabric",
+      "role": "network",
+      "at": [
+        656,
+        540
+      ]
+    },
+    {
+      "key": "P-servers",
+      "role": "equipment",
+      "at": [
+        40,
+        730
+      ]
+    },
+    {
+      "key": "P-drives",
+      "role": "equipment",
+      "at": [
+        348,
+        730
+      ]
+    },
+    {
+      "key": "P-switches",
+      "role": "equipment",
+      "at": [
+        656,
+        730
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "L-Proxy",
+      "to": "R-Pair",
+      "kind": "allocated-to",
+      "path": "M172 156 L172 220",
+      "label": "Allocated to",
+      "label_at": [
+        172,
+        196
+      ]
+    },
+    {
+      "from": "L-Cache",
+      "to": "disks",
+      "kind": "allocated-to",
+      "path": "M480 156 L480 220",
+      "label": "Allocated to",
+      "label_at": [
+        480,
+        196
+      ]
+    },
+    {
+      "from": "R-Pair",
+      "to": "vms",
+      "kind": "contains",
+      "path": "M172 296 L172 370",
+      "label": "Selected members",
+      "label_at": [
+        172,
+        340
+      ]
+    },
+    {
+      "from": "disks",
+      "to": "P-storage",
+      "kind": "depends-on",
+      "path": "M480 296 L480 370",
+      "label": "Uses local storage",
+      "label_at": [
+        480,
+        340
+      ]
+    },
+    {
+      "from": "vms",
+      "to": "P-virtualization",
+      "kind": "depends-on",
+      "path": "M172 446 L172 540",
+      "label": "Virtual execution",
+      "label_at": [
+        172,
+        522
+      ]
+    },
+    {
+      "from": "vms",
+      "to": "P-network",
+      "kind": "depends-on",
+      "path": "M172 446 L172 486 L788 486 L788 446",
+      "label": "Guest attachment",
+      "label_at": [
+        480,
+        480
+      ]
+    },
+    {
+      "from": "P-storage",
+      "to": "P-virtualization",
+      "kind": "depends-on",
+      "path": "M348 408 L326 408 L326 578 L304 578",
+      "label": "Provided by",
+      "label_at": [
+        330,
+        518
+      ]
+    },
+    {
+      "from": "P-network",
+      "to": "P-virtualization",
+      "kind": "depends-on",
+      "path": "M656 408 L634 408 L634 656 L172 656 L172 616",
+      "label": "Provided by virtualization",
+      "label_at": [
+        414,
+        650
+      ]
+    },
+    {
+      "from": "P-virtualization",
+      "to": "P-servers",
+      "kind": "depends-on",
+      "path": "M172 616 L172 730",
+      "label": "Runs on",
+      "label_at": [
+        172,
+        701
+      ]
+    },
+    {
+      "from": "P-storage",
+      "to": "P-drives",
+      "kind": "depends-on",
+      "path": "M480 446 L480 730",
+      "label": "Physical backing",
+      "label_at": [
+        480,
+        702
+      ]
+    },
+    {
+      "from": "P-network",
+      "to": "P-fabric",
+      "kind": "depends-on",
+      "path": "M788 446 L788 540",
+      "label": "Logical transport",
+      "label_at": [
+        788,
+        522
+      ]
+    },
+    {
+      "from": "P-fabric",
+      "to": "P-switches",
+      "kind": "depends-on",
+      "path": "M788 616 L788 730",
+      "label": "Realized over",
+      "label_at": [
+        788,
+        701
+      ]
+    },
+    {
+      "from": "P-storage-network",
+      "to": "P-switches",
+      "kind": "depends-on",
+      "path": "M788 156 L788 210 L942 210 L942 768 L920 768",
+      "label": "When selected",
+      "label_at": [
+        840,
+        199
+      ]
+    },
+    {
+      "from": "P-servers",
+      "to": "P-switches",
+      "kind": "connected-to",
+      "path": "M172 806 L172 840 L788 840 L788 806",
+      "label": "Physical attachment",
+      "label_at": [
+        480,
+        835
+      ]
+    }
+  ]
+}

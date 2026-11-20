@@ -1,0 +1,161 @@
+{
+  "scopes": [
+    {
+      "key": "system",
+      "page": "architecture/design/README.md",
+      "svg": "architecture/views/system-overall.svg",
+      "title": "Homelab | System Overall",
+      "roots": [
+        "SYS-homelab"
+      ],
+      "summary": "Main subsystems and their shaping concerns",
+      "coverage": "Native concerns below cover the modeled intake slice within the overall system. Other subsystem intent, constraints and evidence remain mapped to their existing owners.",
+      "owners": [
+        "docs/01-architecture/README.md"
+      ]
+    },
+    {
+      "key": "intake",
+      "page": "architecture/design/software-intake/README.md",
+      "svg": "architecture/views/software-intake/logical.svg",
+      "title": "Software intake",
+      "roots": [
+        "SYS-intake"
+      ],
+      "summary": "Controlled acquisition, forwarding and disposable reuse",
+      "coverage": "Connected intake concerns derive from native use-case/scenario, functional allocation and requirement relationships. External actor obligations retain their own owner.",
+      "owners": [
+        "docs/01-architecture/07-software-intake/README.md"
+      ]
+    },
+    {
+      "key": "proxy",
+      "page": "architecture/design/software-intake/policy-proxy/README.md",
+      "svg": "architecture/views/software-intake/policy-proxy/contract.svg",
+      "title": "Policy proxy",
+      "roots": [
+        "L-Proxy"
+      ],
+      "summary": "Admit requests, forward HTTP and relay source TLS",
+      "coverage": "The proxy owns its allocated behavior. Client verification and independent egress enforcement are related interaction obligations, not proxy features.",
+      "owners": [
+        "architecture/design/software-intake/logical.md"
+      ]
+    },
+    {
+      "key": "cache",
+      "page": "architecture/design/software-intake/object-cache/README.md",
+      "svg": "architecture/views/software-intake/logical.svg",
+      "title": "Object cache",
+      "roots": [
+        "L-Cache"
+      ],
+      "summary": "Rebuildable response storage; independent recovery remains separate",
+      "coverage": "This component selects HTTP reuse scenarios through its cache-function allocation. It does not inherit every intake scenario or external-client obligation.",
+      "owners": [
+        "architecture/design/software-intake/resources.md"
+      ]
+    },
+    {
+      "key": "platform",
+      "page": "architecture/design/platform/README.md",
+      "svg": "architecture/views/platform/overview.svg",
+      "title": "Shared platform | resource providers",
+      "roots": [
+        "P-context"
+      ],
+      "summary": "Provider contracts and their tangible backing",
+      "coverage": "Direct platform use cases, requirements and functions are not modeled yet. The related native concerns below come from supported intake consumers; they are not automatically allocated to the platform.",
+      "owners": [
+        "docs/01-architecture/04-hosting/README.md",
+        "docs/01-architecture/05-networking/README.md",
+        "docs/01-architecture/06-data/README.md"
+      ]
+    },
+    {
+      "key": "hosting",
+      "page": "architecture/design/platform/hosting/README.md",
+      "svg": "architecture/views/platform/hosting/bootstrap-reference.svg",
+      "title": "Hosting",
+      "roots": [
+        "P-virtualization",
+        "P-servers"
+      ],
+      "summary": "Virtual execution and physical server backing",
+      "coverage": "Mapped provider design. Native concerns shown here belong to supported intake consumers; direct provider goals, guardrails and allocations remain with the documented owner.",
+      "owners": [
+        "docs/01-architecture/04-hosting/README.md"
+      ]
+    },
+    {
+      "key": "networking",
+      "page": "architecture/design/platform/networking/README.md",
+      "title": "Networking",
+      "roots": [
+        "P-network",
+        "P-fabric",
+        "P-storage-network",
+        "P-switches"
+      ],
+      "summary": "Guest attachments, logical transports and physical links",
+      "coverage": "Mapped provider design. Native concerns shown here belong to supported intake consumers; direct provider goals, guardrails and allocations remain with the documented owner.",
+      "owners": [
+        "docs/01-architecture/05-networking/README.md"
+      ]
+    },
+    {
+      "key": "data",
+      "page": "architecture/design/platform/data/README.md",
+      "title": "Data",
+      "roots": [
+        "P-storage",
+        "P-drives"
+      ],
+      "summary": "Storage services and physical persistence backing",
+      "coverage": "Mapped provider design. Native concerns shown here belong to supported intake consumers; direct provider goals, guardrails and allocations remain with the documented owner.",
+      "owners": [
+        "docs/01-architecture/06-data/README.md"
+      ]
+    },
+    {
+      "key": "trust",
+      "page": "architecture/design/trust-and-access/README.md",
+      "title": "Trust and access",
+      "roots": [
+        "SYS-trust"
+      ],
+      "summary": "Cryptographic trust, key custody and identity/access",
+      "coverage": "Mapped subsystem boundary. No native use-case, requirement, function or test allocation is claimed; follow the scoped owner links for the existing intent and design.",
+      "owners": [
+        "docs/01-architecture/08-cryptography/README.md",
+        "docs/01-architecture/09-identity/README.md"
+      ]
+    },
+    {
+      "key": "delivery",
+      "page": "architecture/design/delivery/README.md",
+      "title": "Delivery and workloads",
+      "roots": [
+        "SYS-delivery"
+      ],
+      "summary": "Reviewed source, builds, artifacts and scoped releases",
+      "coverage": "Mapped subsystem boundary. No native use-case, requirement, function or test allocation is claimed; follow the scoped owner links for the existing intent and design.",
+      "owners": [
+        "docs/01-architecture/10-delivery/README.md"
+      ]
+    },
+    {
+      "key": "operations",
+      "page": "architecture/design/operations/README.md",
+      "title": "Operations and recovery",
+      "roots": [
+        "SYS-operations"
+      ],
+      "summary": "Visibility, protected evidence, maintenance and recovery",
+      "coverage": "Mapped subsystem boundary. No native use-case, requirement, function or test allocation is claimed; follow the scoped owner links for the existing intent and design.",
+      "owners": [
+        "docs/01-architecture/11-operations/README.md"
+      ]
+    }
+  ]
+}

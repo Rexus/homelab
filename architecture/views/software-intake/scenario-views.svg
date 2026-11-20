@@ -1,0 +1,1151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1775" role="img">
+  <style>svg[data-view]{visibility:hidden}view:target+svg[data-view]{visibility:visible}svg:not(:has(&gt;view:target))&gt;svg[data-view]:first-of-type{visibility:visible}</style>
+  <view id="SC-http-miss" viewBox="0 0 960 1775" data-category="function" color="#5b3921" />
+  <svg viewBox="0 0 960 1775" role="img" data-subject="SC-http-miss" data-relationships="[{&quot;from&quot;: &quot;H-cache-rules&quot;, &quot;to&quot;: &quot;H-response&quot;, &quot;kind&quot;: &quot;before&quot;}, {&quot;from&quot;: &quot;H-origin&quot;, &quot;to&quot;: &quot;H-cache-rules&quot;, &quot;kind&quot;: &quot;before&quot;}, {&quot;from&quot;: &quot;H-request&quot;, &quot;to&quot;: &quot;H-check&quot;, &quot;kind&quot;: &quot;before&quot;}]" x="0" y="0" width="960" height="1775.0" data-view="SC-http-miss" data-view-id="VIEW-software-intake-scenario-views--SC-http-miss">
+    <title>Retrieve or revalidate HTTP content</title>
+    <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+    <rect width="960" height="1775" fill="white" />
+    <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Retrieve or revalidate HTTP content</text>
+    <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">SC-http-miss · Expected selected path; click a message to follow its function.</text>
+    <g class="explorer-card">
+      <rect x="30" y="100" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Trigger and preconditions</text>
+      <text x="45" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">An update client requests HTTP repository content. The route and trust policy are configured; content is</text>
+      <text x="45" y="169" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">absent or needs revalidation.</text>
+    </g>
+    <defs>
+      <marker id="arrow-SC-http-miss" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 Z" fill="#627581" />
+      </marker>
+    </defs>
+    <a href="logical.svg" target="_top" aria-label="Update Consumers">
+      <title>Update Consumers</title>
+      <g class="explorer-card" data-element="L-Consumers" data-category="external" color="#293642">
+        <rect x="20" y="212" width="220" height="76" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="35" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Update Consumers</text>
+        <text x="35" y="261" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Consumers</text>
+      </g>
+    </a>
+    <line x1="130" x2="130" y1="312" y2="1257" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="policy-proxy/contract.svg" target="_top" aria-label="Policy proxy / HTTP cache">
+      <title>Policy proxy / HTTP cache</title>
+      <g class="explorer-card" data-element="L-Proxy" data-category="logical" color="#203a5b">
+        <rect x="350" y="212" width="220" height="98" rx="4" fill="#fce8ec" stroke="#9b4d67" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="365" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Policy proxy / HTTP</text>
+        <text x="365" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache</text>
+        <text x="365" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Proxy</text>
+      </g>
+    </a>
+    <line x1="460" x2="460" y1="312" y2="1257" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="logical.svg" target="_top" aria-label="Approved external sources">
+      <title>Approved external sources</title>
+      <g class="explorer-card" data-element="L-Sources" data-category="external" color="#293642">
+        <rect x="680" y="212" width="220" height="98" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="695" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Approved external</text>
+        <text x="695" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">sources</text>
+        <text x="695" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Sources</text>
+      </g>
+    </a>
+    <line x1="790" x2="790" y1="312" y2="1257" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="function-views.svg#F-admit" target="_top" aria-label="HTTP repository request · H-request · F-admit" data-message="H-request" data-function="F-admit">
+      <title>HTTP repository request · H-request · F-admit</title>
+      <rect x="130" y="312" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="330" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">HTTP repository request</text>
+      <text x="295.0" y="348" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M130 392 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-miss)" />
+    </a>
+    <a href="function-views.svg#F-admit" target="_top" aria-label="Check client, destination and port · H-check · F-admit" data-message="H-check" data-function="F-admit">
+      <title>Check client, destination and port · H-check · F-admit</title>
+      <rect x="455" y="417" width="300" height="100" fill="transparent" />
+      <text x="605" y="435" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check client, destination and port</text>
+      <text x="605" y="453" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M460 497 H498 V513 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-miss)" />
+    </a>
+    <a href="function-views.svg#F-cache" target="_top" aria-label="Look up eligible fresh content · H-lookup · F-cache" data-message="H-lookup" data-function="F-cache">
+      <title>Look up eligible fresh content · H-lookup · F-cache</title>
+      <rect x="455" y="522" width="300" height="100" fill="transparent" />
+      <text x="605" y="540" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Look up eligible fresh content</text>
+      <text x="605" y="558" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Reuse fresh cached content</text>
+      <path d="M460 602 H498 V618 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-miss)" />
+    </a>
+    <a href="function-views.svg#F-http" target="_top" aria-label="Fetch or conditionally revalidate · H-fetch · F-http" data-message="H-fetch" data-function="F-http">
+      <title>Fetch or conditionally revalidate · H-fetch · F-http</title>
+      <rect x="460" y="627" width="330" height="100" fill="transparent" />
+      <text x="625.0" y="645" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch or conditionally revalidate</text>
+      <text x="625.0" y="663" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch content from source</text>
+      <path d="M460 707 H790" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-miss)" />
+    </a>
+    <a href="function-views.svg#F-http" target="_top" aria-label="Content or freshness response · H-origin · F-http" data-message="H-origin" data-function="F-http">
+      <title>Content or freshness response · H-origin · F-http</title>
+      <rect x="460" y="732" width="330" height="100" fill="transparent" />
+      <text x="625.0" y="750" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Content or freshness response</text>
+      <text x="625.0" y="768" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch content from source</text>
+      <path d="M790 812 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-miss)" stroke-dasharray="6 4" />
+    </a>
+    <a href="function-views.svg#F-cache" target="_top" aria-label="Apply cache and privacy rules · H-cache-rules · F-cache" data-message="H-cache-rules" data-function="F-cache">
+      <title>Apply cache and privacy rules · H-cache-rules · F-cache</title>
+      <rect x="455" y="837" width="300" height="100" fill="transparent" />
+      <text x="605" y="855" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Apply cache and privacy rules</text>
+      <text x="605" y="873" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Reuse fresh cached content</text>
+      <path d="M460 917 H498 V933 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-miss)" />
+    </a>
+    <a href="function-views.svg#F-http" target="_top" aria-label="Return response · H-response · F-http" data-message="H-response" data-function="F-http">
+      <title>Return response · H-response · F-http</title>
+      <rect x="130" y="942" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="960" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Return response</text>
+      <text x="295.0" y="978" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch content from source</text>
+      <path d="M460 1022 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-miss)" stroke-dasharray="6 4" />
+    </a>
+    <a href="function-views.svg#F-verify" target="_top" aria-label="Verify trusted metadata / signatures · H-verify · F-verify" data-message="H-verify" data-function="F-verify">
+      <title>Verify trusted metadata / signatures · H-verify · F-verify</title>
+      <rect x="125" y="1047" width="300" height="100" fill="transparent" />
+      <text x="275" y="1065" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify trusted metadata / signatures</text>
+      <text x="275" y="1083" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify before use</text>
+      <path d="M130 1127 H168 V1143 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-miss)" />
+    </a>
+    <a href="function-views.svg#F-verify" target="_top" aria-label="Accept verified content for use · H-accepted · F-verify" data-message="H-accepted" data-function="F-verify">
+      <title>Accept verified content for use · H-accepted · F-verify</title>
+      <rect x="125" y="1152" width="300" height="100" fill="transparent" />
+      <text x="275" y="1170" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Accept verified content for use</text>
+      <text x="275" y="1188" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify before use</text>
+      <path d="M130 1232 H168 V1248 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-miss)" />
+    </a>
+    <text x="480" y="1275" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Solid: request / process · Dashed: response · Time runs downward</text>
+    <g class="explorer-card">
+      <rect x="30" y="1297" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="1322" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected outcome</text>
+      <text x="45" y="1346" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Receive an allowed response, then verify trusted metadata and signatures locally. Verification failure stops</text>
+      <text x="45" y="1366" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">use; it never approves an artifact.</text>
+    </g>
+    <a href="tests.svg" target="_top" aria-label="Acceptance and linked checks">
+      <title>Acceptance and linked checks</title>
+      <g class="explorer-card">
+        <rect x="30" y="1405" width="900" height="116" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1430" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Acceptance and linked checks</text>
+        <text x="45" y="1454" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">An admitted miss or stale response reaches the source; cache/privacy rules are respected and the client</text>
+        <text x="45" y="1474" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">verifies before use. Unsigned or expired metadata is rejected unless an explicit trusted-source exception</text>
+        <text x="45" y="1494" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">was selected.</text>
+      </g>
+    </a>
+    <a href="execution.svg" target="_top" aria-label="Native execution evidence">
+      <title>Native execution evidence</title>
+      <g class="explorer-card">
+        <rect x="30" y="1533" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1558" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Native execution evidence</text>
+        <text x="45" y="1582" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Run the HTTP refinement and compare observed actions with this sequence.</text>
+      </g>
+    </a>
+    <a href="implementation.svg" target="_top" aria-label="Compare with real software">
+      <title>Compare with real software</title>
+      <g class="explorer-card">
+        <rect x="30" y="1621" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1646" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Compare with real software</text>
+        <text x="45" y="1670" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">See what Squid and APT actually did for these retrieval cases.</text>
+      </g>
+    </a>
+    <rect x="0" y="1719" width="960" height="56" fill="#eef2f6" />
+    <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+      <title>System Overall</title>
+      <rect x="20.0" y="1726" width="200" height="42" fill="transparent" />
+      <text x="120.0" y="1752" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+    </a>
+    <a href="use-cases.svg" target="_top" aria-label="Use cases">
+      <title>Use cases</title>
+      <rect x="260.0" y="1726" width="200" height="42" fill="transparent" />
+      <text x="360.0" y="1752" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Use cases</text>
+    </a>
+    <a href="logical.svg" target="_top" aria-label="Logical design">
+      <title>Logical design</title>
+      <rect x="500.0" y="1726" width="200" height="42" fill="transparent" />
+      <text x="600.0" y="1752" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Logical design</text>
+    </a>
+    <a href="../../generated/software-intake/scenarios.md#sc-http-miss" target="_top" aria-label="Documentation">
+      <title>Documentation</title>
+      <rect x="740.0" y="1726" width="200" height="42" fill="transparent" />
+      <text x="840.0" y="1752" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+    </a>
+    <metadata data-catalog="VIEW-software-intake-scenario-views--SC-http-miss">{"content_sha256": "bc91304f4a24d216e3431e4895a452208b48eeb585509bcb4e732ff466b7c79d", "elements": ["F-admit", "F-cache", "F-http", "F-verify", "H-accepted", "H-cache-rules", "H-check", "H-fetch", "H-lookup", "H-origin", "H-request", "H-response", "H-verify", "L-Consumers", "L-Proxy", "L-Sources"], "key": "VIEW-software-intake-scenario-views--SC-http-miss", "name": "Retrieve or revalidate HTTP content", "owner": "software-intake", "presentation": "model-derived SVG; native SysON uses its own notation", "relationships": [{"from": "H-cache-rules", "kind": "before", "to": "H-response"}, {"from": "H-origin", "kind": "before", "to": "H-cache-rules"}, {"from": "H-request", "kind": "before", "to": "H-check"}], "subject": "SC-http-miss", "svg": "architecture/views/software-intake/scenario-views.svg#SC-http-miss"}</metadata>
+  </svg>
+  <view id="SC-http-hit" viewBox="0 1805 960 1420" data-category="function" color="#5b3921" />
+  <svg viewBox="0 0 960 1420" role="img" data-subject="SC-http-hit" data-relationships="[{&quot;from&quot;: &quot;H-request&quot;, &quot;to&quot;: &quot;H-check&quot;, &quot;kind&quot;: &quot;before&quot;}]" x="0" y="1805.0" width="960" height="1420.0" data-view="SC-http-hit">
+    <title>Reuse a fresh HTTP response</title>
+    <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+    <rect width="960" height="1420" fill="white" />
+    <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reuse a fresh HTTP response</text>
+    <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">SC-http-hit · Expected selected path; click a message to follow its function.</text>
+    <g class="explorer-card">
+      <rect x="30" y="100" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Trigger and preconditions</text>
+      <text x="45" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">An update client repeats an eligible HTTP request. Policy admits the request and an eligible fresh cached</text>
+      <text x="45" y="169" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">response exists.</text>
+    </g>
+    <defs>
+      <marker id="arrow-SC-http-hit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 Z" fill="#627581" />
+      </marker>
+    </defs>
+    <a href="logical.svg" target="_top" aria-label="Update Consumers">
+      <title>Update Consumers</title>
+      <g class="explorer-card" data-element="L-Consumers" data-category="external" color="#293642">
+        <rect x="20" y="212" width="220" height="76" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="35" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Update Consumers</text>
+        <text x="35" y="261" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Consumers</text>
+      </g>
+    </a>
+    <line x1="130" x2="130" y1="312" y2="942" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="policy-proxy/contract.svg" target="_top" aria-label="Policy proxy / HTTP cache">
+      <title>Policy proxy / HTTP cache</title>
+      <g class="explorer-card" data-element="L-Proxy" data-category="logical" color="#203a5b">
+        <rect x="350" y="212" width="220" height="98" rx="4" fill="#fce8ec" stroke="#9b4d67" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="365" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Policy proxy / HTTP</text>
+        <text x="365" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache</text>
+        <text x="365" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Proxy</text>
+      </g>
+    </a>
+    <line x1="460" x2="460" y1="312" y2="942" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="logical.svg" target="_top" aria-label="Approved external sources">
+      <title>Approved external sources</title>
+      <g class="explorer-card" data-element="L-Sources" data-category="external" color="#293642">
+        <rect x="680" y="212" width="220" height="98" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="695" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Approved external</text>
+        <text x="695" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">sources</text>
+        <text x="695" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Sources</text>
+      </g>
+    </a>
+    <line x1="790" x2="790" y1="312" y2="942" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="function-views.svg#F-admit" target="_top" aria-label="HTTP repository request · H-request · F-admit" data-message="H-request" data-function="F-admit">
+      <title>HTTP repository request · H-request · F-admit</title>
+      <rect x="130" y="312" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="330" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">HTTP repository request</text>
+      <text x="295.0" y="348" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M130 392 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-hit)" />
+    </a>
+    <a href="function-views.svg#F-admit" target="_top" aria-label="Check client, destination and port · H-check · F-admit" data-message="H-check" data-function="F-admit">
+      <title>Check client, destination and port · H-check · F-admit</title>
+      <rect x="455" y="417" width="300" height="100" fill="transparent" />
+      <text x="605" y="435" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check client, destination and port</text>
+      <text x="605" y="453" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M460 497 H498 V513 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-hit)" />
+    </a>
+    <a href="function-views.svg#F-cache" target="_top" aria-label="Look up eligible fresh content · H-lookup · F-cache" data-message="H-lookup" data-function="F-cache">
+      <title>Look up eligible fresh content · H-lookup · F-cache</title>
+      <rect x="455" y="522" width="300" height="100" fill="transparent" />
+      <text x="605" y="540" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Look up eligible fresh content</text>
+      <text x="605" y="558" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Reuse fresh cached content</text>
+      <path d="M460 602 H498 V618 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-hit)" />
+    </a>
+    <a href="function-views.svg#F-cache" target="_top" aria-label="Return cached response · H-cached · F-cache" data-message="H-cached" data-function="F-cache">
+      <title>Return cached response · H-cached · F-cache</title>
+      <rect x="130" y="627" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="645" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Return cached response</text>
+      <text x="295.0" y="663" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Reuse fresh cached content</text>
+      <path d="M460 707 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-hit)" stroke-dasharray="6 4" />
+    </a>
+    <a href="function-views.svg#F-verify" target="_top" aria-label="Verify trusted metadata / signatures · H-verify · F-verify" data-message="H-verify" data-function="F-verify">
+      <title>Verify trusted metadata / signatures · H-verify · F-verify</title>
+      <rect x="125" y="732" width="300" height="100" fill="transparent" />
+      <text x="275" y="750" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify trusted metadata / signatures</text>
+      <text x="275" y="768" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify before use</text>
+      <path d="M130 812 H168 V828 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-hit)" />
+    </a>
+    <a href="function-views.svg#F-verify" target="_top" aria-label="Accept verified content for use · H-accepted · F-verify" data-message="H-accepted" data-function="F-verify">
+      <title>Accept verified content for use · H-accepted · F-verify</title>
+      <rect x="125" y="837" width="300" height="100" fill="transparent" />
+      <text x="275" y="855" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Accept verified content for use</text>
+      <text x="275" y="873" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify before use</text>
+      <path d="M130 917 H168 V933 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-hit)" />
+    </a>
+    <text x="480" y="960" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Solid: request / process · Dashed: response · Time runs downward</text>
+    <g class="explorer-card">
+      <rect x="30" y="982" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="1007" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected outcome</text>
+      <text x="45" y="1031" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Receive cached content without an origin fetch, then perform the same local verification as a miss.</text>
+    </g>
+    <a href="tests.svg" target="_top" aria-label="Acceptance and linked checks">
+      <title>Acceptance and linked checks</title>
+      <g class="explorer-card">
+        <rect x="30" y="1070" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1095" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Acceptance and linked checks</text>
+        <text x="45" y="1119" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">A repeated eligible fresh response is served without another origin request. The client still verifies</text>
+        <text x="45" y="1139" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">trusted metadata/signatures.</text>
+      </g>
+    </a>
+    <a href="execution.svg" target="_top" aria-label="Native execution evidence">
+      <title>Native execution evidence</title>
+      <g class="explorer-card">
+        <rect x="30" y="1178" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1203" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Native execution evidence</text>
+        <text x="45" y="1227" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Run the HTTP refinement and compare observed actions with this sequence.</text>
+      </g>
+    </a>
+    <a href="implementation.svg" target="_top" aria-label="Compare with real software">
+      <title>Compare with real software</title>
+      <g class="explorer-card">
+        <rect x="30" y="1266" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1291" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Compare with real software</text>
+        <text x="45" y="1315" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">See what Squid and APT actually did for these retrieval cases.</text>
+      </g>
+    </a>
+    <rect x="0" y="1364" width="960" height="56" fill="#eef2f6" />
+    <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+      <title>System Overall</title>
+      <rect x="20.0" y="1371" width="200" height="42" fill="transparent" />
+      <text x="120.0" y="1397" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+    </a>
+    <a href="use-cases.svg" target="_top" aria-label="Use cases">
+      <title>Use cases</title>
+      <rect x="260.0" y="1371" width="200" height="42" fill="transparent" />
+      <text x="360.0" y="1397" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Use cases</text>
+    </a>
+    <a href="logical.svg" target="_top" aria-label="Logical design">
+      <title>Logical design</title>
+      <rect x="500.0" y="1371" width="200" height="42" fill="transparent" />
+      <text x="600.0" y="1397" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Logical design</text>
+    </a>
+    <a href="../../generated/software-intake/scenarios.md#sc-http-hit" target="_top" aria-label="Documentation">
+      <title>Documentation</title>
+      <rect x="740.0" y="1371" width="200" height="42" fill="transparent" />
+      <text x="840.0" y="1397" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+    </a>
+  </svg>
+  <view id="SC-http-denied" viewBox="0 3255 960 1065" data-category="function" color="#5b3921" />
+  <svg viewBox="0 0 960 1065" role="img" data-subject="SC-http-denied" data-relationships="[{&quot;from&quot;: &quot;H-request&quot;, &quot;to&quot;: &quot;H-check&quot;, &quot;kind&quot;: &quot;before&quot;}]" x="0" y="3255.0" width="960" height="1065.0" data-view="SC-http-denied">
+    <title>Reject a disallowed HTTP request</title>
+    <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+    <rect width="960" height="1065" fill="white" />
+    <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reject a disallowed HTTP request</text>
+    <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">SC-http-denied · Expected selected path; click a message to follow its function.</text>
+    <g class="explorer-card">
+      <rect x="30" y="100" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Trigger and preconditions</text>
+      <text x="45" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">A client requests a disallowed HTTP destination, port or route. At least one admission condition fails.</text>
+    </g>
+    <defs>
+      <marker id="arrow-SC-http-denied" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 Z" fill="#627581" />
+      </marker>
+    </defs>
+    <a href="logical.svg" target="_top" aria-label="Update Consumers">
+      <title>Update Consumers</title>
+      <g class="explorer-card" data-element="L-Consumers" data-category="external" color="#293642">
+        <rect x="20" y="192" width="220" height="76" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="35" y="217" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Update Consumers</text>
+        <text x="35" y="241" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Consumers</text>
+      </g>
+    </a>
+    <line x1="130" x2="130" y1="292" y2="607" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="policy-proxy/contract.svg" target="_top" aria-label="Policy proxy / HTTP cache">
+      <title>Policy proxy / HTTP cache</title>
+      <g class="explorer-card" data-element="L-Proxy" data-category="logical" color="#203a5b">
+        <rect x="350" y="192" width="220" height="98" rx="4" fill="#fce8ec" stroke="#9b4d67" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="365" y="217" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Policy proxy / HTTP</text>
+        <text x="365" y="239" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache</text>
+        <text x="365" y="263" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Proxy</text>
+      </g>
+    </a>
+    <line x1="460" x2="460" y1="292" y2="607" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="logical.svg" target="_top" aria-label="Approved external sources">
+      <title>Approved external sources</title>
+      <g class="explorer-card" data-element="L-Sources" data-category="external" color="#293642">
+        <rect x="680" y="192" width="220" height="98" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="695" y="217" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Approved external</text>
+        <text x="695" y="239" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">sources</text>
+        <text x="695" y="263" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Sources</text>
+      </g>
+    </a>
+    <line x1="790" x2="790" y1="292" y2="607" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="function-views.svg#F-admit" target="_top" aria-label="HTTP repository request · H-request · F-admit" data-message="H-request" data-function="F-admit">
+      <title>HTTP repository request · H-request · F-admit</title>
+      <rect x="130" y="292" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="310" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">HTTP repository request</text>
+      <text x="295.0" y="328" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M130 372 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-denied)" />
+    </a>
+    <a href="function-views.svg#F-admit" target="_top" aria-label="Check client, destination and port · H-check · F-admit" data-message="H-check" data-function="F-admit">
+      <title>Check client, destination and port · H-check · F-admit</title>
+      <rect x="455" y="397" width="300" height="100" fill="transparent" />
+      <text x="605" y="415" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check client, destination and port</text>
+      <text x="605" y="433" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M460 477 H498 V493 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-denied)" />
+    </a>
+    <a href="function-views.svg#F-admit" target="_top" aria-label="Deny without a cache lookup or source fetch · H-denied · F-admit" data-message="H-denied" data-function="F-admit">
+      <title>Deny without a cache lookup or source fetch · H-denied · F-admit</title>
+      <rect x="130" y="502" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="520" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Deny without a cache lookup or source</text>
+      <text x="295.0" y="538" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">fetch</text>
+      <text x="295.0" y="556" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M460 582 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-denied)" stroke-dasharray="6 4" />
+    </a>
+    <text x="480" y="625" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Solid: request / process · Dashed: response · Time runs downward</text>
+    <g class="explorer-card">
+      <rect x="30" y="647" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="672" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected outcome</text>
+      <text x="45" y="696" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Receive denial without a cache lookup or source fetch.</text>
+    </g>
+    <a href="tests.svg" target="_top" aria-label="Acceptance and linked checks">
+      <title>Acceptance and linked checks</title>
+      <g class="explorer-card">
+        <rect x="30" y="735" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="760" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Acceptance and linked checks</text>
+        <text x="45" y="784" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">A rejected client, destination or port receives denial and the recording source sees no request.</text>
+      </g>
+    </a>
+    <a href="execution.svg" target="_top" aria-label="Native execution evidence">
+      <title>Native execution evidence</title>
+      <g class="explorer-card">
+        <rect x="30" y="823" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="848" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Native execution evidence</text>
+        <text x="45" y="872" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Run the HTTP refinement and compare observed actions with this sequence.</text>
+      </g>
+    </a>
+    <a href="implementation.svg" target="_top" aria-label="Compare with real software">
+      <title>Compare with real software</title>
+      <g class="explorer-card">
+        <rect x="30" y="911" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="936" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Compare with real software</text>
+        <text x="45" y="960" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">See what Squid and APT actually did for these retrieval cases.</text>
+      </g>
+    </a>
+    <rect x="0" y="1009" width="960" height="56" fill="#eef2f6" />
+    <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+      <title>System Overall</title>
+      <rect x="20.0" y="1016" width="200" height="42" fill="transparent" />
+      <text x="120.0" y="1042" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+    </a>
+    <a href="use-cases.svg" target="_top" aria-label="Use cases">
+      <title>Use cases</title>
+      <rect x="260.0" y="1016" width="200" height="42" fill="transparent" />
+      <text x="360.0" y="1042" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Use cases</text>
+    </a>
+    <a href="logical.svg" target="_top" aria-label="Logical design">
+      <title>Logical design</title>
+      <rect x="500.0" y="1016" width="200" height="42" fill="transparent" />
+      <text x="600.0" y="1042" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Logical design</text>
+    </a>
+    <a href="../../generated/software-intake/scenarios.md#sc-http-denied" target="_top" aria-label="Documentation">
+      <title>Documentation</title>
+      <rect x="740.0" y="1016" width="200" height="42" fill="transparent" />
+      <text x="840.0" y="1042" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+    </a>
+  </svg>
+  <view id="SC-http-source-failure" viewBox="0 4350 960 1545" data-category="function" color="#5b3921" />
+  <svg viewBox="0 0 960 1545" role="img" data-subject="SC-http-source-failure" data-relationships="[{&quot;from&quot;: &quot;H-request&quot;, &quot;to&quot;: &quot;H-check&quot;, &quot;kind&quot;: &quot;before&quot;}, {&quot;from&quot;: &quot;H-source-failure&quot;, &quot;to&quot;: &quot;H-unavailable&quot;, &quot;kind&quot;: &quot;before&quot;}]" x="0" y="4350.0" width="960" height="1545.0" data-view="SC-http-source-failure">
+    <title>Stop when the source is unavailable</title>
+    <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+    <rect width="960" height="1545" fill="white" />
+    <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Stop when the source is unavailable</text>
+    <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">SC-http-source-failure · Expected selected path; click a message to follow its function.</text>
+    <g class="explorer-card">
+      <rect x="30" y="100" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Trigger and preconditions</text>
+      <text x="45" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">An update client requests HTTP repository content. An admitted request has no eligible fresh response and</text>
+      <text x="45" y="169" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">its source attempt fails.</text>
+    </g>
+    <defs>
+      <marker id="arrow-SC-http-source-failure" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 Z" fill="#627581" />
+      </marker>
+    </defs>
+    <a href="logical.svg" target="_top" aria-label="Update Consumers">
+      <title>Update Consumers</title>
+      <g class="explorer-card" data-element="L-Consumers" data-category="external" color="#293642">
+        <rect x="20" y="212" width="220" height="76" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="35" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Update Consumers</text>
+        <text x="35" y="261" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Consumers</text>
+      </g>
+    </a>
+    <line x1="130" x2="130" y1="312" y2="1047" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="policy-proxy/contract.svg" target="_top" aria-label="Policy proxy / HTTP cache">
+      <title>Policy proxy / HTTP cache</title>
+      <g class="explorer-card" data-element="L-Proxy" data-category="logical" color="#203a5b">
+        <rect x="350" y="212" width="220" height="98" rx="4" fill="#fce8ec" stroke="#9b4d67" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="365" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Policy proxy / HTTP</text>
+        <text x="365" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache</text>
+        <text x="365" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Proxy</text>
+      </g>
+    </a>
+    <line x1="460" x2="460" y1="312" y2="1047" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="logical.svg" target="_top" aria-label="Approved external sources">
+      <title>Approved external sources</title>
+      <g class="explorer-card" data-element="L-Sources" data-category="external" color="#293642">
+        <rect x="680" y="212" width="220" height="98" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="695" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Approved external</text>
+        <text x="695" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">sources</text>
+        <text x="695" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Sources</text>
+      </g>
+    </a>
+    <line x1="790" x2="790" y1="312" y2="1047" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="function-views.svg#F-admit" target="_top" aria-label="HTTP repository request · H-request · F-admit" data-message="H-request" data-function="F-admit">
+      <title>HTTP repository request · H-request · F-admit</title>
+      <rect x="130" y="312" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="330" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">HTTP repository request</text>
+      <text x="295.0" y="348" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M130 392 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-source-failure)" />
+    </a>
+    <a href="function-views.svg#F-admit" target="_top" aria-label="Check client, destination and port · H-check · F-admit" data-message="H-check" data-function="F-admit">
+      <title>Check client, destination and port · H-check · F-admit</title>
+      <rect x="455" y="417" width="300" height="100" fill="transparent" />
+      <text x="605" y="435" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check client, destination and port</text>
+      <text x="605" y="453" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M460 497 H498 V513 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-source-failure)" />
+    </a>
+    <a href="function-views.svg#F-cache" target="_top" aria-label="Look up eligible fresh content · H-lookup · F-cache" data-message="H-lookup" data-function="F-cache">
+      <title>Look up eligible fresh content · H-lookup · F-cache</title>
+      <rect x="455" y="522" width="300" height="100" fill="transparent" />
+      <text x="605" y="540" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Look up eligible fresh content</text>
+      <text x="605" y="558" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Reuse fresh cached content</text>
+      <path d="M460 602 H498 V618 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-source-failure)" />
+    </a>
+    <a href="function-views.svg#F-http" target="_top" aria-label="Fetch or conditionally revalidate · H-fetch · F-http" data-message="H-fetch" data-function="F-http">
+      <title>Fetch or conditionally revalidate · H-fetch · F-http</title>
+      <rect x="460" y="627" width="330" height="100" fill="transparent" />
+      <text x="625.0" y="645" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch or conditionally revalidate</text>
+      <text x="625.0" y="663" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch content from source</text>
+      <path d="M460 707 H790" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-source-failure)" />
+    </a>
+    <a href="function-views.svg#F-http" target="_top" aria-label="Observe source failure · H-source-failure · F-http" data-message="H-source-failure" data-function="F-http">
+      <title>Observe source failure · H-source-failure · F-http</title>
+      <rect x="455" y="732" width="300" height="100" fill="transparent" />
+      <text x="605" y="750" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Observe source failure</text>
+      <text x="605" y="768" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch content from source</text>
+      <path d="M460 812 H498 V828 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-source-failure)" />
+    </a>
+    <a href="function-views.svg#F-http" target="_top" aria-label="Return retrieval error without content · H-unavailable · F-http" data-message="H-unavailable" data-function="F-http">
+      <title>Return retrieval error without content · H-unavailable · F-http</title>
+      <rect x="130" y="837" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="855" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Return retrieval error without</text>
+      <text x="295.0" y="873" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">content</text>
+      <text x="295.0" y="891" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch content from source</text>
+      <path d="M460 917 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-source-failure)" stroke-dasharray="6 4" />
+    </a>
+    <a href="function-views.svg#F-verify" target="_top" aria-label="Stop retrieval without verifying content · H-stop · F-verify" data-message="H-stop" data-function="F-verify">
+      <title>Stop retrieval without verifying content · H-stop · F-verify</title>
+      <rect x="125" y="942" width="300" height="100" fill="transparent" />
+      <text x="275" y="960" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Stop retrieval without verifying</text>
+      <text x="275" y="978" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">content</text>
+      <text x="275" y="996" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify before use</text>
+      <path d="M130 1022 H168 V1038 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-source-failure)" />
+    </a>
+    <text x="480" y="1065" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Solid: request / process · Dashed: response · Time runs downward</text>
+    <g class="explorer-card">
+      <rect x="30" y="1087" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="1112" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected outcome</text>
+      <text x="45" y="1136" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Return a retrieval error and stop without content verification.</text>
+    </g>
+    <a href="tests.svg" target="_top" aria-label="Acceptance and linked checks">
+      <title>Acceptance and linked checks</title>
+      <g class="explorer-card">
+        <rect x="30" y="1175" width="900" height="116" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1200" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Acceptance and linked checks</text>
+        <text x="45" y="1224" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">A source failure after an admitted miss produces no usable content, no client verification and no implicit</text>
+        <text x="45" y="1244" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">stale fallback. The execution model supplies availability; deployed failure behavior needs separate</text>
+        <text x="45" y="1264" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">evidence.</text>
+      </g>
+    </a>
+    <a href="execution.svg" target="_top" aria-label="Native execution evidence">
+      <title>Native execution evidence</title>
+      <g class="explorer-card">
+        <rect x="30" y="1303" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1328" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Native execution evidence</text>
+        <text x="45" y="1352" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Run the HTTP refinement and compare observed actions with this sequence.</text>
+      </g>
+    </a>
+    <a href="implementation.svg" target="_top" aria-label="Compare with real software">
+      <title>Compare with real software</title>
+      <g class="explorer-card">
+        <rect x="30" y="1391" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1416" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Compare with real software</text>
+        <text x="45" y="1440" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">See what Squid and APT actually did for these retrieval cases.</text>
+      </g>
+    </a>
+    <rect x="0" y="1489" width="960" height="56" fill="#eef2f6" />
+    <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+      <title>System Overall</title>
+      <rect x="20.0" y="1496" width="200" height="42" fill="transparent" />
+      <text x="120.0" y="1522" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+    </a>
+    <a href="use-cases.svg" target="_top" aria-label="Use cases">
+      <title>Use cases</title>
+      <rect x="260.0" y="1496" width="200" height="42" fill="transparent" />
+      <text x="360.0" y="1522" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Use cases</text>
+    </a>
+    <a href="logical.svg" target="_top" aria-label="Logical design">
+      <title>Logical design</title>
+      <rect x="500.0" y="1496" width="200" height="42" fill="transparent" />
+      <text x="600.0" y="1522" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Logical design</text>
+    </a>
+    <a href="../../generated/software-intake/scenarios.md#sc-http-source-failure" target="_top" aria-label="Documentation">
+      <title>Documentation</title>
+      <rect x="740.0" y="1496" width="200" height="42" fill="transparent" />
+      <text x="840.0" y="1522" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+    </a>
+  </svg>
+  <view id="SC-http-untrusted" viewBox="0 5925 960 1735" data-category="function" color="#5b3921" />
+  <svg viewBox="0 0 960 1735" role="img" data-subject="SC-http-untrusted" data-relationships="[{&quot;from&quot;: &quot;H-cache-rules&quot;, &quot;to&quot;: &quot;H-response&quot;, &quot;kind&quot;: &quot;before&quot;}, {&quot;from&quot;: &quot;H-origin&quot;, &quot;to&quot;: &quot;H-cache-rules&quot;, &quot;kind&quot;: &quot;before&quot;}, {&quot;from&quot;: &quot;H-request&quot;, &quot;to&quot;: &quot;H-check&quot;, &quot;kind&quot;: &quot;before&quot;}]" x="0" y="5925.0" width="960" height="1735.0" data-view="SC-http-untrusted">
+    <title>Reject untrusted source content</title>
+    <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+    <rect width="960" height="1735" fill="white" />
+    <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reject untrusted source content</text>
+    <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">SC-http-untrusted · Expected selected path; click a message to follow its function.</text>
+    <g class="explorer-card">
+      <rect x="30" y="100" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Trigger and preconditions</text>
+      <text x="45" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">An update client requests HTTP repository content. An admitted source retrieval completes but publisher</text>
+      <text x="45" y="169" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">verification fails.</text>
+    </g>
+    <defs>
+      <marker id="arrow-SC-http-untrusted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 Z" fill="#627581" />
+      </marker>
+    </defs>
+    <a href="logical.svg" target="_top" aria-label="Update Consumers">
+      <title>Update Consumers</title>
+      <g class="explorer-card" data-element="L-Consumers" data-category="external" color="#293642">
+        <rect x="20" y="212" width="220" height="76" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="35" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Update Consumers</text>
+        <text x="35" y="261" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Consumers</text>
+      </g>
+    </a>
+    <line x1="130" x2="130" y1="312" y2="1257" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="policy-proxy/contract.svg" target="_top" aria-label="Policy proxy / HTTP cache">
+      <title>Policy proxy / HTTP cache</title>
+      <g class="explorer-card" data-element="L-Proxy" data-category="logical" color="#203a5b">
+        <rect x="350" y="212" width="220" height="98" rx="4" fill="#fce8ec" stroke="#9b4d67" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="365" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Policy proxy / HTTP</text>
+        <text x="365" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache</text>
+        <text x="365" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Proxy</text>
+      </g>
+    </a>
+    <line x1="460" x2="460" y1="312" y2="1257" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="logical.svg" target="_top" aria-label="Approved external sources">
+      <title>Approved external sources</title>
+      <g class="explorer-card" data-element="L-Sources" data-category="external" color="#293642">
+        <rect x="680" y="212" width="220" height="98" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="695" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Approved external</text>
+        <text x="695" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">sources</text>
+        <text x="695" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Sources</text>
+      </g>
+    </a>
+    <line x1="790" x2="790" y1="312" y2="1257" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="function-views.svg#F-admit" target="_top" aria-label="HTTP repository request · H-request · F-admit" data-message="H-request" data-function="F-admit">
+      <title>HTTP repository request · H-request · F-admit</title>
+      <rect x="130" y="312" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="330" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">HTTP repository request</text>
+      <text x="295.0" y="348" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M130 392 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-untrusted)" />
+    </a>
+    <a href="function-views.svg#F-admit" target="_top" aria-label="Check client, destination and port · H-check · F-admit" data-message="H-check" data-function="F-admit">
+      <title>Check client, destination and port · H-check · F-admit</title>
+      <rect x="455" y="417" width="300" height="100" fill="transparent" />
+      <text x="605" y="435" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check client, destination and port</text>
+      <text x="605" y="453" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M460 497 H498 V513 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-untrusted)" />
+    </a>
+    <a href="function-views.svg#F-cache" target="_top" aria-label="Look up eligible fresh content · H-lookup · F-cache" data-message="H-lookup" data-function="F-cache">
+      <title>Look up eligible fresh content · H-lookup · F-cache</title>
+      <rect x="455" y="522" width="300" height="100" fill="transparent" />
+      <text x="605" y="540" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Look up eligible fresh content</text>
+      <text x="605" y="558" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Reuse fresh cached content</text>
+      <path d="M460 602 H498 V618 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-untrusted)" />
+    </a>
+    <a href="function-views.svg#F-http" target="_top" aria-label="Fetch or conditionally revalidate · H-fetch · F-http" data-message="H-fetch" data-function="F-http">
+      <title>Fetch or conditionally revalidate · H-fetch · F-http</title>
+      <rect x="460" y="627" width="330" height="100" fill="transparent" />
+      <text x="625.0" y="645" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch or conditionally revalidate</text>
+      <text x="625.0" y="663" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch content from source</text>
+      <path d="M460 707 H790" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-untrusted)" />
+    </a>
+    <a href="function-views.svg#F-http" target="_top" aria-label="Content or freshness response · H-origin · F-http" data-message="H-origin" data-function="F-http">
+      <title>Content or freshness response · H-origin · F-http</title>
+      <rect x="460" y="732" width="330" height="100" fill="transparent" />
+      <text x="625.0" y="750" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Content or freshness response</text>
+      <text x="625.0" y="768" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch content from source</text>
+      <path d="M790 812 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-untrusted)" stroke-dasharray="6 4" />
+    </a>
+    <a href="function-views.svg#F-cache" target="_top" aria-label="Apply cache and privacy rules · H-cache-rules · F-cache" data-message="H-cache-rules" data-function="F-cache">
+      <title>Apply cache and privacy rules · H-cache-rules · F-cache</title>
+      <rect x="455" y="837" width="300" height="100" fill="transparent" />
+      <text x="605" y="855" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Apply cache and privacy rules</text>
+      <text x="605" y="873" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Reuse fresh cached content</text>
+      <path d="M460 917 H498 V933 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-untrusted)" />
+    </a>
+    <a href="function-views.svg#F-http" target="_top" aria-label="Return response · H-response · F-http" data-message="H-response" data-function="F-http">
+      <title>Return response · H-response · F-http</title>
+      <rect x="130" y="942" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="960" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Return response</text>
+      <text x="295.0" y="978" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch content from source</text>
+      <path d="M460 1022 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-untrusted)" stroke-dasharray="6 4" />
+    </a>
+    <a href="function-views.svg#F-verify" target="_top" aria-label="Verify trusted metadata / signatures · H-verify · F-verify" data-message="H-verify" data-function="F-verify">
+      <title>Verify trusted metadata / signatures · H-verify · F-verify</title>
+      <rect x="125" y="1047" width="300" height="100" fill="transparent" />
+      <text x="275" y="1065" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify trusted metadata / signatures</text>
+      <text x="275" y="1083" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify before use</text>
+      <path d="M130 1127 H168 V1143 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-untrusted)" />
+    </a>
+    <a href="function-views.svg#F-verify" target="_top" aria-label="Reject content; stop before use · H-rejected · F-verify" data-message="H-rejected" data-function="F-verify">
+      <title>Reject content; stop before use · H-rejected · F-verify</title>
+      <rect x="125" y="1152" width="300" height="100" fill="transparent" />
+      <text x="275" y="1170" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Reject content; stop before use</text>
+      <text x="275" y="1188" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify before use</text>
+      <path d="M130 1232 H168 V1248 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-untrusted)" />
+    </a>
+    <text x="480" y="1275" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Solid: request / process · Dashed: response · Time runs downward</text>
+    <g class="explorer-card">
+      <rect x="30" y="1297" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="1322" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected outcome</text>
+      <text x="45" y="1346" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reject received content before use.</text>
+    </g>
+    <a href="tests.svg" target="_top" aria-label="Acceptance and linked checks">
+      <title>Acceptance and linked checks</title>
+      <g class="explorer-card">
+        <rect x="30" y="1385" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1410" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Acceptance and linked checks</text>
+        <text x="45" y="1434" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">When publisher verification fails after retrieval, the client rejects the content before use. Model trust is</text>
+        <text x="45" y="1454" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">an input, not a cryptographic check.</text>
+      </g>
+    </a>
+    <a href="execution.svg" target="_top" aria-label="Native execution evidence">
+      <title>Native execution evidence</title>
+      <g class="explorer-card">
+        <rect x="30" y="1493" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1518" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Native execution evidence</text>
+        <text x="45" y="1542" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Run the HTTP refinement and compare observed actions with this sequence.</text>
+      </g>
+    </a>
+    <a href="implementation.svg" target="_top" aria-label="Compare with real software">
+      <title>Compare with real software</title>
+      <g class="explorer-card">
+        <rect x="30" y="1581" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1606" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Compare with real software</text>
+        <text x="45" y="1630" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">See what Squid and APT actually did for these retrieval cases.</text>
+      </g>
+    </a>
+    <rect x="0" y="1679" width="960" height="56" fill="#eef2f6" />
+    <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+      <title>System Overall</title>
+      <rect x="20.0" y="1686" width="200" height="42" fill="transparent" />
+      <text x="120.0" y="1712" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+    </a>
+    <a href="use-cases.svg" target="_top" aria-label="Use cases">
+      <title>Use cases</title>
+      <rect x="260.0" y="1686" width="200" height="42" fill="transparent" />
+      <text x="360.0" y="1712" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Use cases</text>
+    </a>
+    <a href="logical.svg" target="_top" aria-label="Logical design">
+      <title>Logical design</title>
+      <rect x="500.0" y="1686" width="200" height="42" fill="transparent" />
+      <text x="600.0" y="1712" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Logical design</text>
+    </a>
+    <a href="../../generated/software-intake/scenarios.md#sc-http-untrusted" target="_top" aria-label="Documentation">
+      <title>Documentation</title>
+      <rect x="740.0" y="1686" width="200" height="42" fill="transparent" />
+      <text x="840.0" y="1712" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+    </a>
+  </svg>
+  <view id="SC-http-cache-untrusted" viewBox="0 7690 960 1420" data-category="function" color="#5b3921" />
+  <svg viewBox="0 0 960 1420" role="img" data-subject="SC-http-cache-untrusted" data-relationships="[{&quot;from&quot;: &quot;H-request&quot;, &quot;to&quot;: &quot;H-check&quot;, &quot;kind&quot;: &quot;before&quot;}]" x="0" y="7690.0" width="960" height="1420.0" data-view="SC-http-cache-untrusted">
+    <title>Reject untrusted cached content</title>
+    <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+    <rect width="960" height="1420" fill="white" />
+    <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reject untrusted cached content</text>
+    <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">SC-http-cache-untrusted · Expected selected path; click a message to follow its function.</text>
+    <g class="explorer-card">
+      <rect x="30" y="100" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Trigger and preconditions</text>
+      <text x="45" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">An update client requests HTTP repository content. A fresh eligible cached response is returned but</text>
+      <text x="45" y="169" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">publisher verification fails.</text>
+    </g>
+    <defs>
+      <marker id="arrow-SC-http-cache-untrusted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 Z" fill="#627581" />
+      </marker>
+    </defs>
+    <a href="logical.svg" target="_top" aria-label="Update Consumers">
+      <title>Update Consumers</title>
+      <g class="explorer-card" data-element="L-Consumers" data-category="external" color="#293642">
+        <rect x="20" y="212" width="220" height="76" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="35" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Update Consumers</text>
+        <text x="35" y="261" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Consumers</text>
+      </g>
+    </a>
+    <line x1="130" x2="130" y1="312" y2="942" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="policy-proxy/contract.svg" target="_top" aria-label="Policy proxy / HTTP cache">
+      <title>Policy proxy / HTTP cache</title>
+      <g class="explorer-card" data-element="L-Proxy" data-category="logical" color="#203a5b">
+        <rect x="350" y="212" width="220" height="98" rx="4" fill="#fce8ec" stroke="#9b4d67" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="365" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Policy proxy / HTTP</text>
+        <text x="365" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache</text>
+        <text x="365" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Proxy</text>
+      </g>
+    </a>
+    <line x1="460" x2="460" y1="312" y2="942" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="logical.svg" target="_top" aria-label="Approved external sources">
+      <title>Approved external sources</title>
+      <g class="explorer-card" data-element="L-Sources" data-category="external" color="#293642">
+        <rect x="680" y="212" width="220" height="98" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="695" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Approved external</text>
+        <text x="695" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">sources</text>
+        <text x="695" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Sources</text>
+      </g>
+    </a>
+    <line x1="790" x2="790" y1="312" y2="942" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="function-views.svg#F-admit" target="_top" aria-label="HTTP repository request · H-request · F-admit" data-message="H-request" data-function="F-admit">
+      <title>HTTP repository request · H-request · F-admit</title>
+      <rect x="130" y="312" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="330" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">HTTP repository request</text>
+      <text x="295.0" y="348" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M130 392 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-cache-untrusted)" />
+    </a>
+    <a href="function-views.svg#F-admit" target="_top" aria-label="Check client, destination and port · H-check · F-admit" data-message="H-check" data-function="F-admit">
+      <title>Check client, destination and port · H-check · F-admit</title>
+      <rect x="455" y="417" width="300" height="100" fill="transparent" />
+      <text x="605" y="435" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check client, destination and port</text>
+      <text x="605" y="453" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M460 497 H498 V513 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-cache-untrusted)" />
+    </a>
+    <a href="function-views.svg#F-cache" target="_top" aria-label="Look up eligible fresh content · H-lookup · F-cache" data-message="H-lookup" data-function="F-cache">
+      <title>Look up eligible fresh content · H-lookup · F-cache</title>
+      <rect x="455" y="522" width="300" height="100" fill="transparent" />
+      <text x="605" y="540" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Look up eligible fresh content</text>
+      <text x="605" y="558" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Reuse fresh cached content</text>
+      <path d="M460 602 H498 V618 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-cache-untrusted)" />
+    </a>
+    <a href="function-views.svg#F-cache" target="_top" aria-label="Return cached response · H-cached · F-cache" data-message="H-cached" data-function="F-cache">
+      <title>Return cached response · H-cached · F-cache</title>
+      <rect x="130" y="627" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="645" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Return cached response</text>
+      <text x="295.0" y="663" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Reuse fresh cached content</text>
+      <path d="M460 707 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-cache-untrusted)" stroke-dasharray="6 4" />
+    </a>
+    <a href="function-views.svg#F-verify" target="_top" aria-label="Verify trusted metadata / signatures · H-verify · F-verify" data-message="H-verify" data-function="F-verify">
+      <title>Verify trusted metadata / signatures · H-verify · F-verify</title>
+      <rect x="125" y="732" width="300" height="100" fill="transparent" />
+      <text x="275" y="750" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify trusted metadata / signatures</text>
+      <text x="275" y="768" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify before use</text>
+      <path d="M130 812 H168 V828 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-cache-untrusted)" />
+    </a>
+    <a href="function-views.svg#F-verify" target="_top" aria-label="Reject content; stop before use · H-rejected · F-verify" data-message="H-rejected" data-function="F-verify">
+      <title>Reject content; stop before use · H-rejected · F-verify</title>
+      <rect x="125" y="837" width="300" height="100" fill="transparent" />
+      <text x="275" y="855" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Reject content; stop before use</text>
+      <text x="275" y="873" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify before use</text>
+      <path d="M130 917 H168 V933 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-http-cache-untrusted)" />
+    </a>
+    <text x="480" y="960" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Solid: request / process · Dashed: response · Time runs downward</text>
+    <g class="explorer-card">
+      <rect x="30" y="982" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="1007" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected outcome</text>
+      <text x="45" y="1031" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reject cached content before use; a cache hit does not imply trust.</text>
+    </g>
+    <a href="tests.svg" target="_top" aria-label="Acceptance and linked checks">
+      <title>Acceptance and linked checks</title>
+      <g class="explorer-card">
+        <rect x="30" y="1070" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1095" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Acceptance and linked checks</text>
+        <text x="45" y="1119" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Cached content is verified at the client and rejected when trust fails, without a source fetch. Model trust</text>
+        <text x="45" y="1139" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">is an input, not a cryptographic check.</text>
+      </g>
+    </a>
+    <a href="execution.svg" target="_top" aria-label="Native execution evidence">
+      <title>Native execution evidence</title>
+      <g class="explorer-card">
+        <rect x="30" y="1178" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1203" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Native execution evidence</text>
+        <text x="45" y="1227" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Run the HTTP refinement and compare observed actions with this sequence.</text>
+      </g>
+    </a>
+    <a href="implementation.svg" target="_top" aria-label="Compare with real software">
+      <title>Compare with real software</title>
+      <g class="explorer-card">
+        <rect x="30" y="1266" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1291" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Compare with real software</text>
+        <text x="45" y="1315" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">See what Squid and APT actually did for these retrieval cases.</text>
+      </g>
+    </a>
+    <rect x="0" y="1364" width="960" height="56" fill="#eef2f6" />
+    <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+      <title>System Overall</title>
+      <rect x="20.0" y="1371" width="200" height="42" fill="transparent" />
+      <text x="120.0" y="1397" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+    </a>
+    <a href="use-cases.svg" target="_top" aria-label="Use cases">
+      <title>Use cases</title>
+      <rect x="260.0" y="1371" width="200" height="42" fill="transparent" />
+      <text x="360.0" y="1397" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Use cases</text>
+    </a>
+    <a href="logical.svg" target="_top" aria-label="Logical design">
+      <title>Logical design</title>
+      <rect x="500.0" y="1371" width="200" height="42" fill="transparent" />
+      <text x="600.0" y="1397" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Logical design</text>
+    </a>
+    <a href="../../generated/software-intake/scenarios.md#sc-http-cache-untrusted" target="_top" aria-label="Documentation">
+      <title>Documentation</title>
+      <rect x="740.0" y="1371" width="200" height="42" fill="transparent" />
+      <text x="840.0" y="1397" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+    </a>
+  </svg>
+  <view id="SC-https" viewBox="0 9140 960 1582" data-category="function" color="#5b3921" />
+  <svg viewBox="0 0 960 1582" role="img" data-subject="SC-https" data-relationships="[{&quot;from&quot;: &quot;S-connect&quot;, &quot;to&quot;: &quot;S-check&quot;, &quot;kind&quot;: &quot;before&quot;}, {&quot;from&quot;: &quot;S-established&quot;, &quot;to&quot;: &quot;S-ready&quot;, &quot;kind&quot;: &quot;before&quot;}, {&quot;from&quot;: &quot;S-fetch&quot;, &quot;to&quot;: &quot;S-response&quot;, &quot;kind&quot;: &quot;before&quot;}, {&quot;from&quot;: &quot;S-open&quot;, &quot;to&quot;: &quot;S-established&quot;, &quot;kind&quot;: &quot;before&quot;}, {&quot;from&quot;: &quot;S-ready&quot;, &quot;to&quot;: &quot;S-fetch&quot;, &quot;kind&quot;: &quot;before&quot;}, {&quot;from&quot;: &quot;S-response&quot;, &quot;to&quot;: &quot;S-verify&quot;, &quot;kind&quot;: &quot;before&quot;}]" x="0" y="9140.0" width="960" height="1582.0" data-view="SC-https" data-view-id="VIEW-software-intake-scenario-views--SC-https">
+    <title>Retrieve through source TLS</title>
+    <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+    <rect width="960" height="1582" fill="white" />
+    <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Retrieve through source TLS</text>
+    <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">SC-https · Expected selected path; click a message to follow its function.</text>
+    <g class="explorer-card">
+      <rect x="30" y="100" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Trigger and preconditions</text>
+      <text x="45" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">An update client requests an HTTPS repository through CONNECT. Admission succeeds; TCP and source-</text>
+      <text x="45" y="169" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">authenticated TLS can be established.</text>
+    </g>
+    <defs>
+      <marker id="arrow-SC-https" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 Z" fill="#627581" />
+      </marker>
+    </defs>
+    <a href="logical.svg" target="_top" aria-label="Update Consumers">
+      <title>Update Consumers</title>
+      <g class="explorer-card" data-element="L-Consumers" data-category="external" color="#293642">
+        <rect x="20" y="212" width="220" height="76" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="35" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Update Consumers</text>
+        <text x="35" y="261" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Consumers</text>
+      </g>
+    </a>
+    <line x1="130" x2="130" y1="312" y2="1152" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="policy-proxy/contract.svg" target="_top" aria-label="Policy proxy / HTTP cache">
+      <title>Policy proxy / HTTP cache</title>
+      <g class="explorer-card" data-element="L-Proxy" data-category="logical" color="#203a5b">
+        <rect x="350" y="212" width="220" height="98" rx="4" fill="#fce8ec" stroke="#9b4d67" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="365" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Policy proxy / HTTP</text>
+        <text x="365" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache</text>
+        <text x="365" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Proxy</text>
+      </g>
+    </a>
+    <line x1="460" x2="460" y1="312" y2="1152" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="logical.svg" target="_top" aria-label="Approved external sources">
+      <title>Approved external sources</title>
+      <g class="explorer-card" data-element="L-Sources" data-category="external" color="#293642">
+        <rect x="680" y="212" width="220" height="98" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="695" y="237" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Approved external</text>
+        <text x="695" y="259" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">sources</text>
+        <text x="695" y="283" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Sources</text>
+      </g>
+    </a>
+    <line x1="790" x2="790" y1="312" y2="1152" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="function-views.svg#F-admit" target="_top" aria-label="CONNECT source:443 · S-connect · F-admit" data-message="S-connect" data-function="F-admit">
+      <title>CONNECT source:443 · S-connect · F-admit</title>
+      <rect x="130" y="312" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="330" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">CONNECT source:443</text>
+      <text x="295.0" y="348" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M130 392 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-https)" />
+    </a>
+    <a href="function-views.svg#F-admit" target="_top" aria-label="Check client, destination and port · S-check · F-admit" data-message="S-check" data-function="F-admit">
+      <title>Check client, destination and port · S-check · F-admit</title>
+      <rect x="455" y="417" width="300" height="100" fill="transparent" />
+      <text x="605" y="435" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check client, destination and port</text>
+      <text x="605" y="453" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M460 497 H498 V513 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-https)" />
+    </a>
+    <a href="function-views.svg#F-tunnel" target="_top" aria-label="Open permitted TCP connection · S-open · F-tunnel" data-message="S-open" data-function="F-tunnel">
+      <title>Open permitted TCP connection · S-open · F-tunnel</title>
+      <rect x="460" y="522" width="330" height="100" fill="transparent" />
+      <text x="625.0" y="540" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Open permitted TCP connection</text>
+      <text x="625.0" y="558" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Forward HTTPS traffic</text>
+      <path d="M460 602 H790" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-https)" />
+    </a>
+    <a href="function-views.svg#F-tunnel" target="_top" aria-label="Connection established · S-established · F-tunnel" data-message="S-established" data-function="F-tunnel">
+      <title>Connection established · S-established · F-tunnel</title>
+      <rect x="460" y="627" width="330" height="100" fill="transparent" />
+      <text x="625.0" y="645" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Connection established</text>
+      <text x="625.0" y="663" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Forward HTTPS traffic</text>
+      <path d="M790 707 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-https)" stroke-dasharray="6 4" />
+    </a>
+    <a href="function-views.svg#F-tunnel" target="_top" aria-label="200 Connection Established · S-ready · F-tunnel" data-message="S-ready" data-function="F-tunnel">
+      <title>200 Connection Established · S-ready · F-tunnel</title>
+      <rect x="130" y="732" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="750" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">200 Connection Established</text>
+      <text x="295.0" y="768" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Forward HTTPS traffic</text>
+      <path d="M460 812 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-https)" stroke-dasharray="6 4" />
+    </a>
+    <a href="function-views.svg#F-tunnel" target="_top" aria-label="Fetch through client-to-source TLS · S-fetch · F-tunnel" data-message="S-fetch" data-function="F-tunnel">
+      <title>Fetch through client-to-source TLS · S-fetch · F-tunnel</title>
+      <rect x="130" y="837" width="660" height="100" fill="transparent" />
+      <text x="460.0" y="855" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Fetch through client-to-source TLS</text>
+      <text x="460.0" y="873" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Forward HTTPS traffic</text>
+      <path d="M130 917 H790" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-https)" />
+    </a>
+    <a href="function-views.svg#F-tunnel" target="_top" aria-label="Encrypted response through the tunnel · S-response · F-tunnel" data-message="S-response" data-function="F-tunnel">
+      <title>Encrypted response through the tunnel · S-response · F-tunnel</title>
+      <rect x="130" y="942" width="660" height="100" fill="transparent" />
+      <text x="460.0" y="960" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Encrypted response through the tunnel</text>
+      <text x="460.0" y="978" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Forward HTTPS traffic</text>
+      <path d="M790 1022 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-https)" stroke-dasharray="6 4" />
+    </a>
+    <a href="function-views.svg#F-verify" target="_top" aria-label="Verify trusted metadata / signatures; stop on failure · S-verify · F-verify" data-message="S-verify" data-function="F-verify">
+      <title>Verify trusted metadata / signatures; stop on failure · S-verify · F-verify</title>
+      <rect x="125" y="1047" width="300" height="100" fill="transparent" />
+      <text x="275" y="1065" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify trusted metadata / signatures;</text>
+      <text x="275" y="1083" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">stop on failure</text>
+      <text x="275" y="1101" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Verify before use</text>
+      <path d="M130 1127 H168 V1143 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-https)" />
+    </a>
+    <text x="480" y="1170" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Solid: request / process · Dashed: response · Time runs downward</text>
+    <g class="explorer-card">
+      <rect x="30" y="1192" width="900" height="116" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="1217" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected outcome</text>
+      <text x="45" y="1241" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Receive content through the tunnel and verify it at the client. No TLS interception, payload caching or</text>
+      <text x="45" y="1261" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">scanning. Transport or verification failure stops retrieval; detailed transport error exchanges are outside</text>
+      <text x="45" y="1281" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">this sequence.</text>
+    </g>
+    <a href="tests.svg" target="_top" aria-label="Acceptance and linked checks">
+      <title>Acceptance and linked checks</title>
+      <g class="explorer-card">
+        <rect x="30" y="1320" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1345" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Acceptance and linked checks</text>
+        <text x="45" y="1369" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">An admitted CONNECT establishes source-authenticated client TLS. Encrypted payload is neither cached nor</text>
+        <text x="45" y="1389" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">inspected; client verification still applies.</text>
+      </g>
+    </a>
+    <a href="execution.svg" target="_top" aria-label="Native execution evidence">
+      <title>Native execution evidence</title>
+      <g class="explorer-card">
+        <rect x="30" y="1428" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="1453" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Native execution evidence</text>
+        <text x="45" y="1477" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Run the HTTP refinement and compare observed actions with this sequence.</text>
+      </g>
+    </a>
+    <rect x="0" y="1526" width="960" height="56" fill="#eef2f6" />
+    <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+      <title>System Overall</title>
+      <rect x="20.0" y="1533" width="200" height="42" fill="transparent" />
+      <text x="120.0" y="1559" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+    </a>
+    <a href="use-cases.svg" target="_top" aria-label="Use cases">
+      <title>Use cases</title>
+      <rect x="260.0" y="1533" width="200" height="42" fill="transparent" />
+      <text x="360.0" y="1559" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Use cases</text>
+    </a>
+    <a href="logical.svg" target="_top" aria-label="Logical design">
+      <title>Logical design</title>
+      <rect x="500.0" y="1533" width="200" height="42" fill="transparent" />
+      <text x="600.0" y="1559" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Logical design</text>
+    </a>
+    <a href="../../generated/software-intake/scenarios.md#sc-https" target="_top" aria-label="Documentation">
+      <title>Documentation</title>
+      <rect x="740.0" y="1533" width="200" height="42" fill="transparent" />
+      <text x="840.0" y="1559" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+    </a>
+    <metadata data-catalog="VIEW-software-intake-scenario-views--SC-https">{"content_sha256": "d2a3482bcf4580bf2900a7b4be4d1bdf831ede810f9a06da003b182a10fd9dfa", "elements": ["F-admit", "F-tunnel", "F-verify", "L-Consumers", "L-Proxy", "L-Sources", "S-check", "S-connect", "S-established", "S-fetch", "S-open", "S-ready", "S-response", "S-verify"], "key": "VIEW-software-intake-scenario-views--SC-https", "name": "Retrieve through source TLS", "owner": "software-intake", "presentation": "model-derived SVG; native SysON uses its own notation", "relationships": [{"from": "S-connect", "kind": "before", "to": "S-check"}, {"from": "S-established", "kind": "before", "to": "S-ready"}, {"from": "S-fetch", "kind": "before", "to": "S-response"}, {"from": "S-open", "kind": "before", "to": "S-established"}, {"from": "S-ready", "kind": "before", "to": "S-fetch"}, {"from": "S-response", "kind": "before", "to": "S-verify"}], "subject": "SC-https", "svg": "architecture/views/software-intake/scenario-views.svg#SC-https"}</metadata>
+  </svg>
+  <view id="SC-https-denied" viewBox="0 10752 960 977" data-category="function" color="#5b3921" />
+  <svg viewBox="0 0 960 977" role="img" data-subject="SC-https-denied" data-relationships="[{&quot;from&quot;: &quot;S-connect&quot;, &quot;to&quot;: &quot;S-check&quot;, &quot;kind&quot;: &quot;before&quot;}]" x="0" y="10752.0" width="960" height="977.0" data-view="SC-https-denied">
+    <title>Reject a disallowed CONNECT request</title>
+    <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+    <rect width="960" height="977" fill="white" />
+    <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reject a disallowed CONNECT request</text>
+    <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">SC-https-denied · Expected selected path; click a message to follow its function.</text>
+    <g class="explorer-card">
+      <rect x="30" y="100" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Trigger and preconditions</text>
+      <text x="45" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">A client attempts a disallowed CONNECT request. At least one admission condition fails.</text>
+    </g>
+    <defs>
+      <marker id="arrow-SC-https-denied" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 Z" fill="#627581" />
+      </marker>
+    </defs>
+    <a href="logical.svg" target="_top" aria-label="Update Consumers">
+      <title>Update Consumers</title>
+      <g class="explorer-card" data-element="L-Consumers" data-category="external" color="#293642">
+        <rect x="20" y="192" width="220" height="76" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="35" y="217" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Update Consumers</text>
+        <text x="35" y="241" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Consumers</text>
+      </g>
+    </a>
+    <line x1="130" x2="130" y1="292" y2="607" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="policy-proxy/contract.svg" target="_top" aria-label="Policy proxy / HTTP cache">
+      <title>Policy proxy / HTTP cache</title>
+      <g class="explorer-card" data-element="L-Proxy" data-category="logical" color="#203a5b">
+        <rect x="350" y="192" width="220" height="98" rx="4" fill="#fce8ec" stroke="#9b4d67" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="365" y="217" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Policy proxy / HTTP</text>
+        <text x="365" y="239" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache</text>
+        <text x="365" y="263" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Proxy</text>
+      </g>
+    </a>
+    <line x1="460" x2="460" y1="292" y2="607" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="logical.svg" target="_top" aria-label="Approved external sources">
+      <title>Approved external sources</title>
+      <g class="explorer-card" data-element="L-Sources" data-category="external" color="#293642">
+        <rect x="680" y="192" width="220" height="98" rx="4" fill="#edf0f3" stroke="#697682" style=";fill:#edf0f3;stroke:#697682;" />
+        <text x="695" y="217" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Approved external</text>
+        <text x="695" y="239" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">sources</text>
+        <text x="695" y="263" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">L-Sources</text>
+      </g>
+    </a>
+    <line x1="790" x2="790" y1="292" y2="607" stroke="#89939e" stroke-dasharray="4 4" />
+    <a href="function-views.svg#F-admit" target="_top" aria-label="CONNECT source:443 · S-connect · F-admit" data-message="S-connect" data-function="F-admit">
+      <title>CONNECT source:443 · S-connect · F-admit</title>
+      <rect x="130" y="292" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="310" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">CONNECT source:443</text>
+      <text x="295.0" y="328" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M130 372 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-https-denied)" />
+    </a>
+    <a href="function-views.svg#F-admit" target="_top" aria-label="Check client, destination and port · S-check · F-admit" data-message="S-check" data-function="F-admit">
+      <title>Check client, destination and port · S-check · F-admit</title>
+      <rect x="455" y="397" width="300" height="100" fill="transparent" />
+      <text x="605" y="415" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check client, destination and port</text>
+      <text x="605" y="433" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M460 477 H498 V493 H460" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-https-denied)" />
+    </a>
+    <a href="function-views.svg#F-admit" target="_top" aria-label="Deny without a source connection · S-denied · F-admit" data-message="S-denied" data-function="F-admit">
+      <title>Deny without a source connection · S-denied · F-admit</title>
+      <rect x="130" y="502" width="330" height="100" fill="transparent" />
+      <text x="295.0" y="520" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Deny without a source connection</text>
+      <text x="295.0" y="538" style="font:normal 12px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Check request access</text>
+      <path d="M460 582 H130" stroke="#627581" stroke-width="1.6" fill="none" marker-end="url(#arrow-SC-https-denied)" stroke-dasharray="6 4" />
+    </a>
+    <text x="480" y="625" style="font:normal 14px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Solid: request / process · Dashed: response · Time runs downward</text>
+    <g class="explorer-card">
+      <rect x="30" y="647" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+      <text x="45" y="672" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected outcome</text>
+      <text x="45" y="696" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Receive denial without a connection to the source.</text>
+    </g>
+    <a href="tests.svg" target="_top" aria-label="Acceptance and linked checks">
+      <title>Acceptance and linked checks</title>
+      <g class="explorer-card">
+        <rect x="30" y="735" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="760" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Acceptance and linked checks</text>
+        <text x="45" y="784" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">A disallowed CONNECT destination, client or port receives denial without opening a source connection.</text>
+      </g>
+    </a>
+    <a href="execution.svg" target="_top" aria-label="Native execution evidence">
+      <title>Native execution evidence</title>
+      <g class="explorer-card">
+        <rect x="30" y="823" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="848" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Native execution evidence</text>
+        <text x="45" y="872" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Run the HTTP refinement and compare observed actions with this sequence.</text>
+      </g>
+    </a>
+    <rect x="0" y="921" width="960" height="56" fill="#eef2f6" />
+    <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+      <title>System Overall</title>
+      <rect x="20.0" y="928" width="200" height="42" fill="transparent" />
+      <text x="120.0" y="954" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+    </a>
+    <a href="use-cases.svg" target="_top" aria-label="Use cases">
+      <title>Use cases</title>
+      <rect x="260.0" y="928" width="200" height="42" fill="transparent" />
+      <text x="360.0" y="954" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Use cases</text>
+    </a>
+    <a href="logical.svg" target="_top" aria-label="Logical design">
+      <title>Logical design</title>
+      <rect x="500.0" y="928" width="200" height="42" fill="transparent" />
+      <text x="600.0" y="954" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Logical design</text>
+    </a>
+    <a href="../../generated/software-intake/scenarios.md#sc-https-denied" target="_top" aria-label="Documentation">
+      <title>Documentation</title>
+      <rect x="740.0" y="928" width="200" height="42" fill="transparent" />
+      <text x="840.0" y="954" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+    </a>
+  </svg>
+</svg>

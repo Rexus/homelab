@@ -1,3 +1,5 @@
+# Review architecture impact from the upstream kit checkout:
+# python scripts/architecture/software_intake.py impact --file tier-2/terraform/deployments/cache/main.tf
 locals {
   effective_default_platform_node_name = try(coalesce(
     var.default_platform_node_name,

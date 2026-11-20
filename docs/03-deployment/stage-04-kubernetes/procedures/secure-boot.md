@@ -76,7 +76,7 @@ recovery; this path does not require a paid Factory digest/publication feature.
 
 Edit **the owning tier's `terraform/deployments/kubernetes/terraform.tfvars`**.
 Replace the existing template selection and firmware profile with this block. Replace the ISO path,
-hash and ISO datastore with your accepted values from action 2 and Proxmox **Datacenter > Storage**:
+hash and ISO datastore with the accepted values from action 2 and Proxmox **Datacenter > Storage**:
 
 ```hcl
 template_vm_id = null

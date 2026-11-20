@@ -1,0 +1,29 @@
+%%{init: {"fontFamily":"Arial, sans-serif","sequence":{"wrap":true,"width":180,"actorMargin":70,"messageMargin":32,"noteMargin":12}}}%%
+sequenceDiagram
+  autonumber
+  participant P0 as Update client
+  participant P1 as Policy proxy
+  participant P2 as Approved source
+  %% model: S-connect
+  P0->>P1: CONNECT source:443
+  %% model: S-check
+  P1->>P1: Check client, destination and port
+  %% model: S-policy
+  alt Allowed#59; TCP/TLS succeeds
+    %% model: S-open
+    P1->>P2: Open permitted TCP connection
+    %% model: S-established
+    P2-->>P1: Connection established
+    %% model: S-ready
+    P1-->>P0: 200 Connection Established
+    %% model: S-fetch
+    Note over P0,P2: Client authenticates source TLS through the tunnel. No payload caching or scanning.
+    P0->>P2: Fetch through client-to-source TLS
+    %% model: S-response
+    P2-->>P0: Encrypted response through the tunnel
+    %% model: S-verify
+    P0->>P0: Verify trusted metadata / signatures#59; stop on failure
+  else Denied by policy
+    %% model: S-denied
+    P1-->>P0: Deny without a source connection
+  end

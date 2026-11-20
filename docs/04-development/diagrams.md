@@ -252,9 +252,32 @@ A convention figure explaining an allocation format is the reference exception.
 
 ## Boundaries and colour
 
-The [palette](../08-reference/diagrams/palette.json) defines reusable visual roles.
-Each Mermaid fence carries its own `classDef` declarations so it remains portable;
-the documentation tests compare those declarations with the palette.
+The [palette](../08-reference/diagrams/palette.json) defines reusable colours.
+The [shared notation](../../architecture/views/notation.json) defines role shapes, model categories and
+separate boundary styles. Portable SVGs of the connected model generate their keys from the categories
+and enclosures actually displayed. Sequence notation retains lifelines, requests and responses; the same
+participant identities bind back to structure. Native SysON presentations retain their renderer's
+notation and coverage limits described in the [publication guide](syson.md#ownership-and-limitations).
+
+For software intake, [type-to-role bindings](../../architecture/views/software-intake/roles.json) select
+shapes; the shared notation's model categories select colours by native kind and explicit type or element
+mapping. The proxy and rebuildable storage are blue logical components. Structural views show the proxy
+as a rectangle and storage as a cylinder, with a separate mauve content item inside. Functions/actions
+are peach, requirements and use-case intent violet, and verification cases green. These colours identify categories, not deployed
+status, durability or passing results. Ports use the beige interface category; a listener part's hexagon
+does not change its logical category. External participants stay muted neutral, with the appropriate
+human or system actor symbol in use-case views. Physical equipment is warm grey; resource views use
+double-outline equipment symbols and explicit backing or attachment relationships.
+
+The builder checks reusable type-to-role shapes before applying category colours. Keep each element's
+category consistent across views. Part or item kind alone does not establish software, hardware or
+information meaning; use the explicit classification in the shared notation. Tier and zone classifications
+use light dashed frames, networks solid pale grey-rose enclosures, runtime containment solid blue-grey
+enclosures, and explanatory groups dotted neutral outlines. These view-local frames do not create parts,
+allocations or network permissions. A physical storage device remains distinct from the virtual cache it backs.
+
+Other capability diagrams use the palette roles below. Each Mermaid fence carries its own `classDef`
+declarations so it remains portable; the documentation tests compare those declarations with the palette.
 
 | Role | Treatment |
 | --- | --- |
@@ -274,10 +297,13 @@ the documentation tests compare those declarations with the palette.
 | Functional components | Preserve the component's rose, blue or green role; do not reuse zone fills for every child |
 | Other runtime | Declared runtime treatment; Kubernetes always uses its dedicated blue-gray role |
 | Offline custody / recovery | Amber, outside connected runtime boundaries |
-| Persistent data | Violet; database or storage shape where useful |
+| Data store | Violet; database or storage shape; durability and custody remain explicit |
 | Client or external peer | Muted neutral box, explicitly labelled |
 
-Colour distinguishes roles, not products or a universal tier classification.
+Colour distinguishes roles, not products or a universal tier classification. These are project conventions,
+not standard SysML colours. Keep labels/shapes and a legend; the
+[software-intake model guide](../01-architecture/07-software-intake/02-connected-model.md#read-the-colours)
+explains the standards boundary and its sources.
 For example, Tier 2 includes both DMZ entry points and Services workloads.
 Labels, containment, shapes and line styles carry the same meaning without colour.
 Gateways should sit near the boundary and peer they connect to.
@@ -328,8 +354,13 @@ renderers or complete diagrams meet accessibility requirements.
 ### Export a review copy
 
 SVG figures such as the [identity operating view](../08-reference/diagrams/identity-operations.svg)
-are their own editable source. Their explicit coordinates preserve required placement across renderers;
+are normally their own editable source. The two software-intake views are generated exceptions:
+edit their [model and layout sources](../01-architecture/07-software-intake/02-connected-model.md), then run
+the native build and snapshot checks. Explicit coordinates preserve required placement across renderers;
 open the SVG in a browser or vector editor and inspect it at normal/narrow widths on both backgrounds.
+
+The [bootstrap views and navigation runbook](../08-reference/diagrams/bootstrap-use-case.md)
+connects the focused actor goal to the foundation figure and its shared rendering procedure.
 
 The [availability storyboard](../08-reference/diagrams/availability-cases.svg) shows independent
 before/during/after cases in rows. Read each row left to right; do not infer a single deployment
@@ -340,7 +371,7 @@ generator so the generated manual carries the same image; geometry checks protec
 The [cache operating view](../05-operations/02-software-intake/README.md#figure-reference-cache-deployment)
 is the reference for compact service grouping and inbound/outbound request placement.
 A Mermaid 11.17.2 `block-beta` trial stretched peer cells, obscured group titles and routed the upstream
-arrow through the VIP. Its editable SVG preserves the required placement. Use Mermaid when its rendered
+arrow through the VIP. Its separate SVG layout source preserves the required placement. Use Mermaid when its rendered
 layout expresses the same relationships clearly.
 Scope SVG palette rules to single semantic classes. Shared outline resets affect dash patterns only.
 Check computed fills, foregrounds and borders in the browser to catch inherited colour overrides.

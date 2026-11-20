@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import re
+import xml.etree.ElementTree as ET
 from documentation_migration import MOVES, compatibility_stub, prune_auto_docs, referenced_manual_aliases
 from project_docs import owned_template, repository_guides
 
@@ -162,14 +163,15 @@ def copy_documentation(writer, prefix, upstream):
     documents = sorted((upstream / "docs").rglob("*.md"))
     assets = ("08-reference/diagrams/palette.json", "02-conventions/vmid-convention.svg",
               "08-reference/diagrams/render-vmid.cjs",
-              "08-reference/diagrams/identity-operations.svg", "08-reference/diagrams/cache-services.svg",
+              "08-reference/diagrams/render-intake.cjs",
+              "08-reference/diagrams/identity-operations.svg",
               "08-reference/diagrams/protected-logging.svg",
               "08-reference/diagrams/logging-receivers.svg",
               "08-reference/diagrams/logging-sender-routing.svg",
               "08-reference/diagrams/logging-shared-endpoint.svg",
               "08-reference/diagrams/render-protected-logging.cjs", "08-reference/diagrams/lab-ownership.svg",
               "08-reference/diagrams/verified-intake-placement.svg",
-              "08-reference/diagrams/software-intake-context.svg", "08-reference/diagrams/secrets-context.svg",
+              "08-reference/diagrams/secrets-context.svg",
               "08-reference/diagrams/backup-recovery-context.svg",
               "08-reference/diagrams/cryptography-operations.svg",
               "08-reference/diagrams/certificate-authority-operations.svg",
@@ -200,7 +202,69 @@ def copy_documentation(writer, prefix, upstream):
               "08-reference/diagrams/signal-pipelines.svg",
               "08-reference/diagrams/kubernetes-platform.svg",
               "08-reference/diagrams/vmid-cutover.svg")
+    # Reference model bundles are generated-manual assets, separate from project-owned models.
+    model_assets = sorted(path for path in (upstream / "architecture").rglob("*")
+                          if path.is_file() and path.suffix in (".sysml", ".json", ".svg", ".mmd", ".md", ".dot"))
+    # Model prose follows owners into the collection. Upstream-only tools/tests are inspection snapshots.
+    model_text = {}
+    reference_assets = set()
+    linked_assets = model_assets + documents + [upstream / "docs" / a for a in assets if a.endswith(".svg")]
+    for source in linked_assets:
+        if source.suffix not in (".md", ".svg"):
+            continue
+        relative_source = source.relative_to(upstream)
+        in_docs = relative_source.parts[0] == "docs"
+        target = writer.root / AUTO_DOCS / (Path(*relative_source.parts[1:]) if in_docs else relative_source)
+
+        def relocate_model_href(href):
+            path, marker, fragment = href.partition("#")
+            if not path or ":" in path:
+                return href
+            owner = (source.parent / path).resolve()
+            # General document links retain the established relocation below. Tests/scripts
+            # are inspection assets; diagram links use the same ownership rules as model prose.
+            if in_docs and source.suffix == ".md" and not any(
+                    owner.is_relative_to(upstream.resolve() / area) for area in ("tests", "scripts")):
+                return href
+            if not owner.is_relative_to(upstream.resolve()) or not owner.exists():
+                raise ValueError(f"Missing or escaping model document link: {source}: {href}")
+            relative = owner.relative_to(upstream)
+            area = relative.parts[0]
+            if area == "architecture":
+                destination = writer.root / AUTO_DOCS / relative
+            elif area == "docs":
+                destination = writer.root / AUTO_DOCS / Path(*relative.parts[1:])
+            elif area in ("shared", "tier-0", "tier-1", "tier-2"):
+                destination = writer.root.parent / f"{prefix.lower()}-{area}" / Path(*relative.parts[1:])
+            elif area in ("tests", "scripts") and owner.is_file():
+                reference_assets.add(owner)
+                destination = writer.root / AUTO_DOCS / "upstream" / relative
+            else:
+                raise ValueError(f"Unsupported model document owner: {relative}")
+            moved = Path(os.path.relpath(destination, target.parent)).as_posix()
+            return moved + (marker + fragment if marker else "")
+
+        content = source.read_text(encoding="utf-8")
+        if source.suffix == ".svg":
+            svg = ET.fromstring(content)
+            changed = False
+            for element in svg.iter():
+                if element.tag == "{http://www.w3.org/2000/svg}a":
+                    for attribute in ("href", "{http://www.w3.org/1999/xlink}href"):
+                        if attribute in element.attrib:
+                            old = element.get(attribute)
+                            moved = relocate_model_href(old)
+                            changed |= old != moved
+                            element.set(attribute, moved)
+            if changed:
+                ET.register_namespace("", "http://www.w3.org/2000/svg")
+                content = ET.tostring(svg, encoding="unicode") + "\n"
+        else:
+            content = re.sub(r"\]\(([^)]+)\)", lambda m: "](" + relocate_model_href(m[1]) + ")", content)
+        model_text[source] = content
     current_paths = {f"{AUTO_DOCS}/{path.relative_to(upstream / 'docs').as_posix()}" for path in documents}
+    current_paths.update(f"{AUTO_DOCS}/{path.relative_to(upstream).as_posix()}" for path in model_assets)
+    current_paths.update(f"{AUTO_DOCS}/upstream/{path.relative_to(upstream).as_posix()}" for path in reference_assets)
     referenced = referenced_manual_aliases(writer, prefix)
     aliases = {path: [alias for alias in compatibility_paths(Path("docs") / path.relative_to(upstream / "docs"))
                        if alias.parts[0] not in ("01-architecture", "03-deployment", "05-operations") or alias in referenced]
@@ -213,19 +277,22 @@ def copy_documentation(writer, prefix, upstream):
                          for alias in aliases_for_asset)
     prune_auto_docs(writer, current_paths)
     for path in documents:
-        content = path.read_text(encoding="utf-8")
+        content = model_text.get(path, path.read_text(encoding="utf-8"))
         target = f"{AUTO_DOCS}/" + path.relative_to(upstream / "docs").as_posix()
 
         def relocate(match):
             source = (path.parent / match[0]).resolve().relative_to(upstream)
             parts = source.parts
+            if parts[0] == "architecture":
+                destination = writer.root / AUTO_DOCS / source
+                return Path(os.path.relpath(destination, (writer.root / target).parent)).as_posix()
             if parts[0] not in ("shared", "tier-0", "tier-1", "tier-2"):
                 return match[0]
             destination = writer.root.parent / f"{prefix.lower()}-{parts[0]}" / Path(*parts[1:])
             return Path(os.path.relpath(destination, (writer.root / target).parent)).as_posix()
 
         # Preserve local doc links; source files and repository roots move between repos.
-        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:shared|tier-[012])(?:/[^)#]*)?(?=[)#])",
+        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:shared|tier-[012]|architecture)(?:/[^)#]*)?(?=[)#])",
                          relocate, content)
         # Upstream uses generic repository names; copied run/edit contexts name actual folders.
         # A bare <prefix> can describe DNS or another domain concept, so restrict the suffixes.
@@ -269,10 +336,16 @@ def copy_documentation(writer, prefix, upstream):
 
     for asset in assets:
         source = upstream / "docs" / asset
-        data = source.read_bytes()
+        data = model_text.get(source, source.read_bytes())
         writer.write(f"{AUTO_DOCS}/{asset}", data, source=source)
         for alias in asset_aliases[asset]:
             writer.write(f"{AUTO_DOCS}/{alias.as_posix()}", data, source=source)
+
+    for source in model_assets:
+        data = model_text[source] if source in model_text else source.read_bytes()
+        writer.write(f"{AUTO_DOCS}/{source.relative_to(upstream).as_posix()}", data, source=source)
+    for source in sorted(reference_assets):
+        writer.write(f"{AUTO_DOCS}/upstream/{source.relative_to(upstream).as_posix()}", source.read_bytes(), source=source)
 
     legacy = writer.root / "docs/generated/upstream"
     if legacy.exists():

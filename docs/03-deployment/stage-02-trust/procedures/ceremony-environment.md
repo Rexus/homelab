@@ -236,7 +236,7 @@ original retained state. No test identity becomes the production root or issuer 
 
 ### 7a. Boot separate physical hardware
 
-Boot the accepted ISO through your normal optical/USB image workflow. Keep real custody media
+Boot the accepted ISO through the selected optical/USB image workflow. Keep real custody media
 detached until the image and clock are verified, then continue at action 8. Boot device preparation
 is a physical operator action; the connected builder never receives the root's media.
 

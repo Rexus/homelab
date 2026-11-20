@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="800" viewBox="0 0 960 856" role="img" aria-labelledby="title description" data-view-id="VIEW-software-intake-placement">
+  <title id="title">Cache services and update requests</title>
+  <desc id="description">Approved clients from Tier 0 and Tier 1 request the cache VIP from below Tier 2.
+    The VIP routes proxy requests to Cache Services on external_edge. Cache Services request approved
+    Internet sources or a configured upstream proxy to the left. Each cache instance uses its own virtual guest disk. Physical servers, storage devices and switches are external context.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581" />
+    </marker>
+    <style>svg {font:15px Arial,sans-serif;background:#fff;}
+text {fill:currentColor;stroke:none;text-anchor:middle;}
+.default {fill:#f8fafc;stroke:#64748b;color:#1f2937;}
+.boundary {fill:#eef2f6;stroke:#64748b;color:#1f2937;}
+.edge {fill:#fce8ec;stroke:#9b4d67;color:#502638;}
+.fault {fill:#fce8e6;stroke:#a3453d;color:#652c28;}
+.services {fill:#e7f0fc;stroke:#4d719b;color:#203a5b;}
+.servicesHeading {fill:#e7f0fc;stroke:#e7f0fc;color:#203a5b;}
+.control {fill:#e2f3ed;stroke:#397366;color:#173f36;}
+.controlHeading {fill:#e2f3ed;stroke:#e2f3ed;color:#173f36;}
+.runtime {fill:#d9eeec;stroke:#4d7b77;color:#173f3e;}
+.custody {fill:#fff2d1;stroke:#926820;color:#584013;}
+.data {fill:#eeeafa;stroke:#78639b;color:#42325d;}
+.actor {fill:#edf0f3;stroke:#697682;color:#293642;}
+.replicas {fill:#f5f6f7;stroke:#89939e;color:#273340;stroke-dasharray:2 3;}
+.ownership {fill:#f3f1ed;stroke:#8b857c;color:#3f3a34;}
+.ownershipHeading {fill:#f3f1ed;stroke:#f3f1ed;color:#3f3a34;}
+.kubernetes {fill:#e8eef6;stroke:#6b83a3;color:#263d59;}
+.traffic {fill:#d8cbb9;stroke:#83715a;color:#352a1e;}
+.policy {fill:#f4dce9;stroke:#955076;color:#57253f;stroke-dasharray:3 3;}
+.action {fill:#fcebdc;stroke:#a16c43;color:#5b3921;}
+.group {fill:#f5f6f7;stroke:#89939e;color:#273340;stroke-dasharray:2 3;}
+.deploymentGroup {fill:#f5f6f7;stroke:#89939e;color:#273340;stroke-dasharray:2 3;}
+.tier0 {fill:#c8c8c8;stroke:#707070;color:#262626;}
+.tier1 {fill:#e0e0e0;stroke:#8c8c8c;color:#363636;}
+.tier2 {fill:#f2f2f2;stroke:#a6a6a6;color:#404040;}
+.tier0Heading {fill:#c8c8c8;stroke:#c8c8c8;color:#262626;}
+.tier1Heading {fill:#e0e0e0;stroke:#e0e0e0;color:#363636;}
+.tier2Heading {fill:#f2f2f2;stroke:#f2f2f2;color:#404040;}
+.zoneEdge {fill:#fff0f3;stroke:#9b4d67;color:#502638;}
+.zoneServices {fill:#e1eaf6;stroke:#4d719b;color:#203a5b;}
+.zoneControl {fill:#c9e0d5;stroke:#397366;color:#173f36;}
+.network {fill:#f4eded;stroke:#9b7378;color:#50383d;}
+.modelLogical {fill:#e7f0fc;stroke:#4d719b;color:#203a5b;}
+.modelPhysical {fill:#e8e5df;stroke:#81796c;color:#3f3a34;}
+.modelFunction {fill:#fcebdc;stroke:#a16c43;color:#5b3921;}
+.modelIntent {fill:#eeeafa;stroke:#78639b;color:#42325d;}
+.modelVerification {fill:#e2f3ed;stroke:#397366;color:#173f36;}
+.modelInformation {fill:#f4dce9;stroke:#955076;color:#57253f;}
+.default,.boundary,.edge,.fault,.services,.servicesHeading,.control,.controlHeading,.runtime,.custody,.data,.actor,.ownership,.ownershipHeading,.kubernetes,.traffic,.action,.tier0,.tier1,.tier2,.tier0Heading,.tier1Heading,.tier2Heading,.zoneEdge,.zoneServices,.zoneControl,.network,.modelLogical,.modelPhysical,.modelFunction,.modelIntent,.modelVerification,.modelInformation {stroke-dasharray:none;}
+.connection {fill:none;stroke:#627581;stroke-width:1.5;marker-end:url(#arrow);}
+.edge-label {fill:#1f2937;font-size:13px;}
+.mount {font-size:12px;}
+.legend {fill:#1f2937;font-size:12px;}</style>
+  </defs>
+  <g id="T2" class="tier2" data-context="classification" data-explanatory="true" data-boundary-kind="tier">
+    <rect x="250" y="20" width="690" height="500.0" style="fill:#f5f5f5;stroke:#9a9a9a;stroke-dasharray:7 4;" />
+    <text x="595" y="43">Tier 2 · responsibility grouping</text>
+    <g id="Edge" class="network" data-context="classification" data-explanatory="true" data-boundary-kind="network">
+      <rect x="270" y="58" width="650" height="442.0" style="fill:#f4eded;stroke:#9b7378;stroke-dasharray:none;" />
+      <text x="595" y="81">Network membership / external_edge</text>
+      <g id="Pair" class="deploymentGroup" data-model="R-Pair" data-boundary-kind="group">
+        <rect x="510" y="100" width="390" height="380.0" style="fill:#fafafa;stroke:#a5adb5;stroke-dasharray:2 3;" />
+        <text x="705" y="123">Cache Services</text>
+        <g id="CacheA" class="boundary" data-model="VM-cache-1" data-boundary-kind="runtime">
+          <rect x="530" y="145" width="350" height="155" style="fill:#f1f4f8;stroke:#8393a6;stroke-dasharray:none;" />
+          <text x="705" y="168">cache-1</text>
+          <g id="S1" class="edge" data-model="RUN-cache-1" data-category="logical" color="#203a5b">
+            <rect x="550" y="190" width="115" height="60" style=";fill:#e7f0fc;stroke:#4d719b;" />
+            <text x="607" y="214">Squid</text>
+            <text x="607" y="236">keepalived</text>
+          </g>
+          <g id="D1" class="data" data-model="DISK-cache-1" data-category="logical" color="#203a5b">
+            <path d="M715 194 C715 178 865 178 865 194 L865 277 C865 293 715 293 715 277 Z" style=";fill:#e7f0fc;stroke:#4d719b;" />
+            <path d="M715 194 C715 210 865 210 865 194" fill="none" style=";fill:none;stroke:#4d719b;" />
+            <text x="790" y="215">scsi1</text>
+            <text x="790" y="230" class="mount">/var/spool/squid</text>
+            <a href="../../design/software-intake/object-cache/README.md#storage-and-content" target="_top">
+              <g id="Content1" class="information" data-model="CONTENT-cache-1" data-category="information" color="#57253f">
+                <rect x="725" y="239" width="130" height="37" rx="2" style=";fill:#f4dce9;stroke:#955076;" />
+                <text x="790" y="252" class="kind-label" font-size="9px">«item»</text>
+                <text x="790" y="268" font-size="12px">Cached content</text>
+              </g>
+            </a>
+          </g>
+          <path class="connection" data-from="S1" data-to="D1" d="M665 220 L715 220" data-relation="IO-cache-1" />
+          <text x="697" y="208" class="edge-label">Cache I/O</text>
+        </g>
+        <g id="CacheB" class="boundary" data-model="VM-cache-2" transform="translate(0 175)" data-boundary-kind="runtime">
+          <rect x="530" y="145" width="350" height="155" style="fill:#f1f4f8;stroke:#8393a6;stroke-dasharray:none;" />
+          <text x="705" y="168">cache-2</text>
+          <g id="S2" class="edge" data-model="RUN-cache-2" data-category="logical" color="#203a5b">
+            <rect x="550" y="190" width="115" height="60" style=";fill:#e7f0fc;stroke:#4d719b;" />
+            <text x="607" y="214">Squid</text>
+            <text x="607" y="236">keepalived</text>
+          </g>
+          <g id="D2" class="data" data-model="DISK-cache-2" data-category="logical" color="#203a5b">
+            <path d="M715 194 C715 178 865 178 865 194 L865 277 C865 293 715 293 715 277 Z" style=";fill:#e7f0fc;stroke:#4d719b;" />
+            <path d="M715 194 C715 210 865 210 865 194" fill="none" style=";fill:none;stroke:#4d719b;" />
+            <text x="790" y="215">scsi1</text>
+            <text x="790" y="230" class="mount">/var/spool/squid</text>
+            <a href="../../design/software-intake/object-cache/README.md#storage-and-content" target="_top">
+              <g id="Content2" class="information" data-model="CONTENT-cache-2" data-category="information" color="#57253f">
+                <rect x="725" y="239" width="130" height="37" rx="2" style=";fill:#f4dce9;stroke:#955076;" />
+                <text x="790" y="252" class="kind-label" font-size="9px">«item»</text>
+                <text x="790" y="268" font-size="12px">Cached content</text>
+              </g>
+            </a>
+          </g>
+          <path class="connection" data-from="S2" data-to="D2" d="M665 220 L715 220" data-relation="IO-cache-2" />
+          <text x="697" y="208" class="edge-label">Cache I/O</text>
+        </g>
+      </g>
+      <g id="VIP" class="traffic" data-model="R-VIP" data-category="logical" color="#203a5b">
+        <polygon points="335,355 465,355 480,390 465,425 335,425 320,390" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="400" y="396">Cache VIP</text>
+      </g>
+      <path class="connection" data-from="VIP" data-to="Pair" d="M480 390 L495 390 L495 300 L510 300" data-relation="R-dispatch" />
+      <text x="402" y="340" class="edge-label">Proxy requests</text>
+    </g>
+  </g>
+  <g id="Upstream" class="actor" data-model="R-Upstream" data-category="external" color="#293642">
+    <rect x="20" y="160" width="195" height="100" style=";fill:#edf0f3;stroke:#697682;" />
+    <text x="117" y="187">Approved Sources</text>
+    <text x="117" y="210">Internet or</text>
+    <text x="117" y="233">Upstream Proxy</text>
+  </g>
+  <g id="Consumers" class="actor" data-model="R-Consumers" transform="translate(0 0)" data-category="external" color="#293642">
+    <rect x="285" y="590" width="230" height="80" style=";fill:#edf0f3;stroke:#697682;" />
+    <text x="400" y="620">Approved Update Clients</text>
+    <text x="400" y="645">Tier 0 / Tier 1</text>
+  </g>
+  <path class="connection" data-from="Pair" data-to="Upstream" d="M510 135 L295 135 L295 210 L215 210" data-relation="R-upstream" />
+  <text x="397" y="124" class="edge-label">Approved upstream requests</text>
+  <path class="connection" data-from="Consumers" data-to="VIP" d="M400 590 L400 425" data-relation="R-request" />
+  <rect x="423" y="540.0" width="170" height="24" fill="#f8fafc" stroke="none" />
+  <text x="508" y="556.0" class="edge-label">HTTP / HTTPS CONNECT</text>
+  <g class="legend" id="Legend">
+    <g fill="#e7f0fc" stroke="#4d719b" stroke-dasharray="none" data-category-key="logical">
+      <rect x="30" y="700.0" width="22" height="16" />
+    </g>
+    <text x="59" y="713.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Logical component</text>
+    <g fill="#edf0f3" stroke="#697682" stroke-dasharray="none" data-category-key="external">
+      <rect x="260" y="700.0" width="22" height="16" />
+    </g>
+    <text x="289" y="713.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">External / abstract role</text>
+    <g fill="#f4dce9" stroke="#955076" stroke-dasharray="none" data-category-key="information">
+      <rect x="490" y="700.0" width="22" height="16" />
+    </g>
+    <text x="519" y="713.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Information / content</text>
+    <g fill="#f5f5f5" stroke="#9a9a9a" stroke-dasharray="7 4" data-category-key="tier">
+      <rect x="720" y="700.0" width="22" height="16" />
+    </g>
+    <text x="749" y="713.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Responsibility grouping</text>
+    <g fill="#f4eded" stroke="#9b7378" stroke-dasharray="none" data-category-key="network">
+      <rect x="30" y="725.0" width="22" height="16" />
+    </g>
+    <text x="59" y="738.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Network membership</text>
+    <g fill="#f1f4f8" stroke="#8393a6" stroke-dasharray="none" data-category-key="runtime">
+      <rect x="260" y="725.0" width="22" height="16" />
+    </g>
+    <text x="289" y="738.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Runtime containment</text>
+    <g fill="#fafafa" stroke="#a5adb5" stroke-dasharray="2 3" data-category-key="group">
+      <rect x="490" y="725.0" width="22" height="16" />
+    </g>
+    <text x="519" y="738.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Explanatory grouping</text>
+  </g>
+  <rect x="0" y="800.0" width="960" height="56" fill="#eef2f6" />
+  <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+    <title>System Overall</title>
+    <rect x="20.0" y="807.0" width="200" height="42" fill="transparent" />
+    <text x="120.0" y="833.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+  </a>
+  <a href="logical.svg" target="_top" aria-label="Intake design">
+    <title>Intake design</title>
+    <rect x="260.0" y="807.0" width="200" height="42" fill="transparent" />
+    <text x="360.0" y="833.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Intake design</text>
+  </a>
+  <a href="sources.svg" target="_top" aria-label="IaC and sources">
+    <title>IaC and sources</title>
+    <rect x="500.0" y="807.0" width="200" height="42" fill="transparent" />
+    <text x="600.0" y="833.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">IaC and sources</text>
+  </a>
+  <a href="../../design/software-intake/deployment.md" target="_top" aria-label="Documentation">
+    <title>Documentation</title>
+    <rect x="740.0" y="807.0" width="200" height="42" fill="transparent" />
+    <text x="840.0" y="833.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+  </a>
+  <metadata data-catalog="VIEW-software-intake-placement">{"content_sha256": "17f3d82c8d9c7abdd76bf024b1e472419ba2dda0540ee81c0676cd5c6b0ec619", "elements": ["CONTENT-cache-1", "CONTENT-cache-2", "DISK-cache-1", "DISK-cache-2", "R-Consumers", "R-Pair", "R-Upstream", "R-VIP", "RUN-cache-1", "RUN-cache-2", "VM-cache-1", "VM-cache-2"], "key": "VIEW-software-intake-placement", "name": "Cache services and update requests", "owner": "software-intake", "presentation": "model-derived SVG; native SysON uses its own notation", "relationships": [{"from": "DISK-cache-1", "kind": "contains", "to": "CONTENT-cache-1"}, {"from": "DISK-cache-2", "kind": "contains", "to": "CONTENT-cache-2"}, {"from": "R-Consumers", "id": "R-request", "kind": "flow", "to": "R-VIP"}, {"from": "R-Pair", "id": "R-upstream", "kind": "flow", "to": "R-Upstream"}, {"from": "R-Pair", "kind": "contains", "to": "VM-cache-1"}, {"from": "R-Pair", "kind": "contains", "to": "VM-cache-2"}, {"from": "R-VIP", "id": "R-dispatch", "kind": "flow", "to": "R-Pair"}, {"from": "RUN-cache-1", "id": "IO-cache-1", "kind": "flow", "to": "DISK-cache-1"}, {"from": "RUN-cache-2", "id": "IO-cache-2", "kind": "flow", "to": "DISK-cache-2"}, {"from": "VM-cache-1", "kind": "contains", "to": "DISK-cache-1"}, {"from": "VM-cache-1", "kind": "contains", "to": "RUN-cache-1"}, {"from": "VM-cache-2", "kind": "contains", "to": "DISK-cache-2"}, {"from": "VM-cache-2", "kind": "contains", "to": "RUN-cache-2"}], "subject": null, "svg": "architecture/views/software-intake/placement.svg"}</metadata>
+</svg>

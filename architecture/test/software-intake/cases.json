@@ -1,0 +1,27 @@
+{
+  "SC-http-miss": {
+    "acceptance": "An admitted miss or stale response reaches the source; cache/privacy rules are respected and the client verifies before use. Unsigned or expired metadata is rejected unless an explicit trusted-source exception was selected."
+  },
+  "SC-http-cache-untrusted": {
+    "acceptance": "Cached content is verified at the client and rejected when trust fails, without a source fetch. Model trust is an input, not a cryptographic check."
+  },
+  "SC-http-denied": {
+    "acceptance": "A rejected client, destination or port receives denial and the recording source sees no request."
+  },
+  "SC-http-untrusted": {
+    "acceptance": "When publisher verification fails after retrieval, the client rejects the content before use. Model trust is an input, not a cryptographic check."
+  },
+  "SC-http-source-failure": {
+    "acceptance": "A source failure after an admitted miss produces no usable content, no client verification and no implicit stale fallback. The execution model supplies availability; deployed failure behavior needs separate evidence."
+  },
+  "SC-https": {
+    "acceptance": "An admitted CONNECT establishes source-authenticated client TLS. Encrypted payload is neither cached nor inspected; client verification still applies.",
+    "manual": "Run the Stage 1 accepted-source HTTPS retrieval on the deployed route; verify source certificate/hostname, payload integrity and refusal of invalid trust. The isolated HTTP fixture does not forward CONNECT."
+  },
+  "SC-https-denied": {
+    "acceptance": "A disallowed CONNECT destination, client or port receives denial without opening a source connection."
+  },
+  "SC-http-hit": {
+    "acceptance": "A repeated eligible fresh response is served without another origin request. The client still verifies trusted metadata/signatures."
+  }
+}

@@ -1,0 +1,203 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 621" role="img">
+  <title>Software intake | Implementation assets</title>
+  <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+  <rect width="960" height="621" fill="white" />
+  <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Software intake | Implementation assets</text>
+  <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Sources and checks attached to the modeled design; this index is supporting material.</text>
+  <g class="explorer-card">
+    <rect x="30" y="100" width="440" height="247" fill="#f8fafc" stroke="#64748b" rx="4" />
+    <text x="45" y="126" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Logical implementation · DEF-proxy</text>
+    <a href="../../../shared/ansible/roles/shared/templates/keepalived.conf.j2" target="_top" aria-label="shared/ansible/roles/shared/templates/keepalived.conf.j2">
+      <title>shared/ansible/roles/shared/templates/keepalived.conf.j2</title>
+      <text x="45" y="152" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">shared/templates/keepalived.conf.j2</text>
+    </a>
+    <a href="asset-impact.svg#asset-c6b3512be4afa3c7" target="_top" aria-label="Impact: shared/ansible/roles/shared/templates/keepalived.conf.j2" data-impact="shared/ansible/roles/shared/templates/keepalived.conf.j2">
+      <title>Impact: shared/ansible/roles/shared/templates/keepalived.conf.j2</title>
+      <rect x="385" y="137" width="72" height="22" fill="transparent" />
+      <text x="420" y="152" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2" target="_top" aria-label="tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2">
+      <title>tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2</title>
+      <text x="45" y="179" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache_proxy/templates/squid.conf.j2</text>
+    </a>
+    <a href="asset-impact.svg#asset-37c09c0559e8e583" target="_top" aria-label="Impact: tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2" data-impact="tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2">
+      <title>Impact: tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2</title>
+      <rect x="385" y="164" width="72" height="22" fill="transparent" />
+      <text x="420" y="179" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml" target="_top" aria-label="tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml">
+      <title>tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml</title>
+      <text x="45" y="206" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache_proxy/tasks/keepalived.yml</text>
+    </a>
+    <a href="asset-impact.svg#asset-6e09abed5e677823" target="_top" aria-label="Impact: tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml" data-impact="tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml">
+      <title>Impact: tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml</title>
+      <rect x="385" y="191" width="72" height="22" fill="transparent" />
+      <text x="420" y="206" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/ansible/roles/cache_proxy/tasks/squid.yml" target="_top" aria-label="tier-2/ansible/roles/cache_proxy/tasks/squid.yml">
+      <title>tier-2/ansible/roles/cache_proxy/tasks/squid.yml</title>
+      <text x="45" y="233" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache_proxy/tasks/squid.yml</text>
+    </a>
+    <a href="asset-impact.svg#asset-c8eaceaefbdaebd6" target="_top" aria-label="Impact: tier-2/ansible/roles/cache_proxy/tasks/squid.yml" data-impact="tier-2/ansible/roles/cache_proxy/tasks/squid.yml">
+      <title>Impact: tier-2/ansible/roles/cache_proxy/tasks/squid.yml</title>
+      <rect x="385" y="218" width="72" height="22" fill="transparent" />
+      <text x="420" y="233" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/ansible/roles/cache_proxy/tasks/main.yml" target="_top" aria-label="tier-2/ansible/roles/cache_proxy/tasks/main.yml">
+      <title>tier-2/ansible/roles/cache_proxy/tasks/main.yml</title>
+      <text x="45" y="260" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache_proxy/tasks/main.yml</text>
+    </a>
+    <a href="asset-impact.svg#asset-40706de5f66fc876" target="_top" aria-label="Impact: tier-2/ansible/roles/cache_proxy/tasks/main.yml" data-impact="tier-2/ansible/roles/cache_proxy/tasks/main.yml">
+      <title>Impact: tier-2/ansible/roles/cache_proxy/tasks/main.yml</title>
+      <rect x="385" y="245" width="72" height="22" fill="transparent" />
+      <text x="420" y="260" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/ansible/roles/cache_proxy/defaults/main.yml" target="_top" aria-label="tier-2/ansible/roles/cache_proxy/defaults/main.yml">
+      <title>tier-2/ansible/roles/cache_proxy/defaults/main.yml</title>
+      <text x="45" y="287" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache_proxy/defaults/main.yml</text>
+    </a>
+    <a href="asset-impact.svg#asset-46f1b86a5f364684" target="_top" aria-label="Impact: tier-2/ansible/roles/cache_proxy/defaults/main.yml" data-impact="tier-2/ansible/roles/cache_proxy/defaults/main.yml">
+      <title>Impact: tier-2/ansible/roles/cache_proxy/defaults/main.yml</title>
+      <rect x="385" y="272" width="72" height="22" fill="transparent" />
+      <text x="420" y="287" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/ansible/group_vars/cache.yml.example" target="_top" aria-label="tier-2/ansible/group_vars/cache.yml.example">
+      <title>tier-2/ansible/group_vars/cache.yml.example</title>
+      <text x="45" y="314" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">ansible/group_vars/cache.yml.example</text>
+    </a>
+    <a href="asset-impact.svg#asset-ebba1a30f2dc7fc4" target="_top" aria-label="Impact: tier-2/ansible/group_vars/cache.yml.example" data-impact="tier-2/ansible/group_vars/cache.yml.example">
+      <title>Impact: tier-2/ansible/group_vars/cache.yml.example</title>
+      <rect x="385" y="299" width="72" height="22" fill="transparent" />
+      <text x="420" y="314" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+  </g>
+  <g class="explorer-card">
+    <rect x="490" y="100" width="440" height="265" fill="#f8fafc" stroke="#64748b" rx="4" />
+    <text x="505" y="126" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Selected realization · DEF-member</text>
+    <a href="../../../tier-2/ansible/playbooks/deployment/outbound-cache.yml" target="_top" aria-label="tier-2/ansible/playbooks/deployment/outbound-cache.yml">
+      <title>tier-2/ansible/playbooks/deployment/outbound-cache.yml</title>
+      <text x="505" y="152" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">playbooks/deployment/outbound-cache.yml</text>
+    </a>
+    <a href="asset-impact.svg#asset-7e85dd7d37a52bc8" target="_top" aria-label="Impact: tier-2/ansible/playbooks/deployment/outbound-cache.yml" data-impact="tier-2/ansible/playbooks/deployment/outbound-cache.yml">
+      <title>Impact: tier-2/ansible/playbooks/deployment/outbound-cache.yml</title>
+      <rect x="845" y="137" width="72" height="22" fill="transparent" />
+      <text x="880" y="152" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/ansible/playbooks/cache.yml" target="_top" aria-label="tier-2/ansible/playbooks/cache.yml">
+      <title>tier-2/ansible/playbooks/cache.yml</title>
+      <text x="505" y="179" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">ansible/playbooks/cache.yml</text>
+    </a>
+    <a href="asset-impact.svg#asset-e8f226cade3ab177" target="_top" aria-label="Impact: tier-2/ansible/playbooks/cache.yml" data-impact="tier-2/ansible/playbooks/cache.yml">
+      <title>Impact: tier-2/ansible/playbooks/cache.yml</title>
+      <rect x="845" y="164" width="72" height="22" fill="transparent" />
+      <text x="880" y="179" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/ansible/inventory/hosts.yml.example" target="_top" aria-label="tier-2/ansible/inventory/hosts.yml.example">
+      <title>tier-2/ansible/inventory/hosts.yml.example</title>
+      <text x="505" y="206" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">ansible/inventory/hosts.yml.example</text>
+    </a>
+    <a href="asset-impact.svg#asset-b9e92de8207393e0" target="_top" aria-label="Impact: tier-2/ansible/inventory/hosts.yml.example" data-impact="tier-2/ansible/inventory/hosts.yml.example">
+      <title>Impact: tier-2/ansible/inventory/hosts.yml.example</title>
+      <rect x="845" y="191" width="72" height="22" fill="transparent" />
+      <text x="880" y="206" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/terraform/modules/vm/main.tf" target="_top" aria-label="tier-2/terraform/modules/vm/main.tf">
+      <title>tier-2/terraform/modules/vm/main.tf</title>
+      <text x="505" y="233" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">modules/vm/main.tf</text>
+    </a>
+    <a href="asset-impact.svg#asset-198fe597d856e2fb" target="_top" aria-label="Impact: tier-2/terraform/modules/vm/main.tf" data-impact="tier-2/terraform/modules/vm/main.tf">
+      <title>Impact: tier-2/terraform/modules/vm/main.tf</title>
+      <rect x="845" y="218" width="72" height="22" fill="transparent" />
+      <text x="880" y="233" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/terraform/modules/environment_guests/main.tf" target="_top" aria-label="tier-2/terraform/modules/environment_guests/main.tf">
+      <title>tier-2/terraform/modules/environment_guests/main.tf</title>
+      <text x="505" y="260" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">modules/environment_guests/main.tf</text>
+    </a>
+    <a href="asset-impact.svg#asset-9971688239bead99" target="_top" aria-label="Impact: tier-2/terraform/modules/environment_guests/main.tf" data-impact="tier-2/terraform/modules/environment_guests/main.tf">
+      <title>Impact: tier-2/terraform/modules/environment_guests/main.tf</title>
+      <rect x="845" y="245" width="72" height="22" fill="transparent" />
+      <text x="880" y="260" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/terraform/deployments/cache/main.tf" target="_top" aria-label="tier-2/terraform/deployments/cache/main.tf">
+      <title>tier-2/terraform/deployments/cache/main.tf</title>
+      <text x="505" y="287" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">deployments/cache/main.tf</text>
+    </a>
+    <a href="asset-impact.svg#asset-4c1d3cb35c347615" target="_top" aria-label="Impact: tier-2/terraform/deployments/cache/main.tf" data-impact="tier-2/terraform/deployments/cache/main.tf">
+      <title>Impact: tier-2/terraform/deployments/cache/main.tf</title>
+      <rect x="845" y="272" width="72" height="22" fill="transparent" />
+      <text x="880" y="287" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/terraform/deployments/cache/terraform.tfvars.example" target="_top" aria-label="tier-2/terraform/deployments/cache/terraform.tfvars.example">
+      <title>tier-2/terraform/deployments/cache/terraform.tfvars.example</title>
+      <text x="505" y="314" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">deployments/cache/terraform.tfvars.exam</text>
+      <text x="505" y="332" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">ple</text>
+    </a>
+    <a href="asset-impact.svg#asset-bf0d9312d2d757ab" target="_top" aria-label="Impact: tier-2/terraform/deployments/cache/terraform.tfvars.example" data-impact="tier-2/terraform/deployments/cache/terraform.tfvars.example">
+      <title>Impact: tier-2/terraform/deployments/cache/terraform.tfvars.example</title>
+      <rect x="845" y="299" width="72" height="22" fill="transparent" />
+      <text x="880" y="314" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+  </g>
+  <g class="explorer-card">
+    <rect x="30" y="377" width="440" height="166" fill="#f8fafc" stroke="#64748b" rx="4" />
+    <text x="45" y="403" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Logical implementation · DEF-cache</text>
+    <a href="../../../shared/ansible/roles/data_volume/tasks/prepare.yml" target="_top" aria-label="shared/ansible/roles/data_volume/tasks/prepare.yml">
+      <title>shared/ansible/roles/data_volume/tasks/prepare.yml</title>
+      <text x="45" y="429" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">data_volume/tasks/prepare.yml</text>
+    </a>
+    <a href="asset-impact.svg#asset-c17f8111083acd29" target="_top" aria-label="Impact: shared/ansible/roles/data_volume/tasks/prepare.yml" data-impact="shared/ansible/roles/data_volume/tasks/prepare.yml">
+      <title>Impact: shared/ansible/roles/data_volume/tasks/prepare.yml</title>
+      <rect x="385" y="414" width="72" height="22" fill="transparent" />
+      <text x="420" y="429" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../shared/ansible/roles/data_volume/tasks/validate.yml" target="_top" aria-label="shared/ansible/roles/data_volume/tasks/validate.yml">
+      <title>shared/ansible/roles/data_volume/tasks/validate.yml</title>
+      <text x="45" y="456" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">data_volume/tasks/validate.yml</text>
+    </a>
+    <a href="asset-impact.svg#asset-ef35885561e7cd98" target="_top" aria-label="Impact: shared/ansible/roles/data_volume/tasks/validate.yml" data-impact="shared/ansible/roles/data_volume/tasks/validate.yml">
+      <title>Impact: shared/ansible/roles/data_volume/tasks/validate.yml</title>
+      <rect x="385" y="441" width="72" height="22" fill="transparent" />
+      <text x="420" y="456" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../shared/ansible/roles/data_volume/tasks/inspect.yml" target="_top" aria-label="shared/ansible/roles/data_volume/tasks/inspect.yml">
+      <title>shared/ansible/roles/data_volume/tasks/inspect.yml</title>
+      <text x="45" y="483" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">data_volume/tasks/inspect.yml</text>
+    </a>
+    <a href="asset-impact.svg#asset-88237b3162ff5513" target="_top" aria-label="Impact: shared/ansible/roles/data_volume/tasks/inspect.yml" data-impact="shared/ansible/roles/data_volume/tasks/inspect.yml">
+      <title>Impact: shared/ansible/roles/data_volume/tasks/inspect.yml</title>
+      <rect x="385" y="468" width="72" height="22" fill="transparent" />
+      <text x="420" y="483" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+    <a href="../../../tier-2/ansible/roles/cache_proxy/tasks/storage.yml" target="_top" aria-label="tier-2/ansible/roles/cache_proxy/tasks/storage.yml">
+      <title>tier-2/ansible/roles/cache_proxy/tasks/storage.yml</title>
+      <text x="45" y="510" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cache_proxy/tasks/storage.yml</text>
+    </a>
+    <a href="asset-impact.svg#asset-bbc988b8b9827065" target="_top" aria-label="Impact: tier-2/ansible/roles/cache_proxy/tasks/storage.yml" data-impact="tier-2/ansible/roles/cache_proxy/tasks/storage.yml">
+      <title>Impact: tier-2/ansible/roles/cache_proxy/tasks/storage.yml</title>
+      <rect x="385" y="495" width="72" height="22" fill="transparent" />
+      <text x="420" y="510" style="font:normal 13px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Impact</text>
+    </a>
+  </g>
+  <rect x="0" y="565" width="960" height="56" fill="#eef2f6" />
+  <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+    <title>System Overall</title>
+    <rect x="20.0" y="572" width="200" height="42" fill="transparent" />
+    <text x="120.0" y="598" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+  </a>
+  <a href="logical.svg" target="_top" aria-label="Up to overview">
+    <title>Up to overview</title>
+    <rect x="260.0" y="572" width="200" height="42" fill="transparent" />
+    <text x="360.0" y="598" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Up to overview</text>
+  </a>
+  <a href="scenario-views.svg#SC-http-miss" target="_top" aria-label="HTTP example">
+    <title>HTTP example</title>
+    <rect x="500.0" y="572" width="200" height="42" fill="transparent" />
+    <text x="600.0" y="598" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">HTTP example</text>
+  </a>
+  <a href="../../design/software-intake/deployment.md" target="_top" aria-label="Documentation">
+    <title>Documentation</title>
+    <rect x="740.0" y="572" width="200" height="42" fill="transparent" />
+    <text x="840.0" y="598" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+  </a>
+</svg>

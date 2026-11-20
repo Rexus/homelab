@@ -9,7 +9,7 @@ artifact or replaces a retained repository mirror.
 
 <a id="figure-software-intake-context"></a>
 
-![Connected proxy and update consumers](../../08-reference/diagrams/software-intake-context.svg)
+![Connected proxy and update consumers](../../../architecture/views/software-intake/logical.svg)
 
 *Figure: Separately owned update clients below request the Tier 2 proxy interface upward.
 The proxy requests approved external sources to its left and uses the rebuildable cache below it;
@@ -20,6 +20,10 @@ The consumer group aggregates separate owners, not a shared subnet or runtime.
 The [Squid policy template](../../../tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2)
 and [cache inputs](../../../tier-2/ansible/group_vars/cache.yml.example) realize the proxy boundary.
 Offline recovery supply remains outside this connected path.
+
+Start with the [use-case view and scenarios](../../../architecture/use-cases/software-intake/README.md).
+The [connected SysML model](02-connected-model.md) ties this view to the selected Terraform and Ansible
+examples, reusable member contracts and implementation checks. Its layouts preserve this visual grammar.
 
 Firewall rules allow selected consumers to the proxy listener, deny direct WAN
 bypass, and restrict the proxy's upstream access. Proxy ACLs combine source CIDRs,
@@ -47,52 +51,105 @@ HTTPS CONNECT tunnels forward encrypted bytes and do not provide object caching 
 
 ### HTTPS tunnel
 
+<!-- BEGIN MODEL HTTPS -->
 ```mermaid
+%%{init: {"fontFamily":"Arial, sans-serif","sequence":{"wrap":true,"width":180,"actorMargin":70,"messageMargin":32,"noteMargin":12}}}%%
 sequenceDiagram
-  participant Client as Update client
-  participant Proxy as Policy proxy
-  participant Source as Approved repository
-  Client->>Proxy: CONNECT source:443
-  Proxy->>Proxy: Check client, destination and port
-  alt Denied by policy
-    Proxy-->>Client: Deny without a source connection
-  else Allowed
-    Proxy->>Source: Open permitted TCP connection
-    Source-->>Proxy: Connection established
-    Proxy-->>Client: 200 Connection Established
-    Note over Client,Source: Client-to-source TLS through the proxy<br/>No payload caching or scanning
-    Client->>Source: Fetch through the TLS tunnel
-    Source-->>Client: Encrypted response through the tunnel
-    Client->>Client: Verify trusted metadata / signatures
+  autonumber
+  participant P0 as Update client
+  participant P1 as Policy proxy
+  participant P2 as Approved source
+  %% model: S-connect
+  P0->>P1: CONNECT source:443
+  %% model: S-check
+  P1->>P1: Check client, destination and port
+  %% model: S-policy
+  alt Allowed#59; TCP/TLS succeeds
+    %% model: S-open
+    P1->>P2: Open permitted TCP connection
+    %% model: S-established
+    P2-->>P1: Connection established
+    %% model: S-ready
+    P1-->>P0: 200 Connection Established
+    %% model: S-fetch
+    Note over P0,P2: Client authenticates source TLS through the tunnel. No payload caching or scanning.
+    P0->>P2: Fetch through client-to-source TLS
+    %% model: S-response
+    P2-->>P0: Encrypted response through the tunnel
+    %% model: S-verify
+    P0->>P0: Verify trusted metadata / signatures#59; stop on failure
+  else Denied by policy
+    %% model: S-denied
+    P1-->>P0: Deny without a source connection
   end
 ```
+<!-- END MODEL HTTPS -->
 
 *Figure: The proxy permits the connection; the client authenticates the source and verifies the software.
 The client-to-source arrows describe the TLS exchange inside the established tunnel.*
 
 ### Cacheable HTTP
 
+<!-- BEGIN MODEL HTTP -->
 ```mermaid
+%%{init: {"fontFamily":"Arial, sans-serif","sequence":{"wrap":true,"width":180,"actorMargin":70,"messageMargin":32,"noteMargin":12}}}%%
 sequenceDiagram
-  participant Client as Update client
-  participant Proxy as Policy proxy/cache
-  participant Source as Approved repository
-  Client->>Proxy: HTTP repository request
-  Proxy->>Proxy: Check client, destination and port
-  alt Denied by policy
-    Proxy-->>Client: Deny without a cache lookup or source fetch
-  else Allowed
-    alt Fresh cache hit
-      Proxy-->>Client: Return cached response
+  autonumber
+  participant P0 as Update client
+  participant P1 as Policy proxy
+  participant P2 as Approved source
+  %% model: H-request
+  P0->>P1: HTTP repository request
+  %% model: H-check
+  P1->>P1: Check client, destination and port
+  %% model: H-policy
+  alt Allowed
+    %% model: H-lookup
+    P1->>P1: Look up eligible fresh content
+    %% model: H-cache-choice
+    alt Fresh eligible cache hit
+      %% model: H-cached
+      P1-->>P0: Return cached response
     else Absent or requires revalidation
-      Proxy->>Source: Fetch or conditionally revalidate
-      Source-->>Proxy: Content or freshness response
-      Proxy->>Proxy: Apply cache and privacy rules
-      Proxy-->>Client: Return response
+      %% model: H-fetch
+      P1->>P2: Fetch or conditionally revalidate
+      %% model: H-source-choice
+      alt Source available
+        %% model: H-origin
+        P2-->>P1: Content or freshness response
+        %% model: H-cache-rules
+        P1->>P1: Apply cache and privacy rules
+        %% model: H-response
+        P1-->>P0: Return response
+      else Source unavailable
+        %% model: H-source-failure
+        P1->>P1: Observe source failure
+        %% model: H-unavailable
+        P1-->>P0: Return retrieval error without content
+      end
     end
-    Client->>Client: Verify trusted metadata / signatures
+    %% model: H-delivery-choice
+    alt Content received
+      %% model: H-verify
+      P0->>P0: Verify trusted metadata / signatures
+      %% model: H-integrity-choice
+      alt Verification passed
+        %% model: H-accepted
+        P0->>P0: Accept verified content for use
+      else Verification failed
+        %% model: H-rejected
+        P0->>P0: Reject content#59; stop before use
+      end
+    else No content received
+      %% model: H-stop
+      P0->>P0: Stop retrieval without verifying content
+    end
+  else Denied by policy
+    %% model: H-denied
+    P1-->>P0: Deny without a cache lookup or source fetch
   end
 ```
+<!-- END MODEL HTTP -->
 
 *Figure: An allowed HTTP request can use a fresh object or revalidate it with the source.
 Publisher verification remains the client's responsibility, including on a cache hit.*

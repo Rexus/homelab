@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 836" role="img" aria-labelledby="title desc" data-view-id="VIEW-platform-overview">
+  <title id="title">Shared platform | resource providers and backing</title>
+  <desc id="desc">Shared virtualization provides guest storage and network services. Physical servers, drives and switches back those services. Logical fabric and an optional storage transport remain distinct from physical equipment. Each box links to hosting, networking or data.</desc>
+  <rect width="960" height="780" fill="white" />
+  <style>text{font:16px Arial,sans-serif;fill:currentColor;stroke:none;text-anchor:middle}.title{font-size:23px;font-weight:600}.node-title{font-size:18px;font-weight:600}.note{font-size:14px}.label{font-size:13px}.legend text{font-size:12px}a:focus rect,a:hover rect{stroke-width:3px}</style>
+  <defs>
+    <marker id="dep" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581" />
+    </marker>
+  </defs>
+  <g data-model="P-context" class="subject" color="#1f2937" data-boundary-kind="subject">
+    <rect x="15" y="78" width="930" height="578" rx="5" fill="#f8fafc" stroke="#8b857c" style="fill:#fbfcfd;stroke:#8393a6;stroke-dasharray:none;" />
+    <path d="M790 138 V98 H170 V138" fill="none" stroke="#627581" stroke-width="1.6" data-relation="P-network-provider" stroke-dasharray="6 4" marker-end="url(#dep)" />
+    <rect x="411.0" y="92" width="138" height="20" fill="#f8fafc" />
+    <text x="480" y="106" class="label">P-network-provider</text>
+    <path d="M480 138 V119 H250 V138" fill="none" stroke="#627581" stroke-width="1.6" data-relation="P-storage-provider" stroke-dasharray="6 4" marker-end="url(#dep)" />
+    <rect x="296.0" y="113" width="138" height="20" fill="#f8fafc" />
+    <text x="365" y="127" class="label">P-storage-provider</text>
+    <path d="M170 228 V330" fill="none" stroke="#627581" stroke-width="1.6" data-relation="P-hosting" stroke-dasharray="6 4" marker-end="url(#dep)" />
+    <rect x="139.5" y="267" width="61" height="20" fill="#f8fafc" />
+    <text x="170" y="281" class="label">Runs on</text>
+    <path d="M480 228 V330" fill="none" stroke="#627581" stroke-width="1.6" data-relation="P-disk-backing" stroke-dasharray="6 4" marker-end="url(#dep)" />
+    <rect x="442.5" y="267" width="75" height="20" fill="#f8fafc" />
+    <text x="480" y="281" class="label">Backed by</text>
+    <path d="M790 228 V330" fill="none" stroke="#627581" stroke-width="1.6" data-relation="P-fabric-use" stroke-dasharray="6 4" marker-end="url(#dep)" />
+    <rect x="707.0" y="267" width="166" height="20" fill="#f8fafc" />
+    <text x="790" y="281" class="label">Uses logical transport</text>
+    <path d="M790 420 V469 H480 V530" fill="none" stroke="#627581" stroke-width="1.6" data-relation="P-fabric-backing" stroke-dasharray="6 4" marker-end="url(#dep)" />
+    <rect x="583.5" y="448" width="103" height="20" fill="#f8fafc" />
+    <text x="635" y="462" class="label">Realized over</text>
+    <path d="M170 420 V575 H350" fill="none" stroke="#627581" stroke-width="1.6" data-relation="P-cabling" />
+    <rect x="97.5" y="491" width="145" height="20" fill="#f8fafc" />
+    <text x="170" y="505" class="label">Physical attachment</text>
+    <path d="M660 575 H610" fill="none" stroke="#627581" stroke-width="1.6" data-relation="P-storage-network-backing" stroke-dasharray="6 4" marker-end="url(#dep)" />
+    <rect x="534.5" y="632" width="201" height="20" fill="#f8fafc" />
+    <text x="635" y="646" class="label">Realized over when selected</text>
+    <a href="hosting/bootstrap-reference.svg" target="_top" aria-label="Open Proxmox virtualization overview">
+      <g data-model="P-virtualization" class="services" fill="#e7f0fc" stroke="#4d719b" color="#203a5b" stroke-width="1.5" data-category="logical">
+        <rect x="40" y="138" width="260" height="90" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="170.0" y="166" class="node-title">Proxmox virtualization</text>
+        <text x="170.0" y="213" class="note">Execution provider</text>
+      </g>
+    </a>
+    <a href="../../design/platform/data/README.md" target="_top" aria-label="Open Local guest-disk service overview">
+      <g data-model="P-storage" class="services" fill="#e7f0fc" stroke="#4d719b" color="#203a5b" stroke-width="1.5" data-category="logical">
+        <rect x="350" y="138" width="260" height="90" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="480.0" y="166" class="node-title">Local guest-disk</text>
+        <text x="480.0" y="187" class="node-title">service</text>
+        <text x="480.0" y="213" class="note">Selected cache storage</text>
+      </g>
+    </a>
+    <a href="../../design/platform/networking/README.md" target="_top" aria-label="Open Guest network attachment overview">
+      <g data-model="P-network" class="services" fill="#e7f0fc" stroke="#4d719b" color="#203a5b" stroke-width="1.5" data-category="logical">
+        <rect x="660" y="138" width="260" height="90" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="790.0" y="166" class="node-title">Guest network</text>
+        <text x="790.0" y="187" class="node-title">attachment</text>
+        <text x="790.0" y="213" class="note">Virtual attachment</text>
+      </g>
+    </a>
+    <a href="hosting/bootstrap-reference.svg" target="_top" aria-label="Open Physical servers overview">
+      <g data-model="P-servers" class="equipment" fill="#f3f1ed" stroke="#8b857c" color="#3f3a34" stroke-width="1.5" data-category="physical">
+        <rect x="40" y="330" width="260" height="90" style=";fill:#e8e5df;stroke:#81796c;" />
+        <rect x="44" y="334" width="252" height="82" fill="none" style=";fill:none;stroke:#81796c;" />
+        <text x="170.0" y="358" class="node-title">Physical servers</text>
+        <text x="170.0" y="405" class="note">Tangible execution backing</text>
+      </g>
+    </a>
+    <a href="../../design/platform/data/README.md" target="_top" aria-label="Open Physical storage devices overview">
+      <g data-model="P-drives" class="equipment" fill="#f3f1ed" stroke="#8b857c" color="#3f3a34" stroke-width="1.5" data-category="physical">
+        <rect x="350" y="330" width="260" height="90" style=";fill:#e8e5df;stroke:#81796c;" />
+        <rect x="354" y="334" width="252" height="82" fill="none" style=";fill:none;stroke:#81796c;" />
+        <text x="480.0" y="358" class="node-title">Physical storage</text>
+        <text x="480.0" y="379" class="node-title">devices</text>
+        <text x="480.0" y="405" class="note">Tangible disk backing</text>
+      </g>
+    </a>
+    <a href="../../design/platform/networking/README.md" target="_top" aria-label="Open Logical fabric network overview">
+      <g data-model="P-fabric" class="network" fill="#f4eded" stroke="#9b7378" color="#203a5b" stroke-width="1.5" data-category="logical">
+        <rect x="660" y="330" width="260" height="90" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="790.0" y="358" class="node-title">Logical fabric network</text>
+        <text x="790.0" y="405" class="note">Logical transport</text>
+      </g>
+    </a>
+    <a href="../../design/platform/networking/README.md" target="_top" aria-label="Open Physical switches and NICs overview">
+      <g data-model="P-switches" class="equipment" fill="#f3f1ed" stroke="#8b857c" color="#3f3a34" stroke-width="1.5" data-category="physical">
+        <rect x="350" y="530" width="260" height="90" style=";fill:#e8e5df;stroke:#81796c;" />
+        <rect x="354" y="534" width="252" height="82" fill="none" style=";fill:none;stroke:#81796c;" />
+        <text x="480.0" y="558" class="node-title">Physical switches and</text>
+        <text x="480.0" y="579" class="node-title">NICs</text>
+        <text x="480.0" y="605" class="note">Tangible attachment</text>
+      </g>
+    </a>
+    <a href="../../design/platform/networking/README.md" target="_top" aria-label="Open Logical storage network overview">
+      <g data-model="P-storage-network" class="network" fill="#f4eded" stroke="#9b7378" color="#203a5b" stroke-width="1.5" data-category="logical">
+        <rect x="660" y="530" width="260" height="90" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="790.0" y="558" class="node-title">Logical storage network</text>
+        <text x="790.0" y="605" class="note">Optional; not used by local cache</text>
+      </g>
+    </a>
+  </g>
+  <text x="480" y="32" class="title" color="#1f2937">Shared platform | resource providers and backing</text>
+  <text x="480" y="59" class="note" color="#1f2937">Level 1 overview. Open a provider or its equipment to follow the owning level 2 design.</text>
+  <text x="480" y="687" class="note" color="#1f2937">Documented provider boundary | Physical counts, ports and placement remain site-owned</text>
+  <g class="legend" id="Legend">
+    <g fill="#e7f0fc" stroke="#4d719b" stroke-dasharray="none" data-category-key="logical">
+      <rect x="30" y="730.0" width="22" height="16" />
+    </g>
+    <text x="59" y="743.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Logical component</text>
+    <g fill="#e8e5df" stroke="#81796c" stroke-dasharray="none" data-category-key="physical">
+      <rect x="260" y="730.0" width="22" height="16" />
+    </g>
+    <text x="289" y="743.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Physical equipment</text>
+    <g fill="#fbfcfd" stroke="#8393a6" stroke-dasharray="none" data-category-key="subject">
+      <rect x="490" y="730.0" width="22" height="16" />
+    </g>
+    <text x="519" y="743.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Subject / scope</text>
+  </g>
+  <rect x="0" y="780.0" width="960" height="56" fill="#eef2f6" />
+  <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+    <title>System Overall</title>
+    <rect x="20.0" y="787.0" width="200" height="42" fill="transparent" />
+    <text x="120.0" y="813.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+  </a>
+  <a href="../software-intake/logical.svg" target="_top" aria-label="Intake design">
+    <title>Intake design</title>
+    <rect x="260.0" y="787.0" width="200" height="42" fill="transparent" />
+    <text x="360.0" y="813.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Intake design</text>
+  </a>
+  <a href="../software-intake/sources.svg" target="_top" aria-label="IaC and sources">
+    <title>IaC and sources</title>
+    <rect x="500.0" y="787.0" width="200" height="42" fill="transparent" />
+    <text x="600.0" y="813.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">IaC and sources</text>
+  </a>
+  <a href="../../design/platform/README.md" target="_top" aria-label="Documentation">
+    <title>Documentation</title>
+    <rect x="740.0" y="787.0" width="200" height="42" fill="transparent" />
+    <text x="840.0" y="813.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+  </a>
+  <metadata data-catalog="VIEW-platform-overview">{"content_sha256": "a65acfe5d19c952539a9e0dcec1b46abdb0556a9c41dced6110ff7ae503ba5e1", "elements": ["P-drives", "P-fabric", "P-network", "P-servers", "P-storage", "P-storage-network", "P-switches", "P-virtualization"], "key": "VIEW-platform-overview", "name": "Shared platform | resource providers and backing", "owner": "platform", "presentation": "model-derived SVG; native SysON uses its own notation", "relationships": [{"from": "P-context", "kind": "contains", "to": "P-drives"}, {"from": "P-context", "kind": "contains", "to": "P-fabric"}, {"from": "P-context", "kind": "contains", "to": "P-network"}, {"from": "P-context", "kind": "contains", "to": "P-servers"}, {"from": "P-context", "kind": "contains", "to": "P-storage"}, {"from": "P-context", "kind": "contains", "to": "P-storage-network"}, {"from": "P-context", "kind": "contains", "to": "P-switches"}, {"from": "P-context", "kind": "contains", "to": "P-virtualization"}, {"from": "P-fabric", "id": "P-fabric-backing", "kind": "depends-on", "to": "P-switches"}, {"from": "P-network", "id": "P-fabric-use", "kind": "depends-on", "to": "P-fabric"}, {"from": "P-network", "id": "P-network-provider", "kind": "depends-on", "to": "P-virtualization"}, {"from": "P-servers", "id": "P-cabling", "kind": "connected-to", "to": "P-switches"}, {"from": "P-storage", "id": "P-disk-backing", "kind": "depends-on", "to": "P-drives"}, {"from": "P-storage", "id": "P-storage-provider", "kind": "depends-on", "to": "P-virtualization"}, {"from": "P-storage-network", "id": "P-storage-network-backing", "kind": "depends-on", "to": "P-switches"}, {"from": "P-virtualization", "id": "P-hosting", "kind": "depends-on", "to": "P-servers"}], "subject": "P-context", "svg": "architecture/views/platform/overview.svg"}</metadata>
+</svg>

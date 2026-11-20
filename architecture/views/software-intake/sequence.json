@@ -1,0 +1,24 @@
+{
+  "participants": {
+    "B-HTTP": [
+      "H-client",
+      "H-proxy",
+      "H-source"
+    ],
+    "B-HTTPS": [
+      "S-client",
+      "S-proxy",
+      "S-source"
+    ]
+  },
+  "mermaid": {
+    "fontFamily": "Arial, sans-serif",
+    "sequence": {
+      "wrap": true,
+      "width": 180,
+      "actorMargin": 70,
+      "messageMargin": 32,
+      "noteMargin": 12
+    }
+  }
+}

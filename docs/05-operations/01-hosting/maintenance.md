@@ -255,7 +255,7 @@ Talos OS upgrades and Kubernetes upgrades are separate operations. [4]
    verify the canary's OS version, readiness, storage, network, audit and application health before
    selecting another node. Upgrade control-plane members serially with quorum retained. For Talos
    1.13, review its documented upgrade API limitations when relying on `machine.install.extraKernelArgs`;
-   choose the version-supported mitigation before the upgrade. The kit does not select it for you. [4]
+   choose the version-supported mitigation before the upgrade. This remains an operator decision. [4]
 4. For a **separately approved Kubernetes upgrade**, inspect the target matrix and version-skew rules.
    This command upgrades the **whole cluster**; `--nodes` selects the control-plane API contact.
    From **the execution host**, choose the target version and preview its changes:

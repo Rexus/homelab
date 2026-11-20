@@ -13,13 +13,13 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 PALETTE = "08-reference/diagrams/palette.json"
 IDENTITY_SVG = UPSTREAM / "docs/08-reference/diagrams/identity-operations.svg"
-CACHE_SVG = UPSTREAM / "docs/08-reference/diagrams/cache-services.svg"
+CACHE_SVG = UPSTREAM / "architecture/views/software-intake/placement.svg"
 LOGGING_SVG = UPSTREAM / "docs/08-reference/diagrams/protected-logging.svg"
 LOGGING_ROUTING_SVGS = tuple(UPSTREAM / f"docs/08-reference/diagrams/{name}.svg"
                            for name in ("logging-receivers", "logging-sender-routing", "logging-shared-endpoint"))
 LAB_SVG = UPSTREAM / "docs/08-reference/diagrams/lab-ownership.svg"
 INTAKE_SVG = UPSTREAM / "docs/08-reference/diagrams/verified-intake-placement.svg"
-SUPPLY_SVG = UPSTREAM / "docs/08-reference/diagrams/software-intake-context.svg"
+SUPPLY_SVG = UPSTREAM / "architecture/views/software-intake/logical.svg"
 SECRETS_SVG = UPSTREAM / "docs/08-reference/diagrams/secrets-context.svg"
 BACKUP_SVG = UPSTREAM / "docs/08-reference/diagrams/backup-recovery-context.svg"
 CRYPTO_SVG = UPSTREAM / "docs/08-reference/diagrams/cryptography-operations.svg"
@@ -183,7 +183,17 @@ class DiagramConventions(TierRepositoryTestCase):
         palette = json.loads((source / PALETTE).read_text())
         self.assertEqual((source / PALETTE).read_bytes(), (generated / PALETTE).read_bytes())
         for asset in PLACEMENT_SVGS:
-            self.assertEqual(asset.read_bytes(), (generated / asset.relative_to(source)).read_bytes())
+            original = ET.parse(asset).getroot()
+            relative = asset.relative_to(source) if asset.is_relative_to(source) else asset.relative_to(UPSTREAM)
+            copied = ET.parse(generated / relative).getroot()
+            # Hyperlinks follow their owners into the generated collection; graphic semantics,
+            # palette and geometry remain identical. Destination validity has its own contract test.
+            for tree in (original, copied):
+                for anchor in tree.iter("{http://www.w3.org/2000/svg}a"):
+                    for key in ("href", "{http://www.w3.org/1999/xlink}href"):
+                        if key in anchor.attrib:
+                            anchor.set(key, "relocated-owner")
+            self.assertEqual(ET.tostring(original), ET.tostring(copied))
         checked = 0
         for document in source.rglob("*.md"):
             blocks = diagrams(document)

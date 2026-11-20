@@ -1,5 +1,8 @@
 """Native Squid policy/cache/privacy acceptance, never a host service installation.
 
+Architecture impact, from the upstream kit checkout:
+python scripts/architecture/software_intake.py impact --file tests/test_tier_cache_policy.py
+
 Set HOMELAB_SQUID or SQUID_TEST_BINARY to an installed or unpacked Squid binary.
 An unpacked Debian/Ubuntu package must include its usr/lib and usr/share payloads.
 Only localhost high ports and private temporary state are used; origin traffic
@@ -33,7 +36,7 @@ MAX_AGE = 4
 
 
 @contextmanager
-def squid_fixture(role):
+def squid_fixture(role, *, origin_handler=None, control=None):
     """Run the actual rendered policy with a recording, HTTP-only parent proxy."""
     import pwd
 
@@ -79,7 +82,7 @@ def squid_fixture(role):
 
     with tempfile.TemporaryDirectory(prefix='homelab-squid-policy-') as temporary:
         work = Path(temporary)
-        parent = ThreadingHTTPServer(('127.0.0.1', 0), Origin)
+        parent = ThreadingHTTPServer(('127.0.0.1', 0), origin_handler or Origin)
         thread = threading.Thread(target=parent.serve_forever, daemon=True)
         thread.start()
         try:
@@ -159,6 +162,17 @@ def squid_fixture(role):
                     else:
                         output.seek(0)
                         raise AssertionError('Squid did not start:\n' + output.read())
+                    if control is not None:
+                        def set_domains(domains):
+                            inputs['cache_squid_allowed_domains'] = domains
+                            updated = Environment(undefined=StrictUndefined).from_string(
+                                (role / 'templates/squid.conf.j2').read_text()).render(inputs)
+                            config.write_text(updated.replace('/var/log/squid/', str(work) + '/'))
+                            changed = subprocess.run([str(binary), '-f', str(config), '-k', 'reconfigure'],
+                                env=environment, cwd=work, capture_output=True, text=True, timeout=15)
+                            if changed.returncode:
+                                raise AssertionError(changed.stdout + changed.stderr)
+                        control['set_domains'] = set_domains
                     yield port, calls, work / 'access.log'
                 finally:
                     if process.poll() is None:

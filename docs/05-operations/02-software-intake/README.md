@@ -7,12 +7,12 @@ For verified publication, use [verified software intake operations](verified-pub
 
 <a id="figure-reference-cache-deployment"></a>
 
-![Cache clients below Tier 2 and approved upstream sources to its left](../../08-reference/diagrams/cache-services.svg)
+![Cache clients below Tier 2 and approved upstream sources to its left](../../../architecture/views/software-intake/placement.svg)
 
 *Figure: Approved update clients below Tier 2 request the Cache VIP; Cache Services request approved
 Internet sources or a configured upstream proxy to the left. Replies use the established connections.
 Each instance has its own cache disk; the VIP has one active owner and does not replicate cache data.*
-[Editable figure](../../08-reference/diagrams/cache-services.svg). Physical host placement is outside this service view.
+[Model and editable layout](../../01-architecture/07-software-intake/02-connected-model.md). Physical host placement is outside this service view.
 
 **Owner:** `<prefix>-tier-2`; [VM inputs](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example),
 [policy inputs](../../../tier-2/ansible/group_vars/cache.yml.example) and

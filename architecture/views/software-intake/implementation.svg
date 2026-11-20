@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 726" role="img">
+  <style>svg[data-view]{visibility:hidden}view:target+svg[data-view]{visibility:visible}svg:not(:has(&gt;view:target))&gt;svg[data-view]:first-of-type{visibility:visible}</style>
+  <view id="index" viewBox="0 0 960 726" />
+  <svg viewBox="0 0 960 726" role="img" x="0" y="0" width="960" height="726.0" data-view="index">
+    <title>Software intake | implementation comparison</title>
+    <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+    <rect width="960" height="726" fill="white" />
+    <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Software intake | implementation comparison</text>
+    <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Real Squid and APT on loopback; compared with the model. No deployed network test.</text>
+    <a href="scenario-views.svg#SC-http-miss" target="_top" aria-label="Retrieve from available source">
+      <title>Retrieve from available source</title>
+      <g class="explorer-card" data-element="RUN-miss" data-category="function" color="#5b3921">
+        <rect x="30" y="100" width="440" height="96" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="45" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Retrieve from available source</text>
+        <text x="45" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Model: accepted; software: accepted. Squid: fetched</text>
+        <text x="45" y="169" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">from source. Source requests: 1.</text>
+      </g>
+    </a>
+    <a href="scenario-views.svg#SC-http-hit" target="_top" aria-label="Reuse fresh content while source is offline">
+      <title>Reuse fresh content while source is offline</title>
+      <g class="explorer-card" data-element="RUN-hit-offline" data-category="function" color="#5b3921">
+        <rect x="490" y="100" width="440" height="96" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="505" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reuse fresh content while source is offline</text>
+        <text x="505" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Model: accepted; software: accepted. Squid: cache</text>
+        <text x="505" y="169" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">hit. Source requests: 0.</text>
+      </g>
+    </a>
+    <a href="scenario-views.svg#SC-http-denied" target="_top" aria-label="Deny even when content is cached">
+      <title>Deny even when content is cached</title>
+      <g class="explorer-card" data-element="RUN-denied" data-category="function" color="#5b3921">
+        <rect x="30" y="208" width="440" height="96" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="45" y="233" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Deny even when content is cached</text>
+        <text x="45" y="257" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Model: denied by policy; software: denied by</text>
+        <text x="45" y="277" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">policy. Squid: access denied. Source requests: 0.</text>
+      </g>
+    </a>
+    <a href="scenario-views.svg#SC-http-source-failure" target="_top" aria-label="Stop after source failure">
+      <title>Stop after source failure</title>
+      <g class="explorer-card" data-element="RUN-source-failure" data-category="function" color="#5b3921">
+        <rect x="490" y="208" width="440" height="116" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="505" y="233" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Stop after source failure</text>
+        <text x="505" y="257" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Model: source unavailable; software: source</text>
+        <text x="505" y="277" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">unavailable. Squid: source error. Source requests:</text>
+        <text x="505" y="297" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">1.</text>
+      </g>
+    </a>
+    <a href="scenario-views.svg#SC-http-untrusted" target="_top" aria-label="Reject untrusted source content">
+      <title>Reject untrusted source content</title>
+      <g class="explorer-card" data-element="RUN-untrusted" data-category="function" color="#5b3921">
+        <rect x="30" y="336" width="440" height="116" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="45" y="361" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reject untrusted source content</text>
+        <text x="45" y="385" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Model: rejected by client; software: rejected by</text>
+        <text x="45" y="405" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">client. Squid: fetched from source. Source</text>
+        <text x="45" y="425" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">requests: 1.</text>
+      </g>
+    </a>
+    <a href="scenario-views.svg#SC-http-cache-untrusted" target="_top" aria-label="Reject untrusted cached content">
+      <title>Reject untrusted cached content</title>
+      <g class="explorer-card" data-element="RUN-cache-untrusted" data-category="function" color="#5b3921">
+        <rect x="490" y="336" width="440" height="96" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="505" y="361" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reject untrusted cached content</text>
+        <text x="505" y="385" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Model: rejected by client; software: rejected by</text>
+        <text x="505" y="405" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">client. Squid: cache hit. Source requests: 0.</text>
+      </g>
+    </a>
+    <a href="../../../docs/01-architecture/07-software-intake/06-implementation-comparison.md" target="_top" aria-label="What this checks">
+      <title>What this checks</title>
+      <g class="explorer-card">
+        <rect x="30" y="464" width="900" height="96" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="489" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">What this checks</text>
+        <text x="45" y="513" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">APT authenticates signed repository metadata, then downloads through Squid and checks package hashes. A</text>
+        <text x="45" y="533" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cached response can still fail verification. Internal model steps are not claimed as product observations.</text>
+      </g>
+    </a>
+    <a href="../../test/software-intake/implementation.json" target="_top" aria-label="Measured evidence">
+      <title>Measured evidence</title>
+      <g class="explorer-card">
+        <rect x="30" y="572" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="597" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Measured evidence</text>
+        <text x="45" y="621" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Product versions, source fingerprints, Squid results and APT outcomes.</text>
+      </g>
+    </a>
+    <rect x="0" y="670" width="960" height="56" fill="#eef2f6" />
+    <a href="../system-overall.svg" target="_top" aria-label="System Overall">
+      <title>System Overall</title>
+      <rect x="20.0" y="677" width="200" height="42" fill="transparent" />
+      <text x="120.0" y="703" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+    </a>
+    <a href="logical.svg" target="_top" aria-label="Up to overview">
+      <title>Up to overview</title>
+      <rect x="260.0" y="677" width="200" height="42" fill="transparent" />
+      <text x="360.0" y="703" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Up to overview</text>
+    </a>
+    <a href="execution.svg" target="_top" aria-label="Model execution">
+      <title>Model execution</title>
+      <rect x="500.0" y="677" width="200" height="42" fill="transparent" />
+      <text x="600.0" y="703" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Model execution</text>
+    </a>
+    <a href="../../../docs/01-architecture/07-software-intake/06-implementation-comparison.md" target="_top" aria-label="Documentation">
+      <title>Documentation</title>
+      <rect x="740.0" y="677" width="200" height="42" fill="transparent" />
+      <text x="840.0" y="703" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+    </a>
+  </svg>
+</svg>

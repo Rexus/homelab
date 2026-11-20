@@ -1,7 +1,7 @@
 # Optional YubiKey/FIDO2 unlock for ORCA working storage
 
-A compatible FIDO2 YubiKey is a useful optional convenience for repeated ORCA ceremonies when you
-can retain independent passphrase recovery and qualify the actual device. This path adds native
+A compatible FIDO2 YubiKey is a useful optional convenience for repeated ORCA ceremonies when
+independent passphrase recovery is retained and the actual device is qualified. This path adds native
 LUKS2 disk unlock with a PIN and physical touch. Keep the existing LUKS passphrase and its keyslot.
 Enrollment adds a slot; these steps never format storage, erase slots or reset the token. [1]
 PIN and touch apply to the token path; the retained LUKS passphrase remains an alternative unlock.

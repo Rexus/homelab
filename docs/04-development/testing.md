@@ -15,6 +15,9 @@ deployment, physical failover, protected retention or disaster recovery.
 
 Prepare the [developer environment](local-setup.md#step-1-prepare-the-developer-environment).
 That step installs `tests/requirements.txt`; keep the same virtual environment active.
+Connected intake model/view checks also need Graphviz `dot` (tested 14.0.5), on PATH or selected
+with `GRAPHVIZ_DOT`; see [model tooling](../01-architecture/07-software-intake/02-connected-model.md#build-and-check).
+Native SysML change tests require the three documented `SYSML_*` tool variables.
 
 Run from **upstream kit root**.
 

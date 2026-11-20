@@ -1,0 +1,56 @@
+%%{init: {"fontFamily":"Arial, sans-serif","sequence":{"wrap":true,"width":180,"actorMargin":70,"messageMargin":32,"noteMargin":12}}}%%
+sequenceDiagram
+  autonumber
+  participant P0 as Update client
+  participant P1 as Policy proxy
+  participant P2 as Approved source
+  %% model: H-request
+  P0->>P1: HTTP repository request
+  %% model: H-check
+  P1->>P1: Check client, destination and port
+  %% model: H-policy
+  alt Allowed
+    %% model: H-lookup
+    P1->>P1: Look up eligible fresh content
+    %% model: H-cache-choice
+    alt Fresh eligible cache hit
+      %% model: H-cached
+      P1-->>P0: Return cached response
+    else Absent or requires revalidation
+      %% model: H-fetch
+      P1->>P2: Fetch or conditionally revalidate
+      %% model: H-source-choice
+      alt Source available
+        %% model: H-origin
+        P2-->>P1: Content or freshness response
+        %% model: H-cache-rules
+        P1->>P1: Apply cache and privacy rules
+        %% model: H-response
+        P1-->>P0: Return response
+      else Source unavailable
+        %% model: H-source-failure
+        P1->>P1: Observe source failure
+        %% model: H-unavailable
+        P1-->>P0: Return retrieval error without content
+      end
+    end
+    %% model: H-delivery-choice
+    alt Content received
+      %% model: H-verify
+      P0->>P0: Verify trusted metadata / signatures
+      %% model: H-integrity-choice
+      alt Verification passed
+        %% model: H-accepted
+        P0->>P0: Accept verified content for use
+      else Verification failed
+        %% model: H-rejected
+        P0->>P0: Reject content#59; stop before use
+      end
+    else No content received
+      %% model: H-stop
+      P0->>P0: Stop retrieval without verifying content
+    end
+  else Denied by policy
+    %% model: H-denied
+    P1-->>P0: Deny without a cache lookup or source fetch
+  end

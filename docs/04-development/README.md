@@ -89,6 +89,10 @@ The collection directory is not itself a Git repository.
 | Prepare a checkout for development | [Local setup](local-setup.md) |
 | Work before hosted source control exists | [Private repository workflow](repository-workflow.md) |
 | Change a diagram alongside its code | [Diagram conventions](diagrams.md) |
+| Navigate MBSE sources and views | [Model map](../01-architecture/model-map.md) |
+| Publish and review the model in SysON | [SysON workflow](syson.md) |
+| Reconcile model/code changes and assess requirements | [Model development workflow](model-change-workflow.md) |
+| Trace software-intake design into IaC | [Connected model](../01-architecture/07-software-intake/02-connected-model.md) |
 
 ## Fast change loop
 

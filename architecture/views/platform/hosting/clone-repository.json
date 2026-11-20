@@ -1,0 +1,11 @@
+{
+  "case": "UC-clone",
+  "actors": [
+    "ACT-operator",
+    "ACT-intake"
+  ],
+  "width": 960,
+  "height": 430,
+  "description": "The operator asks boot-1 to clone a Git repository over HTTPS. Software intake is a supporting service; select it to open its separately owned logical design. Lines mean participation, not network routes.",
+  "caption": "Expected use \u00b7 Select Software intake to open its design"
+}

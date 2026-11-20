@@ -1,0 +1,6104 @@
+{
+  "scope": "upstream example inputs; expected behavior, not live deployment",
+  "model": {
+    "behaviors": {
+      "B-HTTP": {
+        "participants": [
+          "H-client",
+          "H-proxy",
+          "H-source"
+        ],
+        "bindings": {
+          "H-client": "L-Consumers",
+          "H-proxy": "L-Proxy",
+          "H-source": "L-Sources"
+        },
+        "steps": [
+          {
+            "id": "H-request",
+            "kind": "request",
+            "from": "H-client",
+            "to": "H-proxy",
+            "label": "HTTP repository request",
+            "notes": []
+          },
+          {
+            "id": "H-check",
+            "kind": "process",
+            "from": "H-proxy",
+            "to": "H-proxy",
+            "label": "Check client, destination and port",
+            "notes": []
+          },
+          {
+            "id": "H-policy",
+            "kind": "choice",
+            "guard": "H-admitted",
+            "branches": [
+              {
+                "id": "H-allow",
+                "label": "Allowed",
+                "when": true,
+                "steps": [
+                  {
+                    "id": "H-lookup",
+                    "kind": "process",
+                    "from": "H-proxy",
+                    "to": "H-proxy",
+                    "label": "Look up eligible fresh content",
+                    "notes": []
+                  },
+                  {
+                    "id": "H-cache-choice",
+                    "kind": "choice",
+                    "guard": "H-fresh",
+                    "branches": [
+                      {
+                        "id": "H-hit",
+                        "label": "Fresh eligible cache hit",
+                        "when": true,
+                        "steps": [
+                          {
+                            "id": "H-cached",
+                            "kind": "response",
+                            "from": "H-proxy",
+                            "to": "H-client",
+                            "label": "Return cached response",
+                            "notes": []
+                          }
+                        ]
+                      },
+                      {
+                        "id": "H-miss",
+                        "label": "Absent or requires revalidation",
+                        "when": false,
+                        "steps": [
+                          {
+                            "id": "H-fetch",
+                            "kind": "request",
+                            "from": "H-proxy",
+                            "to": "H-source",
+                            "label": "Fetch or conditionally revalidate",
+                            "notes": []
+                          },
+                          {
+                            "id": "H-source-choice",
+                            "kind": "choice",
+                            "guard": "H-source-available",
+                            "branches": [
+                              {
+                                "id": "H-source-ok",
+                                "label": "Source available",
+                                "when": true,
+                                "steps": [
+                                  {
+                                    "id": "H-origin",
+                                    "kind": "response",
+                                    "from": "H-source",
+                                    "to": "H-proxy",
+                                    "label": "Content or freshness response",
+                                    "notes": []
+                                  },
+                                  {
+                                    "id": "H-cache-rules",
+                                    "kind": "process",
+                                    "from": "H-proxy",
+                                    "to": "H-proxy",
+                                    "label": "Apply cache and privacy rules",
+                                    "notes": []
+                                  },
+                                  {
+                                    "id": "H-response",
+                                    "kind": "response",
+                                    "from": "H-proxy",
+                                    "to": "H-client",
+                                    "label": "Return response",
+                                    "notes": []
+                                  }
+                                ]
+                              },
+                              {
+                                "id": "H-source-down",
+                                "label": "Source unavailable",
+                                "when": false,
+                                "steps": [
+                                  {
+                                    "id": "H-source-failure",
+                                    "kind": "process",
+                                    "from": "H-proxy",
+                                    "to": "H-proxy",
+                                    "label": "Observe source failure",
+                                    "notes": []
+                                  },
+                                  {
+                                    "id": "H-unavailable",
+                                    "kind": "response",
+                                    "from": "H-proxy",
+                                    "to": "H-client",
+                                    "label": "Return retrieval error without content",
+                                    "notes": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "id": "H-delivery-choice",
+                    "kind": "choice",
+                    "guard": "H-delivered",
+                    "branches": [
+                      {
+                        "id": "H-has-content",
+                        "label": "Content received",
+                        "when": true,
+                        "steps": [
+                          {
+                            "id": "H-verify",
+                            "kind": "process",
+                            "from": "H-client",
+                            "to": "H-client",
+                            "label": "Verify trusted metadata / signatures",
+                            "notes": []
+                          },
+                          {
+                            "id": "H-integrity-choice",
+                            "kind": "choice",
+                            "guard": "H-trusted",
+                            "branches": [
+                              {
+                                "id": "H-trust-ok",
+                                "label": "Verification passed",
+                                "when": true,
+                                "steps": [
+                                  {
+                                    "id": "H-accepted",
+                                    "kind": "process",
+                                    "from": "H-client",
+                                    "to": "H-client",
+                                    "label": "Accept verified content for use",
+                                    "notes": []
+                                  }
+                                ]
+                              },
+                              {
+                                "id": "H-trust-failed",
+                                "label": "Verification failed",
+                                "when": false,
+                                "steps": [
+                                  {
+                                    "id": "H-rejected",
+                                    "kind": "process",
+                                    "from": "H-client",
+                                    "to": "H-client",
+                                    "label": "Reject content; stop before use",
+                                    "notes": []
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "id": "H-no-content",
+                        "label": "No content received",
+                        "when": false,
+                        "steps": [
+                          {
+                            "id": "H-stop",
+                            "kind": "process",
+                            "from": "H-client",
+                            "to": "H-client",
+                            "label": "Stop retrieval without verifying content",
+                            "notes": []
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "id": "H-deny",
+                "label": "Denied by policy",
+                "when": false,
+                "steps": [
+                  {
+                    "id": "H-denied",
+                    "kind": "response",
+                    "from": "H-proxy",
+                    "to": "H-client",
+                    "label": "Deny without a cache lookup or source fetch",
+                    "notes": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "B-HTTPS": {
+        "participants": [
+          "S-client",
+          "S-proxy",
+          "S-source"
+        ],
+        "bindings": {
+          "S-client": "L-Consumers",
+          "S-proxy": "L-Proxy",
+          "S-source": "L-Sources"
+        },
+        "steps": [
+          {
+            "id": "S-connect",
+            "kind": "request",
+            "from": "S-client",
+            "to": "S-proxy",
+            "label": "CONNECT source:443",
+            "notes": []
+          },
+          {
+            "id": "S-check",
+            "kind": "process",
+            "from": "S-proxy",
+            "to": "S-proxy",
+            "label": "Check client, destination and port",
+            "notes": []
+          },
+          {
+            "id": "S-policy",
+            "kind": "choice",
+            "guard": "S-admitted",
+            "branches": [
+              {
+                "id": "S-allow",
+                "label": "Allowed; TCP/TLS succeeds",
+                "when": true,
+                "steps": [
+                  {
+                    "id": "S-open",
+                    "kind": "request",
+                    "from": "S-proxy",
+                    "to": "S-source",
+                    "label": "Open permitted TCP connection",
+                    "notes": []
+                  },
+                  {
+                    "id": "S-established",
+                    "kind": "response",
+                    "from": "S-source",
+                    "to": "S-proxy",
+                    "label": "Connection established",
+                    "notes": []
+                  },
+                  {
+                    "id": "S-ready",
+                    "kind": "response",
+                    "from": "S-proxy",
+                    "to": "S-client",
+                    "label": "200 Connection Established",
+                    "notes": []
+                  },
+                  {
+                    "id": "S-fetch",
+                    "kind": "request",
+                    "from": "S-client",
+                    "to": "S-source",
+                    "label": "Fetch through client-to-source TLS",
+                    "notes": [
+                      "Client authenticates source TLS through the tunnel. No payload caching or scanning."
+                    ]
+                  },
+                  {
+                    "id": "S-response",
+                    "kind": "response",
+                    "from": "S-source",
+                    "to": "S-client",
+                    "label": "Encrypted response through the tunnel",
+                    "notes": []
+                  },
+                  {
+                    "id": "S-verify",
+                    "kind": "process",
+                    "from": "S-client",
+                    "to": "S-client",
+                    "label": "Verify trusted metadata / signatures; stop on failure",
+                    "notes": []
+                  }
+                ]
+              },
+              {
+                "id": "S-deny",
+                "label": "Denied by policy",
+                "when": false,
+                "steps": [
+                  {
+                    "id": "S-denied",
+                    "kind": "response",
+                    "from": "S-proxy",
+                    "to": "S-client",
+                    "label": "Deny without a source connection",
+                    "notes": []
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "elements": {
+      "ACT-client": {
+        "name": "Update client",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "ACT-intake": {
+        "name": "Software intake",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "ACT-operator": {
+        "name": "Operator",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "ACT-source": {
+        "name": "Approved source",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "ALLOC-F-admit-0": {
+        "name": "ALLOC-F-admit-0",
+        "kind": "AllocationUsage",
+        "docs": []
+      },
+      "ALLOC-F-cache-0": {
+        "name": "ALLOC-F-cache-0",
+        "kind": "AllocationUsage",
+        "docs": []
+      },
+      "ALLOC-F-cache-1": {
+        "name": "ALLOC-F-cache-1",
+        "kind": "AllocationUsage",
+        "docs": []
+      },
+      "ALLOC-F-http-0": {
+        "name": "ALLOC-F-http-0",
+        "kind": "AllocationUsage",
+        "docs": []
+      },
+      "ALLOC-F-tunnel-0": {
+        "name": "ALLOC-F-tunnel-0",
+        "kind": "AllocationUsage",
+        "docs": []
+      },
+      "ALLOC-F-verify-0": {
+        "name": "ALLOC-F-verify-0",
+        "kind": "AllocationUsage",
+        "docs": []
+      },
+      "ALLOC-cache-1": {
+        "name": "ALLOC-cache-1",
+        "kind": "AllocationUsage",
+        "docs": []
+      },
+      "ALLOC-cache-2": {
+        "name": "ALLOC-cache-2",
+        "kind": "AllocationUsage",
+        "docs": []
+      },
+      "ALLOC-proxy": {
+        "name": "ALLOC-proxy",
+        "kind": "AllocationUsage",
+        "docs": []
+      },
+      "AN-admission": {
+        "name": "AdmissionOrderReview",
+        "kind": "AnalysisCaseDefinition",
+        "docs": []
+      },
+      "AN-function": {
+        "name": "Evaluates admission function",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "AN-policy": {
+        "name": "Evaluates admission obligation",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "B-HTTP": {
+        "name": "HttpRetrieval",
+        "kind": "ActionDefinition",
+        "docs": [
+          "Expected HTTP behavior, including admission, cache freshness, source failure and client verification alternatives.\nGuards are observed outcomes, not predictions made by this model."
+        ]
+      },
+      "B-HTTPS": {
+        "name": "HttpsRetrieval",
+        "kind": "ActionDefinition",
+        "docs": [
+          "Expected successful CONNECT/TLS exchange or admission denial. TCP/TLS failures stop\nretrieval; retries and detailed transport error exchanges are outside this view.\nClient-to-source messages pass through the established tunnel. No payload cache or scanning."
+        ]
+      },
+      "BOOT-DEF-operator": {
+        "name": "BootstrapOperator",
+        "kind": "PartDefinition",
+        "docs": [
+          "Person operating the bootstrap host."
+        ],
+        "ports": []
+      },
+      "BOOT-host": {
+        "name": "boot-1",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "BOOT-operator": {
+        "name": "operator",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "CALC-admission": {
+        "name": "AdmissionAllowed",
+        "kind": "CalculationDefinition",
+        "docs": []
+      },
+      "CALC-shortcut": {
+        "name": "CacheShortcut",
+        "kind": "CalculationDefinition",
+        "docs": [
+          "Rejected candidate: a warm cache must not bypass admission. An analysis alternative, not an implementation."
+        ]
+      },
+      "CONTENT-cache-1": {
+        "name": "Cached content",
+        "kind": "ItemUsage",
+        "docs": []
+      },
+      "CONTENT-cache-2": {
+        "name": "Cached content",
+        "kind": "ItemUsage",
+        "docs": []
+      },
+      "COVER-SC-http-cache-untrusted": {
+        "name": "COVER-SC-http-cache-untrusted",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "COVER-SC-http-denied": {
+        "name": "COVER-SC-http-denied",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "COVER-SC-http-hit": {
+        "name": "COVER-SC-http-hit",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "COVER-SC-http-miss": {
+        "name": "COVER-SC-http-miss",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "COVER-SC-http-source-failure": {
+        "name": "COVER-SC-http-source-failure",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "COVER-SC-http-untrusted": {
+        "name": "COVER-SC-http-untrusted",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "COVER-SC-https": {
+        "name": "COVER-SC-https",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "COVER-SC-https-denied": {
+        "name": "COVER-SC-https-denied",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEF-cache": {
+        "name": "DisposableCache",
+        "kind": "PartDefinition",
+        "docs": [
+          "Storage responsibility holding zero or more cached objects. Selected virtual disks\nrealize this part; the content remains a separate item feature."
+        ],
+        "ports": [
+          "access"
+        ]
+      },
+      "DEF-cache-contents": {
+        "name": "contents",
+        "kind": "ItemUsage",
+        "docs": []
+      },
+      "DEF-cached-content": {
+        "name": "CachedContent",
+        "kind": "ItemDefinition",
+        "docs": [
+          "Stored response data and associated cache metadata. Disposable copies, not an executing\ncomponent, authoritative retention, or evidence of publisher trust."
+        ]
+      },
+      "DEF-client": {
+        "name": "UpdateClient",
+        "kind": "PartDefinition",
+        "docs": [
+          "Pull through the accepted route and verify publisher metadata/signatures locally."
+        ],
+        "ports": [
+          "access"
+        ]
+      },
+      "DEF-listener": {
+        "name": "SharedListener",
+        "kind": "PartDefinition",
+        "docs": [],
+        "ports": [
+          "dispatch",
+          "inbound"
+        ]
+      },
+      "DEF-member": {
+        "name": "ProxyMember",
+        "kind": "PartDefinition",
+        "docs": [
+          "A software/virtual-resource member. Its guest storage does not identify a physical drive or host."
+        ],
+        "ports": []
+      },
+      "DEF-member-cache": {
+        "name": "storage",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "DEF-member-proxy": {
+        "name": "proxy",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "DEF-proxy": {
+        "name": "PolicyProxy",
+        "kind": "PartDefinition",
+        "docs": [
+          "Admit by client, destination and port before forwarding or cache lookup.\nReject disallowed requests without contacting the source or reading cached content.\nForward encrypted tunnels without payload inspection.\nCache eligible HTTP responses only; a cache hit conveys no release approval."
+        ],
+        "ports": [
+          "cacheAccess",
+          "listener",
+          "outbound"
+        ]
+      },
+      "DEF-source": {
+        "name": "ApprovedSource",
+        "kind": "PartDefinition",
+        "docs": [
+          "Abstract role of an external repository service; an allowlist is a separate policy asset."
+        ],
+        "ports": [
+          "access"
+        ]
+      },
+      "DEP-custody": {
+        "name": "Recovery separation",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEP-egress": {
+        "name": "Network obligation",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEP-http-integrity": {
+        "name": "DEP-http-integrity",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEP-http-policy": {
+        "name": "DEP-http-policy",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEP-http-usecase": {
+        "name": "DEP-http-usecase",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEP-https-integrity": {
+        "name": "DEP-https-integrity",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEP-https-policy": {
+        "name": "DEP-https-policy",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEP-https-usecase": {
+        "name": "DEP-https-usecase",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEP-integrity": {
+        "name": "Verification obligation",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEP-policy": {
+        "name": "Admission obligation",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEP-storage": {
+        "name": "Uses local rebuildable storage",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DEP-usecase": {
+        "name": "Uses controlled acquisition",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "DISK-cache-1": {
+        "name": "storage",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "DISK-cache-2": {
+        "name": "storage",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "DOC-proxy-contract": {
+        "name": "Contract obligations",
+        "kind": "Documentation",
+        "docs": []
+      },
+      "EXEC-H-accepted": {
+        "name": "EXEC-H-accepted",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-cache-rules": {
+        "name": "EXEC-H-cache-rules",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-cached": {
+        "name": "EXEC-H-cached",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-check": {
+        "name": "EXEC-H-check",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-denied": {
+        "name": "EXEC-H-denied",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-fetch": {
+        "name": "EXEC-H-fetch",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-lookup": {
+        "name": "EXEC-H-lookup",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-origin": {
+        "name": "EXEC-H-origin",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-rejected": {
+        "name": "EXEC-H-rejected",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-request": {
+        "name": "EXEC-H-request",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-response": {
+        "name": "EXEC-H-response",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-source-failure": {
+        "name": "EXEC-H-source-failure",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-stop": {
+        "name": "EXEC-H-stop",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-unavailable": {
+        "name": "EXEC-H-unavailable",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-H-verify": {
+        "name": "EXEC-H-verify",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-RUN-cache-untrusted": {
+        "name": "EXEC-RUN-cache-untrusted",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-RUN-denied": {
+        "name": "EXEC-RUN-denied",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-RUN-hit-offline": {
+        "name": "EXEC-RUN-hit-offline",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-RUN-miss": {
+        "name": "EXEC-RUN-miss",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-RUN-source-failure": {
+        "name": "EXEC-RUN-source-failure",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-RUN-untrusted": {
+        "name": "EXEC-RUN-untrusted",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "EXEC-refines": {
+        "name": "Executable refinement",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "F-admit": {
+        "name": "Check request access",
+        "kind": "ActionUsage",
+        "docs": [
+          "Check the accepted client, destination and port policy before content access."
+        ]
+      },
+      "F-cache": {
+        "name": "Reuse fresh cached content",
+        "kind": "ActionUsage",
+        "docs": [
+          "Reuse only eligible fresh responses; respect privacy and freshness directives. Storage remains disposable."
+        ]
+      },
+      "F-http": {
+        "name": "Fetch content from source",
+        "kind": "ActionUsage",
+        "docs": [
+          "Fetch or conditionally revalidate permitted repository content with its source."
+        ]
+      },
+      "F-tunnel": {
+        "name": "Forward HTTPS traffic",
+        "kind": "ActionUsage",
+        "docs": [
+          "Establish an admitted tunnel; preserve client-to-source TLS without inspecting or caching encrypted payload."
+        ]
+      },
+      "F-verify": {
+        "name": "Verify before use",
+        "kind": "ActionUsage",
+        "docs": [
+          "The external client verifies trusted publisher metadata and signatures; failure stops use."
+        ]
+      },
+      "FUNCTION-H-accepted": {
+        "name": "FUNCTION-H-accepted",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-cache-rules": {
+        "name": "FUNCTION-H-cache-rules",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-cached": {
+        "name": "FUNCTION-H-cached",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-check": {
+        "name": "FUNCTION-H-check",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-denied": {
+        "name": "FUNCTION-H-denied",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-fetch": {
+        "name": "FUNCTION-H-fetch",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-lookup": {
+        "name": "FUNCTION-H-lookup",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-origin": {
+        "name": "FUNCTION-H-origin",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-rejected": {
+        "name": "FUNCTION-H-rejected",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-request": {
+        "name": "FUNCTION-H-request",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-response": {
+        "name": "FUNCTION-H-response",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-source-failure": {
+        "name": "FUNCTION-H-source-failure",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-stop": {
+        "name": "FUNCTION-H-stop",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-unavailable": {
+        "name": "FUNCTION-H-unavailable",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-H-verify": {
+        "name": "FUNCTION-H-verify",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-S-check": {
+        "name": "FUNCTION-S-check",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-S-connect": {
+        "name": "FUNCTION-S-connect",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-S-denied": {
+        "name": "FUNCTION-S-denied",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-S-established": {
+        "name": "FUNCTION-S-established",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-S-fetch": {
+        "name": "FUNCTION-S-fetch",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-S-open": {
+        "name": "FUNCTION-S-open",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-S-ready": {
+        "name": "FUNCTION-S-ready",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-S-response": {
+        "name": "FUNCTION-S-response",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "FUNCTION-S-verify": {
+        "name": "FUNCTION-S-verify",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "GUARD-F-admit": {
+        "name": "GUARD-F-admit",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "GUARD-F-cache": {
+        "name": "GUARD-F-cache",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "GUARD-F-http": {
+        "name": "GUARD-F-http",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "GUARD-F-tunnel": {
+        "name": "GUARD-F-tunnel",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "GUARD-F-verify": {
+        "name": "GUARD-F-verify",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "H-accepted": {
+        "name": "Accept verified content for use",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-admitted": {
+        "name": "admitted",
+        "kind": "AttributeUsage",
+        "docs": []
+      },
+      "H-allow": {
+        "name": "Allowed",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "H-cache-choice": {
+        "name": "freshness",
+        "kind": "IfActionUsage",
+        "docs": []
+      },
+      "H-cache-rules": {
+        "name": "Apply cache and privacy rules",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-cached": {
+        "name": "Return cached response",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-check": {
+        "name": "Check client, destination and port",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-client": {
+        "name": "Update client",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "H-delivered": {
+        "name": "responseDelivered",
+        "kind": "AttributeUsage",
+        "docs": []
+      },
+      "H-delivery-choice": {
+        "name": "delivery",
+        "kind": "IfActionUsage",
+        "docs": []
+      },
+      "H-denied": {
+        "name": "Deny without a cache lookup or source fetch",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-deny": {
+        "name": "Denied by policy",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "H-fetch": {
+        "name": "Fetch or conditionally revalidate",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-fresh": {
+        "name": "eligibleFreshResponse",
+        "kind": "AttributeUsage",
+        "docs": []
+      },
+      "H-has-content": {
+        "name": "Content received",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "H-hit": {
+        "name": "Fresh eligible cache hit",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "H-integrity-choice": {
+        "name": "integrity",
+        "kind": "IfActionUsage",
+        "docs": []
+      },
+      "H-lookup": {
+        "name": "Look up eligible fresh content",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-miss": {
+        "name": "Absent or requires revalidation",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "H-no-content": {
+        "name": "No content received",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "H-origin": {
+        "name": "Content or freshness response",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-policy": {
+        "name": "admission",
+        "kind": "IfActionUsage",
+        "docs": []
+      },
+      "H-proxy": {
+        "name": "Policy proxy",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "H-rejected": {
+        "name": "Reject content; stop before use",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-request": {
+        "name": "HTTP repository request",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-response": {
+        "name": "Return response",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-source": {
+        "name": "Approved source",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "H-source-available": {
+        "name": "sourceAvailable",
+        "kind": "AttributeUsage",
+        "docs": []
+      },
+      "H-source-choice": {
+        "name": "availability",
+        "kind": "IfActionUsage",
+        "docs": []
+      },
+      "H-source-down": {
+        "name": "Source unavailable",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "H-source-failure": {
+        "name": "Observe source failure",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-source-ok": {
+        "name": "Source available",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "H-stop": {
+        "name": "Stop retrieval without verifying content",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-trust-failed": {
+        "name": "Verification failed",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "H-trust-ok": {
+        "name": "Verification passed",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "H-trusted": {
+        "name": "contentVerified",
+        "kind": "AttributeUsage",
+        "docs": []
+      },
+      "H-unavailable": {
+        "name": "Return retrieval error without content",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "H-verify": {
+        "name": "Verify trusted metadata / signatures",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "HOST-cache-1": {
+        "name": "Uses virtual execution: cache-1",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "HOST-cache-2": {
+        "name": "Uses virtual execution: cache-2",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "IF-transfer": {
+        "name": "TransferPort",
+        "kind": "PortDefinition",
+        "docs": []
+      },
+      "IO-cache-1": {
+        "name": "cacheIO",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "IO-cache-2": {
+        "name": "cacheIO",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "L-Cache": {
+        "name": "Rebuildable cache storage",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "L-Consumers": {
+        "name": "Update Consumers",
+        "kind": "PartUsage",
+        "docs": [
+          "Separately owned external client roles; not a shared network or authority."
+        ],
+        "composite": false
+      },
+      "L-Control": {
+        "name": "Infrastructure update clients",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "L-Platform": {
+        "name": "Platform update clients",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "L-Proxy": {
+        "name": "Policy proxy / HTTP cache",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "L-Sources": {
+        "name": "Approved external sources",
+        "kind": "PartUsage",
+        "docs": [
+          "Abstract external repository role, not a component implemented by this system.\nThe permitted-source list is admission policy/configuration, not this participant."
+        ],
+        "composite": false
+      },
+      "L-Workloads": {
+        "name": "Workload update clients",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "L-cache-io": {
+        "name": "Disposable storage",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "L-cached-content": {
+        "name": "Cached content",
+        "kind": "ItemUsage",
+        "docs": []
+      },
+      "L-context": {
+        "name": "context",
+        "kind": "PartUsage",
+        "docs": [
+          "Interaction context. Tier and zone frames are explanatory view classifications,\nnot deployed parts or composition owners. External sources/clients are reference roles."
+        ],
+        "composite": false
+      },
+      "L-request": {
+        "name": "Proxy requests",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "L-upstream": {
+        "name": "Source requests",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "MSG-process": {
+        "name": "ProcessingStep",
+        "kind": "FlowDefinition",
+        "docs": []
+      },
+      "MSG-request": {
+        "name": "RequestMessage",
+        "kind": "FlowDefinition",
+        "docs": []
+      },
+      "MSG-response": {
+        "name": "ResponseMessage",
+        "kind": "FlowDefinition",
+        "docs": []
+      },
+      "NET-cache-1": {
+        "name": "Uses guest attachment: cache-1",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "NET-cache-2": {
+        "name": "Uses guest attachment: cache-2",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "P-DEF-equipment": {
+        "name": "Equipment",
+        "kind": "PartDefinition",
+        "docs": [],
+        "ports": [
+          "attachment"
+        ]
+      },
+      "P-DEF-logical-network": {
+        "name": "LogicalTransport",
+        "kind": "PartDefinition",
+        "docs": [],
+        "ports": []
+      },
+      "P-DEF-network": {
+        "name": "GuestNetworkProvider",
+        "kind": "PartDefinition",
+        "docs": [],
+        "ports": []
+      },
+      "P-DEF-storage": {
+        "name": "GuestStorageProvider",
+        "kind": "PartDefinition",
+        "docs": [],
+        "ports": []
+      },
+      "P-DEF-virtualization": {
+        "name": "VirtualizationProvider",
+        "kind": "PartDefinition",
+        "docs": [],
+        "ports": []
+      },
+      "P-IF-physical": {
+        "name": "PhysicalAttachment",
+        "kind": "PortDefinition",
+        "docs": []
+      },
+      "P-cabling": {
+        "name": "Physical attachment",
+        "kind": "ConnectionUsage",
+        "docs": []
+      },
+      "P-context": {
+        "name": "platform",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "P-disk-backing": {
+        "name": "Backed by",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "P-drives": {
+        "name": "Physical storage devices",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "P-fabric": {
+        "name": "Logical fabric network",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "P-fabric-backing": {
+        "name": "Realized over",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "P-fabric-use": {
+        "name": "Uses logical transport",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "P-hosting": {
+        "name": "Runs on",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "P-network": {
+        "name": "Guest network attachment",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "P-network-provider": {
+        "name": "P-network-provider",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "P-servers": {
+        "name": "Physical servers",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "P-storage": {
+        "name": "Local guest-disk service",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "P-storage-network": {
+        "name": "Logical storage network",
+        "kind": "PartUsage",
+        "docs": [
+          "Optional dual-fabric reference. Not required by the selected local cache disks."
+        ],
+        "composite": true
+      },
+      "P-storage-network-backing": {
+        "name": "Realized over when selected",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "P-storage-provider": {
+        "name": "P-storage-provider",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "P-switches": {
+        "name": "Physical switches and NICs",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "P-virtualization": {
+        "name": "Proxmox virtualization",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "PAYLOAD": {
+        "name": "Transfer",
+        "kind": "ItemDefinition",
+        "docs": []
+      },
+      "R-Consumers": {
+        "name": "clients",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "R-Pair": {
+        "name": "services",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "R-Upstream": {
+        "name": "sources",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "R-VIP": {
+        "name": "vip",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "R-dispatch": {
+        "name": "dispatch",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "R-request": {
+        "name": "request",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "R-upstream": {
+        "name": "upstream",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "REQ-custody": {
+        "name": "independentRecovery",
+        "kind": "RequirementUsage",
+        "docs": [
+          "Losing rebuildable cache data must not erase the independently retained recovery supply."
+        ]
+      },
+      "REQ-egress": {
+        "name": "noBypass",
+        "kind": "RequirementUsage",
+        "docs": [
+          "Independently enforce the accepted network egress policy. Proxy configuration alone cannot deny bypass."
+        ]
+      },
+      "REQ-integrity": {
+        "name": "consumerVerification",
+        "kind": "RequirementUsage",
+        "docs": [
+          "Preserve source TLS through CONNECT and consumer verification. Cache presence is not approval."
+        ]
+      },
+      "REQ-policy": {
+        "name": "admittedSources",
+        "kind": "RequirementUsage",
+        "docs": [
+          "Remote access requires the accepted client, destination and port policy; otherwise deny."
+        ]
+      },
+      "RUN-cache-1": {
+        "name": "proxy",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "RUN-cache-2": {
+        "name": "proxy",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "RUN-cache-untrusted": {
+        "name": "Reject untrusted cached content",
+        "kind": "ActionUsage",
+        "docs": [
+          "{\"outcome\": \"verification-failed\", \"accepted\": false, \"cacheLookups\": 1, \"sourceRequests\": 0, \"verificationChecks\": 1}"
+        ]
+      },
+      "RUN-denied": {
+        "name": "Deny even when content is cached",
+        "kind": "ActionUsage",
+        "docs": [
+          "{\"outcome\": \"denied\", \"accepted\": false, \"cacheLookups\": 0, \"sourceRequests\": 0, \"verificationChecks\": 0}"
+        ]
+      },
+      "RUN-hit-offline": {
+        "name": "Reuse fresh content while source is offline",
+        "kind": "ActionUsage",
+        "docs": [
+          "{\"outcome\": \"accepted\", \"accepted\": true, \"cacheLookups\": 1, \"sourceRequests\": 0, \"verificationChecks\": 1}"
+        ]
+      },
+      "RUN-miss": {
+        "name": "Retrieve from available source",
+        "kind": "ActionUsage",
+        "docs": [
+          "{\"outcome\": \"accepted\", \"accepted\": true, \"cacheLookups\": 1, \"sourceRequests\": 1, \"verificationChecks\": 1}"
+        ]
+      },
+      "RUN-source-failure": {
+        "name": "Stop after source failure",
+        "kind": "ActionUsage",
+        "docs": [
+          "{\"outcome\": \"source-unavailable\", \"accepted\": false, \"cacheLookups\": 1, \"sourceRequests\": 1, \"verificationChecks\": 0}"
+        ]
+      },
+      "RUN-untrusted": {
+        "name": "Reject untrusted source content",
+        "kind": "ActionUsage",
+        "docs": [
+          "{\"outcome\": \"verification-failed\", \"accepted\": false, \"cacheLookups\": 1, \"sourceRequests\": 1, \"verificationChecks\": 1}"
+        ]
+      },
+      "S-admitted": {
+        "name": "admitted",
+        "kind": "AttributeUsage",
+        "docs": []
+      },
+      "S-allow": {
+        "name": "Allowed; TCP/TLS succeeds",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "S-check": {
+        "name": "Check client, destination and port",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "S-client": {
+        "name": "Update client",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "S-connect": {
+        "name": "CONNECT source:443",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "S-denied": {
+        "name": "Deny without a source connection",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "S-deny": {
+        "name": "Denied by policy",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "S-established": {
+        "name": "Connection established",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "S-fetch": {
+        "name": "Fetch through client-to-source TLS",
+        "kind": "FlowUsage",
+        "docs": [
+          "Client authenticates source TLS through the tunnel. No payload caching or scanning."
+        ]
+      },
+      "S-open": {
+        "name": "Open permitted TCP connection",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "S-policy": {
+        "name": "admission",
+        "kind": "IfActionUsage",
+        "docs": []
+      },
+      "S-proxy": {
+        "name": "Policy proxy",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "S-ready": {
+        "name": "200 Connection Established",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "S-response": {
+        "name": "Encrypted response through the tunnel",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "S-source": {
+        "name": "Approved source",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "S-verify": {
+        "name": "Verify trusted metadata / signatures; stop on failure",
+        "kind": "FlowUsage",
+        "docs": []
+      },
+      "SAT-policy": {
+        "name": "policySatisfied",
+        "kind": "SatisfyRequirementUsage",
+        "docs": [
+          "Design assertion for the selected policy proxy; verification and site evidence are separate."
+        ]
+      },
+      "SC-http-cache-untrusted": {
+        "name": "Reject untrusted cached content",
+        "kind": "ActionUsage",
+        "docs": [
+          "An update client requests HTTP repository content.",
+          "A fresh eligible cached response is returned but publisher verification fails.",
+          "Reject cached content before use; a cache hit does not imply trust."
+        ]
+      },
+      "SC-http-denied": {
+        "name": "Reject a disallowed HTTP request",
+        "kind": "ActionUsage",
+        "docs": [
+          "A client requests a disallowed HTTP destination, port or route.",
+          "At least one admission condition fails.",
+          "Receive denial without a cache lookup or source fetch."
+        ]
+      },
+      "SC-http-hit": {
+        "name": "Reuse a fresh HTTP response",
+        "kind": "ActionUsage",
+        "docs": [
+          "An update client repeats an eligible HTTP request.",
+          "Policy admits the request and an eligible fresh cached response exists.",
+          "Receive cached content without an origin fetch, then perform the same local verification as a miss."
+        ]
+      },
+      "SC-http-miss": {
+        "name": "Retrieve or revalidate HTTP content",
+        "kind": "ActionUsage",
+        "docs": [
+          "An update client requests HTTP repository content.",
+          "The route and trust policy are configured; content is absent or needs revalidation.",
+          "Receive an allowed response, then verify trusted metadata and signatures locally. Verification failure stops use; it never approves an artifact."
+        ]
+      },
+      "SC-http-source-failure": {
+        "name": "Stop when the source is unavailable",
+        "kind": "ActionUsage",
+        "docs": [
+          "An update client requests HTTP repository content.",
+          "An admitted request has no eligible fresh response and its source attempt fails.",
+          "Return a retrieval error and stop without content verification."
+        ]
+      },
+      "SC-http-untrusted": {
+        "name": "Reject untrusted source content",
+        "kind": "ActionUsage",
+        "docs": [
+          "An update client requests HTTP repository content.",
+          "An admitted source retrieval completes but publisher verification fails.",
+          "Reject received content before use."
+        ]
+      },
+      "SC-https": {
+        "name": "Retrieve through source TLS",
+        "kind": "ActionUsage",
+        "docs": [
+          "An update client requests an HTTPS repository through CONNECT.",
+          "Admission succeeds; TCP and source-authenticated TLS can be established.",
+          "Receive content through the tunnel and verify it at the client. No TLS interception, payload caching or scanning. Transport or verification failure stops retrieval; detailed transport error exchanges are outside this sequence."
+        ]
+      },
+      "SC-https-denied": {
+        "name": "Reject a disallowed CONNECT request",
+        "kind": "ActionUsage",
+        "docs": [
+          "A client attempts a disallowed CONNECT request.",
+          "At least one admission condition fails.",
+          "Receive denial without a connection to the source."
+        ]
+      },
+      "STORE-cache-1": {
+        "name": "Uses local storage: cache-1",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "STORE-cache-2": {
+        "name": "Uses local storage: cache-2",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "SYS-DEF-delivery": {
+        "name": "DeliveryAndWorkloads",
+        "kind": "PartDefinition",
+        "docs": [],
+        "ports": []
+      },
+      "SYS-DEF-intake": {
+        "name": "SoftwareIntakeSubsystem",
+        "kind": "PartDefinition",
+        "docs": [],
+        "ports": []
+      },
+      "SYS-DEF-operations": {
+        "name": "OperationsAndRecovery",
+        "kind": "PartDefinition",
+        "docs": [],
+        "ports": []
+      },
+      "SYS-DEF-system": {
+        "name": "HomelabSystem",
+        "kind": "PartDefinition",
+        "docs": [],
+        "ports": []
+      },
+      "SYS-DEF-trust": {
+        "name": "TrustAndAccess",
+        "kind": "PartDefinition",
+        "docs": [],
+        "ports": []
+      },
+      "SYS-delivery": {
+        "name": "Delivery and workloads",
+        "kind": "PartUsage",
+        "docs": [
+          "Mapped boundary: reviewed source, builds, artifacts and scoped workload delivery."
+        ],
+        "composite": true
+      },
+      "SYS-delivery-supply": {
+        "name": "Controlled acquisition",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "SYS-delivery-trust": {
+        "name": "Identity / trust",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "SYS-homelab": {
+        "name": "homelab",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "SYS-intake": {
+        "name": "Software intake",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "SYS-intake-cache": {
+        "name": "cache",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "SYS-intake-proxy": {
+        "name": "proxy",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "SYS-intake-resources": {
+        "name": "Execution / storage / network",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "SYS-operations": {
+        "name": "Operations and recovery",
+        "kind": "PartUsage",
+        "docs": [
+          "Mapped boundary: observation, protected evidence, maintenance and recovery.\nDependency on managed resources does not allocate independent recovery custody."
+        ],
+        "composite": true
+      },
+      "SYS-operations-resources": {
+        "name": "Managed resources",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "SYS-platform": {
+        "name": "Shared platform",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": false
+      },
+      "SYS-trust": {
+        "name": "Trust and access",
+        "kind": "PartUsage",
+        "docs": [
+          "Mapped boundary: cryptography, independent key custody and identity/access.\nOffline custody is not implicitly hosted by the connected platform."
+        ],
+        "composite": true
+      },
+      "UC-clone": {
+        "name": "Clone a Git repository over HTTPS",
+        "kind": "UseCaseDefinition",
+        "docs": [
+          "The operator starts git clone with an approved HTTPS repository URL on boot-1.",
+          "The accepted proxy is reachable, the Git source and CONNECT port are admitted,\nthe current shell uses the proxy, and TLS verification remains enabled.",
+          "1. The operator starts the clone on boot-1.\n2. Git on boot-1 requests access through software intake.\n3. Software intake admits the CONNECT request or returns a denial.\n4. Git validates the source TLS certificate and exchanges repository data through the tunnel.\n5. Git reports a local checkout or failure to the operator.",
+          "Software intake remains a supporting boundary here. Its internal design and HTTPS\nexchanges have their own views. CONNECT payloads do not use the HTTP object cache.\nDenial, source failure or TLS failure stops the clone; signed commit/tag approval is a\nseparate decision. This goal scenario is documented, not an executed Git verification case."
+        ]
+      },
+      "UC-clone-host": {
+        "name": "boot-1",
+        "kind": "ReferenceUsage",
+        "docs": []
+      },
+      "UC-clone-intake-behavior": {
+        "name": "Uses the accepted HTTPS access behavior",
+        "kind": "Dependency",
+        "docs": []
+      },
+      "UC-supply": {
+        "name": "Controlled software supply",
+        "kind": "ReferenceUsage",
+        "docs": []
+      },
+      "UC-update": {
+        "name": "Retrieve and verify software",
+        "kind": "UseCaseDefinition",
+        "docs": []
+      },
+      "VC-custody": {
+        "name": "Demonstrate independent recovery",
+        "kind": "VerificationCaseDefinition",
+        "docs": [
+          "Remove disposable cache data and demonstrate recovery from independently retained supply. This is a site recovery demonstration, not inferred from storage configuration."
+        ]
+      },
+      "VC-egress": {
+        "name": "Demonstrate bypass prevention",
+        "kind": "VerificationCaseDefinition",
+        "docs": [
+          "Attempt direct external access bypassing the accepted route and show independent network enforcement rejects it. This requires the site network policy and deployed-route evidence."
+        ]
+      },
+      "VC-http-cache-untrusted": {
+        "name": "Reject untrusted cached content",
+        "kind": "VerificationCaseDefinition",
+        "docs": [
+          "Cached content is verified at the client and rejected when trust fails, without a source fetch. Model trust is an input, not a cryptographic check."
+        ]
+      },
+      "VC-http-denied": {
+        "name": "Assess HTTP admission denial",
+        "kind": "VerificationCaseDefinition",
+        "docs": [
+          "A rejected client, destination or port receives denial and the recording source sees no request."
+        ]
+      },
+      "VC-http-hit": {
+        "name": "Assess admitted cache reuse",
+        "kind": "VerificationCaseDefinition",
+        "docs": [
+          "A repeated eligible fresh response is served without another origin request. The client still verifies trusted metadata/signatures."
+        ]
+      },
+      "VC-http-miss": {
+        "name": "Assess admitted HTTP retrieval",
+        "kind": "VerificationCaseDefinition",
+        "docs": [
+          "An admitted miss or stale response reaches the source; cache/privacy rules are respected and the client verifies before use. Unsigned or expired metadata is rejected unless an explicit trusted-source exception was selected."
+        ]
+      },
+      "VC-http-source-failure": {
+        "name": "Return a retrieval error on source failure",
+        "kind": "VerificationCaseDefinition",
+        "docs": [
+          "A source failure after an admitted miss produces no usable content, no client verification and no implicit stale fallback. The execution model supplies availability; deployed failure behavior needs separate evidence."
+        ]
+      },
+      "VC-http-untrusted": {
+        "name": "Reject untrusted retrieved content",
+        "kind": "VerificationCaseDefinition",
+        "docs": [
+          "When publisher verification fails after retrieval, the client rejects the content before use. Model trust is an input, not a cryptographic check."
+        ]
+      },
+      "VC-https": {
+        "name": "Assess CONNECT admission",
+        "kind": "VerificationCaseDefinition",
+        "docs": [
+          "An admitted CONNECT establishes source-authenticated client TLS. Encrypted payload is neither cached nor inspected; client verification still applies.",
+          "Run the Stage 1 accepted-source HTTPS retrieval on the deployed route; verify source certificate/hostname, payload integrity and refusal of invalid trust. The isolated HTTP fixture does not forward CONNECT."
+        ]
+      },
+      "VC-https-denied": {
+        "name": "Assess CONNECT denial",
+        "kind": "VerificationCaseDefinition",
+        "docs": [
+          "A disallowed CONNECT destination, client or port receives denial without opening a source connection."
+        ]
+      },
+      "VC-integrity": {
+        "name": "Assess source and publisher trust",
+        "kind": "VerificationCaseDefinition",
+        "docs": [
+          "Client authenticates the source TLS endpoint and rejects untrusted publisher metadata before use; test the selected trust exceptions explicitly. Successful CONNECT/TLS still needs site evidence."
+        ]
+      },
+      "VIEW-engineering": {
+        "name": "Engineering relationships",
+        "kind": "ViewUsage",
+        "docs": []
+      },
+      "VM-cache-1": {
+        "name": "cache-1",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "VM-cache-2": {
+        "name": "cache-2",
+        "kind": "PartUsage",
+        "docs": [],
+        "composite": true
+      },
+      "VP-engineering": {
+        "name": "EngineeringRelationships",
+        "kind": "ViewpointDefinition",
+        "docs": []
+      },
+      "X-HTTP": {
+        "name": "Retrieve",
+        "kind": "ActionDefinition",
+        "docs": [
+          "Executable HTTP refinement: one request, eligible fresh-cache reuse, one source attempt,\nand client verification. Availability and trust are supplied environment outcomes.\nNo packet timing, retry, stale-if-error fallback, TLS or cryptographic execution."
+        ]
+      },
+      "X-accepted": {
+        "name": "complete",
+        "kind": "AssignmentActionUsage",
+        "docs": []
+      },
+      "X-cache-rules": {
+        "name": "cacheRules",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "X-cached": {
+        "name": "cached",
+        "kind": "AssignmentActionUsage",
+        "docs": []
+      },
+      "X-check": {
+        "name": "admission",
+        "kind": "AssignmentActionUsage",
+        "docs": []
+      },
+      "X-denied": {
+        "name": "deny",
+        "kind": "AssignmentActionUsage",
+        "docs": []
+      },
+      "X-fetch": {
+        "name": "fetch",
+        "kind": "AssignmentActionUsage",
+        "docs": []
+      },
+      "X-lookup": {
+        "name": "lookup",
+        "kind": "AssignmentActionUsage",
+        "docs": []
+      },
+      "X-origin": {
+        "name": "origin",
+        "kind": "AssignmentActionUsage",
+        "docs": []
+      },
+      "X-rejected": {
+        "name": "rejectContent",
+        "kind": "AssignmentActionUsage",
+        "docs": []
+      },
+      "X-request": {
+        "name": "request",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "X-response": {
+        "name": "response",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "X-source-failure": {
+        "name": "sourceFailure",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "X-stop": {
+        "name": "stopWithoutContent",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "X-unavailable": {
+        "name": "unavailable",
+        "kind": "AssignmentActionUsage",
+        "docs": []
+      },
+      "X-verify": {
+        "name": "verifyContent",
+        "kind": "ActionUsage",
+        "docs": []
+      },
+      "XD-cache": {
+        "name": "cache",
+        "kind": "DecisionNode",
+        "docs": []
+      },
+      "XD-integrity": {
+        "name": "integrity",
+        "kind": "DecisionNode",
+        "docs": []
+      },
+      "XD-policy": {
+        "name": "policy",
+        "kind": "DecisionNode",
+        "docs": []
+      },
+      "XD-source": {
+        "name": "source",
+        "kind": "DecisionNode",
+        "docs": []
+      },
+      "XM-content": {
+        "name": "contentReady",
+        "kind": "MergeNode",
+        "docs": []
+      },
+      "XM-finish": {
+        "name": "finishRetrieval",
+        "kind": "MergeNode",
+        "docs": []
+      }
+    },
+    "edges": [
+      {
+        "from": "ACT-client",
+        "to": "DEF-client",
+        "kind": "typed-by"
+      },
+      {
+        "from": "ACT-client",
+        "to": "L-Consumers",
+        "kind": "bound-to"
+      },
+      {
+        "from": "ACT-client",
+        "to": "L-Consumers",
+        "kind": "bound-to"
+      },
+      {
+        "from": "ACT-intake",
+        "to": "SYS-DEF-intake",
+        "kind": "typed-by"
+      },
+      {
+        "from": "ACT-intake",
+        "to": "SYS-intake",
+        "kind": "bound-to"
+      },
+      {
+        "from": "ACT-intake",
+        "to": "SYS-intake",
+        "kind": "bound-to"
+      },
+      {
+        "from": "ACT-operator",
+        "to": "BOOT-DEF-operator",
+        "kind": "typed-by"
+      },
+      {
+        "from": "ACT-operator",
+        "to": "BOOT-operator",
+        "kind": "bound-to"
+      },
+      {
+        "from": "ACT-operator",
+        "to": "BOOT-operator",
+        "kind": "bound-to"
+      },
+      {
+        "from": "ACT-source",
+        "to": "DEF-source",
+        "kind": "typed-by"
+      },
+      {
+        "from": "ACT-source",
+        "to": "L-Sources",
+        "kind": "bound-to"
+      },
+      {
+        "from": "ACT-source",
+        "to": "L-Sources",
+        "kind": "bound-to"
+      },
+      {
+        "from": "AN-admission",
+        "to": "F-admit",
+        "kind": "depends-on",
+        "id": "AN-function"
+      },
+      {
+        "from": "AN-admission",
+        "to": "REQ-policy",
+        "kind": "depends-on",
+        "id": "AN-policy"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "H-admitted",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "H-check",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "H-client",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "H-delivered",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "H-fresh",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "H-policy",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "H-proxy",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "H-request",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "H-source",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "H-source-available",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "H-trusted",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "REQ-integrity",
+        "kind": "depends-on",
+        "id": "DEP-http-integrity"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "REQ-policy",
+        "kind": "depends-on",
+        "id": "DEP-http-policy"
+      },
+      {
+        "from": "B-HTTP",
+        "to": "UC-update",
+        "kind": "depends-on",
+        "id": "DEP-http-usecase"
+      },
+      {
+        "from": "B-HTTPS",
+        "to": "REQ-integrity",
+        "kind": "depends-on",
+        "id": "DEP-https-integrity"
+      },
+      {
+        "from": "B-HTTPS",
+        "to": "REQ-policy",
+        "kind": "depends-on",
+        "id": "DEP-https-policy"
+      },
+      {
+        "from": "B-HTTPS",
+        "to": "S-admitted",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTPS",
+        "to": "S-check",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTPS",
+        "to": "S-client",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTPS",
+        "to": "S-connect",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTPS",
+        "to": "S-policy",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTPS",
+        "to": "S-proxy",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTPS",
+        "to": "S-source",
+        "kind": "contains"
+      },
+      {
+        "from": "B-HTTPS",
+        "to": "UC-update",
+        "kind": "depends-on",
+        "id": "DEP-https-usecase"
+      },
+      {
+        "from": "BOOT-host",
+        "to": "DEF-client",
+        "kind": "typed-by"
+      },
+      {
+        "from": "BOOT-operator",
+        "to": "BOOT-DEF-operator",
+        "kind": "typed-by"
+      },
+      {
+        "from": "CONTENT-cache-1",
+        "to": "DEF-cached-content",
+        "kind": "typed-by"
+      },
+      {
+        "from": "CONTENT-cache-2",
+        "to": "DEF-cached-content",
+        "kind": "typed-by"
+      },
+      {
+        "from": "DEF-cache",
+        "to": "DEF-cache-contents",
+        "kind": "contains"
+      },
+      {
+        "from": "DEF-cache",
+        "to": "REQ-custody",
+        "kind": "depends-on",
+        "id": "DEP-custody"
+      },
+      {
+        "from": "DEF-cache-contents",
+        "to": "DEF-cached-content",
+        "kind": "typed-by"
+      },
+      {
+        "from": "DEF-client",
+        "to": "REQ-egress",
+        "kind": "depends-on",
+        "id": "DEP-egress"
+      },
+      {
+        "from": "DEF-client",
+        "to": "REQ-integrity",
+        "kind": "depends-on",
+        "id": "DEP-integrity"
+      },
+      {
+        "from": "DEF-member",
+        "to": "DEF-member-cache",
+        "kind": "contains"
+      },
+      {
+        "from": "DEF-member",
+        "to": "DEF-member-proxy",
+        "kind": "contains"
+      },
+      {
+        "from": "DEF-member",
+        "to": "DEP-storage",
+        "kind": "contains"
+      },
+      {
+        "from": "DEF-member-cache",
+        "to": "DEF-cache",
+        "kind": "typed-by"
+      },
+      {
+        "from": "DEF-member-proxy",
+        "to": "DEF-member-cache",
+        "kind": "depends-on",
+        "id": "DEP-storage"
+      },
+      {
+        "from": "DEF-member-proxy",
+        "to": "DEF-proxy",
+        "kind": "typed-by"
+      },
+      {
+        "from": "DEF-proxy",
+        "to": "DOC-proxy-contract",
+        "kind": "contains"
+      },
+      {
+        "from": "DEF-proxy",
+        "to": "REQ-policy",
+        "kind": "depends-on",
+        "id": "DEP-policy"
+      },
+      {
+        "from": "DISK-cache-1",
+        "to": "CONTENT-cache-1",
+        "kind": "contains"
+      },
+      {
+        "from": "DISK-cache-1",
+        "to": "DEF-cache",
+        "kind": "typed-by"
+      },
+      {
+        "from": "DISK-cache-1",
+        "to": "P-storage",
+        "kind": "depends-on",
+        "id": "STORE-cache-1"
+      },
+      {
+        "from": "DISK-cache-2",
+        "to": "CONTENT-cache-2",
+        "kind": "contains"
+      },
+      {
+        "from": "DISK-cache-2",
+        "to": "DEF-cache",
+        "kind": "typed-by"
+      },
+      {
+        "from": "DISK-cache-2",
+        "to": "P-storage",
+        "kind": "depends-on",
+        "id": "STORE-cache-2"
+      },
+      {
+        "from": "F-admit",
+        "to": "L-Proxy",
+        "kind": "allocated-to",
+        "id": "ALLOC-F-admit-0"
+      },
+      {
+        "from": "F-admit",
+        "to": "REQ-policy",
+        "kind": "depends-on",
+        "id": "GUARD-F-admit"
+      },
+      {
+        "from": "F-cache",
+        "to": "L-Cache",
+        "kind": "allocated-to",
+        "id": "ALLOC-F-cache-1"
+      },
+      {
+        "from": "F-cache",
+        "to": "L-Proxy",
+        "kind": "allocated-to",
+        "id": "ALLOC-F-cache-0"
+      },
+      {
+        "from": "F-cache",
+        "to": "REQ-custody",
+        "kind": "depends-on",
+        "id": "GUARD-F-cache"
+      },
+      {
+        "from": "F-http",
+        "to": "L-Proxy",
+        "kind": "allocated-to",
+        "id": "ALLOC-F-http-0"
+      },
+      {
+        "from": "F-http",
+        "to": "REQ-policy",
+        "kind": "depends-on",
+        "id": "GUARD-F-http"
+      },
+      {
+        "from": "F-tunnel",
+        "to": "L-Proxy",
+        "kind": "allocated-to",
+        "id": "ALLOC-F-tunnel-0"
+      },
+      {
+        "from": "F-tunnel",
+        "to": "REQ-integrity",
+        "kind": "depends-on",
+        "id": "GUARD-F-tunnel"
+      },
+      {
+        "from": "F-verify",
+        "to": "L-Consumers",
+        "kind": "allocated-to",
+        "id": "ALLOC-F-verify-0"
+      },
+      {
+        "from": "F-verify",
+        "to": "REQ-integrity",
+        "kind": "depends-on",
+        "id": "GUARD-F-verify"
+      },
+      {
+        "from": "H-accepted",
+        "to": "F-verify",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-accepted"
+      },
+      {
+        "from": "H-accepted",
+        "to": "H-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-allow",
+        "to": "H-cache-choice",
+        "kind": "contains"
+      },
+      {
+        "from": "H-allow",
+        "to": "H-delivery-choice",
+        "kind": "contains"
+      },
+      {
+        "from": "H-allow",
+        "to": "H-lookup",
+        "kind": "contains"
+      },
+      {
+        "from": "H-cache-choice",
+        "to": "H-delivery-choice",
+        "kind": "before"
+      },
+      {
+        "from": "H-cache-choice",
+        "to": "H-fresh",
+        "kind": "uses-condition"
+      },
+      {
+        "from": "H-cache-choice",
+        "to": "H-hit",
+        "kind": "contains"
+      },
+      {
+        "from": "H-cache-choice",
+        "to": "H-miss",
+        "kind": "contains"
+      },
+      {
+        "from": "H-cache-rules",
+        "to": "F-cache",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-cache-rules"
+      },
+      {
+        "from": "H-cache-rules",
+        "to": "H-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-cache-rules",
+        "to": "H-response",
+        "kind": "before"
+      },
+      {
+        "from": "H-cached",
+        "to": "F-cache",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-cached"
+      },
+      {
+        "from": "H-cached",
+        "to": "H-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-cached",
+        "to": "H-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-check",
+        "to": "F-admit",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-check"
+      },
+      {
+        "from": "H-check",
+        "to": "H-policy",
+        "kind": "before"
+      },
+      {
+        "from": "H-check",
+        "to": "H-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-client",
+        "to": "DEF-client",
+        "kind": "typed-by"
+      },
+      {
+        "from": "H-client",
+        "to": "L-Consumers",
+        "kind": "bound-to"
+      },
+      {
+        "from": "H-delivery-choice",
+        "to": "H-delivered",
+        "kind": "uses-condition"
+      },
+      {
+        "from": "H-delivery-choice",
+        "to": "H-has-content",
+        "kind": "contains"
+      },
+      {
+        "from": "H-delivery-choice",
+        "to": "H-no-content",
+        "kind": "contains"
+      },
+      {
+        "from": "H-denied",
+        "to": "F-admit",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-denied"
+      },
+      {
+        "from": "H-denied",
+        "to": "H-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-denied",
+        "to": "H-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-deny",
+        "to": "H-denied",
+        "kind": "contains"
+      },
+      {
+        "from": "H-fetch",
+        "to": "F-http",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-fetch"
+      },
+      {
+        "from": "H-fetch",
+        "to": "H-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-fetch",
+        "to": "H-source",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-fetch",
+        "to": "H-source-choice",
+        "kind": "before"
+      },
+      {
+        "from": "H-has-content",
+        "to": "H-integrity-choice",
+        "kind": "contains"
+      },
+      {
+        "from": "H-has-content",
+        "to": "H-verify",
+        "kind": "contains"
+      },
+      {
+        "from": "H-hit",
+        "to": "H-cached",
+        "kind": "contains"
+      },
+      {
+        "from": "H-integrity-choice",
+        "to": "H-trust-failed",
+        "kind": "contains"
+      },
+      {
+        "from": "H-integrity-choice",
+        "to": "H-trust-ok",
+        "kind": "contains"
+      },
+      {
+        "from": "H-integrity-choice",
+        "to": "H-trusted",
+        "kind": "uses-condition"
+      },
+      {
+        "from": "H-lookup",
+        "to": "F-cache",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-lookup"
+      },
+      {
+        "from": "H-lookup",
+        "to": "H-cache-choice",
+        "kind": "before"
+      },
+      {
+        "from": "H-lookup",
+        "to": "H-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-miss",
+        "to": "H-fetch",
+        "kind": "contains"
+      },
+      {
+        "from": "H-miss",
+        "to": "H-source-choice",
+        "kind": "contains"
+      },
+      {
+        "from": "H-no-content",
+        "to": "H-stop",
+        "kind": "contains"
+      },
+      {
+        "from": "H-origin",
+        "to": "F-http",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-origin"
+      },
+      {
+        "from": "H-origin",
+        "to": "H-cache-rules",
+        "kind": "before"
+      },
+      {
+        "from": "H-origin",
+        "to": "H-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-origin",
+        "to": "H-source",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-policy",
+        "to": "H-admitted",
+        "kind": "uses-condition"
+      },
+      {
+        "from": "H-policy",
+        "to": "H-allow",
+        "kind": "contains"
+      },
+      {
+        "from": "H-policy",
+        "to": "H-deny",
+        "kind": "contains"
+      },
+      {
+        "from": "H-proxy",
+        "to": "DEF-proxy",
+        "kind": "typed-by"
+      },
+      {
+        "from": "H-proxy",
+        "to": "L-Proxy",
+        "kind": "bound-to"
+      },
+      {
+        "from": "H-rejected",
+        "to": "F-verify",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-rejected"
+      },
+      {
+        "from": "H-rejected",
+        "to": "H-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-request",
+        "to": "F-admit",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-request"
+      },
+      {
+        "from": "H-request",
+        "to": "H-check",
+        "kind": "before"
+      },
+      {
+        "from": "H-request",
+        "to": "H-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-request",
+        "to": "H-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-response",
+        "to": "F-http",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-response"
+      },
+      {
+        "from": "H-response",
+        "to": "H-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-response",
+        "to": "H-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-source",
+        "to": "DEF-source",
+        "kind": "typed-by"
+      },
+      {
+        "from": "H-source",
+        "to": "L-Sources",
+        "kind": "bound-to"
+      },
+      {
+        "from": "H-source-choice",
+        "to": "H-source-available",
+        "kind": "uses-condition"
+      },
+      {
+        "from": "H-source-choice",
+        "to": "H-source-down",
+        "kind": "contains"
+      },
+      {
+        "from": "H-source-choice",
+        "to": "H-source-ok",
+        "kind": "contains"
+      },
+      {
+        "from": "H-source-down",
+        "to": "H-source-failure",
+        "kind": "contains"
+      },
+      {
+        "from": "H-source-down",
+        "to": "H-unavailable",
+        "kind": "contains"
+      },
+      {
+        "from": "H-source-failure",
+        "to": "F-http",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-source-failure"
+      },
+      {
+        "from": "H-source-failure",
+        "to": "H-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-source-failure",
+        "to": "H-unavailable",
+        "kind": "before"
+      },
+      {
+        "from": "H-source-ok",
+        "to": "H-cache-rules",
+        "kind": "contains"
+      },
+      {
+        "from": "H-source-ok",
+        "to": "H-origin",
+        "kind": "contains"
+      },
+      {
+        "from": "H-source-ok",
+        "to": "H-response",
+        "kind": "contains"
+      },
+      {
+        "from": "H-stop",
+        "to": "F-verify",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-stop"
+      },
+      {
+        "from": "H-stop",
+        "to": "H-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-trust-failed",
+        "to": "H-rejected",
+        "kind": "contains"
+      },
+      {
+        "from": "H-trust-ok",
+        "to": "H-accepted",
+        "kind": "contains"
+      },
+      {
+        "from": "H-unavailable",
+        "to": "F-http",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-unavailable"
+      },
+      {
+        "from": "H-unavailable",
+        "to": "H-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-unavailable",
+        "to": "H-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-verify",
+        "to": "F-verify",
+        "kind": "depends-on",
+        "id": "FUNCTION-H-verify"
+      },
+      {
+        "from": "H-verify",
+        "to": "H-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "H-verify",
+        "to": "H-integrity-choice",
+        "kind": "before"
+      },
+      {
+        "from": "L-Cache",
+        "to": "DEF-cache",
+        "kind": "typed-by"
+      },
+      {
+        "from": "L-Cache",
+        "to": "DISK-cache-1",
+        "kind": "allocated-to",
+        "id": "ALLOC-cache-1"
+      },
+      {
+        "from": "L-Cache",
+        "to": "DISK-cache-2",
+        "kind": "allocated-to",
+        "id": "ALLOC-cache-2"
+      },
+      {
+        "from": "L-Cache",
+        "to": "L-cached-content",
+        "kind": "contains"
+      },
+      {
+        "from": "L-Consumers",
+        "to": "DEF-client",
+        "kind": "typed-by"
+      },
+      {
+        "from": "L-Consumers",
+        "to": "L-Control",
+        "kind": "contains"
+      },
+      {
+        "from": "L-Consumers",
+        "to": "L-Platform",
+        "kind": "contains"
+      },
+      {
+        "from": "L-Consumers",
+        "to": "L-Proxy",
+        "kind": "flow",
+        "id": "L-request"
+      },
+      {
+        "from": "L-Consumers",
+        "to": "L-Workloads",
+        "kind": "contains"
+      },
+      {
+        "from": "L-Control",
+        "to": "DEF-client",
+        "kind": "typed-by"
+      },
+      {
+        "from": "L-Platform",
+        "to": "DEF-client",
+        "kind": "typed-by"
+      },
+      {
+        "from": "L-Proxy",
+        "to": "DEF-proxy",
+        "kind": "typed-by"
+      },
+      {
+        "from": "L-Proxy",
+        "to": "L-Cache",
+        "kind": "flow",
+        "id": "L-cache-io"
+      },
+      {
+        "from": "L-Proxy",
+        "to": "L-Sources",
+        "kind": "flow",
+        "id": "L-upstream"
+      },
+      {
+        "from": "L-Proxy",
+        "to": "R-Pair",
+        "kind": "allocated-to",
+        "id": "ALLOC-proxy"
+      },
+      {
+        "from": "L-Proxy",
+        "to": "REQ-policy",
+        "kind": "satisfies",
+        "id": "SAT-policy"
+      },
+      {
+        "from": "L-Sources",
+        "to": "DEF-source",
+        "kind": "typed-by"
+      },
+      {
+        "from": "L-Workloads",
+        "to": "DEF-client",
+        "kind": "typed-by"
+      },
+      {
+        "from": "L-cached-content",
+        "to": "DEF-cached-content",
+        "kind": "typed-by"
+      },
+      {
+        "from": "L-context",
+        "to": "L-Cache",
+        "kind": "contains"
+      },
+      {
+        "from": "L-context",
+        "to": "L-Consumers",
+        "kind": "contains"
+      },
+      {
+        "from": "L-context",
+        "to": "L-Proxy",
+        "kind": "contains"
+      },
+      {
+        "from": "L-context",
+        "to": "L-Sources",
+        "kind": "contains"
+      },
+      {
+        "from": "L-context",
+        "to": "L-cache-io",
+        "kind": "contains"
+      },
+      {
+        "from": "L-context",
+        "to": "L-request",
+        "kind": "contains"
+      },
+      {
+        "from": "L-context",
+        "to": "L-upstream",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-cabling",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-disk-backing",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-drives",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-fabric",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-fabric-backing",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-fabric-use",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-hosting",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-network",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-network-provider",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-servers",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-storage",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-storage-network",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-storage-network-backing",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-storage-provider",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-switches",
+        "kind": "contains"
+      },
+      {
+        "from": "P-context",
+        "to": "P-virtualization",
+        "kind": "contains"
+      },
+      {
+        "from": "P-drives",
+        "to": "P-DEF-equipment",
+        "kind": "typed-by"
+      },
+      {
+        "from": "P-fabric",
+        "to": "P-DEF-logical-network",
+        "kind": "typed-by"
+      },
+      {
+        "from": "P-fabric",
+        "to": "P-switches",
+        "kind": "depends-on",
+        "id": "P-fabric-backing"
+      },
+      {
+        "from": "P-network",
+        "to": "P-DEF-network",
+        "kind": "typed-by"
+      },
+      {
+        "from": "P-network",
+        "to": "P-fabric",
+        "kind": "depends-on",
+        "id": "P-fabric-use"
+      },
+      {
+        "from": "P-network",
+        "to": "P-virtualization",
+        "kind": "depends-on",
+        "id": "P-network-provider"
+      },
+      {
+        "from": "P-servers",
+        "to": "P-DEF-equipment",
+        "kind": "typed-by"
+      },
+      {
+        "from": "P-servers",
+        "to": "P-switches",
+        "kind": "connected-to",
+        "id": "P-cabling"
+      },
+      {
+        "from": "P-storage",
+        "to": "P-DEF-storage",
+        "kind": "typed-by"
+      },
+      {
+        "from": "P-storage",
+        "to": "P-drives",
+        "kind": "depends-on",
+        "id": "P-disk-backing"
+      },
+      {
+        "from": "P-storage",
+        "to": "P-virtualization",
+        "kind": "depends-on",
+        "id": "P-storage-provider"
+      },
+      {
+        "from": "P-storage-network",
+        "to": "P-DEF-logical-network",
+        "kind": "typed-by"
+      },
+      {
+        "from": "P-storage-network",
+        "to": "P-switches",
+        "kind": "depends-on",
+        "id": "P-storage-network-backing"
+      },
+      {
+        "from": "P-switches",
+        "to": "P-DEF-equipment",
+        "kind": "typed-by"
+      },
+      {
+        "from": "P-virtualization",
+        "to": "P-DEF-virtualization",
+        "kind": "typed-by"
+      },
+      {
+        "from": "P-virtualization",
+        "to": "P-servers",
+        "kind": "depends-on",
+        "id": "P-hosting"
+      },
+      {
+        "from": "R-Consumers",
+        "to": "DEF-client",
+        "kind": "typed-by"
+      },
+      {
+        "from": "R-Consumers",
+        "to": "R-VIP",
+        "kind": "flow",
+        "id": "R-request"
+      },
+      {
+        "from": "R-Pair",
+        "to": "DEF-proxy",
+        "kind": "typed-by"
+      },
+      {
+        "from": "R-Pair",
+        "to": "R-Upstream",
+        "kind": "flow",
+        "id": "R-upstream"
+      },
+      {
+        "from": "R-Pair",
+        "to": "VM-cache-1",
+        "kind": "contains"
+      },
+      {
+        "from": "R-Pair",
+        "to": "VM-cache-2",
+        "kind": "contains"
+      },
+      {
+        "from": "R-Upstream",
+        "to": "DEF-source",
+        "kind": "typed-by"
+      },
+      {
+        "from": "R-VIP",
+        "to": "DEF-listener",
+        "kind": "typed-by"
+      },
+      {
+        "from": "R-VIP",
+        "to": "R-Pair",
+        "kind": "flow",
+        "id": "R-dispatch"
+      },
+      {
+        "from": "RUN-cache-1",
+        "to": "DEF-proxy",
+        "kind": "typed-by"
+      },
+      {
+        "from": "RUN-cache-1",
+        "to": "DISK-cache-1",
+        "kind": "flow",
+        "id": "IO-cache-1"
+      },
+      {
+        "from": "RUN-cache-2",
+        "to": "DEF-proxy",
+        "kind": "typed-by"
+      },
+      {
+        "from": "RUN-cache-2",
+        "to": "DISK-cache-2",
+        "kind": "flow",
+        "id": "IO-cache-2"
+      },
+      {
+        "from": "RUN-cache-untrusted",
+        "to": "SC-http-cache-untrusted",
+        "kind": "depends-on",
+        "id": "EXEC-RUN-cache-untrusted"
+      },
+      {
+        "from": "RUN-cache-untrusted",
+        "to": "X-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "RUN-denied",
+        "to": "SC-http-denied",
+        "kind": "depends-on",
+        "id": "EXEC-RUN-denied"
+      },
+      {
+        "from": "RUN-denied",
+        "to": "X-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "RUN-hit-offline",
+        "to": "SC-http-hit",
+        "kind": "depends-on",
+        "id": "EXEC-RUN-hit-offline"
+      },
+      {
+        "from": "RUN-hit-offline",
+        "to": "X-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "RUN-miss",
+        "to": "SC-http-miss",
+        "kind": "depends-on",
+        "id": "EXEC-RUN-miss"
+      },
+      {
+        "from": "RUN-miss",
+        "to": "X-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "RUN-source-failure",
+        "to": "SC-http-source-failure",
+        "kind": "depends-on",
+        "id": "EXEC-RUN-source-failure"
+      },
+      {
+        "from": "RUN-source-failure",
+        "to": "X-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "RUN-untrusted",
+        "to": "SC-http-untrusted",
+        "kind": "depends-on",
+        "id": "EXEC-RUN-untrusted"
+      },
+      {
+        "from": "RUN-untrusted",
+        "to": "X-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "S-allow",
+        "to": "S-established",
+        "kind": "contains"
+      },
+      {
+        "from": "S-allow",
+        "to": "S-fetch",
+        "kind": "contains"
+      },
+      {
+        "from": "S-allow",
+        "to": "S-open",
+        "kind": "contains"
+      },
+      {
+        "from": "S-allow",
+        "to": "S-ready",
+        "kind": "contains"
+      },
+      {
+        "from": "S-allow",
+        "to": "S-response",
+        "kind": "contains"
+      },
+      {
+        "from": "S-allow",
+        "to": "S-verify",
+        "kind": "contains"
+      },
+      {
+        "from": "S-check",
+        "to": "F-admit",
+        "kind": "depends-on",
+        "id": "FUNCTION-S-check"
+      },
+      {
+        "from": "S-check",
+        "to": "S-policy",
+        "kind": "before"
+      },
+      {
+        "from": "S-check",
+        "to": "S-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-client",
+        "to": "DEF-client",
+        "kind": "typed-by"
+      },
+      {
+        "from": "S-client",
+        "to": "L-Consumers",
+        "kind": "bound-to"
+      },
+      {
+        "from": "S-connect",
+        "to": "F-admit",
+        "kind": "depends-on",
+        "id": "FUNCTION-S-connect"
+      },
+      {
+        "from": "S-connect",
+        "to": "S-check",
+        "kind": "before"
+      },
+      {
+        "from": "S-connect",
+        "to": "S-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-connect",
+        "to": "S-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-denied",
+        "to": "F-admit",
+        "kind": "depends-on",
+        "id": "FUNCTION-S-denied"
+      },
+      {
+        "from": "S-denied",
+        "to": "S-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-denied",
+        "to": "S-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-deny",
+        "to": "S-denied",
+        "kind": "contains"
+      },
+      {
+        "from": "S-established",
+        "to": "F-tunnel",
+        "kind": "depends-on",
+        "id": "FUNCTION-S-established"
+      },
+      {
+        "from": "S-established",
+        "to": "S-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-established",
+        "to": "S-ready",
+        "kind": "before"
+      },
+      {
+        "from": "S-established",
+        "to": "S-source",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-fetch",
+        "to": "F-tunnel",
+        "kind": "depends-on",
+        "id": "FUNCTION-S-fetch"
+      },
+      {
+        "from": "S-fetch",
+        "to": "S-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-fetch",
+        "to": "S-response",
+        "kind": "before"
+      },
+      {
+        "from": "S-fetch",
+        "to": "S-source",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-open",
+        "to": "F-tunnel",
+        "kind": "depends-on",
+        "id": "FUNCTION-S-open"
+      },
+      {
+        "from": "S-open",
+        "to": "S-established",
+        "kind": "before"
+      },
+      {
+        "from": "S-open",
+        "to": "S-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-open",
+        "to": "S-source",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-policy",
+        "to": "S-admitted",
+        "kind": "uses-condition"
+      },
+      {
+        "from": "S-policy",
+        "to": "S-allow",
+        "kind": "contains"
+      },
+      {
+        "from": "S-policy",
+        "to": "S-deny",
+        "kind": "contains"
+      },
+      {
+        "from": "S-proxy",
+        "to": "DEF-proxy",
+        "kind": "typed-by"
+      },
+      {
+        "from": "S-proxy",
+        "to": "L-Proxy",
+        "kind": "bound-to"
+      },
+      {
+        "from": "S-ready",
+        "to": "F-tunnel",
+        "kind": "depends-on",
+        "id": "FUNCTION-S-ready"
+      },
+      {
+        "from": "S-ready",
+        "to": "S-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-ready",
+        "to": "S-fetch",
+        "kind": "before"
+      },
+      {
+        "from": "S-ready",
+        "to": "S-proxy",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-response",
+        "to": "F-tunnel",
+        "kind": "depends-on",
+        "id": "FUNCTION-S-response"
+      },
+      {
+        "from": "S-response",
+        "to": "S-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-response",
+        "to": "S-source",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "S-response",
+        "to": "S-verify",
+        "kind": "before"
+      },
+      {
+        "from": "S-source",
+        "to": "DEF-source",
+        "kind": "typed-by"
+      },
+      {
+        "from": "S-source",
+        "to": "L-Sources",
+        "kind": "bound-to"
+      },
+      {
+        "from": "S-verify",
+        "to": "F-verify",
+        "kind": "depends-on",
+        "id": "FUNCTION-S-verify"
+      },
+      {
+        "from": "S-verify",
+        "to": "S-client",
+        "kind": "uses-participant"
+      },
+      {
+        "from": "SC-http-cache-untrusted",
+        "to": "B-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SC-http-cache-untrusted",
+        "to": "H-cached",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-cache-untrusted",
+        "to": "H-check",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-cache-untrusted",
+        "to": "H-lookup",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-cache-untrusted",
+        "to": "H-rejected",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-cache-untrusted",
+        "to": "H-request",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-cache-untrusted",
+        "to": "H-verify",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-denied",
+        "to": "B-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SC-http-denied",
+        "to": "H-check",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-denied",
+        "to": "H-denied",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-denied",
+        "to": "H-request",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-hit",
+        "to": "B-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SC-http-hit",
+        "to": "H-accepted",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-hit",
+        "to": "H-cached",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-hit",
+        "to": "H-check",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-hit",
+        "to": "H-lookup",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-hit",
+        "to": "H-request",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-hit",
+        "to": "H-verify",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-miss",
+        "to": "B-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SC-http-miss",
+        "to": "H-accepted",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-miss",
+        "to": "H-cache-rules",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-miss",
+        "to": "H-check",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-miss",
+        "to": "H-fetch",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-miss",
+        "to": "H-lookup",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-miss",
+        "to": "H-origin",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-miss",
+        "to": "H-request",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-miss",
+        "to": "H-response",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-miss",
+        "to": "H-verify",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-source-failure",
+        "to": "B-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SC-http-source-failure",
+        "to": "H-check",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-source-failure",
+        "to": "H-fetch",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-source-failure",
+        "to": "H-lookup",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-source-failure",
+        "to": "H-request",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-source-failure",
+        "to": "H-source-failure",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-source-failure",
+        "to": "H-stop",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-source-failure",
+        "to": "H-unavailable",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-untrusted",
+        "to": "B-HTTP",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SC-http-untrusted",
+        "to": "H-cache-rules",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-untrusted",
+        "to": "H-check",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-untrusted",
+        "to": "H-fetch",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-untrusted",
+        "to": "H-lookup",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-untrusted",
+        "to": "H-origin",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-untrusted",
+        "to": "H-rejected",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-untrusted",
+        "to": "H-request",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-untrusted",
+        "to": "H-response",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-http-untrusted",
+        "to": "H-verify",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-https",
+        "to": "B-HTTPS",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SC-https",
+        "to": "S-check",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-https",
+        "to": "S-connect",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-https",
+        "to": "S-established",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-https",
+        "to": "S-fetch",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-https",
+        "to": "S-open",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-https",
+        "to": "S-ready",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-https",
+        "to": "S-response",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-https",
+        "to": "S-verify",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-https-denied",
+        "to": "B-HTTPS",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SC-https-denied",
+        "to": "S-check",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-https-denied",
+        "to": "S-connect",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SC-https-denied",
+        "to": "S-denied",
+        "kind": "uses-message"
+      },
+      {
+        "from": "SYS-delivery",
+        "to": "SYS-DEF-delivery",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SYS-delivery",
+        "to": "SYS-intake",
+        "kind": "depends-on",
+        "id": "SYS-delivery-supply"
+      },
+      {
+        "from": "SYS-delivery",
+        "to": "SYS-trust",
+        "kind": "depends-on",
+        "id": "SYS-delivery-trust"
+      },
+      {
+        "from": "SYS-homelab",
+        "to": "SYS-DEF-system",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SYS-homelab",
+        "to": "SYS-delivery",
+        "kind": "contains"
+      },
+      {
+        "from": "SYS-homelab",
+        "to": "SYS-delivery-supply",
+        "kind": "contains"
+      },
+      {
+        "from": "SYS-homelab",
+        "to": "SYS-delivery-trust",
+        "kind": "contains"
+      },
+      {
+        "from": "SYS-homelab",
+        "to": "SYS-intake",
+        "kind": "contains"
+      },
+      {
+        "from": "SYS-homelab",
+        "to": "SYS-intake-resources",
+        "kind": "contains"
+      },
+      {
+        "from": "SYS-homelab",
+        "to": "SYS-operations",
+        "kind": "contains"
+      },
+      {
+        "from": "SYS-homelab",
+        "to": "SYS-operations-resources",
+        "kind": "contains"
+      },
+      {
+        "from": "SYS-homelab",
+        "to": "SYS-platform",
+        "kind": "contains"
+      },
+      {
+        "from": "SYS-homelab",
+        "to": "SYS-trust",
+        "kind": "contains"
+      },
+      {
+        "from": "SYS-intake",
+        "to": "SYS-DEF-intake",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SYS-intake",
+        "to": "SYS-intake-cache",
+        "kind": "contains"
+      },
+      {
+        "from": "SYS-intake",
+        "to": "SYS-intake-proxy",
+        "kind": "contains"
+      },
+      {
+        "from": "SYS-intake",
+        "to": "SYS-platform",
+        "kind": "depends-on",
+        "id": "SYS-intake-resources"
+      },
+      {
+        "from": "SYS-intake-cache",
+        "to": "DEF-cache",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SYS-intake-cache",
+        "to": "L-Cache",
+        "kind": "bound-to"
+      },
+      {
+        "from": "SYS-intake-proxy",
+        "to": "DEF-proxy",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SYS-intake-proxy",
+        "to": "L-Proxy",
+        "kind": "bound-to"
+      },
+      {
+        "from": "SYS-operations",
+        "to": "SYS-DEF-operations",
+        "kind": "typed-by"
+      },
+      {
+        "from": "SYS-operations",
+        "to": "SYS-platform",
+        "kind": "depends-on",
+        "id": "SYS-operations-resources"
+      },
+      {
+        "from": "SYS-platform",
+        "to": "P-context",
+        "kind": "bound-to"
+      },
+      {
+        "from": "SYS-trust",
+        "to": "SYS-DEF-trust",
+        "kind": "typed-by"
+      },
+      {
+        "from": "UC-clone",
+        "to": "ACT-intake",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-clone",
+        "to": "ACT-intake",
+        "kind": "has-actor"
+      },
+      {
+        "from": "UC-clone",
+        "to": "ACT-operator",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-clone",
+        "to": "ACT-operator",
+        "kind": "has-actor"
+      },
+      {
+        "from": "UC-clone",
+        "to": "SC-https",
+        "kind": "depends-on",
+        "id": "UC-clone-intake-behavior"
+      },
+      {
+        "from": "UC-clone",
+        "to": "UC-clone-host",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-clone",
+        "to": "UC-clone-host",
+        "kind": "has-subject"
+      },
+      {
+        "from": "UC-clone-host",
+        "to": "BOOT-host",
+        "kind": "bound-to"
+      },
+      {
+        "from": "UC-clone-host",
+        "to": "DEF-client",
+        "kind": "typed-by"
+      },
+      {
+        "from": "UC-supply",
+        "to": "DEF-proxy",
+        "kind": "typed-by"
+      },
+      {
+        "from": "UC-supply",
+        "to": "L-Proxy",
+        "kind": "bound-to"
+      },
+      {
+        "from": "UC-update",
+        "to": "ACT-client",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-update",
+        "to": "ACT-client",
+        "kind": "has-actor"
+      },
+      {
+        "from": "UC-update",
+        "to": "ACT-source",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-update",
+        "to": "ACT-source",
+        "kind": "has-actor"
+      },
+      {
+        "from": "UC-update",
+        "to": "L-context",
+        "kind": "depends-on",
+        "id": "DEP-usecase"
+      },
+      {
+        "from": "UC-update",
+        "to": "REQ-policy",
+        "kind": "requires"
+      },
+      {
+        "from": "UC-update",
+        "to": "SC-http-cache-untrusted",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-update",
+        "to": "SC-http-denied",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-update",
+        "to": "SC-http-hit",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-update",
+        "to": "SC-http-miss",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-update",
+        "to": "SC-http-source-failure",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-update",
+        "to": "SC-http-untrusted",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-update",
+        "to": "SC-https",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-update",
+        "to": "SC-https-denied",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-update",
+        "to": "UC-supply",
+        "kind": "contains"
+      },
+      {
+        "from": "UC-update",
+        "to": "UC-supply",
+        "kind": "has-subject"
+      },
+      {
+        "from": "VC-custody",
+        "to": "REQ-custody",
+        "kind": "verifies"
+      },
+      {
+        "from": "VC-egress",
+        "to": "REQ-egress",
+        "kind": "verifies"
+      },
+      {
+        "from": "VC-http-cache-untrusted",
+        "to": "REQ-integrity",
+        "kind": "verifies"
+      },
+      {
+        "from": "VC-http-cache-untrusted",
+        "to": "SC-http-cache-untrusted",
+        "kind": "depends-on",
+        "id": "COVER-SC-http-cache-untrusted"
+      },
+      {
+        "from": "VC-http-denied",
+        "to": "REQ-policy",
+        "kind": "verifies"
+      },
+      {
+        "from": "VC-http-denied",
+        "to": "SC-http-denied",
+        "kind": "depends-on",
+        "id": "COVER-SC-http-denied"
+      },
+      {
+        "from": "VC-http-hit",
+        "to": "REQ-policy",
+        "kind": "verifies"
+      },
+      {
+        "from": "VC-http-hit",
+        "to": "SC-http-hit",
+        "kind": "depends-on",
+        "id": "COVER-SC-http-hit"
+      },
+      {
+        "from": "VC-http-miss",
+        "to": "REQ-policy",
+        "kind": "verifies"
+      },
+      {
+        "from": "VC-http-miss",
+        "to": "SC-http-miss",
+        "kind": "depends-on",
+        "id": "COVER-SC-http-miss"
+      },
+      {
+        "from": "VC-http-source-failure",
+        "to": "REQ-policy",
+        "kind": "verifies"
+      },
+      {
+        "from": "VC-http-source-failure",
+        "to": "SC-http-source-failure",
+        "kind": "depends-on",
+        "id": "COVER-SC-http-source-failure"
+      },
+      {
+        "from": "VC-http-untrusted",
+        "to": "REQ-integrity",
+        "kind": "verifies"
+      },
+      {
+        "from": "VC-http-untrusted",
+        "to": "SC-http-untrusted",
+        "kind": "depends-on",
+        "id": "COVER-SC-http-untrusted"
+      },
+      {
+        "from": "VC-https",
+        "to": "REQ-policy",
+        "kind": "verifies"
+      },
+      {
+        "from": "VC-https",
+        "to": "SC-https",
+        "kind": "depends-on",
+        "id": "COVER-SC-https"
+      },
+      {
+        "from": "VC-https-denied",
+        "to": "REQ-policy",
+        "kind": "verifies"
+      },
+      {
+        "from": "VC-https-denied",
+        "to": "SC-https-denied",
+        "kind": "depends-on",
+        "id": "COVER-SC-https-denied"
+      },
+      {
+        "from": "VC-integrity",
+        "to": "REQ-integrity",
+        "kind": "verifies"
+      },
+      {
+        "from": "VM-cache-1",
+        "to": "DEF-member",
+        "kind": "typed-by"
+      },
+      {
+        "from": "VM-cache-1",
+        "to": "DISK-cache-1",
+        "kind": "contains"
+      },
+      {
+        "from": "VM-cache-1",
+        "to": "IO-cache-1",
+        "kind": "contains"
+      },
+      {
+        "from": "VM-cache-1",
+        "to": "P-network",
+        "kind": "depends-on",
+        "id": "NET-cache-1"
+      },
+      {
+        "from": "VM-cache-1",
+        "to": "P-virtualization",
+        "kind": "depends-on",
+        "id": "HOST-cache-1"
+      },
+      {
+        "from": "VM-cache-1",
+        "to": "RUN-cache-1",
+        "kind": "contains"
+      },
+      {
+        "from": "VM-cache-2",
+        "to": "DEF-member",
+        "kind": "typed-by"
+      },
+      {
+        "from": "VM-cache-2",
+        "to": "DISK-cache-2",
+        "kind": "contains"
+      },
+      {
+        "from": "VM-cache-2",
+        "to": "IO-cache-2",
+        "kind": "contains"
+      },
+      {
+        "from": "VM-cache-2",
+        "to": "P-network",
+        "kind": "depends-on",
+        "id": "NET-cache-2"
+      },
+      {
+        "from": "VM-cache-2",
+        "to": "P-virtualization",
+        "kind": "depends-on",
+        "id": "HOST-cache-2"
+      },
+      {
+        "from": "VM-cache-2",
+        "to": "RUN-cache-2",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "B-HTTP",
+        "kind": "depends-on",
+        "id": "EXEC-refines"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-accepted",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-cache-rules",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-cached",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-check",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-denied",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-fetch",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-lookup",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-origin",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-rejected",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-request",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-response",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-source-failure",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-stop",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-unavailable",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "X-verify",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "XD-cache",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "XD-integrity",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "XD-policy",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "XD-source",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "XM-content",
+        "kind": "contains"
+      },
+      {
+        "from": "X-HTTP",
+        "to": "XM-finish",
+        "kind": "contains"
+      },
+      {
+        "from": "X-accepted",
+        "to": "H-accepted",
+        "kind": "depends-on",
+        "id": "EXEC-H-accepted"
+      },
+      {
+        "from": "X-cache-rules",
+        "to": "H-cache-rules",
+        "kind": "depends-on",
+        "id": "EXEC-H-cache-rules"
+      },
+      {
+        "from": "X-cached",
+        "to": "H-cached",
+        "kind": "depends-on",
+        "id": "EXEC-H-cached"
+      },
+      {
+        "from": "X-check",
+        "to": "H-check",
+        "kind": "depends-on",
+        "id": "EXEC-H-check"
+      },
+      {
+        "from": "X-denied",
+        "to": "H-denied",
+        "kind": "depends-on",
+        "id": "EXEC-H-denied"
+      },
+      {
+        "from": "X-fetch",
+        "to": "H-fetch",
+        "kind": "depends-on",
+        "id": "EXEC-H-fetch"
+      },
+      {
+        "from": "X-lookup",
+        "to": "H-lookup",
+        "kind": "depends-on",
+        "id": "EXEC-H-lookup"
+      },
+      {
+        "from": "X-origin",
+        "to": "H-origin",
+        "kind": "depends-on",
+        "id": "EXEC-H-origin"
+      },
+      {
+        "from": "X-rejected",
+        "to": "H-rejected",
+        "kind": "depends-on",
+        "id": "EXEC-H-rejected"
+      },
+      {
+        "from": "X-request",
+        "to": "H-request",
+        "kind": "depends-on",
+        "id": "EXEC-H-request"
+      },
+      {
+        "from": "X-response",
+        "to": "H-response",
+        "kind": "depends-on",
+        "id": "EXEC-H-response"
+      },
+      {
+        "from": "X-source-failure",
+        "to": "H-source-failure",
+        "kind": "depends-on",
+        "id": "EXEC-H-source-failure"
+      },
+      {
+        "from": "X-stop",
+        "to": "H-stop",
+        "kind": "depends-on",
+        "id": "EXEC-H-stop"
+      },
+      {
+        "from": "X-unavailable",
+        "to": "H-unavailable",
+        "kind": "depends-on",
+        "id": "EXEC-H-unavailable"
+      },
+      {
+        "from": "X-verify",
+        "to": "H-verify",
+        "kind": "depends-on",
+        "id": "EXEC-H-verify"
+      }
+    ],
+    "language_checks": {
+      "scope": "Assigned state and explicit convergence in the single-path HTTP experiment; not full conformance",
+      "assignments_checked": 11,
+      "assigned_features": [
+        "SoftwareIntake::RetrievalExecution::Retrieve::accepted",
+        "SoftwareIntake::RetrievalExecution::Retrieve::admitted",
+        "SoftwareIntake::RetrievalExecution::Retrieve::cacheLookups",
+        "SoftwareIntake::RetrievalExecution::Retrieve::delivered",
+        "SoftwareIntake::RetrievalExecution::Retrieve::outcome",
+        "SoftwareIntake::RetrievalExecution::Retrieve::sourceRequests",
+        "SoftwareIntake::RetrievalExecution::Retrieve::verificationChecks"
+      ],
+      "alternative_merges": [
+        "XM-content",
+        "XM-finish"
+      ]
+    },
+    "use_cases": {
+      "UC-clone": {
+        "subject": "UC-clone-host",
+        "actors": [
+          "ACT-operator",
+          "ACT-intake"
+        ],
+        "bindings": {
+          "UC-clone-host": "BOOT-host",
+          "ACT-operator": "BOOT-operator",
+          "ACT-intake": "SYS-intake"
+        }
+      },
+      "UC-update": {
+        "subject": "UC-supply",
+        "actors": [
+          "ACT-client",
+          "ACT-source"
+        ],
+        "bindings": {
+          "UC-supply": "L-Proxy",
+          "ACT-client": "L-Consumers",
+          "ACT-source": "L-Sources"
+        }
+      }
+    },
+    "scenarios": {
+      "SC-http-cache-untrusted": {
+        "use_case": "UC-update",
+        "behavior": "B-HTTP",
+        "guards": {
+          "H-admitted": true,
+          "H-fresh": true,
+          "H-delivered": true,
+          "H-trusted": false
+        },
+        "messages": [
+          "H-request",
+          "H-check",
+          "H-lookup",
+          "H-cached",
+          "H-verify",
+          "H-rejected"
+        ],
+        "docs": {
+          "Trigger": "An update client requests HTTP repository content.",
+          "Preconditions": "A fresh eligible cached response is returned but publisher verification fails.",
+          "Outcome": "Reject cached content before use; a cache hit does not imply trust."
+        }
+      },
+      "SC-http-denied": {
+        "use_case": "UC-update",
+        "behavior": "B-HTTP",
+        "guards": {
+          "H-admitted": false
+        },
+        "messages": [
+          "H-request",
+          "H-check",
+          "H-denied"
+        ],
+        "docs": {
+          "Trigger": "A client requests a disallowed HTTP destination, port or route.",
+          "Preconditions": "At least one admission condition fails.",
+          "Outcome": "Receive denial without a cache lookup or source fetch."
+        }
+      },
+      "SC-http-hit": {
+        "use_case": "UC-update",
+        "behavior": "B-HTTP",
+        "guards": {
+          "H-admitted": true,
+          "H-fresh": true,
+          "H-delivered": true,
+          "H-trusted": true
+        },
+        "messages": [
+          "H-request",
+          "H-check",
+          "H-lookup",
+          "H-cached",
+          "H-verify",
+          "H-accepted"
+        ],
+        "docs": {
+          "Trigger": "An update client repeats an eligible HTTP request.",
+          "Preconditions": "Policy admits the request and an eligible fresh cached response exists.",
+          "Outcome": "Receive cached content without an origin fetch, then perform the same local verification as a miss."
+        }
+      },
+      "SC-http-miss": {
+        "use_case": "UC-update",
+        "behavior": "B-HTTP",
+        "guards": {
+          "H-admitted": true,
+          "H-fresh": false,
+          "H-source-available": true,
+          "H-delivered": true,
+          "H-trusted": true
+        },
+        "messages": [
+          "H-request",
+          "H-check",
+          "H-lookup",
+          "H-fetch",
+          "H-origin",
+          "H-cache-rules",
+          "H-response",
+          "H-verify",
+          "H-accepted"
+        ],
+        "docs": {
+          "Trigger": "An update client requests HTTP repository content.",
+          "Preconditions": "The route and trust policy are configured; content is absent or needs revalidation.",
+          "Outcome": "Receive an allowed response, then verify trusted metadata and signatures locally. Verification failure stops use; it never approves an artifact."
+        }
+      },
+      "SC-http-source-failure": {
+        "use_case": "UC-update",
+        "behavior": "B-HTTP",
+        "guards": {
+          "H-admitted": true,
+          "H-fresh": false,
+          "H-source-available": false,
+          "H-delivered": false
+        },
+        "messages": [
+          "H-request",
+          "H-check",
+          "H-lookup",
+          "H-fetch",
+          "H-source-failure",
+          "H-unavailable",
+          "H-stop"
+        ],
+        "docs": {
+          "Trigger": "An update client requests HTTP repository content.",
+          "Preconditions": "An admitted request has no eligible fresh response and its source attempt fails.",
+          "Outcome": "Return a retrieval error and stop without content verification."
+        }
+      },
+      "SC-http-untrusted": {
+        "use_case": "UC-update",
+        "behavior": "B-HTTP",
+        "guards": {
+          "H-admitted": true,
+          "H-fresh": false,
+          "H-source-available": true,
+          "H-delivered": true,
+          "H-trusted": false
+        },
+        "messages": [
+          "H-request",
+          "H-check",
+          "H-lookup",
+          "H-fetch",
+          "H-origin",
+          "H-cache-rules",
+          "H-response",
+          "H-verify",
+          "H-rejected"
+        ],
+        "docs": {
+          "Trigger": "An update client requests HTTP repository content.",
+          "Preconditions": "An admitted source retrieval completes but publisher verification fails.",
+          "Outcome": "Reject received content before use."
+        }
+      },
+      "SC-https": {
+        "use_case": "UC-update",
+        "behavior": "B-HTTPS",
+        "guards": {
+          "S-admitted": true
+        },
+        "messages": [
+          "S-connect",
+          "S-check",
+          "S-open",
+          "S-established",
+          "S-ready",
+          "S-fetch",
+          "S-response",
+          "S-verify"
+        ],
+        "docs": {
+          "Trigger": "An update client requests an HTTPS repository through CONNECT.",
+          "Preconditions": "Admission succeeds; TCP and source-authenticated TLS can be established.",
+          "Outcome": "Receive content through the tunnel and verify it at the client. No TLS interception, payload caching or scanning. Transport or verification failure stops retrieval; detailed transport error exchanges are outside this sequence."
+        }
+      },
+      "SC-https-denied": {
+        "use_case": "UC-update",
+        "behavior": "B-HTTPS",
+        "guards": {
+          "S-admitted": false
+        },
+        "messages": [
+          "S-connect",
+          "S-check",
+          "S-denied"
+        ],
+        "docs": {
+          "Trigger": "A client attempts a disallowed CONNECT request.",
+          "Preconditions": "At least one admission condition fails.",
+          "Outcome": "Receive denial without a connection to the source."
+        }
+      }
+    },
+    "functions": {
+      "F-admit": {
+        "in": [
+          "request : Transfer",
+          "clientAllowed : Boolean",
+          "destinationAllowed : Boolean",
+          "portAllowed : Boolean"
+        ],
+        "out": [
+          "admitted : Boolean"
+        ]
+      },
+      "F-cache": {
+        "in": [
+          "response : Transfer"
+        ],
+        "out": [
+          "eligibleResponse : Transfer"
+        ]
+      },
+      "F-http": {
+        "in": [
+          "request : Transfer"
+        ],
+        "out": [
+          "response : Transfer"
+        ]
+      },
+      "F-tunnel": {
+        "in": [
+          "request : Transfer"
+        ],
+        "out": [
+          "response : Transfer"
+        ]
+      },
+      "F-verify": {
+        "in": [
+          "response : Transfer"
+        ],
+        "out": [
+          "accepted : Boolean"
+        ]
+      }
+    },
+    "requirements": {
+      "REQ-custody": {
+        "subject_types": [
+          "DEF-cache"
+        ],
+        "constraints": [
+          "Losing rebuildable cache data must not erase the independently retained recovery supply."
+        ]
+      },
+      "REQ-integrity": {
+        "subject_types": [
+          "DEF-client"
+        ],
+        "constraints": [
+          "Preserve source TLS through CONNECT and consumer verification. Cache presence is not approval."
+        ]
+      },
+      "REQ-egress": {
+        "subject_types": [
+          "DEF-client"
+        ],
+        "constraints": [
+          "Independently enforce the accepted network egress policy. Proxy configuration alone cannot deny bypass."
+        ]
+      },
+      "REQ-policy": {
+        "subject_types": [
+          "DEF-proxy"
+        ],
+        "constraints": [
+          "Remote access requires the accepted client, destination and port policy; otherwise deny."
+        ]
+      }
+    },
+    "verification": {
+      "VC-integrity": {
+        "requirements": [
+          "REQ-integrity"
+        ],
+        "subject_types": [
+          "DEF-client"
+        ],
+        "scenarios": [],
+        "acceptance": "Client authenticates the source TLS endpoint and rejects untrusted publisher metadata before use; test the selected trust exceptions explicitly. Successful CONNECT/TLS still needs site evidence."
+      },
+      "VC-http-miss": {
+        "requirements": [
+          "REQ-policy"
+        ],
+        "subject_types": [
+          "DEF-proxy"
+        ],
+        "scenarios": [
+          "SC-http-miss"
+        ],
+        "acceptance": "An admitted miss or stale response reaches the source; cache/privacy rules are respected and the client verifies before use. Unsigned or expired metadata is rejected unless an explicit trusted-source exception was selected."
+      },
+      "VC-http-cache-untrusted": {
+        "requirements": [
+          "REQ-integrity"
+        ],
+        "subject_types": [
+          "DEF-client"
+        ],
+        "scenarios": [
+          "SC-http-cache-untrusted"
+        ],
+        "acceptance": "Cached content is verified at the client and rejected when trust fails, without a source fetch. Model trust is an input, not a cryptographic check."
+      },
+      "VC-http-denied": {
+        "requirements": [
+          "REQ-policy"
+        ],
+        "subject_types": [
+          "DEF-proxy"
+        ],
+        "scenarios": [
+          "SC-http-denied"
+        ],
+        "acceptance": "A rejected client, destination or port receives denial and the recording source sees no request."
+      },
+      "VC-custody": {
+        "requirements": [
+          "REQ-custody"
+        ],
+        "subject_types": [
+          "DEF-cache"
+        ],
+        "scenarios": [],
+        "acceptance": "Remove disposable cache data and demonstrate recovery from independently retained supply. This is a site recovery demonstration, not inferred from storage configuration."
+      },
+      "VC-http-untrusted": {
+        "requirements": [
+          "REQ-integrity"
+        ],
+        "subject_types": [
+          "DEF-client"
+        ],
+        "scenarios": [
+          "SC-http-untrusted"
+        ],
+        "acceptance": "When publisher verification fails after retrieval, the client rejects the content before use. Model trust is an input, not a cryptographic check."
+      },
+      "VC-egress": {
+        "requirements": [
+          "REQ-egress"
+        ],
+        "subject_types": [
+          "DEF-client"
+        ],
+        "scenarios": [],
+        "acceptance": "Attempt direct external access bypassing the accepted route and show independent network enforcement rejects it. This requires the site network policy and deployed-route evidence."
+      },
+      "VC-http-source-failure": {
+        "requirements": [
+          "REQ-policy"
+        ],
+        "subject_types": [
+          "DEF-proxy"
+        ],
+        "scenarios": [
+          "SC-http-source-failure"
+        ],
+        "acceptance": "A source failure after an admitted miss produces no usable content, no client verification and no implicit stale fallback. The execution model supplies availability; deployed failure behavior needs separate evidence."
+      },
+      "VC-https": {
+        "requirements": [
+          "REQ-policy"
+        ],
+        "subject_types": [
+          "DEF-proxy"
+        ],
+        "scenarios": [
+          "SC-https"
+        ],
+        "acceptance": "An admitted CONNECT establishes source-authenticated client TLS. Encrypted payload is neither cached nor inspected; client verification still applies.",
+        "manual": "Run the Stage 1 accepted-source HTTPS retrieval on the deployed route; verify source certificate/hostname, payload integrity and refusal of invalid trust. The isolated HTTP fixture does not forward CONNECT."
+      },
+      "VC-https-denied": {
+        "requirements": [
+          "REQ-policy"
+        ],
+        "subject_types": [
+          "DEF-proxy"
+        ],
+        "scenarios": [
+          "SC-https-denied"
+        ],
+        "acceptance": "A disallowed CONNECT destination, client or port receives denial without opening a source connection."
+      },
+      "VC-http-hit": {
+        "requirements": [
+          "REQ-policy"
+        ],
+        "subject_types": [
+          "DEF-proxy"
+        ],
+        "scenarios": [
+          "SC-http-hit"
+        ],
+        "acceptance": "A repeated eligible fresh response is served without another origin request. The client still verifies trusted metadata/signatures."
+      }
+    },
+    "analyses": {
+      "AN-admission": {
+        "subject_types": [
+          "DEF-proxy"
+        ]
+      }
+    },
+    "views": {
+      "VIEW-engineering": [
+        "ALLOC-F-admit-0",
+        "ALLOC-F-http-0",
+        "AN-admission",
+        "AN-function",
+        "AN-policy",
+        "CALC-admission",
+        "CALC-shortcut",
+        "COVER-SC-http-cache-untrusted",
+        "COVER-SC-http-denied",
+        "COVER-SC-http-hit",
+        "COVER-SC-http-miss",
+        "COVER-SC-http-source-failure",
+        "COVER-SC-http-untrusted",
+        "COVER-SC-https",
+        "COVER-SC-https-denied",
+        "DEP-custody",
+        "DEP-egress",
+        "DEP-integrity",
+        "F-admit",
+        "F-http",
+        "L-Proxy",
+        "REQ-custody",
+        "REQ-egress",
+        "REQ-integrity",
+        "REQ-policy",
+        "SAT-policy",
+        "UC-update",
+        "VC-custody",
+        "VC-egress",
+        "VC-http-cache-untrusted",
+        "VC-http-denied",
+        "VC-http-hit",
+        "VC-http-miss",
+        "VC-http-source-failure",
+        "VC-http-untrusted",
+        "VC-https",
+        "VC-https-denied",
+        "VC-integrity"
+      ]
+    },
+    "execution": {
+      "definition": "X-HTTP",
+      "actions": {
+        "X-request": {
+          "name": "request",
+          "message": "H-request"
+        },
+        "X-check": {
+          "name": "admission",
+          "message": "H-check"
+        },
+        "XD-policy": {
+          "name": "policy",
+          "message": null
+        },
+        "X-lookup": {
+          "name": "lookup",
+          "message": "H-lookup"
+        },
+        "XD-cache": {
+          "name": "cache",
+          "message": null
+        },
+        "X-cached": {
+          "name": "cached",
+          "message": "H-cached"
+        },
+        "X-fetch": {
+          "name": "fetch",
+          "message": "H-fetch"
+        },
+        "XD-source": {
+          "name": "source",
+          "message": null
+        },
+        "X-origin": {
+          "name": "origin",
+          "message": "H-origin"
+        },
+        "X-cache-rules": {
+          "name": "cacheRules",
+          "message": "H-cache-rules"
+        },
+        "X-response": {
+          "name": "response",
+          "message": "H-response"
+        },
+        "XM-content": {
+          "name": "contentReady",
+          "message": null
+        },
+        "X-verify": {
+          "name": "verifyContent",
+          "message": "H-verify"
+        },
+        "XD-integrity": {
+          "name": "integrity",
+          "message": null
+        },
+        "X-accepted": {
+          "name": "complete",
+          "message": "H-accepted"
+        },
+        "X-rejected": {
+          "name": "rejectContent",
+          "message": "H-rejected"
+        },
+        "X-denied": {
+          "name": "deny",
+          "message": "H-denied"
+        },
+        "X-source-failure": {
+          "name": "sourceFailure",
+          "message": "H-source-failure"
+        },
+        "X-unavailable": {
+          "name": "unavailable",
+          "message": "H-unavailable"
+        },
+        "X-stop": {
+          "name": "stopWithoutContent",
+          "message": "H-stop"
+        },
+        "XM-finish": {
+          "name": "finishRetrieval",
+          "message": null
+        }
+      },
+      "runs": {
+        "RUN-cache-untrusted": {
+          "name": "Reject untrusted cached content",
+          "qualified_name": "SoftwareIntake::RetrievalRuns::'Reject untrusted cached content'",
+          "inputs": {
+            "clientAllowed": true,
+            "destinationAllowed": true,
+            "portAllowed": true,
+            "eligibleFreshResponse": true,
+            "sourceAvailable": false,
+            "contentVerified": false
+          },
+          "expected": {
+            "outcome": "verification-failed",
+            "accepted": false,
+            "cacheLookups": 1,
+            "sourceRequests": 0,
+            "verificationChecks": 1
+          },
+          "scenario": "SC-http-cache-untrusted"
+        },
+        "RUN-denied": {
+          "name": "Deny even when content is cached",
+          "qualified_name": "SoftwareIntake::RetrievalRuns::'Deny even when content is cached'",
+          "inputs": {
+            "clientAllowed": true,
+            "destinationAllowed": false,
+            "portAllowed": true,
+            "eligibleFreshResponse": true,
+            "sourceAvailable": true,
+            "contentVerified": true
+          },
+          "expected": {
+            "outcome": "denied",
+            "accepted": false,
+            "cacheLookups": 0,
+            "sourceRequests": 0,
+            "verificationChecks": 0
+          },
+          "scenario": "SC-http-denied"
+        },
+        "RUN-hit-offline": {
+          "name": "Reuse fresh content while source is offline",
+          "qualified_name": "SoftwareIntake::RetrievalRuns::'Reuse fresh content while source is offline'",
+          "inputs": {
+            "clientAllowed": true,
+            "destinationAllowed": true,
+            "portAllowed": true,
+            "eligibleFreshResponse": true,
+            "sourceAvailable": false,
+            "contentVerified": true
+          },
+          "expected": {
+            "outcome": "accepted",
+            "accepted": true,
+            "cacheLookups": 1,
+            "sourceRequests": 0,
+            "verificationChecks": 1
+          },
+          "scenario": "SC-http-hit"
+        },
+        "RUN-miss": {
+          "name": "Retrieve from available source",
+          "qualified_name": "SoftwareIntake::RetrievalRuns::'Retrieve from available source'",
+          "inputs": {
+            "clientAllowed": true,
+            "destinationAllowed": true,
+            "portAllowed": true,
+            "eligibleFreshResponse": false,
+            "sourceAvailable": true,
+            "contentVerified": true
+          },
+          "expected": {
+            "outcome": "accepted",
+            "accepted": true,
+            "cacheLookups": 1,
+            "sourceRequests": 1,
+            "verificationChecks": 1
+          },
+          "scenario": "SC-http-miss"
+        },
+        "RUN-source-failure": {
+          "name": "Stop after source failure",
+          "qualified_name": "SoftwareIntake::RetrievalRuns::'Stop after source failure'",
+          "inputs": {
+            "clientAllowed": true,
+            "destinationAllowed": true,
+            "portAllowed": true,
+            "eligibleFreshResponse": false,
+            "sourceAvailable": false,
+            "contentVerified": true
+          },
+          "expected": {
+            "outcome": "source-unavailable",
+            "accepted": false,
+            "cacheLookups": 1,
+            "sourceRequests": 1,
+            "verificationChecks": 0
+          },
+          "scenario": "SC-http-source-failure"
+        },
+        "RUN-untrusted": {
+          "name": "Reject untrusted source content",
+          "qualified_name": "SoftwareIntake::RetrievalRuns::'Reject untrusted source content'",
+          "inputs": {
+            "clientAllowed": true,
+            "destinationAllowed": true,
+            "portAllowed": true,
+            "eligibleFreshResponse": false,
+            "sourceAvailable": true,
+            "contentVerified": false
+          },
+          "expected": {
+            "outcome": "verification-failed",
+            "accepted": false,
+            "cacheLookups": 1,
+            "sourceRequests": 1,
+            "verificationChecks": 1
+          },
+          "scenario": "SC-http-untrusted"
+        }
+      }
+    }
+  },
+  "trace_records": {
+    "DEF-member": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/terraform/deployments/cache/terraform.tfvars.example",
+        "tier-2/terraform/deployments/cache/main.tf",
+        "tier-2/terraform/modules/environment_guests/main.tf",
+        "tier-2/terraform/modules/vm/main.tf",
+        "tier-2/ansible/inventory/hosts.yml.example",
+        "tier-2/ansible/playbooks/cache.yml",
+        "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+      ],
+      "checks": [
+        "tests/test_tier_deployment_views.py",
+        "shared/ansible/roles/shared/tasks/keepalived_vip_validation.yml",
+        "tests/test_tier_intake_model.py",
+        "tests/intake_model_fixture.py",
+        "tests/test_tier_intake_behavior.py",
+        "tests/test_tier_intake_use_cases.py"
+      ]
+    },
+    "DEF-proxy": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/group_vars/cache.yml.example",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml",
+        "tier-2/ansible/roles/cache_proxy/tasks/main.yml",
+        "tier-2/ansible/roles/cache_proxy/tasks/squid.yml",
+        "tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml",
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "shared/ansible/roles/shared/templates/keepalived.conf.j2"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py",
+        "tier-2/ansible/roles/cache_proxy/tasks/services.yml"
+      ]
+    },
+    "DEF-cache": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/tasks/storage.yml",
+        "shared/ansible/roles/data_volume/tasks/inspect.yml",
+        "shared/ansible/roles/data_volume/tasks/validate.yml",
+        "shared/ansible/roles/data_volume/tasks/prepare.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_storage.py"
+      ]
+    },
+    "DEF-client": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-0/ansible/playbooks/deployment/bootstrap-software-intake.yml",
+        "tier-0/ansible/playbooks/proxmox-hosts.yml",
+        "tier-0/ansible/roles/proxmox_host/tasks/main.yml",
+        "shared/ansible/roles/baseline/tasks/repository_proxy.yml",
+        "shared/ansible/roles/baseline/tasks/package_policy.yml"
+      ],
+      "checks": [
+        "tests/test_tier_bootstrap_intake.py",
+        "tests/test_tier_software_intake.py"
+      ]
+    },
+    "REQ-policy": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/tasks/preflight.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py",
+        "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+      ]
+    },
+    "REQ-integrity": {
+      "state": "manual-acceptance",
+      "sources": [
+        "shared/ansible/roles/baseline/tasks/package_policy.yml",
+        "docs/03-deployment/stage-01-software-intake/README.md"
+      ],
+      "checks": []
+    },
+    "REQ-egress": {
+      "state": "manual-acceptance",
+      "sources": [
+        "docs/01-architecture/05-networking/01-firewall-policy.md",
+        "docs/03-deployment/stage-01-software-intake/README.md"
+      ],
+      "checks": []
+    },
+    "REQ-custody": {
+      "state": "external-custody",
+      "sources": [
+        "docs/01-architecture/07-software-intake/README.md",
+        "docs/01-architecture/11-operations/04-backup-recovery.md"
+      ],
+      "checks": []
+    },
+    "H-request": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py",
+        "tests/test_tier_intake_product.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+        "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+      ]
+    },
+    "H-check": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+      ]
+    },
+    "H-cached": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py",
+        "tests/test_tier_intake_product.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+        "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+      ]
+    },
+    "H-fetch": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py",
+        "tests/test_tier_intake_product.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+        "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+      ]
+    },
+    "H-origin": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py",
+        "tests/test_tier_intake_product.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+        "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+      ]
+    },
+    "H-cache-rules": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+      ]
+    },
+    "H-response": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py",
+        "tests/test_tier_intake_product.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+        "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+      ]
+    },
+    "H-denied": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py",
+        "tests/test_tier_intake_product.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+        "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+      ]
+    },
+    "S-connect": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+      ]
+    },
+    "S-check": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+      ]
+    },
+    "S-denied": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+      ]
+    },
+    "S-open": {
+      "state": "manual-acceptance",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+      ],
+      "checks": []
+    },
+    "S-established": {
+      "state": "manual-acceptance",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+      ],
+      "checks": []
+    },
+    "S-ready": {
+      "state": "manual-acceptance",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+      ],
+      "checks": []
+    },
+    "S-fetch": {
+      "state": "manual-acceptance",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+      ],
+      "checks": []
+    },
+    "S-response": {
+      "state": "manual-acceptance",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+      ],
+      "checks": []
+    },
+    "H-verify": {
+      "state": "implementation-source",
+      "sources": [
+        "shared/ansible/roles/baseline/tasks/package_policy.yml",
+        "shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2"
+      ],
+      "checks": [
+        "tests/test_tier_package_policy.py",
+        "tests/test_tier_intake_product.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_package_policy.py::PackagePolicy.test_native_apt_rejects_unsigned_and_expired_metadata_but_trusted_source_is_an_exception",
+        "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+      ]
+    },
+    "S-verify": {
+      "state": "implementation-source",
+      "sources": [
+        "shared/ansible/roles/baseline/tasks/package_policy.yml",
+        "shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2"
+      ],
+      "checks": [
+        "tests/test_tier_package_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_package_policy.py::PackagePolicy.test_native_apt_rejects_unsigned_and_expired_metadata_but_trusted_source_is_an_exception"
+      ]
+    },
+    "P-virtualization": {
+      "state": "documented-context",
+      "sources": [
+        "docs/01-architecture/04-hosting/01-runtime.md",
+        "tier-2/terraform/modules/vm/main.tf"
+      ],
+      "checks": []
+    },
+    "P-storage": {
+      "state": "documented-context",
+      "sources": [
+        "tier-2/terraform/deployments/cache/terraform.tfvars.example",
+        "tier-2/terraform/modules/vm/main.tf"
+      ],
+      "checks": []
+    },
+    "P-network": {
+      "state": "documented-context",
+      "sources": [
+        "tier-2/terraform/common.tfvars.example",
+        "tier-2/terraform/modules/vm/main.tf"
+      ],
+      "checks": []
+    },
+    "P-fabric": {
+      "state": "documented-context",
+      "sources": [
+        "docs/03-deployment/foundation/proxmox/network.md"
+      ],
+      "checks": []
+    },
+    "P-storage-network": {
+      "state": "documented-context",
+      "sources": [
+        "docs/03-deployment/foundation/proxmox/network.md"
+      ],
+      "checks": []
+    },
+    "P-servers": {
+      "state": "documented-context",
+      "sources": [
+        "docs/01-architecture/04-hosting/01-runtime.md"
+      ],
+      "checks": []
+    },
+    "P-drives": {
+      "state": "documented-context",
+      "sources": [
+        "docs/01-architecture/06-data/README.md"
+      ],
+      "checks": []
+    },
+    "P-switches": {
+      "state": "documented-context",
+      "sources": [
+        "docs/03-deployment/foundation/proxmox/network.md"
+      ],
+      "checks": []
+    },
+    "P-cabling": {
+      "state": "documented-context",
+      "sources": [
+        "docs/03-deployment/foundation/proxmox/network.md"
+      ],
+      "checks": []
+    },
+    "P-context": {
+      "state": "documented-context",
+      "sources": [
+        "architecture/design/platform/README.md",
+        "architecture/design/software-intake/resources.md"
+      ],
+      "checks": []
+    },
+    "SYS-homelab": {
+      "state": "documented-context",
+      "sources": [
+        "architecture/design/system.sysml",
+        "architecture/design/README.md"
+      ]
+    },
+    "SYS-intake": {
+      "state": "documented-context",
+      "sources": [
+        "architecture/design/system.sysml",
+        "architecture/design/software-intake/README.md"
+      ]
+    },
+    "SYS-platform": {
+      "state": "documented-context",
+      "sources": [
+        "architecture/design/system.sysml",
+        "architecture/design/platform/README.md"
+      ]
+    },
+    "SYS-trust": {
+      "state": "documented-context",
+      "sources": [
+        "architecture/design/system.sysml",
+        "docs/01-architecture/08-cryptography/README.md",
+        "docs/01-architecture/09-identity/README.md"
+      ]
+    },
+    "SYS-delivery": {
+      "state": "documented-context",
+      "sources": [
+        "architecture/design/system.sysml",
+        "docs/01-architecture/10-delivery/README.md"
+      ]
+    },
+    "SYS-operations": {
+      "state": "documented-context",
+      "sources": [
+        "architecture/design/system.sysml",
+        "docs/01-architecture/11-operations/README.md"
+      ]
+    },
+    "VC-http-miss": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+      ]
+    },
+    "VC-http-hit": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+      ]
+    },
+    "VC-http-denied": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+      ]
+    },
+    "VC-https": {
+      "state": "manual-acceptance",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+      ]
+    },
+    "VC-https-denied": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+        "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+      ]
+    },
+    "VC-integrity": {
+      "state": "manual-acceptance",
+      "sources": [
+        "shared/ansible/roles/baseline/tasks/package_policy.yml",
+        "docs/03-deployment/stage-01-software-intake/README.md"
+      ],
+      "checks": [
+        "tests/test_tier_package_policy.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_package_policy.py::PackagePolicy.test_native_apt_rejects_unsigned_and_expired_metadata_but_trusted_source_is_an_exception"
+      ]
+    },
+    "VC-custody": {
+      "state": "external-custody",
+      "sources": [
+        "docs/01-architecture/07-software-intake/README.md",
+        "docs/01-architecture/11-operations/04-backup-recovery.md"
+      ],
+      "checks": []
+    },
+    "VC-egress": {
+      "state": "manual-acceptance",
+      "sources": [
+        "docs/01-architecture/05-networking/01-firewall-policy.md",
+        "docs/03-deployment/stage-01-software-intake/README.md"
+      ],
+      "checks": []
+    },
+    "H-lookup": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py",
+        "tests/test_tier_intake_execution.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+      ],
+      "note": "Native execution coverage with supplied environment outcomes; inherited source links identify implementation owners, not new runtime product evidence."
+    },
+    "H-source-failure": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py",
+        "tests/test_tier_intake_execution.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+      ],
+      "note": "Native execution coverage with supplied environment outcomes; inherited source links identify implementation owners, not new runtime product evidence."
+    },
+    "H-unavailable": {
+      "state": "implementation-source",
+      "sources": [
+        "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+        "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+      ],
+      "checks": [
+        "tests/test_tier_cache_policy.py",
+        "tests/test_tier_intake_execution.py",
+        "tests/test_tier_intake_product.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths",
+        "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+      ],
+      "note": "Native execution coverage with supplied environment outcomes; inherited source links identify implementation owners, not new runtime product evidence."
+    },
+    "H-accepted": {
+      "state": "implementation-source",
+      "sources": [
+        "shared/ansible/roles/baseline/tasks/package_policy.yml",
+        "shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2"
+      ],
+      "checks": [
+        "tests/test_tier_package_policy.py",
+        "tests/test_tier_intake_execution.py",
+        "tests/test_tier_intake_product.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths",
+        "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+      ],
+      "note": "Native execution coverage with supplied environment outcomes; inherited source links identify implementation owners, not new runtime product evidence."
+    },
+    "H-rejected": {
+      "state": "implementation-source",
+      "sources": [
+        "shared/ansible/roles/baseline/tasks/package_policy.yml",
+        "shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2"
+      ],
+      "checks": [
+        "tests/test_tier_package_policy.py",
+        "tests/test_tier_intake_execution.py",
+        "tests/test_tier_intake_product.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths",
+        "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+      ],
+      "note": "Native execution coverage with supplied environment outcomes; inherited source links identify implementation owners, not new runtime product evidence."
+    },
+    "H-stop": {
+      "state": "implementation-source",
+      "sources": [
+        "architecture/functions/software-intake/retrieval-execution.sysml"
+      ],
+      "checks": [
+        "tests/test_tier_intake_execution.py",
+        "tests/test_tier_intake_product.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths",
+        "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+      ],
+      "note": "Native model termination without content. No package-verification operation or product-test coverage is asserted for this step."
+    },
+    "X-HTTP": {
+      "state": "implementation-source",
+      "sources": [
+        "architecture/functions/software-intake/retrieval-execution.sysml",
+        "architecture/test/software-intake/retrieval-runs.sysml",
+        "scripts/architecture/intake_execution.py"
+      ],
+      "checks": [
+        "tests/test_tier_intake_execution.py",
+        "tests/apt_repository_fixture.py",
+        "tests/test_tier_intake_product.py",
+        "tests/test_tier_intake_comparison.py",
+        "tests/test_tier_intake_language.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+      ],
+      "note": "Implementation of the model experiment, not a deployed service check."
+    },
+    "VC-http-source-failure": {
+      "state": "implementation-source",
+      "sources": [
+        "architecture/functions/software-intake/retrieval-execution.sysml",
+        "architecture/test/software-intake/retrieval-runs.sysml",
+        "scripts/architecture/intake_execution.py"
+      ],
+      "checks": [
+        "tests/test_tier_intake_execution.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+      ],
+      "note": "Implementation of the model experiment, not a deployed service check."
+    },
+    "VC-http-untrusted": {
+      "state": "implementation-source",
+      "sources": [
+        "architecture/functions/software-intake/retrieval-execution.sysml",
+        "architecture/test/software-intake/retrieval-runs.sysml",
+        "scripts/architecture/intake_execution.py"
+      ],
+      "checks": [
+        "tests/test_tier_intake_execution.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+      ],
+      "note": "Implementation of the model experiment, not a deployed service check."
+    },
+    "VC-http-cache-untrusted": {
+      "state": "implementation-source",
+      "sources": [
+        "architecture/functions/software-intake/retrieval-execution.sysml",
+        "architecture/test/software-intake/retrieval-runs.sysml",
+        "scripts/architecture/intake_execution.py"
+      ],
+      "checks": [
+        "tests/test_tier_intake_execution.py"
+      ],
+      "test_symbols": [
+        "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+      ],
+      "note": "Implementation of the model experiment, not a deployed service check."
+    },
+    "UC-clone": {
+      "state": "documented-context",
+      "sources": [
+        "docs/03-deployment/foundation/bootstrap/README.md",
+        "tier-0/ansible/playbooks/deployment/bootstrap-software-intake.yml",
+        "shared/ansible/roles/baseline/templates/shell-proxy.sh.j2"
+      ],
+      "checks": [
+        "tests/test_tier_bootstrap_use_case.py"
+      ]
+    }
+  },
+  "sources": {
+    "architecture/design/README.md": "31fc3cfac4f14659b017ca4ace69376c478a9f98c4e28d838491af95e0d27206",
+    "architecture/design/delivery/README.md": "c155bcde5d94136549fbfd37ef3e02f1b7153725734868946a1ece0cf453c152",
+    "architecture/design/operations/README.md": "8e4065809b3d2e905c10dc11b238e2faee97c417da115a59de4d60f31cb6b112",
+    "architecture/design/platform/README.md": "f2f69d08b97d360379605efd0dedd5899ef69284c500795262f86875a3a6b079",
+    "architecture/design/platform/contracts.sysml": "c729782fce25c64d8cb2e7bf52d71c1c87fb94c7de0d1cde6d91e247332e7b79",
+    "architecture/design/platform/data/README.md": "a7177d0c17844fbf5c0ed2024eb6da5a0835cc3f6db96ae68580d5e054ef7c42",
+    "architecture/design/platform/hosting/README.md": "5df78b3620a477579c1be58392efbf5bdfcda83085622cea398529351254e265",
+    "architecture/design/platform/hosting/bootstrap.sysml": "659ad3bc1e02200f753a5ee19eb8031dda3c42cb18c1d843c9748f7b3d1f1579",
+    "architecture/design/platform/networking/README.md": "f90741a06c7dc2939a426aa68325aacdc5ef2414f8156d779ec77a00a2eca868",
+    "architecture/design/software-intake/README.md": "dd63a525816c0af88f6dc33acc4f1a5b4ca8897be50f621fd210cef9c53819ab",
+    "architecture/design/software-intake/context.sysml": "ebba370268299b11f0c9a8dfd3c3d384e07e1558fc9de887a498a535da6cc274",
+    "architecture/design/software-intake/deployment.md": "b0beca228463d53a2472b8d2b0a7ec7f18f040ef57b43981457100e3ec50bfd7",
+    "architecture/design/software-intake/logical.md": "a99027dfe3a304c5967612bf8e94e97e0ac55b63d29ea227493c0b392f0d6e80",
+    "architecture/design/software-intake/object-cache/README.md": "d4042514817efa8e81221df687d13ac49b5c9c4cea9b5412a3ac274957dbcc19",
+    "architecture/design/software-intake/object-cache/definition.sysml": "7bbdf8fbce1dc59630d598bd9bc7d9d342b53421d95deb4b125ce4bae3f6245e",
+    "architecture/design/software-intake/policy-proxy/README.md": "ba2a085817d4b9d56fe387f524d35d6568f82846be41e657c9c7ab22d407d258",
+    "architecture/design/software-intake/policy-proxy/definition.sysml": "159c23aaaece565d293d8ee7776dfd240f3826dff90c4c87f8f846051049e846",
+    "architecture/design/software-intake/resources.md": "fad280c1653dc9a5ff412560cc4374d6608bf618315c460a25d45f146fb9f784",
+    "architecture/design/software-intake/structure.sysml": "1de0ef303b9ee3ba04ddaae6660da86e9ce431573501ed68a5b90055398d60c5",
+    "architecture/design/system.sysml": "863845490d0d064f19ef6e64e45cdca5e637ea27f434c1f668db25f078242b1b",
+    "architecture/design/trust-and-access/README.md": "ce157168a52cbd35ff253400d1818fa4305eb16690dcd09827107806538f9b8f",
+    "architecture/functions/software-intake/admission-logic.sysml": "f2eed453829b62d2a1f6159ca9ff01b73a9075f3041f27531a2b14b73620f0fa",
+    "architecture/functions/software-intake/admission.sysml": "aeaa0f5a2a6db8d2347490c7b22b31ab8f40d610d1ac80eefdc587418dced687",
+    "architecture/functions/software-intake/behavior.sysml": "bdd795058b7d8fc8e2eae160997f50898c185db6bdc1f14d419d76db54980fed",
+    "architecture/functions/software-intake/functions.sysml": "e127d8d373be3c0f9b6cf93e8208e0427f0b2f3a119ab8f99c45bbd78ff49187",
+    "architecture/functions/software-intake/retrieval-execution.sysml": "a9efa985b3baae3fd944f26a6f7c39f97ddca6c8c1955e36cac13e09a59a8481",
+    "architecture/requirements/functional/software-intake.sysml": "1db321f68c8aedfa515ad90ff34c9d8aa03d4c2dc08b2692410f206f990b447e",
+    "architecture/requirements/non-functional/software-intake.sysml": "59a81f1f76833e8c3bde83392826d3aebe155df58bcf4430980b5ff01a61ee1f",
+    "architecture/test/software-intake/retrieval-runs.sysml": "fbed72ae283d6eae9b4743d7b18c7384720a86aba11a02e005b639972a3ab76d",
+    "architecture/test/software-intake/verification.sysml": "30c9e3c65a9bf5c93a4a5f1efdf66e2b6c3d425206d6613b5c313be84348d95a",
+    "architecture/trace/software-intake-execution.sysml": "333139f50081fb53c26638730e8eeccb35fd327ffab5fbbee28761f05e43d446",
+    "architecture/use-cases/bootstrap/clone-repository.sysml": "9e4e4a006ef27c5fdbc4370717d2192f2c7186391f70112f388a1576865f2b16",
+    "architecture/use-cases/software-intake/model.json": "f5cd0c72c7240b2e54c214c5caae9968d9456fe98f60035eb30237a66c145398",
+    "architecture/use-cases/software-intake/use-cases.sysml": "449d29d0a863d434d1647ee8843ab080dcbd93d17f07e6af6880c2124cd48bd0",
+    "architecture/views/design-context.json": "f1727d8198077d20faee30c52545544e6a40560a11f03a58ca33b2305e1b941c",
+    "architecture/views/platform/hosting/bootstrap-reference.svg": "15e43bdfaac24c52e921b744f7c9cf105f3af7bc4d3af28b94e3083e87a3a203",
+    "architecture/views/platform/hosting/clone-repository.json": "f8555c0119d57f911e4bba866564492abe78fb9bb3d5799db7fdc34e627d7a8a",
+    "architecture/views/software-intake/engineering.sysml": "4c01a30ef0e8f27d20e3d445ce20627c94f468abdda098be4ccf253350ad31be",
+    "architecture/views/software-intake/logical.layout.svg": "806f97280d2dbc95bfe292d74049626e2855873ad3a896f42db11d7c2dca8501",
+    "architecture/views/software-intake/placement.layout.svg": "f441d7aab109d95feee8671d654e14f15e1670e52037b185cce0c33463c47a73",
+    "architecture/views/software-intake/resources.json": "50a4b6d9d9cfc33d04343bc03c8fcac74925473ed78184b0cb65dfbfacbe0773",
+    "architecture/views/software-intake/roles.json": "482a0367e20d799171327b73abd272fc4519e124636bdeae14e447b60fbf31a8",
+    "architecture/views/software-intake/sequence.json": "3b5343bd2184e5ad713d13c4083f2d65224fa88c572523603062950e62a11d1f",
+    "architecture/views/software-intake/use-cases.json": "114ec214d8263e0fae0df908b78cba1a34107fb2ba63e0dd011f1981c1b05c24",
+    "architecture/views/system-overall.json": "70cc1f30e4b9b16e5d7862f5a87daecd904fcbc8f8b03311452c5682fa367d95",
+    "architecture/toolchain.json": "d896c9c6d2d7ef3dfa59e95eaf005adf312a24a4d5c7a2949ce01c70d6754483",
+    "architecture/trace/software-intake.json": "c4f890eb52e659b6f9460dd7474fe17fab3fec0408044a17ecc287bacce11a24",
+    "architecture/views/notation.json": "4885b46b6fe424fc1848f00d3e4ad3c5b59b1ae4316cddbdd2db2aaf53780124",
+    "docs/01-architecture/04-hosting/01-runtime.md": "4222c8e0b4c512111746dd752139072cc70d16aa95091ed7de9c5b0902cc58a7",
+    "docs/01-architecture/04-hosting/README.md": "925610c771b784a731b6e4530cc93192a8d647ec91fcca214fb1ef224e0719dc",
+    "docs/01-architecture/05-networking/01-firewall-policy.md": "9f3573462785153aa4d9aff4851659d507b10cdf0b9dad6209f559eb1fb8a0b2",
+    "docs/01-architecture/05-networking/README.md": "023c99aaaa1509458e47a64f93de3e244239992474bb4f574251a498da35c4d8",
+    "docs/01-architecture/06-data/README.md": "6a471710c7026e2fdafd1f6f6e1be9f2833f637818b5b0c64cdbb065bcc91f46",
+    "docs/01-architecture/07-software-intake/README.md": "bcb52ac6550c79f81498ff56e286a1ecb902a942061510751ac29b3e4d48bb7d",
+    "docs/01-architecture/08-cryptography/README.md": "55b46be3048f030573df70d617ac265a9a00094c3dbb46e2d71816d83f23fa10",
+    "docs/01-architecture/09-identity/README.md": "f2ab19ab0aa9df59c667d002f29ec745280c74af555bb7a7f738a590af95fa8c",
+    "docs/01-architecture/10-delivery/README.md": "c592033841160b60c116954f7790413480395062e9d343a588a776646cfdc915",
+    "docs/01-architecture/11-operations/04-backup-recovery.md": "767e9b85898a84ba2b7a1c2890f02579f30bfbf43a4eaa42d0b31c4aa85f9c05",
+    "docs/01-architecture/11-operations/README.md": "19d2d6186dc98475de82a73f5ac598f5e55bf01edbb752ae753786a4de55bb7e",
+    "docs/01-architecture/README.md": "ae058704e4ea1028af0bc04d607cfe553a6ffe6a1c749a03793cff772a65d9fd",
+    "docs/03-deployment/foundation/bootstrap/README.md": "39778fc506545d66421fdab4c6238d2a0967bfc2cbf8cb862a6edc9801101542",
+    "docs/03-deployment/foundation/proxmox/network.md": "a4f6aa1b37ef69dd4cb140f1d1dc96f4dce52bc2387bd40310a9a2d35f3c1403",
+    "docs/03-deployment/stage-01-software-intake/README.md": "8cbae776d2adeb8e9fe04d01b0ce018d44398dbab038dddadf906258ed478787",
+    "docs/08-reference/diagrams/render-bootstrap-reference.cjs": "3586ecb13ae4d319ed78acedd48c2d0a79416a9c446499c9b170de5f3d0a0475",
+    "docs/08-reference/diagrams/palette.json": "c0ab3fed0839973ce5ef298b2ea08d34f38456be63d9f15e2c62c334c378d37c",
+    "scripts/architecture/EvaluateModel.java": "92450a19b1dca3ab3e25ff6a7a5c4b27a616b0d74761e7135d4eca1fd7b7b330",
+    "scripts/architecture/ExportModel.java": "28badcc3608a4130970d931f945fa86aed23ee1a3117477d7494452a3264fcb7",
+    "scripts/architecture/SourceIndex.java": "1e70eb18ff1456f9e159d52b8e10269f4da9052016855fa796780602cd93e666",
+    "scripts/architecture/bootstrap_reference.py": "695df03f37aedc1e0fc00a792eccaa37a8da969bac3a2fbd43328e02ab248399",
+    "scripts/architecture/bootstrap_use_case.py": "b400efc139a443e9e233b42f778e9f0da1f92bf8b738a74e72faea3d2b5df520",
+    "scripts/architecture/design_context.py": "a50d8438056482d4d96d4b7a2a483759d0ef40a95e840fb7bb948730f822fb36",
+    "scripts/architecture/design_context_view.py": "887ba6a37b23b19cc9861913dcf475adeb25faec557cfa2e43f234225fbf28fa",
+    "scripts/architecture/diagram_notation.py": "526bdced24ead974caa84fdcfb3ec30d9335849add05e4ec4b48f9c24848d7df",
+    "scripts/architecture/focused_views.py": "433992b754e1f65c5fc163c65da2504278235a9b6f596678cd5f0fd677b05667",
+    "scripts/architecture/install_execution_runtime.py": "7de3f7ae86042d750e2bce65d196d2a11db28955efcc0e2841eb2b751b20cb77",
+    "scripts/architecture/intake_analysis.py": "12cbfe79db1a9d63647614bbabe48ece9d973944003bb8ef7eb1788fdd892272",
+    "scripts/architecture/intake_behavior.py": "6fa0517ba9fce469bc190f7944b78a0954bce9def7322a3cf5691030e59ee05e",
+    "scripts/architecture/intake_case_reports.py": "da152e207f28b8646a7257e5354db873009777c5cbdeb24681b885cbdba01d1f",
+    "scripts/architecture/intake_case_view.py": "6779c0921db426d80b933bfa5e697e30ca571f8387296a679ea8e65729be906e",
+    "scripts/architecture/intake_contracts.py": "12545f1af918489494a64fa06cde567b192d3ee1e3ca3577430100ee821b44e5",
+    "scripts/architecture/intake_engineering_view.py": "39b870a639a6b0e799dfe3da96dfe7946e29e39eab4213832b11b4af2d6b8509",
+    "scripts/architecture/intake_execution.py": "1ef94df9de4ccc1b58f62f6986f2334ab216354994d6e85e28500bf0ef1e95cb",
+    "scripts/architecture/intake_execution_model.py": "f3d76dd04ab93fae0f3eb8c3729aefdb55ce298b45c281cf665f2b577f7dc68b",
+    "scripts/architecture/intake_execution_view.py": "149753909035e240b27b59c714665056b31b8c8cdf636d4ea177420938d95074",
+    "scripts/architecture/intake_explorer.py": "fa5bc5bbb877c6f17d82248ce7c59a33ed5967f31969815841bdb51228acd6e6",
+    "scripts/architecture/intake_intent.py": "d0ef0f592224fbb5a9d94446d136963e0674cbbe7b8bb1057d75c1be4f1ca4bd",
+    "scripts/architecture/intake_language.py": "53a4ce95153a7638739bbe818d5b297cdc5088016c1240ffb731e4ebb72ec59e",
+    "scripts/architecture/intake_model.py": "1f5b8443e92071e322d558ad3417a50d80a28ba060c95044f10615094452e385",
+    "scripts/architecture/intake_platform.py": "4147ccb70028e50c4d68e123f2f5a9f037b6d9a26fad5a1001e31022c39b1964",
+    "scripts/architecture/intake_product.py": "b10db6ba03661773ad0b9ed44b707465c89a18300702eefdcb107a5ae0973fb6",
+    "scripts/architecture/intake_resource_view.py": "bc7d4ae0e70da2d1dae93f73265fceb0aea9d8c7df0f41dae91635be2fbca33e",
+    "scripts/architecture/intake_reverse.py": "4adf4102165197d5ff4e586557e2f995339cf3d4c8ccd5a3fe952d8cef9642f4",
+    "scripts/architecture/intake_reverse_cli.py": "ec8f3f6e5cabaa8a01d27a32271439ae9ffe48e4c9803517d85d6183b588181b",
+    "scripts/architecture/intake_reverse_view.py": "2b5cb6750e52e89e2574c77c99422d6e6a79edb56184f546ab09ab102d043c9e",
+    "scripts/architecture/intake_scenario_views.py": "5166808224e1fe565d6c404b1b397854b59a9e387e2846d8171afc9b40d28922",
+    "scripts/architecture/intake_semantics.py": "86f9925fa6bb68b405a38146fb85c47695fdd823d09d6c88773b54bc51d35d43",
+    "scripts/architecture/intake_sources.py": "d608aec716068b00bcf6254584a7417d68ae51c6d2bc6e46128eaba2310c5a87",
+    "scripts/architecture/intake_use_cases.py": "04c092ffefbc5e4baae4810d85384f0a507c4729236eb3fb768e0e5c4bedb3ab",
+    "scripts/architecture/intake_views.py": "de306662e59443ad3950a68c463d89ce2f958cffff15df2905dcff4ac6124c46",
+    "scripts/architecture/model_style.py": "5d650f2f33b189ca18466441ff1fe1c4990ac50a893f24ab294b544db2affc15",
+    "scripts/architecture/software_intake.py": "40c6544fd2ff0eca8e5b011ac3361165a0ca9ccd2932f2fd1ca5dbb0d42da251",
+    "scripts/architecture/svg_pages.py": "5dd44a08c01b3aa0cacef4a4be4242102d4cc58a29e13a6963a1aafa6e93ffdf",
+    "scripts/architecture/syson.py": "cf47e751d941e67ee95679869607bd3f119719898ee603524e98c997ff8c2256",
+    "scripts/architecture/syson_annotations.py": "08acbc2734ea34c2fee547024c044a3eabe125def4ca19084016b6019b537f09",
+    "scripts/architecture/syson_api.py": "4a8d15f8ec6801631041bb514954146a2aee332a5c29f101885afb3dba803f71",
+    "scripts/architecture/syson_catalog.py": "9c6eca126be5839e6eee30cdf6102cb8643f57ba618382b4e8c4f1320c1756ea",
+    "scripts/architecture/syson_change_model.py": "7e03c9c57e06221bf20708c6f9cb06c4425539f74f650ba7e98b0861772664b2",
+    "scripts/architecture/syson_change_source.py": "35ff845ae692c28a365df40c561800ef63fc2c781c530987c6295b666a2980d9",
+    "scripts/architecture/syson_change_workspace.py": "6a1a0c3352b43a4e4faae18b6b08ad6b6116c390339d0f607f3d9852ce8b335f",
+    "scripts/architecture/syson_changes.py": "171033bc66641cef98c73f4232fb8d7cb01e9a0a48aae61df211210456d32632",
+    "scripts/architecture/syson_model.py": "87ba7831514656c5b4fd1940fab0866a563e1cbc98dd735487f1981f5b4089d2",
+    "scripts/architecture/syson_nested.py": "e027d65e38009cef7d8be81bc707685f5ef660e46a49e198017f624abb51a46d",
+    "scripts/architecture/syson_session.py": "09e2f6f4ba509543f74c0feaff87f5e58b28efb0b213c01d8e9ec9a62b33b73d",
+    "scripts/architecture/syson_style.py": "7de8ea2169044e081e9abb3a8b2c5e86e3a80de09c4c0266e43dad9362b4d2a7",
+    "scripts/architecture/syson_trace.py": "f11fba22e0489b8ca21d4d42c235eb24ba3094fe72225694b270c5f5d09f7653",
+    "scripts/architecture/syson_views.py": "2f6a52c31f33e2a90d37ffb9bc09c1ec2e3919e39bd8b6637c9b24d3185addd8",
+    "scripts/architecture/system_overall.py": "72b1bf5a6beee5fb041ad663dcd74bc74c556759c77d968b30a0c37399b03e72",
+    "scripts/architecture/view_catalog.py": "41f96d19f371d29728f1926ff23cbd035cb34476537a94d846575bc6cbfb6a15",
+    "scripts/architecture/view_contracts.py": "78f6617be8a770ff52f2769e67824472b261ab2edd954e8b6e4bf6bb54f82edd",
+    "shared/ansible/roles/baseline/tasks/package_policy.yml": "03eebdfcdd4182e4212dcdf9caae8fdae8a2937d2bb2e171356c68acb2495403",
+    "shared/ansible/roles/baseline/tasks/repository_proxy.yml": "e32b086c171bdd7f82be6e6e214b4d306a7918c28e23cdc9746a997dcece4e9e",
+    "shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2": "ce361191b81759163ebfa7c6ba254810570f9950a64ef3d16b60778d9ceb1df7",
+    "shared/ansible/roles/baseline/templates/shell-proxy.sh.j2": "13ad69bc45366ee33a5559c3d249b52dc607b17255c65677786df4b9f5f0c646",
+    "shared/ansible/roles/data_volume/tasks/inspect.yml": "9f31c767d5473848a141b3febcdff917c59a2d58d970dd1d3c08ff3d1d235b86",
+    "shared/ansible/roles/data_volume/tasks/prepare.yml": "d2fa8224bdf250c32469f0ee6cc8036caee68dc2dd2b69e59f3bf734c0ecb2e7",
+    "shared/ansible/roles/data_volume/tasks/validate.yml": "f73f1a9a8882acf0ad0acb5086543e49800868d4ddc75a1b88e9ed17da3c7188",
+    "shared/ansible/roles/shared/tasks/keepalived_vip_validation.yml": "dfdc58656e4685075c22cbbf7b417bb3d12cf4418b8d0b1ec6de38b986050e8b",
+    "shared/ansible/roles/shared/templates/keepalived.conf.j2": "b3faccb89c31d898cc2f73b8ba9088bef7c54f66632ac00ed01993b726e9e9c4",
+    "tests/apt_repository_fixture.py": "5c3c01d5beb441528ebb8fedc69de50d71b78ed0f8f02427a2378e67d9be3c46",
+    "tests/intake_model_fixture.py": "e9ff27f59f76426ad800f768f9739153865f0aa52fbe53b58af769faea82bb66",
+    "tests/test_tier_bootstrap_intake.py": "2606e1570c833d0cfccb9b583ca7ac0e4edab32f750cf1528d710b34c6b82b87",
+    "tests/test_tier_bootstrap_use_case.py": "d36a0b51298c07e4d78cb73a7ce2034cbaa0300a3b02caaa50af2505adad4f43",
+    "tests/test_tier_cache_policy.py": "3cabc328d7c45ece443347e21c0c1da781de99abc1df6a0e78067e3effe2ef9c",
+    "tests/test_tier_cache_storage.py": "77703c22f2d10a4912ebc56c34d692e2f35dc2d1cc1eb89affac78afc05cf5bd",
+    "tests/test_tier_deployment_views.py": "aed9885a63148149b5dc52c669156adf7d473437b5ee3db3b2a8fde428126bd7",
+    "tests/test_tier_intake_behavior.py": "e8cf8aca5c93fb68a1e9984014d43ecf1837148b33aef4f43f967c9aca3dbf82",
+    "tests/test_tier_intake_comparison.py": "49d2598948ff2730d60f6e8cdb667ba09b66fac53a29a431db6f7ba942be58d2",
+    "tests/test_tier_intake_execution.py": "63fd2bcb514c75da8565d060e5181117f35056c22867d56471a14a21251ab6c7",
+    "tests/test_tier_intake_language.py": "beac38cab08bcdcdaf502c45dbda567b83fd61e3da13bcc3e4112166cf4ee149",
+    "tests/test_tier_intake_model.py": "2dba25e705df513a213adfce3a4e1b2e498588b19e5318cd3d18bc6d2052d91d",
+    "tests/test_tier_intake_product.py": "c4f705966a39298e063066862241231f864687292ab3d18fc7995bc91f49f8e8",
+    "tests/test_tier_intake_use_cases.py": "36f41f362071c2b8b04b43f7577b3a3e23c015a324172e97af09d1f228213bc7",
+    "tests/test_tier_package_policy.py": "e3f885fd65b7f1fbe18b7d4e59c6b9a9cd513feda6e261d2e976a64e1805b367",
+    "tests/test_tier_software_intake.py": "79e93f3a2a52b13f5ce801ab03a36f96da20ef6837380a2998d3a542321730e1",
+    "tier-0/ansible/playbooks/deployment/bootstrap-software-intake.yml": "d4cd9d6bbf9099b99666689e6ba8d4e5c29e2b88140a164acba27654a0b420a6",
+    "tier-0/ansible/playbooks/proxmox-hosts.yml": "51f4e0afd03deb8d0fc162257cb2cbfe9db4e683e933b44076a136ce95cf3eae",
+    "tier-0/ansible/roles/proxmox_host/tasks/main.yml": "57e15a9ed51ebfd62a068eb167813a62547f76457450c5777f111fd25984314a",
+    "tier-2/ansible/group_vars/cache.yml.example": "102e556b9b4c71801d5dbb8389ed9fa519ab10077c48139a2e2930f25acc81da",
+    "tier-2/ansible/inventory/hosts.yml.example": "328e21aa1848f75aa5901b35af4a74a33e26536ee2e358ef64e7d5cada4e93d2",
+    "tier-2/ansible/playbooks/cache.yml": "1b3e561f9fcf139d33b79f00a2ac3b6ccca5c888663a66ad54a63e71bf0f040f",
+    "tier-2/ansible/playbooks/deployment/outbound-cache.yml": "897cbddcd469371f3293c816564da41ca2b9be61e8da5d2f751c71cf99807206",
+    "tier-2/ansible/roles/cache_proxy/defaults/main.yml": "a9e041b4f710adddc52dfc557fe18344c4fd6e83454ecc5e20ca22ad0799cb44",
+    "tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml": "d64f2a781fb1095118604662d8a547c0cd45b61a18bf1f4937e594a5c43a1770",
+    "tier-2/ansible/roles/cache_proxy/tasks/main.yml": "d1e3412461d8b6af93c84d1c0a66955930be2fd2801532b91807fafe8051c65c",
+    "tier-2/ansible/roles/cache_proxy/tasks/preflight.yml": "0d9644672a94b77f96ba235568dedbead255136b3829381801c13c2f50fc5810",
+    "tier-2/ansible/roles/cache_proxy/tasks/services.yml": "3237473cde13b437cda286d6edaa8e1c538de44b17556c5788f1ae144c5f4666",
+    "tier-2/ansible/roles/cache_proxy/tasks/squid.yml": "065a46d3302498bf2ef3857c3b1ea8a33380e3b3b43b44ca84e0aae9df3e0d04",
+    "tier-2/ansible/roles/cache_proxy/tasks/storage.yml": "faf9cbb3bd3bc3a974989c9205728b688068bb26e663d3d067de409240002626",
+    "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2": "20094a0d92f9126997d908f83b67427f11e412d553c9eebbb2cb2364caa2ea2d",
+    "tier-2/terraform/common.tfvars.example": "d6b7f8429462946497d4830aff3e6a2bbd7c502f153678b94ab0a852569b9425",
+    "tier-2/terraform/deployments/cache/main.tf": "793de2757283d50667aaf8e344a5a193f3cb6f66a4b6bef77d3c02a126db36e9",
+    "tier-2/terraform/deployments/cache/terraform.tfvars.example": "45c60b8c2db9eef276e31430a36e68fad7e1465b55c52c0ec1d709db593ebed4",
+    "tier-2/terraform/modules/environment_guests/main.tf": "c3030396796d23b3fc64c0b69c956d4ed77e52799632b46fd6d582d07cbbefd9",
+    "tier-2/terraform/modules/vm/main.tf": "de9b8f3c71299530a8ff6b82bcbb6f6194d072325e29fd46a3116fa846383018"
+  }
+}

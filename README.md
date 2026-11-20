@@ -87,7 +87,8 @@ README/prose differences are omitted; project documents stay protected.
 | --- | --- |
 | Documentation map | [Documentation](docs/README.md) |
 | Names, tags, VMIDs and network allocations | [Conventions](docs/02-conventions/README.md) |
-| Platform design | [Architecture overview](docs/01-architecture/README.md) |
+| Platform design | [System Overall and subsystem folders](architecture/design/README.md), then [ownership and capability views](docs/01-architecture/README.md) |
+| Navigate models and implementation traces | [Connected architecture](architecture/README.md) and [platform coverage](docs/01-architecture/model-map.md) |
 | Networks and VLANs | [Network map](docs/01-architecture/05-networking/README.md) |
 | Choose a deployment | [Reader paths](docs/06-paths/README.md) |
 | Run, plan, or destroy | [Repository scripts](docs/08-reference/repository-scripts.md) |
@@ -98,6 +99,7 @@ README/prose differences are omitted; project documents stay protected.
 
 ## Repository Structure
 
+- `architecture/design/`: System Overall, nested subsystem overviews and connected model sources
 - `docs/01-architecture/`: foundational capabilities, platform relationships and implementation variants
 - `docs/02-conventions/`: naming and allocation conventions
 - `docs/03-deployment/`, `docs/04-development/`, `docs/05-operations/`: installation, code and operations

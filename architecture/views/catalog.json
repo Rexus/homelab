@@ -1,0 +1,1038 @@
+{
+  "schema": 1,
+  "semantic_owner": "Git",
+  "views": [
+    {
+      "key": "VIEW-functions",
+      "name": "Homelab | Functions",
+      "owner": ".",
+      "svg": "architecture/views/functions.svg",
+      "subject": "SYS-homelab",
+      "elements": [
+        "F-admit",
+        "F-cache",
+        "F-http",
+        "F-tunnel",
+        "F-verify",
+        "L-Cache",
+        "L-Consumers",
+        "L-Proxy"
+      ],
+      "relationships": [
+        {
+          "from": "F-admit",
+          "to": "L-Proxy",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-admit-0"
+        },
+        {
+          "from": "F-cache",
+          "to": "L-Proxy",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-cache-0"
+        },
+        {
+          "from": "F-cache",
+          "to": "L-Cache",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-cache-1"
+        },
+        {
+          "from": "F-http",
+          "to": "L-Proxy",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-http-0"
+        },
+        {
+          "from": "F-tunnel",
+          "to": "L-Proxy",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-tunnel-0"
+        },
+        {
+          "from": "F-verify",
+          "to": "L-Consumers",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-verify-0"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "d49633c5e666eb93b7f9041b174b55a35404f32cefbc82c49f419f4aef9ddbad"
+    },
+    {
+      "key": "VIEW-platform-hosting-clone-repository",
+      "name": "Clone a Git repository over HTTPS",
+      "owner": "platform/hosting",
+      "svg": "architecture/views/platform/hosting/clone-repository.svg",
+      "subject": "UC-clone-host",
+      "elements": [
+        "ACT-intake",
+        "ACT-operator",
+        "UC-clone",
+        "UC-clone-host"
+      ],
+      "relationships": [
+        {
+          "from": "UC-clone",
+          "to": "ACT-intake",
+          "kind": "has-actor"
+        },
+        {
+          "from": "UC-clone",
+          "to": "ACT-operator",
+          "kind": "has-actor"
+        },
+        {
+          "from": "UC-clone",
+          "to": "UC-clone-host",
+          "kind": "has-subject"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "c2635cb90df43f1658278caae8bc4a33d97e1576953633c321ed9e83e1f0bc6c"
+    },
+    {
+      "key": "VIEW-platform-overview",
+      "name": "Shared platform | resource providers and backing",
+      "owner": "platform",
+      "svg": "architecture/views/platform/overview.svg",
+      "subject": "P-context",
+      "elements": [
+        "P-drives",
+        "P-fabric",
+        "P-network",
+        "P-servers",
+        "P-storage",
+        "P-storage-network",
+        "P-switches",
+        "P-virtualization"
+      ],
+      "relationships": [
+        {
+          "from": "P-context",
+          "to": "P-drives",
+          "kind": "contains"
+        },
+        {
+          "from": "P-context",
+          "to": "P-fabric",
+          "kind": "contains"
+        },
+        {
+          "from": "P-context",
+          "to": "P-network",
+          "kind": "contains"
+        },
+        {
+          "from": "P-context",
+          "to": "P-servers",
+          "kind": "contains"
+        },
+        {
+          "from": "P-context",
+          "to": "P-storage",
+          "kind": "contains"
+        },
+        {
+          "from": "P-context",
+          "to": "P-storage-network",
+          "kind": "contains"
+        },
+        {
+          "from": "P-context",
+          "to": "P-switches",
+          "kind": "contains"
+        },
+        {
+          "from": "P-context",
+          "to": "P-virtualization",
+          "kind": "contains"
+        },
+        {
+          "from": "P-fabric",
+          "to": "P-switches",
+          "kind": "depends-on",
+          "id": "P-fabric-backing"
+        },
+        {
+          "from": "P-network",
+          "to": "P-fabric",
+          "kind": "depends-on",
+          "id": "P-fabric-use"
+        },
+        {
+          "from": "P-network",
+          "to": "P-virtualization",
+          "kind": "depends-on",
+          "id": "P-network-provider"
+        },
+        {
+          "from": "P-servers",
+          "to": "P-switches",
+          "kind": "connected-to",
+          "id": "P-cabling"
+        },
+        {
+          "from": "P-storage",
+          "to": "P-drives",
+          "kind": "depends-on",
+          "id": "P-disk-backing"
+        },
+        {
+          "from": "P-storage",
+          "to": "P-virtualization",
+          "kind": "depends-on",
+          "id": "P-storage-provider"
+        },
+        {
+          "from": "P-storage-network",
+          "to": "P-switches",
+          "kind": "depends-on",
+          "id": "P-storage-network-backing"
+        },
+        {
+          "from": "P-virtualization",
+          "to": "P-servers",
+          "kind": "depends-on",
+          "id": "P-hosting"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "a65acfe5d19c952539a9e0dcec1b46abdb0556a9c41dced6110ff7ae503ba5e1"
+    },
+    {
+      "key": "VIEW-proxy-contract",
+      "name": "Policy proxy contract",
+      "owner": "software-intake/policy-proxy",
+      "svg": "architecture/views/software-intake/policy-proxy/contract.svg",
+      "subject": "DEF-proxy",
+      "elements": [
+        "DEF-proxy"
+      ],
+      "relationships": [],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "ac676fde6c04f9f245c9dd13c4076be78a241510e5618a277e5445ecfaf339d1"
+    },
+    {
+      "key": "VIEW-requirements",
+      "name": "Homelab | Requirements",
+      "owner": ".",
+      "svg": "architecture/views/requirements.svg",
+      "subject": "SYS-homelab",
+      "elements": [
+        "REQ-custody",
+        "REQ-egress",
+        "REQ-integrity",
+        "REQ-policy"
+      ],
+      "relationships": [],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "e3ad9a04bb78e3b3b50c791b4af1f21db175a21f7cfd48a593903b2c84205c28"
+    },
+    {
+      "key": "VIEW-software-intake-functions",
+      "name": "Software intake | Functions",
+      "owner": "software-intake",
+      "svg": "architecture/views/software-intake/functions.svg",
+      "subject": "SYS-intake",
+      "elements": [
+        "F-admit",
+        "F-cache",
+        "F-http",
+        "F-tunnel",
+        "F-verify",
+        "L-Cache",
+        "L-Consumers",
+        "L-Proxy"
+      ],
+      "relationships": [
+        {
+          "from": "F-admit",
+          "to": "L-Proxy",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-admit-0"
+        },
+        {
+          "from": "F-cache",
+          "to": "L-Proxy",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-cache-0"
+        },
+        {
+          "from": "F-cache",
+          "to": "L-Cache",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-cache-1"
+        },
+        {
+          "from": "F-http",
+          "to": "L-Proxy",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-http-0"
+        },
+        {
+          "from": "F-tunnel",
+          "to": "L-Proxy",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-tunnel-0"
+        },
+        {
+          "from": "F-verify",
+          "to": "L-Consumers",
+          "kind": "allocated-to",
+          "id": "ALLOC-F-verify-0"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "0a7848b857e90e4f484f9004864da4ce021178b1757f57ee17997d1cb2d29e96"
+    },
+    {
+      "key": "VIEW-software-intake-logical",
+      "name": "Connected software intake and its consumers",
+      "owner": "software-intake",
+      "svg": "architecture/views/software-intake/logical.svg",
+      "subject": null,
+      "elements": [
+        "L-Cache",
+        "L-Consumers",
+        "L-Control",
+        "L-Platform",
+        "L-Proxy",
+        "L-Sources",
+        "L-Workloads",
+        "L-cached-content"
+      ],
+      "relationships": [
+        {
+          "from": "L-Cache",
+          "to": "L-cached-content",
+          "kind": "contains"
+        },
+        {
+          "from": "L-Consumers",
+          "to": "L-Proxy",
+          "kind": "flow",
+          "id": "L-request"
+        },
+        {
+          "from": "L-Consumers",
+          "to": "L-Control",
+          "kind": "contains"
+        },
+        {
+          "from": "L-Consumers",
+          "to": "L-Platform",
+          "kind": "contains"
+        },
+        {
+          "from": "L-Consumers",
+          "to": "L-Workloads",
+          "kind": "contains"
+        },
+        {
+          "from": "L-Proxy",
+          "to": "L-Cache",
+          "kind": "flow",
+          "id": "L-cache-io"
+        },
+        {
+          "from": "L-Proxy",
+          "to": "L-Sources",
+          "kind": "flow",
+          "id": "L-upstream"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "f795fb18be276e975307258772885e442eaa05cf4d60efc27991dc4d717f9b49"
+    },
+    {
+      "key": "VIEW-software-intake-placement",
+      "name": "Cache services and update requests",
+      "owner": "software-intake",
+      "svg": "architecture/views/software-intake/placement.svg",
+      "subject": null,
+      "elements": [
+        "CONTENT-cache-1",
+        "CONTENT-cache-2",
+        "DISK-cache-1",
+        "DISK-cache-2",
+        "R-Consumers",
+        "R-Pair",
+        "R-Upstream",
+        "R-VIP",
+        "RUN-cache-1",
+        "RUN-cache-2",
+        "VM-cache-1",
+        "VM-cache-2"
+      ],
+      "relationships": [
+        {
+          "from": "DISK-cache-1",
+          "to": "CONTENT-cache-1",
+          "kind": "contains"
+        },
+        {
+          "from": "DISK-cache-2",
+          "to": "CONTENT-cache-2",
+          "kind": "contains"
+        },
+        {
+          "from": "R-Consumers",
+          "to": "R-VIP",
+          "kind": "flow",
+          "id": "R-request"
+        },
+        {
+          "from": "R-Pair",
+          "to": "R-Upstream",
+          "kind": "flow",
+          "id": "R-upstream"
+        },
+        {
+          "from": "R-Pair",
+          "to": "VM-cache-1",
+          "kind": "contains"
+        },
+        {
+          "from": "R-Pair",
+          "to": "VM-cache-2",
+          "kind": "contains"
+        },
+        {
+          "from": "R-VIP",
+          "to": "R-Pair",
+          "kind": "flow",
+          "id": "R-dispatch"
+        },
+        {
+          "from": "RUN-cache-1",
+          "to": "DISK-cache-1",
+          "kind": "flow",
+          "id": "IO-cache-1"
+        },
+        {
+          "from": "RUN-cache-2",
+          "to": "DISK-cache-2",
+          "kind": "flow",
+          "id": "IO-cache-2"
+        },
+        {
+          "from": "VM-cache-1",
+          "to": "DISK-cache-1",
+          "kind": "contains"
+        },
+        {
+          "from": "VM-cache-1",
+          "to": "RUN-cache-1",
+          "kind": "contains"
+        },
+        {
+          "from": "VM-cache-2",
+          "to": "DISK-cache-2",
+          "kind": "contains"
+        },
+        {
+          "from": "VM-cache-2",
+          "to": "RUN-cache-2",
+          "kind": "contains"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "17f3d82c8d9c7abdd76bf024b1e472419ba2dda0540ee81c0676cd5c6b0ec619"
+    },
+    {
+      "key": "VIEW-software-intake-requirements",
+      "name": "Software intake | Requirements",
+      "owner": "software-intake",
+      "svg": "architecture/views/software-intake/requirements.svg",
+      "subject": "SYS-intake",
+      "elements": [
+        "REQ-custody",
+        "REQ-egress",
+        "REQ-integrity",
+        "REQ-policy"
+      ],
+      "relationships": [],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "86c2a81a0b7f450dcba460b221320ef0ff5090b2af9821970358af543ef2d0da"
+    },
+    {
+      "key": "VIEW-software-intake-resource-dependencies",
+      "name": "Software intake and its shared resource dependencies",
+      "owner": "software-intake",
+      "svg": "architecture/views/software-intake/resource-dependencies.svg",
+      "subject": null,
+      "elements": [
+        "DISK-cache-1",
+        "DISK-cache-2",
+        "L-Cache",
+        "L-Proxy",
+        "P-drives",
+        "P-fabric",
+        "P-network",
+        "P-servers",
+        "P-storage",
+        "P-storage-network",
+        "P-switches",
+        "P-virtualization",
+        "R-Pair",
+        "VM-cache-1",
+        "VM-cache-2"
+      ],
+      "relationships": [
+        {
+          "from": "DISK-cache-1",
+          "to": "P-storage",
+          "kind": "depends-on",
+          "id": "STORE-cache-1"
+        },
+        {
+          "from": "DISK-cache-2",
+          "to": "P-storage",
+          "kind": "depends-on",
+          "id": "STORE-cache-2"
+        },
+        {
+          "from": "L-Cache",
+          "to": "DISK-cache-1",
+          "kind": "allocated-to",
+          "id": "ALLOC-cache-1"
+        },
+        {
+          "from": "L-Cache",
+          "to": "DISK-cache-2",
+          "kind": "allocated-to",
+          "id": "ALLOC-cache-2"
+        },
+        {
+          "from": "L-Proxy",
+          "to": "R-Pair",
+          "kind": "allocated-to",
+          "id": "ALLOC-proxy"
+        },
+        {
+          "from": "P-fabric",
+          "to": "P-switches",
+          "kind": "depends-on",
+          "id": "P-fabric-backing"
+        },
+        {
+          "from": "P-network",
+          "to": "P-fabric",
+          "kind": "depends-on",
+          "id": "P-fabric-use"
+        },
+        {
+          "from": "P-network",
+          "to": "P-virtualization",
+          "kind": "depends-on",
+          "id": "P-network-provider"
+        },
+        {
+          "from": "P-servers",
+          "to": "P-switches",
+          "kind": "connected-to",
+          "id": "P-cabling"
+        },
+        {
+          "from": "P-storage",
+          "to": "P-drives",
+          "kind": "depends-on",
+          "id": "P-disk-backing"
+        },
+        {
+          "from": "P-storage",
+          "to": "P-virtualization",
+          "kind": "depends-on",
+          "id": "P-storage-provider"
+        },
+        {
+          "from": "P-storage-network",
+          "to": "P-switches",
+          "kind": "depends-on",
+          "id": "P-storage-network-backing"
+        },
+        {
+          "from": "P-virtualization",
+          "to": "P-servers",
+          "kind": "depends-on",
+          "id": "P-hosting"
+        },
+        {
+          "from": "R-Pair",
+          "to": "VM-cache-1",
+          "kind": "contains"
+        },
+        {
+          "from": "R-Pair",
+          "to": "VM-cache-2",
+          "kind": "contains"
+        },
+        {
+          "from": "VM-cache-1",
+          "to": "P-virtualization",
+          "kind": "depends-on",
+          "id": "HOST-cache-1"
+        },
+        {
+          "from": "VM-cache-1",
+          "to": "P-network",
+          "kind": "depends-on",
+          "id": "NET-cache-1"
+        },
+        {
+          "from": "VM-cache-2",
+          "to": "P-virtualization",
+          "kind": "depends-on",
+          "id": "HOST-cache-2"
+        },
+        {
+          "from": "VM-cache-2",
+          "to": "P-network",
+          "kind": "depends-on",
+          "id": "NET-cache-2"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "bc295ab527ce44b5330eae71c3688c6eb939659263d5ebd754e0e557fb291456"
+    },
+    {
+      "key": "VIEW-software-intake-scenario-views--SC-http-miss",
+      "name": "Retrieve or revalidate HTTP content",
+      "owner": "software-intake",
+      "svg": "architecture/views/software-intake/scenario-views.svg#SC-http-miss",
+      "subject": "SC-http-miss",
+      "elements": [
+        "F-admit",
+        "F-cache",
+        "F-http",
+        "F-verify",
+        "H-accepted",
+        "H-cache-rules",
+        "H-check",
+        "H-fetch",
+        "H-lookup",
+        "H-origin",
+        "H-request",
+        "H-response",
+        "H-verify",
+        "L-Consumers",
+        "L-Proxy",
+        "L-Sources"
+      ],
+      "relationships": [
+        {
+          "from": "H-cache-rules",
+          "to": "H-response",
+          "kind": "before"
+        },
+        {
+          "from": "H-origin",
+          "to": "H-cache-rules",
+          "kind": "before"
+        },
+        {
+          "from": "H-request",
+          "to": "H-check",
+          "kind": "before"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "bc91304f4a24d216e3431e4895a452208b48eeb585509bcb4e732ff466b7c79d"
+    },
+    {
+      "key": "VIEW-software-intake-scenario-views--SC-https",
+      "name": "Retrieve through source TLS",
+      "owner": "software-intake",
+      "svg": "architecture/views/software-intake/scenario-views.svg#SC-https",
+      "subject": "SC-https",
+      "elements": [
+        "F-admit",
+        "F-tunnel",
+        "F-verify",
+        "L-Consumers",
+        "L-Proxy",
+        "L-Sources",
+        "S-check",
+        "S-connect",
+        "S-established",
+        "S-fetch",
+        "S-open",
+        "S-ready",
+        "S-response",
+        "S-verify"
+      ],
+      "relationships": [
+        {
+          "from": "S-connect",
+          "to": "S-check",
+          "kind": "before"
+        },
+        {
+          "from": "S-established",
+          "to": "S-ready",
+          "kind": "before"
+        },
+        {
+          "from": "S-fetch",
+          "to": "S-response",
+          "kind": "before"
+        },
+        {
+          "from": "S-open",
+          "to": "S-established",
+          "kind": "before"
+        },
+        {
+          "from": "S-ready",
+          "to": "S-fetch",
+          "kind": "before"
+        },
+        {
+          "from": "S-response",
+          "to": "S-verify",
+          "kind": "before"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "d2a3482bcf4580bf2900a7b4be4d1bdf831ede810f9a06da003b182a10fd9dfa"
+    },
+    {
+      "key": "VIEW-software-intake-tests",
+      "name": "Software intake | Tests and obligations",
+      "owner": "software-intake",
+      "svg": "architecture/views/software-intake/tests.svg",
+      "subject": "SYS-intake",
+      "elements": [
+        "REQ-custody",
+        "REQ-egress",
+        "REQ-integrity",
+        "REQ-policy",
+        "SC-http-cache-untrusted",
+        "SC-http-denied",
+        "SC-http-hit",
+        "SC-http-miss",
+        "SC-http-source-failure",
+        "SC-http-untrusted",
+        "SC-https",
+        "SC-https-denied",
+        "VC-custody",
+        "VC-egress",
+        "VC-http-cache-untrusted",
+        "VC-http-denied",
+        "VC-http-hit",
+        "VC-http-miss",
+        "VC-http-source-failure",
+        "VC-http-untrusted",
+        "VC-https",
+        "VC-https-denied",
+        "VC-integrity"
+      ],
+      "relationships": [
+        {
+          "from": "VC-custody",
+          "to": "REQ-custody",
+          "kind": "verifies"
+        },
+        {
+          "from": "VC-egress",
+          "to": "REQ-egress",
+          "kind": "verifies"
+        },
+        {
+          "from": "VC-http-cache-untrusted",
+          "to": "SC-http-cache-untrusted",
+          "kind": "depends-on",
+          "id": "COVER-SC-http-cache-untrusted"
+        },
+        {
+          "from": "VC-http-cache-untrusted",
+          "to": "REQ-integrity",
+          "kind": "verifies"
+        },
+        {
+          "from": "VC-http-denied",
+          "to": "SC-http-denied",
+          "kind": "depends-on",
+          "id": "COVER-SC-http-denied"
+        },
+        {
+          "from": "VC-http-denied",
+          "to": "REQ-policy",
+          "kind": "verifies"
+        },
+        {
+          "from": "VC-http-hit",
+          "to": "SC-http-hit",
+          "kind": "depends-on",
+          "id": "COVER-SC-http-hit"
+        },
+        {
+          "from": "VC-http-hit",
+          "to": "REQ-policy",
+          "kind": "verifies"
+        },
+        {
+          "from": "VC-http-miss",
+          "to": "SC-http-miss",
+          "kind": "depends-on",
+          "id": "COVER-SC-http-miss"
+        },
+        {
+          "from": "VC-http-miss",
+          "to": "REQ-policy",
+          "kind": "verifies"
+        },
+        {
+          "from": "VC-http-source-failure",
+          "to": "SC-http-source-failure",
+          "kind": "depends-on",
+          "id": "COVER-SC-http-source-failure"
+        },
+        {
+          "from": "VC-http-source-failure",
+          "to": "REQ-policy",
+          "kind": "verifies"
+        },
+        {
+          "from": "VC-http-untrusted",
+          "to": "SC-http-untrusted",
+          "kind": "depends-on",
+          "id": "COVER-SC-http-untrusted"
+        },
+        {
+          "from": "VC-http-untrusted",
+          "to": "REQ-integrity",
+          "kind": "verifies"
+        },
+        {
+          "from": "VC-https",
+          "to": "SC-https",
+          "kind": "depends-on",
+          "id": "COVER-SC-https"
+        },
+        {
+          "from": "VC-https",
+          "to": "REQ-policy",
+          "kind": "verifies"
+        },
+        {
+          "from": "VC-https-denied",
+          "to": "SC-https-denied",
+          "kind": "depends-on",
+          "id": "COVER-SC-https-denied"
+        },
+        {
+          "from": "VC-https-denied",
+          "to": "REQ-policy",
+          "kind": "verifies"
+        },
+        {
+          "from": "VC-integrity",
+          "to": "REQ-integrity",
+          "kind": "verifies"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "701c1643c7fa568498913f7486a88093090d21f40be0745b0d41cd76dda00337"
+    },
+    {
+      "key": "VIEW-software-intake-use-cases",
+      "name": "Retrieve and verify software",
+      "owner": "software-intake",
+      "svg": "architecture/views/software-intake/use-cases.svg",
+      "subject": "UC-supply",
+      "elements": [
+        "ACT-client",
+        "ACT-source",
+        "SC-http-cache-untrusted",
+        "SC-http-denied",
+        "SC-http-hit",
+        "SC-http-miss",
+        "SC-http-source-failure",
+        "SC-http-untrusted",
+        "SC-https",
+        "SC-https-denied",
+        "UC-supply",
+        "UC-update"
+      ],
+      "relationships": [
+        {
+          "from": "UC-update",
+          "to": "SC-http-cache-untrusted",
+          "kind": "contains"
+        },
+        {
+          "from": "UC-update",
+          "to": "SC-http-denied",
+          "kind": "contains"
+        },
+        {
+          "from": "UC-update",
+          "to": "SC-http-hit",
+          "kind": "contains"
+        },
+        {
+          "from": "UC-update",
+          "to": "SC-http-miss",
+          "kind": "contains"
+        },
+        {
+          "from": "UC-update",
+          "to": "SC-http-source-failure",
+          "kind": "contains"
+        },
+        {
+          "from": "UC-update",
+          "to": "SC-http-untrusted",
+          "kind": "contains"
+        },
+        {
+          "from": "UC-update",
+          "to": "SC-https",
+          "kind": "contains"
+        },
+        {
+          "from": "UC-update",
+          "to": "SC-https-denied",
+          "kind": "contains"
+        },
+        {
+          "from": "UC-update",
+          "to": "ACT-client",
+          "kind": "has-actor"
+        },
+        {
+          "from": "UC-update",
+          "to": "ACT-source",
+          "kind": "has-actor"
+        },
+        {
+          "from": "UC-update",
+          "to": "UC-supply",
+          "kind": "has-subject"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "8330ae907f3fe4b4aeea5275fef481db8dce1115cc4103155f78cc220ed3de6d"
+    },
+    {
+      "key": "VIEW-system-overall",
+      "name": "Homelab | System Overall",
+      "owner": ".",
+      "svg": "architecture/views/system-overall.svg",
+      "subject": "SYS-homelab",
+      "elements": [
+        "SYS-delivery",
+        "SYS-intake",
+        "SYS-operations",
+        "SYS-platform",
+        "SYS-trust"
+      ],
+      "relationships": [
+        {
+          "from": "SYS-delivery",
+          "to": "SYS-intake",
+          "kind": "depends-on",
+          "id": "SYS-delivery-supply"
+        },
+        {
+          "from": "SYS-delivery",
+          "to": "SYS-trust",
+          "kind": "depends-on",
+          "id": "SYS-delivery-trust"
+        },
+        {
+          "from": "SYS-homelab",
+          "to": "SYS-delivery",
+          "kind": "contains"
+        },
+        {
+          "from": "SYS-homelab",
+          "to": "SYS-intake",
+          "kind": "contains"
+        },
+        {
+          "from": "SYS-homelab",
+          "to": "SYS-operations",
+          "kind": "contains"
+        },
+        {
+          "from": "SYS-homelab",
+          "to": "SYS-platform",
+          "kind": "contains"
+        },
+        {
+          "from": "SYS-homelab",
+          "to": "SYS-trust",
+          "kind": "contains"
+        },
+        {
+          "from": "SYS-intake",
+          "to": "SYS-platform",
+          "kind": "depends-on",
+          "id": "SYS-intake-resources"
+        },
+        {
+          "from": "SYS-operations",
+          "to": "SYS-platform",
+          "kind": "depends-on",
+          "id": "SYS-operations-resources"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "c9846dcd9601239f2e8e8f6e4235fcfc1598c440faf3c58354aeb074e0a608a5"
+    },
+    {
+      "key": "VIEW-use-cases",
+      "name": "Homelab | Use cases",
+      "owner": ".",
+      "svg": "architecture/views/use-cases.svg",
+      "subject": "SYS-homelab",
+      "elements": [
+        "ACT-client",
+        "ACT-intake",
+        "ACT-operator",
+        "ACT-source",
+        "UC-clone",
+        "UC-clone-host",
+        "UC-supply",
+        "UC-update"
+      ],
+      "relationships": [
+        {
+          "from": "UC-clone",
+          "to": "ACT-intake",
+          "kind": "has-actor"
+        },
+        {
+          "from": "UC-clone",
+          "to": "ACT-operator",
+          "kind": "has-actor"
+        },
+        {
+          "from": "UC-clone",
+          "to": "UC-clone-host",
+          "kind": "has-subject"
+        },
+        {
+          "from": "UC-update",
+          "to": "ACT-client",
+          "kind": "has-actor"
+        },
+        {
+          "from": "UC-update",
+          "to": "ACT-source",
+          "kind": "has-actor"
+        },
+        {
+          "from": "UC-update",
+          "to": "UC-supply",
+          "kind": "has-subject"
+        }
+      ],
+      "presentation": "model-derived SVG; native SysON uses its own notation",
+      "content_sha256": "cb9ef99a8be7dcd17f6c506ac0a29d6792f693498231a001f8c4c171cad0b8c4"
+    }
+  ]
+}

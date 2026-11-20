@@ -1,0 +1,20 @@
+{
+  "views": [
+    "architecture/views/system-overall.svg",
+    "architecture/views/use-cases.svg",
+    "architecture/views/requirements.svg",
+    "architecture/views/functions.svg",
+    "architecture/views/platform/overview.svg",
+    "architecture/views/software-intake/logical.svg",
+    "architecture/views/software-intake/placement.svg",
+    "architecture/views/software-intake/resource-dependencies.svg",
+    "architecture/views/software-intake/use-cases.svg",
+    "architecture/views/software-intake/requirements.svg",
+    "architecture/views/software-intake/functions.svg",
+    "architecture/views/software-intake/tests.svg",
+    "architecture/views/software-intake/policy-proxy/contract.svg",
+    "architecture/views/platform/hosting/clone-repository.svg",
+    "architecture/views/software-intake/scenario-views.svg#SC-http-miss",
+    "architecture/views/software-intake/scenario-views.svg#SC-https"
+  ]
+}

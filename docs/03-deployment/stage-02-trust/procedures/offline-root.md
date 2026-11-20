@@ -39,7 +39,7 @@ Choose the [ceremony environment](ceremony-environment.md) first: an approved pu
 can supply the tools below without installing anything during the ceremony. Use a separately
 controlled **Linux computer** and three separate physical devices: encrypted
 working storage, public transfer media and backup media. The last two need existing writable
-filesystems; prepare blank removable media with your normal disk utility. The kit verifies distinct
+filesystems; prepare blank removable media with the selected disk utility. The kit verifies distinct
 physical backing. No Ansible or Galaxy installation is needed on the ceremony computer.
 
 **Before attaching root storage**, prepare its OS and tools through an accepted package source.
@@ -169,7 +169,7 @@ For existing media, compare against that retained record rather than accepting a
 Return here with the working volume mounted again using that procedure's unlock action. Keep its
 original passphrase; do not format the volume a second time.
 
-Mount the **existing** transfer and backup filesystems through your normal removable-media workflow.
+Mount the **existing** transfer and backup filesystems through the selected removable-media workflow.
 Set their actual mount paths in the kit's **`templates/offline-root/orca.conf`** if different from the
 defaults. The current user needs write access. Working, transfer and backup storage must be on three
 different physical devices; partitions on one disk do not qualify.

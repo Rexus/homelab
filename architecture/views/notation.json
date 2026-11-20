@@ -1,0 +1,253 @@
+{
+  "palette": "docs/08-reference/diagrams/palette.json",
+  "roles": {
+    "useCaseActor": {
+      "label": "Human actor",
+      "shape": "stickFigure",
+      "paletteRole": "actor"
+    },
+    "useCaseSystemActor": {
+      "label": "System actor",
+      "shape": "rectangle",
+      "paletteRole": "actor"
+    },
+    "actor": {
+      "label": "External participant",
+      "shape": "rectangle"
+    },
+    "traffic": {
+      "label": "Traffic interface",
+      "shape": "hexagon"
+    },
+    "data": {
+      "label": "Data store",
+      "shape": "cylinder"
+    },
+    "tier0": {
+      "label": "Ownership boundary",
+      "shape": "boundary"
+    },
+    "tier1": {
+      "label": "Ownership boundary",
+      "shape": "boundary"
+    },
+    "tier2": {
+      "label": "Ownership boundary",
+      "shape": "boundary"
+    },
+    "ownership": {
+      "label": "Ownership boundary",
+      "shape": "boundary"
+    },
+    "network": {
+      "label": "Network boundary",
+      "shape": "boundary"
+    },
+    "zoneEdge": {
+      "label": "Protection zone",
+      "shape": "boundary"
+    },
+    "zoneServices": {
+      "label": "Protection zone",
+      "shape": "boundary"
+    },
+    "zoneControl": {
+      "label": "Protection zone",
+      "shape": "boundary"
+    },
+    "boundary": {
+      "label": "Runtime boundary",
+      "shape": "boundary"
+    },
+    "kubernetes": {
+      "label": "Runtime boundary",
+      "shape": "boundary"
+    },
+    "runtime": {
+      "label": "Runtime boundary",
+      "shape": "boundary"
+    },
+    "edge": {
+      "label": "Edge function",
+      "shape": "rectangle"
+    },
+    "services": {
+      "label": "Service function",
+      "shape": "rectangle"
+    },
+    "control": {
+      "label": "Control function",
+      "shape": "rectangle"
+    },
+    "custody": {
+      "label": "Independent custody",
+      "shape": "rectangle"
+    },
+    "policy": {
+      "label": "Policy",
+      "shape": "rectangle"
+    },
+    "action": {
+      "label": "Action",
+      "shape": "rectangle"
+    },
+    "group": {
+      "label": "Grouping",
+      "shape": "boundary"
+    },
+    "subject": {
+      "label": "Subject boundary",
+      "shape": "boundary",
+      "paletteRole": "ownership"
+    },
+    "goal": {
+      "label": "Use-case goal",
+      "shape": "ellipse",
+      "paletteRole": "action"
+    },
+    "equipment": {
+      "label": "Physical equipment",
+      "shape": "equipment",
+      "paletteRole": "ownership"
+    },
+    "information": {
+      "label": "Stored content",
+      "shape": "rectangle",
+      "paletteRole": "modelInformation"
+    }
+  },
+  "aliases": {
+    "deploymentGroup": "group",
+    "replicas": "group"
+  },
+  "sequence": {
+    "participants": "Lifeline headers identify participants; time runs downward.",
+    "request": "Solid message arrow",
+    "response": "Dashed response arrow",
+    "process": "Self message on the responsible participant"
+  },
+  "humanActorTypes": [
+    "BOOT-DEF-operator"
+  ],
+  "modelCategories": {
+    "logical": {
+      "label": "Logical component",
+      "paletteRole": "modelLogical"
+    },
+    "physical": {
+      "label": "Physical equipment",
+      "paletteRole": "modelPhysical"
+    },
+    "function": {
+      "label": "Function / action",
+      "paletteRole": "modelFunction"
+    },
+    "intent": {
+      "label": "Requirement / use case",
+      "paletteRole": "modelIntent"
+    },
+    "verification": {
+      "label": "Verification / test",
+      "paletteRole": "modelVerification"
+    },
+    "external": {
+      "label": "External / abstract role",
+      "paletteRole": "actor"
+    },
+    "interface": {
+      "label": "Interface",
+      "paletteRole": "traffic"
+    },
+    "information": {
+      "label": "Information / content",
+      "paletteRole": "modelInformation"
+    }
+  },
+  "boundaryStyles": {
+    "tier": {
+      "label": "Responsibility grouping",
+      "fill": "#f5f5f5",
+      "stroke": "#9a9a9a",
+      "dash": "7 4"
+    },
+    "zone": {
+      "label": "Zone grouping",
+      "fill": "#faf7f8",
+      "stroke": "#ad969e",
+      "dash": "7 4"
+    },
+    "network": {
+      "label": "Network membership",
+      "fill": "#f4eded",
+      "stroke": "#9b7378",
+      "dash": "none"
+    },
+    "runtime": {
+      "label": "Runtime containment",
+      "fill": "#f1f4f8",
+      "stroke": "#8393a6",
+      "dash": "none"
+    },
+    "group": {
+      "label": "Explanatory grouping",
+      "fill": "#fafafa",
+      "stroke": "#a5adb5",
+      "dash": "2 3"
+    },
+    "subject": {
+      "label": "Subject / scope",
+      "fill": "#fbfcfd",
+      "stroke": "#8393a6",
+      "dash": "none"
+    }
+  },
+  "boundaryRoles": {
+    "tier0": "tier",
+    "tier1": "tier",
+    "tier2": "tier",
+    "ownership": "tier",
+    "zoneEdge": "zone",
+    "zoneServices": "zone",
+    "zoneControl": "zone",
+    "network": "network",
+    "boundary": "runtime",
+    "runtime": "runtime",
+    "kubernetes": "runtime",
+    "group": "group",
+    "deploymentGroup": "group",
+    "replicas": "group",
+    "subject": "subject"
+  },
+  "modelCategoryTypes": {
+    "logical": [
+      "DEF-cache",
+      "DEF-listener",
+      "DEF-member",
+      "DEF-proxy",
+      "P-DEF-logical-network",
+      "P-DEF-network",
+      "P-DEF-storage",
+      "P-DEF-virtualization",
+      "SYS-DEF-delivery",
+      "SYS-DEF-intake",
+      "SYS-DEF-operations",
+      "SYS-DEF-system",
+      "SYS-DEF-trust"
+    ],
+    "physical": [
+      "P-DEF-equipment"
+    ],
+    "external": [
+      "DEF-source",
+      "DEF-client",
+      "BOOT-DEF-operator"
+    ],
+    "information": [
+      "PAYLOAD",
+      "DEF-cached-content"
+    ]
+  },
+  "modelCategoryElements": {
+    "SYS-platform": "logical"
+  }
+}

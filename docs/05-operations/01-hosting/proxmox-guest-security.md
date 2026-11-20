@@ -158,8 +158,8 @@ material is independently retained and a restore has been qualified.
 ## Prove the controls inside a managed Linux guest
 
 Use the owning tier's normal Ansible inventory and config after its baseline and accepted package
-supply have been deployed. The controller performs normal Ansible access; **you do not SSH into the
-guest manually**. The same recipe is supplied in all three tiers. It rejects Proxmox hosts, Talos,
+supply have been deployed. **The controller manages guest access through Ansible**.
+The same recipe is supplied in all three tiers. It rejects Proxmox hosts, Talos,
 physical hosts and LXC/containers before package changes.
 
 **Owning tier**, select the deployed Linux VM or inventory group in the existing setup vars file:

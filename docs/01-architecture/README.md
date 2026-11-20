@@ -4,6 +4,9 @@ The platform gives applications a common foundation for hosting, software supply
 identity, trust and recovery. This chapter explains how those capabilities work
 together, from the infrastructure underneath a service to the users who consume it.
 
+Start at [System Overall](../../architecture/design/README.md) to navigate the design hierarchy and
+open each subsystem's overview. The functional structure below adds tier ownership and protection zones.
+
 ## Functional structure
 
 ```mermaid
@@ -67,6 +70,9 @@ Start at the bottom of Figure 1. Hosts, networks and storage provide a runtime.
 Identity and cryptographic trust let services recognize callers and protect their
 exchanges. Shared delivery then turns reviewed changes into running applications.
 Protected logs and independent recovery remain available to the owners of those services.
+
+The [MBSE model map](model-map.md) connects context, capability designs, expected behavior, implementation
+and verification. Software intake has a native SysML model; other areas retain their current documented views.
 
 ## Contents
 

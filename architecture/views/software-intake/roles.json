@@ -1,0 +1,18 @@
+{
+  "DEF-proxy": "edge",
+  "DEF-cache": "data",
+  "DEF-listener": "traffic",
+  "DEF-client": "actor",
+  "DEF-source": "actor",
+  "DEF-member": "boundary",
+  "P-DEF-virtualization": "services",
+  "P-DEF-storage": "services",
+  "P-DEF-network": "services",
+  "P-DEF-logical-network": "network",
+  "P-DEF-equipment": "equipment",
+  "SYS-DEF-intake": "edge",
+  "SYS-DEF-trust": "control",
+  "SYS-DEF-delivery": "services",
+  "SYS-DEF-operations": "control",
+  "DEF-cached-content": "information"
+}

@@ -69,7 +69,7 @@ online issuer and covers a different set of certificates. See [publication locat
 The default 90-day root CRL requires a ceremony within 60 days; a yearly visit does not satisfy
 that policy. Publication replicas cannot extend a CRL's signed expiry.
 
-If your retained kit predates `maintain`, refresh the upstream/Tier 0 code and build a new public
+If the retained kit predates `maintain`, refresh the upstream/Tier 0 code and build a new public
 kit with the **same** accepted `orca.conf` and clca pin. Verify its manifest through the
 [first-visit transfer checks](../../03-deployment/stage-02-trust/procedures/offline-root.md#3-build-and-transfer-the-pinned-kit).
 Do not recreate the root or change its binding. The existing separate `crl` and `backup` actions
@@ -147,7 +147,7 @@ bash scripts/offline-root.sh crl
 
 Require the original independently recorded fingerprint, successful policy/tool checks and a
 verifiable new CRL using the retained passphrase. **For a rehearsal, never publish its return files**;
-keep them isolated and discard the test copy under your custody policy. Retain only the real
+keep them isolated and discard the test copy under the custody policy. Retain only the real
 instance's current history. For actual
 recovery, declare the recovered history authoritative, back it up and retire the former instance.
 
@@ -213,7 +213,7 @@ It can be installed now; it does not wait for the later observability stack.
 
 ### 1. Create the independent alarm destination
 
-In your independent Healthchecks-compatible service, create a **dedicated ORCA CRL check**. Its
+In the independent Healthchecks-compatible service, create a **dedicated ORCA CRL check**. Its
 private ping URL identifies this one check; this is not the service's dashboard URL.
 The service can be self-hosted outside the observed infrastructure.
 
@@ -283,7 +283,7 @@ produces a missed-ping alarm at the independent service. A successful VM start i
 ### 4. Test alarm delivery before relying on it
 
 Run these from **Tier 0 on bootstrap**. They target the default `infrastructure_monitoring` group;
-use your explicitly selected monitor host instead if you chose the temporary fallback.
+use the explicitly selected monitor host for the temporary fallback.
 
 1. Trigger a check and require a healthy result in the independent service:
 

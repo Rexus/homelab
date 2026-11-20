@@ -180,7 +180,7 @@ This file keeps durable context for AI-assisted work across sessions.
   patterns only. Review computed browser colours to catch inherited overrides as well as source declarations.
   The cache block-beta trial obscured titles and crossed its VIP with the upstream arrow, so its SVG remains
   the compact service-layout reference. Mermaid remains appropriate where its actual render preserves layout.
-- Cache deployment and operations share docs/08-reference/diagrams/cache-services.svg. Lower-tier callers
+- Cache deployment and operations share architecture/views/software-intake/placement.svg. Lower-tier callers
   sit below Tier 2 and request its VIP upward; Cache Services request approved sources or an optional
   parent proxy to the left. Preserve actual request direction when tier placement overrides the normal
   consumer-to-provider reading order. Replies use established connections, not invented routing hops.

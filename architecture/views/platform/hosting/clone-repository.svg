@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 486" role="img" aria-labelledby="title desc" data-subject="UC-clone-host" data-view-id="VIEW-platform-hosting-clone-repository">
+  <title id="title">Clone a Git repository over HTTPS</title>
+  <desc id="desc">The operator asks boot-1 to clone a Git repository over HTTPS. Software intake is a supporting service; select it to open its separately owned logical design. Lines mean participation, not network routes.</desc>
+  <rect width="960" height="430" fill="#ffffff" />
+  <style>text{font-family:Arial,sans-serif;font-size:17px;text-anchor:middle;fill:#1f2937}.legend text{font-size:13px}.caption{font-size:15px}</style>
+  <a href="bootstrap-reference.svg" target="_top" aria-label="boot-1">
+    <title>boot-1</title>
+    <g data-model="UC-clone-host" class="subject" fill="#f3f1ed" stroke="#8b857c" stroke-width="1.6" data-relationships="[{&quot;from&quot;: &quot;UC-clone&quot;, &quot;to&quot;: &quot;UC-clone-host&quot;, &quot;kind&quot;: &quot;has-subject&quot;}]" data-boundary-kind="subject">
+      <rect x="260" y="62" width="440" height="248" rx="5" style="fill:#fbfcfd;stroke:#8393a6;stroke-dasharray:none;" />
+      <text x="480" y="95.0" stroke="none">boot-1</text>
+    </g>
+  </a>
+  <line data-relationships="[{&quot;from&quot;: &quot;UC-clone&quot;, &quot;to&quot;: &quot;ACT-operator&quot;, &quot;kind&quot;: &quot;has-actor&quot;}]" x1="156" x2="295" y1="195" y2="195" stroke="#627581" stroke-width="1.6" />
+  <line data-relationships="[{&quot;from&quot;: &quot;UC-clone&quot;, &quot;to&quot;: &quot;ACT-intake&quot;, &quot;kind&quot;: &quot;has-actor&quot;}]" x1="665" x2="740" y1="195" y2="195" stroke="#627581" stroke-width="1.6" />
+  <a href="../../../use-cases/bootstrap/README.md#expected-scenario" target="_top" aria-label="Clone a Git repository over HTTPS">
+    <title>Clone a Git repository over HTTPS</title>
+    <g data-model="UC-clone" class="goal" fill="#fcebdc" stroke="#a16c43" stroke-width="1.6" data-category="intent" color="#42325d">
+      <ellipse cx="480" cy="195" rx="185" ry="74" style=";fill:#eeeafa;stroke:#78639b;" />
+      <text x="480" y="178.5" stroke="none">Clone a Git repository over</text>
+      <text x="480" y="201.5" stroke="none">HTTPS</text>
+    </g>
+  </a>
+  <g data-model="ACT-operator" class="useCaseActor" fill="#edf0f3" stroke="#697682" stroke-width="1.6" data-category="external" color="#293642">
+    <g class="actor-symbol" transform="translate(130 195) scale(1)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="0" cy="-29" r="9" style=";fill:#edf0f3;stroke:#697682;" />
+      <path d="M0 -20 V18 M-26 0 H26 M0 18 L-24 46 M0 18 L24 46" fill="none" style=";fill:none;stroke:#697682;" />
+    </g>
+    <text x="130" y="270.0" stroke="none">Operator</text>
+  </g>
+  <a href="../../software-intake/logical.svg" target="_top" aria-label="Software intake">
+    <title>Software intake</title>
+    <g data-model="ACT-intake" class="useCaseSystemActor" fill="#edf0f3" stroke="#697682" stroke-width="1.6" data-category="logical" color="#203a5b">
+      <rect x="740" y="152" width="180" height="86" rx="5" style=";fill:#e7f0fc;stroke:#4d719b;" />
+      <text x="830" y="177.0" stroke="none">«actor»</text>
+      <text x="830" y="209.0" stroke="none">Software intake</text>
+    </g>
+  </a>
+  <text x="480" y="345" class="caption">Expected use · Select Software intake to open its design</text>
+  <g class="legend" id="Legend">
+    <g fill="#e7f0fc" stroke="#4d719b" stroke-dasharray="none" data-category-key="logical">
+      <rect x="30" y="380.0" width="22" height="16" />
+    </g>
+    <text x="59" y="393.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Logical component</text>
+    <g fill="#eeeafa" stroke="#78639b" stroke-dasharray="none" data-category-key="intent">
+      <ellipse cx="271" cy="388.0" rx="12" ry="8" />
+    </g>
+    <text x="289" y="393.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Requirement / use case</text>
+    <g fill="#fbfcfd" stroke="#8393a6" stroke-dasharray="none" data-category-key="subject">
+      <rect x="490" y="380.0" width="22" height="16" />
+    </g>
+    <text x="519" y="393.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Subject / scope</text>
+    <g fill="#edf0f3" stroke="#697682" stroke-dasharray="none" data-category-key="human">
+      <g class="actor-symbol" transform="translate(731 387.0) scale(0.24)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="0" cy="-29" r="9" />
+        <path d="M0 -20 V18 M-26 0 H26 M0 18 L-24 46 M0 18 L24 46" fill="none" />
+      </g>
+    </g>
+    <text x="749" y="393.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Human actor</text>
+  </g>
+  <rect x="0" y="430.0" width="960" height="56" fill="#eef2f6" />
+  <a href="../../software-intake/scenario-views.svg#SC-https" target="_top" aria-label="HTTPS behavior">
+    <title>HTTPS behavior</title>
+    <rect x="60.0" y="437.0" width="200" height="42" fill="transparent" />
+    <text x="160.0" y="463.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">HTTPS behavior</text>
+  </a>
+  <a href="../../software-intake/use-cases.svg" target="_top" aria-label="Intake use case">
+    <title>Intake use case</title>
+    <rect x="380.0" y="437.0" width="200" height="42" fill="transparent" />
+    <text x="480.0" y="463.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Intake use case</text>
+  </a>
+  <a href="../../../use-cases/bootstrap/README.md" target="_top" aria-label="Documentation">
+    <title>Documentation</title>
+    <rect x="700.0" y="437.0" width="200" height="42" fill="transparent" />
+    <text x="800.0" y="463.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+  </a>
+  <metadata data-catalog="VIEW-platform-hosting-clone-repository">{"content_sha256": "c2635cb90df43f1658278caae8bc4a33d97e1576953633c321ed9e83e1f0bc6c", "elements": ["ACT-intake", "ACT-operator", "UC-clone", "UC-clone-host"], "key": "VIEW-platform-hosting-clone-repository", "name": "Clone a Git repository over HTTPS", "owner": "platform/hosting", "presentation": "model-derived SVG; native SysON uses its own notation", "relationships": [{"from": "UC-clone", "kind": "has-actor", "to": "ACT-intake"}, {"from": "UC-clone", "kind": "has-actor", "to": "ACT-operator"}, {"from": "UC-clone", "kind": "has-subject", "to": "UC-clone-host"}], "subject": "UC-clone-host", "svg": "architecture/views/platform/hosting/clone-repository.svg"}</metadata>
+</svg>

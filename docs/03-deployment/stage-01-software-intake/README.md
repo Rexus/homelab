@@ -5,14 +5,14 @@ The main path creates a Tier 2 policy proxy/cache; an existing approved proxy or
 
 <a id="figure-1-controlled-proxy-pair"></a>
 
-![Cache clients below Tier 2 and approved upstream sources to its left](../../08-reference/diagrams/cache-services.svg)
+![Cache clients below Tier 2 and approved upstream sources to its left](../../../architecture/views/software-intake/placement.svg)
 
 **IaC:** **Figure 1: Controlled proxy pair.** Tier 2 [cache inputs](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example)
 and [cache recipe](../../../tier-2/ansible/playbooks/deployment/outbound-cache.yml).
 The pair and attached disks are created; clients, upstreams and physical networking already exist.
 The VIP fails over; it does not replicate cache data or balance both VMs concurrently.
 Client requests enter from below; outgoing source requests point left. Replies use the established
-connections. [Editable figure](../../08-reference/diagrams/cache-services.svg); the [proxy request sequence](../../01-architecture/07-software-intake/README.md#cache-request-and-response)
+connections. [Model and editable layout](../../01-architecture/07-software-intake/02-connected-model.md); the [proxy request sequence](../../01-architecture/07-software-intake/README.md#cache-request-and-response)
 explains HTTP caching and HTTPS CONNECT.
 
 **Related:** [Architecture](../../01-architecture/07-software-intake/README.md) ·

@@ -1,0 +1,263 @@
+{
+  "analysis": "AN-admission",
+  "engine": "SysML Pilot 0.63.1 native expression evaluator",
+  "scope": "Boolean admission predicates only; not timing, protocol execution or deployed behavior",
+  "model_sha256": "0298e7fa854aeca0db267906e1933140d0a54ad2930a45f29e1492c94463f94e",
+  "rows": [
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": false,
+        "portAllowed": false,
+        "cacheHit": false
+      },
+      "policy_admits": false,
+      "candidate_admits": false,
+      "counterexample": false
+    },
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": false,
+        "portAllowed": false,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": false,
+        "portAllowed": true,
+        "cacheHit": false
+      },
+      "policy_admits": false,
+      "candidate_admits": false,
+      "counterexample": false
+    },
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": false,
+        "portAllowed": true,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": true,
+        "portAllowed": false,
+        "cacheHit": false
+      },
+      "policy_admits": false,
+      "candidate_admits": false,
+      "counterexample": false
+    },
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": true,
+        "portAllowed": false,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "cacheHit": false
+      },
+      "policy_admits": false,
+      "candidate_admits": false,
+      "counterexample": false
+    },
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": false,
+        "portAllowed": false,
+        "cacheHit": false
+      },
+      "policy_admits": false,
+      "candidate_admits": false,
+      "counterexample": false
+    },
+    {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": false,
+        "portAllowed": false,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": false,
+        "portAllowed": true,
+        "cacheHit": false
+      },
+      "policy_admits": false,
+      "candidate_admits": false,
+      "counterexample": false
+    },
+    {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": false,
+        "portAllowed": true,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": false,
+        "cacheHit": false
+      },
+      "policy_admits": false,
+      "candidate_admits": false,
+      "counterexample": false
+    },
+    {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": false,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "cacheHit": false
+      },
+      "policy_admits": true,
+      "candidate_admits": true,
+      "counterexample": false
+    },
+    {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "cacheHit": true
+      },
+      "policy_admits": true,
+      "candidate_admits": true,
+      "counterexample": false
+    }
+  ],
+  "counterexamples": [
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": false,
+        "portAllowed": false,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": false,
+        "portAllowed": true,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": true,
+        "portAllowed": false,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": false,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": false,
+        "portAllowed": false,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": false,
+        "portAllowed": true,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    },
+    {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": false,
+        "cacheHit": true
+      },
+      "policy_admits": false,
+      "candidate_admits": true,
+      "counterexample": true
+    }
+  ]
+}

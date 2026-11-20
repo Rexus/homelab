@@ -77,7 +77,7 @@ in every command here. A prepared offline controller may use `CONTROL_NODE_COLLE
 
 ## 3. Explicitly create the token and signing key
 
-Obtain **two independent new PINs**, each 16–255 bytes, from your protected secret store:
+Obtain **two independent new PINs**, each 16–255 bytes, from the protected secret store:
 the security-officer PIN for recovery/administration and the application PIN for signing.
 Use printable ASCII; exclude quotes, backslashes and dollar signs from the application PIN to
 match the existing OpenXPKI policy contract.
@@ -139,7 +139,7 @@ openxpki_required_state_paths:
   - "{{ openxpki_release_dir }}/config.d/system/crypto.yaml"
 ```
 
-Use your selected `openxpki_data_mount` instead of `/srv/openxpki` if customized. Issuance stays inactive
+Use the selected `openxpki_data_mount` instead of `/srv/openxpki` if customized. Issuance stays inactive
 until the offline root signs the request and the accepted certificates are installed.
 
 ## 5. Bind the installed inactive issuer
@@ -162,7 +162,7 @@ files, and the immutable PKCS#11 policy agrees with the recorded URI/library. An
 After independently retaining/rehearsing recovery, set **`hsm_software.yml`**:
 `hsm_provider_custody_ready: true`, `hsm_issuer_create_csr: true`, and the approved
 `hsm_issuer_common_name`, for example `Example Infrastructure Issuing CA`.
-Reload the **original** application PIN into `HSM_ISSUER_PIN` if you have opened a new shell.
+Reload the **original** application PIN into `HSM_ISSUER_PIN` after opening a new shell.
 Rerun step 5's bind command. It signs the CSR using the existing token key and fetches only
 the public CSR to the controller; the printed destination defaults beneath `.local/share/pki-ceremony/`.
 Return `hsm_issuer_create_csr` to `false` afterward.

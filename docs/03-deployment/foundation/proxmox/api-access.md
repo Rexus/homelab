@@ -471,7 +471,7 @@ Edit `ansible/group_vars/ceremony_access.yml`:
 
 | Input | What to enter |
 | --- | --- |
-| `ceremony_access_endpoint` | Your verified Proxmox HTTPS root, such as `https://pve01.example.internal:8006/` |
+| `ceremony_access_endpoint` | The verified Proxmox HTTPS root, such as `https://pve01.example.internal:8006/` |
 | `ceremony_access_audit_host` | One existing `hypervisors` inventory key; existing host-management SSH/sudo must work |
 | `ceremony_access_sessions` | Match every selected `ceremony_sessions` name, `vm_id` and `node_name` in `terraform/deployments/ceremony/terraform.tfvars` |
 | `ceremony_access_pool` | The same dedicated ceremony pool selected by Terraform |
@@ -481,7 +481,7 @@ Edit `ansible/group_vars/ceremony_access.yml`:
 | `ceremony_access_custodians` | Existing named human GUI users; optional, never an automation identity |
 | `ceremony_access_token_expire` | Explicit Unix expiration for both separated tokens |
 
-Choose an expiration that covers the next approved activation and your credential-maintenance interval.
+Choose an expiration that covers the next approved activation and the credential-maintenance interval.
 For a 45/60-day ceremony cadence, a 30-day token expires before the next wake: use a suitable longer
 deadline or rotate it beforehand. The provisioner still has a separate one-hour lease and remains locked
 between maintenance windows. Get a proposed 90-day token deadline on **bootstrap**, then paste that
@@ -500,7 +500,7 @@ Keep the ISO store separate from normal template publishing so its denial does n
 Hypervisor administrators remain trusted. [1]
 This includes any host-management SSH/sudo access already held by bootstrap: API denials do not
 constrain that route. Use a separate administration workstation and restrict host-administrator access
-during ceremonies if required by your threat model, or choose physical offline root execution.
+during ceremonies if required by the threat model, or choose physical offline root execution.
 This role does not alter SSH keys or host-admin accounts.
 
 ### 2. Configure the identities
@@ -610,9 +610,9 @@ bash scripts/init-local-files.sh --setup ceremony-schedule
 ```
 
 Edit `ansible/group_vars/ceremony_schedule.yml`: set `ceremony_schedule_session` to a configured
-session, set `ceremony_schedule_calendar` to your approved future UTC time in the format
+session, set `ceremony_schedule_calendar` to the approved future UTC time in the format
 `2027-01-15 09:00:00 UTC`, and set `ceremony_schedule_enabled: true`. The operator token expiration
-must cover that window. Run as your **unprivileged controller account with sudo available**:
+must cover that window. Run as the **unprivileged controller account with sudo available**:
 
 ```bash
 ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
@@ -620,7 +620,7 @@ ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook -i localhost, \
   -e @ansible/group_vars/ceremony_schedule.yml
 ```
 
-Expected: a root-managed `ceremony-wake-<session>.timer` invokes the prepared native client as your
+Expected: a root-managed `ceremony-wake-<session>.timer` invokes the prepared native client as the
 unprivileged account. A root-only `0600` environment file holds **only** the power token. The timer
 has `Persistent=false`, so a missed window never causes an unexpected later activation. It neither
 forces shutdown nor unlocks the root. Keep provisioning locked before the window and attend the

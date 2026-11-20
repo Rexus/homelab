@@ -3,3 +3,5 @@ Jinja2>=3.1.0
 lxml>=5,<7
 jsonschema>=4.0.0
 python-hcl2>=8.1.4,<9
+requests>=2.32,<3
+websocket-client>=1.9,<2

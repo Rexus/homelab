@@ -1,0 +1,668 @@
+{
+  "system": {
+    "scope": "system",
+    "use_case_names": [
+      "Retrieve and verify software"
+    ],
+    "function_names": [
+      "Check request access",
+      "Reuse fresh cached content",
+      "Fetch content from source",
+      "Forward HTTPS traffic"
+    ],
+    "actor_functions": [
+      "F-verify"
+    ],
+    "resource_providers": [],
+    "parts": [
+      "L-Cache",
+      "L-Proxy",
+      "P-context",
+      "P-drives",
+      "P-fabric",
+      "P-network",
+      "P-servers",
+      "P-storage",
+      "P-storage-network",
+      "P-switches",
+      "P-virtualization",
+      "SYS-delivery",
+      "SYS-homelab",
+      "SYS-intake",
+      "SYS-intake-cache",
+      "SYS-intake-proxy",
+      "SYS-operations",
+      "SYS-platform",
+      "SYS-trust"
+    ],
+    "use_cases": [
+      "UC-update"
+    ],
+    "scenarios": [
+      "SC-http-cache-untrusted",
+      "SC-http-denied",
+      "SC-http-hit",
+      "SC-http-miss",
+      "SC-http-source-failure",
+      "SC-http-untrusted",
+      "SC-https",
+      "SC-https-denied"
+    ],
+    "functions": [
+      "F-admit",
+      "F-cache",
+      "F-http",
+      "F-tunnel"
+    ],
+    "supported_functions": [],
+    "requirements": [
+      "REQ-custody",
+      "REQ-integrity",
+      "REQ-policy"
+    ],
+    "related_requirements": [
+      "REQ-egress"
+    ],
+    "interacting_parts": [
+      "L-Consumers",
+      "L-Sources"
+    ],
+    "providers": [],
+    "consumers": [],
+    "implementation": [
+      "shared/ansible/roles/data_volume/tasks/inspect.yml",
+      "shared/ansible/roles/data_volume/tasks/prepare.yml",
+      "shared/ansible/roles/data_volume/tasks/validate.yml",
+      "shared/ansible/roles/shared/templates/keepalived.conf.j2",
+      "tier-2/ansible/group_vars/cache.yml.example",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/main.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/squid.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/storage.yml",
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_cache_storage.py",
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/services.yml"
+    ],
+    "manual_scenarios": [
+      "SC-https"
+    ],
+    "coverage": "Native concerns below cover the modeled intake slice within the overall system. Other subsystem intent, constraints and evidence remain mapped to their existing owners."
+  },
+  "intake": {
+    "scope": "intake",
+    "use_case_names": [
+      "Retrieve and verify software"
+    ],
+    "function_names": [
+      "Check request access",
+      "Reuse fresh cached content",
+      "Fetch content from source",
+      "Forward HTTPS traffic"
+    ],
+    "actor_functions": [
+      "F-verify"
+    ],
+    "resource_providers": [
+      "P-drives",
+      "P-fabric",
+      "P-network",
+      "P-servers",
+      "P-storage",
+      "P-switches",
+      "P-virtualization"
+    ],
+    "parts": [
+      "L-Cache",
+      "L-Proxy",
+      "SYS-intake",
+      "SYS-intake-cache",
+      "SYS-intake-proxy"
+    ],
+    "use_cases": [
+      "UC-update"
+    ],
+    "scenarios": [
+      "SC-http-cache-untrusted",
+      "SC-http-denied",
+      "SC-http-hit",
+      "SC-http-miss",
+      "SC-http-source-failure",
+      "SC-http-untrusted",
+      "SC-https",
+      "SC-https-denied"
+    ],
+    "functions": [
+      "F-admit",
+      "F-cache",
+      "F-http",
+      "F-tunnel"
+    ],
+    "supported_functions": [],
+    "requirements": [
+      "REQ-custody",
+      "REQ-integrity",
+      "REQ-policy"
+    ],
+    "related_requirements": [
+      "REQ-egress"
+    ],
+    "interacting_parts": [
+      "L-Consumers",
+      "L-Sources"
+    ],
+    "providers": [
+      "SYS-platform"
+    ],
+    "consumers": [
+      "SYS-delivery"
+    ],
+    "implementation": [
+      "shared/ansible/roles/data_volume/tasks/inspect.yml",
+      "shared/ansible/roles/data_volume/tasks/prepare.yml",
+      "shared/ansible/roles/data_volume/tasks/validate.yml",
+      "shared/ansible/roles/shared/templates/keepalived.conf.j2",
+      "tier-2/ansible/group_vars/cache.yml.example",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/main.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/squid.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/storage.yml",
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_cache_storage.py",
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/services.yml"
+    ],
+    "manual_scenarios": [
+      "SC-https"
+    ],
+    "coverage": "Connected intake concerns derive from native use-case/scenario, functional allocation and requirement relationships. External actor obligations retain their own owner."
+  },
+  "proxy": {
+    "scope": "proxy",
+    "use_case_names": [
+      "Retrieve and verify software"
+    ],
+    "function_names": [
+      "Check request access",
+      "Reuse fresh cached content",
+      "Fetch content from source",
+      "Forward HTTPS traffic"
+    ],
+    "actor_functions": [
+      "F-verify"
+    ],
+    "resource_providers": [
+      "P-drives",
+      "P-fabric",
+      "P-network",
+      "P-servers",
+      "P-storage",
+      "P-switches",
+      "P-virtualization"
+    ],
+    "parts": [
+      "L-Proxy"
+    ],
+    "use_cases": [
+      "UC-update"
+    ],
+    "scenarios": [
+      "SC-http-cache-untrusted",
+      "SC-http-denied",
+      "SC-http-hit",
+      "SC-http-miss",
+      "SC-http-source-failure",
+      "SC-http-untrusted",
+      "SC-https",
+      "SC-https-denied"
+    ],
+    "functions": [
+      "F-admit",
+      "F-cache",
+      "F-http",
+      "F-tunnel"
+    ],
+    "supported_functions": [],
+    "requirements": [
+      "REQ-custody",
+      "REQ-integrity",
+      "REQ-policy"
+    ],
+    "related_requirements": [
+      "REQ-egress"
+    ],
+    "interacting_parts": [
+      "L-Cache",
+      "L-Consumers",
+      "L-Sources"
+    ],
+    "providers": [],
+    "consumers": [],
+    "implementation": [
+      "shared/ansible/roles/shared/templates/keepalived.conf.j2",
+      "tier-2/ansible/group_vars/cache.yml.example",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/main.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/squid.yml",
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/services.yml"
+    ],
+    "manual_scenarios": [
+      "SC-https"
+    ],
+    "coverage": "The proxy owns its allocated behavior. Client verification and independent egress enforcement are related interaction obligations, not proxy features."
+  },
+  "cache": {
+    "scope": "cache",
+    "use_case_names": [
+      "Retrieve and verify software"
+    ],
+    "function_names": [
+      "Reuse fresh cached content"
+    ],
+    "actor_functions": [
+      "F-verify"
+    ],
+    "resource_providers": [
+      "P-drives",
+      "P-servers",
+      "P-storage",
+      "P-virtualization"
+    ],
+    "parts": [
+      "L-Cache"
+    ],
+    "use_cases": [
+      "UC-update"
+    ],
+    "scenarios": [
+      "SC-http-cache-untrusted",
+      "SC-http-hit",
+      "SC-http-miss",
+      "SC-http-source-failure",
+      "SC-http-untrusted"
+    ],
+    "functions": [
+      "F-cache"
+    ],
+    "supported_functions": [],
+    "requirements": [
+      "REQ-custody"
+    ],
+    "related_requirements": [
+      "REQ-egress",
+      "REQ-integrity"
+    ],
+    "interacting_parts": [
+      "L-Proxy"
+    ],
+    "providers": [],
+    "consumers": [],
+    "implementation": [
+      "shared/ansible/roles/data_volume/tasks/inspect.yml",
+      "shared/ansible/roles/data_volume/tasks/prepare.yml",
+      "shared/ansible/roles/data_volume/tasks/validate.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/storage.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_cache_storage.py",
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "manual_scenarios": [],
+    "coverage": "This component selects HTTP reuse scenarios through its cache-function allocation. It does not inherit every intake scenario or external-client obligation."
+  },
+  "platform": {
+    "scope": "platform",
+    "use_case_names": [
+      "Retrieve and verify software"
+    ],
+    "function_names": [],
+    "actor_functions": [
+      "F-verify"
+    ],
+    "resource_providers": [],
+    "parts": [
+      "P-context",
+      "P-drives",
+      "P-fabric",
+      "P-network",
+      "P-servers",
+      "P-storage",
+      "P-storage-network",
+      "P-switches",
+      "P-virtualization"
+    ],
+    "use_cases": [
+      "UC-update"
+    ],
+    "scenarios": [
+      "SC-http-cache-untrusted",
+      "SC-http-denied",
+      "SC-http-hit",
+      "SC-http-miss",
+      "SC-http-source-failure",
+      "SC-http-untrusted",
+      "SC-https",
+      "SC-https-denied"
+    ],
+    "functions": [],
+    "supported_functions": [
+      "F-admit",
+      "F-cache",
+      "F-http",
+      "F-tunnel"
+    ],
+    "requirements": [],
+    "related_requirements": [
+      "REQ-custody",
+      "REQ-egress",
+      "REQ-integrity",
+      "REQ-policy"
+    ],
+    "interacting_parts": [],
+    "providers": [],
+    "consumers": [
+      "DISK-cache-1",
+      "DISK-cache-2",
+      "VM-cache-1",
+      "VM-cache-2"
+    ],
+    "implementation": [],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+    ],
+    "manual_scenarios": [
+      "SC-https"
+    ],
+    "coverage": "Direct platform use cases, requirements and functions are not modeled yet. The related native concerns below come from supported intake consumers; they are not automatically allocated to the platform."
+  },
+  "hosting": {
+    "scope": "hosting",
+    "use_case_names": [
+      "Retrieve and verify software"
+    ],
+    "function_names": [],
+    "actor_functions": [
+      "F-verify"
+    ],
+    "resource_providers": [],
+    "parts": [
+      "P-servers",
+      "P-virtualization"
+    ],
+    "use_cases": [
+      "UC-update"
+    ],
+    "scenarios": [
+      "SC-http-cache-untrusted",
+      "SC-http-denied",
+      "SC-http-hit",
+      "SC-http-miss",
+      "SC-http-source-failure",
+      "SC-http-untrusted",
+      "SC-https",
+      "SC-https-denied"
+    ],
+    "functions": [],
+    "supported_functions": [
+      "F-admit",
+      "F-cache",
+      "F-http",
+      "F-tunnel"
+    ],
+    "requirements": [],
+    "related_requirements": [
+      "REQ-custody",
+      "REQ-egress",
+      "REQ-integrity",
+      "REQ-policy"
+    ],
+    "interacting_parts": [
+      "P-switches"
+    ],
+    "providers": [],
+    "consumers": [
+      "P-network",
+      "P-storage",
+      "VM-cache-1",
+      "VM-cache-2"
+    ],
+    "implementation": [],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+    ],
+    "manual_scenarios": [
+      "SC-https"
+    ],
+    "coverage": "Mapped provider design. Native concerns shown here belong to supported intake consumers; direct provider goals, guardrails and allocations remain with the documented owner."
+  },
+  "networking": {
+    "scope": "networking",
+    "use_case_names": [
+      "Retrieve and verify software"
+    ],
+    "function_names": [],
+    "actor_functions": [
+      "F-verify"
+    ],
+    "resource_providers": [],
+    "parts": [
+      "P-fabric",
+      "P-network",
+      "P-storage-network",
+      "P-switches"
+    ],
+    "use_cases": [
+      "UC-update"
+    ],
+    "scenarios": [
+      "SC-http-cache-untrusted",
+      "SC-http-denied",
+      "SC-http-hit",
+      "SC-http-miss",
+      "SC-http-source-failure",
+      "SC-http-untrusted",
+      "SC-https",
+      "SC-https-denied"
+    ],
+    "functions": [],
+    "supported_functions": [
+      "F-admit",
+      "F-cache",
+      "F-http",
+      "F-tunnel"
+    ],
+    "requirements": [],
+    "related_requirements": [
+      "REQ-custody",
+      "REQ-egress",
+      "REQ-integrity",
+      "REQ-policy"
+    ],
+    "interacting_parts": [
+      "P-servers"
+    ],
+    "providers": [
+      "P-virtualization"
+    ],
+    "consumers": [
+      "VM-cache-1",
+      "VM-cache-2"
+    ],
+    "implementation": [],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+    ],
+    "manual_scenarios": [
+      "SC-https"
+    ],
+    "coverage": "Mapped provider design. Native concerns shown here belong to supported intake consumers; direct provider goals, guardrails and allocations remain with the documented owner."
+  },
+  "data": {
+    "scope": "data",
+    "use_case_names": [
+      "Retrieve and verify software"
+    ],
+    "function_names": [],
+    "actor_functions": [
+      "F-verify"
+    ],
+    "resource_providers": [],
+    "parts": [
+      "P-drives",
+      "P-storage"
+    ],
+    "use_cases": [
+      "UC-update"
+    ],
+    "scenarios": [
+      "SC-http-cache-untrusted",
+      "SC-http-denied",
+      "SC-http-hit",
+      "SC-http-miss",
+      "SC-http-source-failure",
+      "SC-http-untrusted",
+      "SC-https",
+      "SC-https-denied"
+    ],
+    "functions": [],
+    "supported_functions": [
+      "F-admit",
+      "F-cache",
+      "F-http",
+      "F-tunnel"
+    ],
+    "requirements": [],
+    "related_requirements": [
+      "REQ-custody",
+      "REQ-egress",
+      "REQ-integrity",
+      "REQ-policy"
+    ],
+    "interacting_parts": [],
+    "providers": [
+      "P-virtualization"
+    ],
+    "consumers": [
+      "DISK-cache-1",
+      "DISK-cache-2"
+    ],
+    "implementation": [],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+    ],
+    "manual_scenarios": [
+      "SC-https"
+    ],
+    "coverage": "Mapped provider design. Native concerns shown here belong to supported intake consumers; direct provider goals, guardrails and allocations remain with the documented owner."
+  },
+  "trust": {
+    "scope": "trust",
+    "use_case_names": [],
+    "function_names": [],
+    "actor_functions": [],
+    "resource_providers": [],
+    "parts": [
+      "SYS-trust"
+    ],
+    "use_cases": [],
+    "scenarios": [],
+    "functions": [],
+    "supported_functions": [],
+    "requirements": [],
+    "related_requirements": [],
+    "interacting_parts": [],
+    "providers": [],
+    "consumers": [
+      "SYS-delivery"
+    ],
+    "implementation": [],
+    "checks": [],
+    "manual_scenarios": [],
+    "coverage": "Mapped subsystem boundary. No native use-case, requirement, function or test allocation is claimed; follow the scoped owner links for the existing intent and design."
+  },
+  "delivery": {
+    "scope": "delivery",
+    "use_case_names": [],
+    "function_names": [],
+    "actor_functions": [],
+    "resource_providers": [],
+    "parts": [
+      "SYS-delivery"
+    ],
+    "use_cases": [],
+    "scenarios": [],
+    "functions": [],
+    "supported_functions": [],
+    "requirements": [],
+    "related_requirements": [],
+    "interacting_parts": [],
+    "providers": [
+      "SYS-intake",
+      "SYS-trust"
+    ],
+    "consumers": [],
+    "implementation": [],
+    "checks": [],
+    "manual_scenarios": [],
+    "coverage": "Mapped subsystem boundary. No native use-case, requirement, function or test allocation is claimed; follow the scoped owner links for the existing intent and design."
+  },
+  "operations": {
+    "scope": "operations",
+    "use_case_names": [],
+    "function_names": [],
+    "actor_functions": [],
+    "resource_providers": [],
+    "parts": [
+      "SYS-operations"
+    ],
+    "use_cases": [],
+    "scenarios": [],
+    "functions": [],
+    "supported_functions": [],
+    "requirements": [],
+    "related_requirements": [],
+    "interacting_parts": [],
+    "providers": [
+      "SYS-platform"
+    ],
+    "consumers": [],
+    "implementation": [],
+    "checks": [],
+    "manual_scenarios": [],
+    "coverage": "Mapped subsystem boundary. No native use-case, requirement, function or test allocation is claimed; follow the scoped owner links for the existing intent and design."
+  }
+}
