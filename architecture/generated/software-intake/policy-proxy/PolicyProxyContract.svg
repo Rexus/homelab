@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 602" role="img" data-view-id="VIEW-proxy-contract" data-subject="DEF-proxy" data-contract-documentation="DOC-proxy-contract" data-contract-ports="[&quot;cacheAccess&quot;, &quot;listener&quot;, &quot;outbound&quot;]">
+  <title>Policy proxy contract</title>
+  <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+  <rect width="960" height="602" fill="white" />
+  <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Policy proxy contract</text>
+  <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">What interfaces and obligations define PolicyProxy, independently of its uses?</text>
+  <g class="explorer-card" data-element="DEF-proxy" data-category="logical" color="#203a5b" style=";color:#203a5b;">
+    <rect x="30" y="100" width="900" height="116" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#e7f0fc;stroke:#4d719b;" />
+    <text x="45" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">DEF-proxy · PolicyProxy</text>
+    <text x="45" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Admit by client, destination and port before forwarding or cache lookup. Reject disallowed requests without</text>
+    <text x="45" y="169" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">contacting the source or reading cached content. Forward encrypted tunnels without payload inspection. Cache</text>
+    <text x="45" y="189" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">eligible HTTP responses only; a cache hit conveys no release approval.</text>
+  </g>
+  <text x="30" y="256" style="font:bold 18px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Owned interfaces</text>
+  <g class="explorer-card">
+    <rect x="30" y="272" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+    <text x="45" y="297" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">cacheAccess</text>
+    <text x="45" y="321" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">TransferPort</text>
+  </g>
+  <g class="explorer-card">
+    <rect x="30" y="360" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+    <text x="45" y="385" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">listener</text>
+    <text x="45" y="409" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">TransferPort</text>
+  </g>
+  <g class="explorer-card">
+    <rect x="30" y="448" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+    <text x="45" y="473" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">outbound</text>
+    <text x="45" y="497" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">TransferPort</text>
+  </g>
+  <rect x="0" y="546" width="960" height="56" fill="#eef2f6" />
+  <a href="../../HomelabSystemOverview.svg" target="_top" aria-label="System Overall">
+    <title>System Overall</title>
+    <rect x="20.0" y="553" width="200" height="42" fill="transparent" />
+    <text x="120.0" y="579" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+  </a>
+  <a href="../SoftwareIntakeLogicalDesign.svg" target="_top" aria-label="Logical design">
+    <title>Logical design</title>
+    <rect x="260.0" y="553" width="200" height="42" fill="transparent" />
+    <text x="360.0" y="579" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Logical design</text>
+  </a>
+  <a href="../../../../artifacts/architecture/generated/software-intake/reverse-trace.md" target="_top" aria-label="Implementation trace">
+    <title>Implementation trace</title>
+    <rect x="500.0" y="553" width="200" height="42" fill="transparent" />
+    <text x="600.0" y="579" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Implementation trace</text>
+  </a>
+  <a href="../../../models/software-intake/policy-proxy/PolicyProxy.sysml" target="_top" aria-label="Documentation">
+    <title>Documentation</title>
+    <rect x="740.0" y="553" width="200" height="42" fill="transparent" />
+    <text x="840.0" y="579" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+  </a>
+  <metadata data-catalog="VIEW-proxy-contract">{"content_sha256": "ac676fde6c04f9f245c9dd13c4076be78a241510e5618a277e5445ecfaf339d1", "elements": ["DEF-proxy"], "key": "VIEW-proxy-contract", "name": "Policy proxy contract", "owner": "software-intake/policy-proxy", "presentation": "model-derived SVG; native SysON uses its own notation", "relationships": [], "subject": "DEF-proxy", "svg": "architecture/generated/software-intake/policy-proxy/PolicyProxyContract.svg"}</metadata>
+</svg>

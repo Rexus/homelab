@@ -11,10 +11,11 @@ from software_intake import run
 from syson_api import SysON, checked_url
 from syson_session import EditingSession
 from syson_change_source import record_baseline
-from syson_catalog import select_catalog, coverage, unwanted_details, index_objects, verify_representation_set, diagram_nodes
+from syson_catalog import select_catalog, coverage, unwanted_details, index_objects, verify_representation_set, diagram_nodes, verify_general
 from syson_nested import nested_layout, style_nested, verify_nested
 from syson_annotations import show_annotations, annotation_boxes, style_annotations
 from syson_style import style_palette
+from syson_general import verify_view_owners, actor_labels
 from syson_model import named_elements, structural_projection, compare
 from syson_views import select_views, verify_diagrams, hidden_details, visible_details, detail_boxes, edge_handles
 
@@ -60,11 +61,13 @@ def publish(args):
             raise ValueError("Previous publish incomplete; inspect " + str(receipt_path))
         _, stored, diagrams = client.archive(receipt["project_id"], output / "project.zip")
         verify_representation_set(views, diagrams, receipt['representations'])
+        verify_view_owners(views, stored)
         model_digest = hashlib.sha256(json.dumps(stored, sort_keys=True).encode()).hexdigest()
         if model_digest != receipt["stored_model_sha256"]:
             raise ValueError("Review snapshot was edited; reconcile it before reuse: " + receipt["url"])
         verify_diagrams(curated, stored, diagrams, receipt["representations"], layout=True)
         verify_nested(views, stored, diagrams, receipt['representations'], model)
+        verify_general(views, stored, diagrams, receipt['representations'], model)
         repeated = coverage(views, stored, diagrams, receipt["representations"], model)
         repeated['model_sha256'] = hashlib.sha256(json.dumps(model,sort_keys=True).encode()).hexdigest()
         repeated['catalogue'] = {v['key']:v['content_sha256'] for v in views}
@@ -134,12 +137,15 @@ def publish(args):
                 style_palette(client, context, diagram, view, indexed, diagram_nodes(diagram))
                 continue
             client.layout(context, diagram, {indexed[k]["id"]: box for k, box in view["boxes"].items()},
-                          details=detail_boxes(view, diagram), handles=edge_handles(view, diagram, indexed))
+                          details=detail_boxes(view, diagram), handles=edge_handles(view, diagram, indexed),
+                          labels=actor_labels(view, diagram, {v['id']:k for k,v in indexed.items()}))
         live.check()
         manifest, stored, diagrams = client.archive(project, output / "project.zip")
         verify_representation_set(views, diagrams, receipt['representations'])
+        verify_view_owners(views, stored)
         verify_diagrams(curated, stored, diagrams, receipt["representations"], layout=True)
         verify_nested(views, stored, diagrams, receipt['representations'], model)
+        verify_general(views, stored, diagrams, receipt['representations'], model)
         for document, name in manifest["documentIdsToName"].items():
             if name == "homelab.sysml":
                 (output / "syson-export.sysml").write_bytes(client.export_text(context, document))
@@ -177,11 +183,11 @@ def publish(args):
         portable=list(rows)
         portable[2] += ' Tested with SysON 2026.11.0; results apply to model SHA-256 '+report['model_sha256']+'.'
         for i,row in enumerate(portable):
-            if row.startswith('| architecture/views/'):
+            if row.startswith('| architecture/generated/'):
                 destination=row.split(' | ')[0].removeprefix('| ')
                 portable[i]=row.replace(destination,'[SVG]('+destination.replace('architecture/','../',1)+')',1)
-        save(root/'architecture/test/syson-view-coverage.json',report)
-        (root/'architecture/test/syson-view-coverage.md').write_text('\n'.join(portable)+'\n',encoding='utf-8')
+        save(root/'artifacts/architecture/evidence/syson-view-coverage.json',report)
+        (root/'artifacts/architecture/evidence/syson-view-coverage.md').write_text('\n'.join(portable)+'\n',encoding='utf-8')
         print("Evidence: " + str(output))
         return receipt
 

@@ -4,7 +4,7 @@ Tier 1 selects independent Flux reconciliation for Kubernetes platform services 
 deployment. Spinnaker approves and promotes application release intent. Infrastructure lifecycle and
 product data recovery keep their existing owners. [D-041](../07-decisions/README.md#d-041),
 accepted 2026-11-14, records this choice. Implementation coverage and live qualification are tracked
-separately in the [support map](./implementation-support.md#tier-1-flux-evidence).
+separately in the [support map](implementation-support.md#tier-1-flux-evidence).
 
 The [logical controller design](../01-architecture/10-delivery/02-controllers.md) defines the
 responsibilities independently of these products. The
@@ -14,12 +14,12 @@ selected composition enforces it.
 
 <a id="figure-tier1-flux-ownership"></a>
 
-![Tier 1 bootstrap, platform maintenance, promotion, reconciliation and independent recovery](./diagrams/tier1-flux-ownership.svg)
+![Tier 1 bootstrap, platform maintenance, promotion, reconciliation and independent recovery](diagrams/tier1-flux-ownership.svg)
 
 *Figure: Selected ownership and control flow. Solid arrows name operations; dashed arrows show
 independent recovery inputs or the unselected Tier 2 integration. Tier 0 keeps separate Flux,
 credentials and recovery. Stage 8/9 services are later, explicit selections.*
-[Editable SVG and render record](./diagrams/tier1-flux-ownership-render.md).
+[Editable SVG and render record](diagrams/tier1-flux-ownership-render.md).
 [Cluster bootstrap](../../shared/ansible/roles/cluster_platform),
 [native delivery renderer](../../tier-1/ansible/roles/delivery_platform), and
 [project-owned cluster configuration](../../tier-1/clusters/tier1) implement the selected boundary.
@@ -205,7 +205,7 @@ The selected controls use free self-hostable components; their permissions, bypa
 limits are recorded in [the approval contract](spinnaker-approval.md). Maintaining two independently
 recoverable Flux installations, encrypted exports, native renderer compatibility, ordered lifecycle Jobs,
 pipeline imports and independent custody is an ongoing operating cost. The
-[support map](./implementation-support.md#tier-1-flux-evidence) records implementation
+[support map](implementation-support.md#tier-1-flux-evidence) records implementation
 coverage and outstanding fresh-install, adoption, authorization, drift, upgrade, outage and recovery
 qualification. Accepted architecture, supplied automation and measured live results are separate records.
 Review the decision when product versions change these contracts or approval, tenancy, recovery or

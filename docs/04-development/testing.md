@@ -94,3 +94,5 @@ the site deployment or a complete physical failure envelope.
 Live checks belong in the project's deployment/administration records. Accept
 each stage's source identities, denied access, storage/queue failures and
 clean-target restoration before relying on the resulting capability.
+
+[Requirement results and CI](requirement-reporting.md) connect the native model to actual isolated implementation checks and report missing site evidence.

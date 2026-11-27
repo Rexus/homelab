@@ -1,10 +1,10 @@
 # Execute an HTTP retrieval
 
-Open the [execution view](../../../architecture/views/software-intake/execution.svg), select a run,
+Open the [execution view](../../../architecture/generated/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.svg), select a run,
 then follow an observed message to its function or compare it with the expected sequence. The same
 model identities connect both views to the design, IaC and verification owners.
 
-[![Native retrieval execution](../../../architecture/views/software-intake/execution.svg)](../../../architecture/views/software-intake/execution.svg)
+[![Native retrieval execution](../../../architecture/generated/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.svg)](../../../architecture/generated/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.svg)
 
 This runs the native SysML action refinement with OpenSysML MDK 0.12.1. The official Pilot still validates
 the complete connected model. Git owns both the model and the reviewed evidence; diagrams remain views.
@@ -20,7 +20,7 @@ the complete connected model. Git owns both the model and the reviewed evidence;
 
 ## What runs
 
-The [native action](../../../architecture/functions/software-intake/retrieval-execution.sysml) starts
+The [native action](../../../architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml) starts
 with admission, then performs cache lookup, source access when needed, and client verification only
 when content arrived. It calls the same admission calculation as `F-admit`. Native decisions and
 assignments determine the route and observable counters; Python runs the engine and checks its trace.
@@ -34,8 +34,8 @@ assignments determine the route and observable counters; Python runs the engine 
 | Source content fails verification | Reject before use | 1 | 1 |
 | Cached content fails verification | Reject before use | 0 | 1 |
 
-[Experiment usages](../../../architecture/test/software-intake/retrieval-runs.sysml) own the six fixed
-input sets and expected outcomes. [Native dependencies](../../../architecture/trace/software-intake-execution.sysml)
+[Experiment usages](../../../architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml) own the six fixed
+input sets and expected outcomes. [Native dependencies](../../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml)
 connect each execution action to a sequence message and each experiment to its use-case scenario.
 The runner rejects missing or reordered message steps, unknown action steps and mismatched inputs or
 outcomes. The observed sequence is built from the engine trace, not copied from the expected sequence.
@@ -61,7 +61,7 @@ python scripts/architecture/install_execution_runtime.py
 ```
 
 The installer checks the versioned archive against the SHA-256 recorded in
-[toolchain.json](../../../architecture/toolchain.json). Set `SYSML_RUNTIME` to the installed executable:
+[toolchain.json](../../../scripts/architecture/config/toolchain.json). Set `SYSML_RUNTIME` to the installed executable:
 
 ```bash
 export SYSML_RUNTIME="$PWD/.tmp/tools/opensysml-0.12.1/sysml"
@@ -90,10 +90,10 @@ python scripts/architecture/software_intake.py check
 ```
 
 `execute` validates and regenerates the connected model, runs all six experiments with the pinned
-native engine, and publishes [execution.json](../../../architecture/test/software-intake/execution.json)
+native engine, and publishes [execution.json](../../../artifacts/architecture/evidence/software-intake/execution.json)
 only when every run matches its expected outcomes and sequence. The record includes UTC time, tool
 version, source fingerprints, inputs, outputs, native engine records, executed actions and decisions.
-The [execution SVG](../../../architecture/views/software-intake/execution.svg) shows each run using
+The [execution SVG](../../../architecture/generated/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.svg) shows each run using
 the same participants and palette as the expected sequence. Its message labels retain both execution
 and interaction identities. Supporting files and raw native output are under ignored
 `.tmp/software-intake-execution/`.

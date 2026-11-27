@@ -1,0 +1,414 @@
+{
+  "schema": 1,
+  "assessed_at": "2026-11-20T08:23:47.330807+00:00",
+  "gate_scope": "isolated",
+  "gate_passed": true,
+  "scopes": {
+    "isolated": "Linux Squid + APT fixtures; temporary loopback processes; no host package installation or site acceptance.",
+    "site": "Deployed route and recovery demonstrations; no automated site evidence adapter yet."
+  },
+  "requirements": {
+    "REQ-custody": {
+      "name": "independentRecovery",
+      "status": "missing",
+      "scopes": {
+        "site": "missing"
+      }
+    },
+    "REQ-egress": {
+      "name": "noBypass",
+      "status": "missing",
+      "scopes": {
+        "site": "missing"
+      }
+    },
+    "REQ-integrity": {
+      "name": "consumerVerification",
+      "status": "missing",
+      "scopes": {
+        "isolated": "passed",
+        "site": "missing"
+      }
+    },
+    "REQ-policy": {
+      "name": "admittedSources",
+      "status": "missing",
+      "scopes": {
+        "isolated": "passed",
+        "site": "missing"
+      }
+    }
+  },
+  "obligations": [
+    {
+      "requirement": "REQ-custody",
+      "case": "VC-custody",
+      "scope": "site",
+      "status": "missing",
+      "checks": [],
+      "method": "demonstration",
+      "claim": "Recovery from independently retained supply after disposable cache removal.",
+      "acceptance": "Remove disposable cache data and demonstrate recovery from independently retained supply. This is a site recovery demonstration, not inferred from storage configuration."
+    },
+    {
+      "requirement": "REQ-egress",
+      "case": "VC-egress",
+      "scope": "site",
+      "status": "missing",
+      "checks": [],
+      "method": "demonstration",
+      "claim": "Independent deployed network enforcement refuses direct bypass.",
+      "acceptance": "Attempt direct external access bypassing the accepted route and show independent network enforcement rejects it. This requires the site network policy and deployed-route evidence."
+    },
+    {
+      "requirement": "REQ-integrity",
+      "case": "VC-http-cache-untrusted",
+      "scope": "isolated",
+      "status": "passed",
+      "checks": [
+        "signed-retrieval"
+      ],
+      "method": "test",
+      "claim": "Real Squid/APT outcome matches the native retrieval experiment. Loopback only.",
+      "acceptance": "Cached content is verified at the client and rejected when trust fails, without a source fetch. Model trust is an input, not a cryptographic check."
+    },
+    {
+      "requirement": "REQ-integrity",
+      "case": "VC-http-untrusted",
+      "scope": "isolated",
+      "status": "passed",
+      "checks": [
+        "signed-retrieval"
+      ],
+      "method": "test",
+      "claim": "Real Squid/APT outcome matches the native retrieval experiment. Loopback only.",
+      "acceptance": "When publisher verification fails after retrieval, the client rejects the content before use. Model trust is an input, not a cryptographic check."
+    },
+    {
+      "requirement": "REQ-integrity",
+      "case": "VC-integrity",
+      "scope": "isolated",
+      "status": "passed",
+      "checks": [
+        "signed-retrieval",
+        "publisher-policy"
+      ],
+      "method": "test",
+      "claim": "APT signed metadata and package hashes, unknown publisher, expiry and trusted-source exception.",
+      "acceptance": "Client authenticates the source TLS endpoint and rejects untrusted publisher metadata before use; test the selected trust exceptions explicitly. Successful CONNECT/TLS still needs site evidence."
+    },
+    {
+      "requirement": "REQ-integrity",
+      "case": "VC-integrity",
+      "scope": "site",
+      "status": "missing",
+      "checks": [],
+      "method": "demonstration",
+      "claim": "Source TLS/hostname and selected client trust configuration on the deployed route.",
+      "acceptance": "Client authenticates the source TLS endpoint and rejects untrusted publisher metadata before use; test the selected trust exceptions explicitly. Successful CONNECT/TLS still needs site evidence."
+    },
+    {
+      "requirement": "REQ-policy",
+      "case": "VC-http-denied",
+      "scope": "isolated",
+      "status": "passed",
+      "checks": [
+        "policy-source",
+        "policy-generated",
+        "signed-retrieval"
+      ],
+      "method": "test",
+      "claim": "Actual Squid policy/cache/privacy assertions; APT publisher checks where selected. Loopback only.",
+      "acceptance": "A rejected client, destination or port receives denial and the recording source sees no request."
+    },
+    {
+      "requirement": "REQ-policy",
+      "case": "VC-http-hit",
+      "scope": "isolated",
+      "status": "passed",
+      "checks": [
+        "policy-source",
+        "policy-generated",
+        "signed-retrieval"
+      ],
+      "method": "test",
+      "claim": "Actual Squid policy/cache/privacy assertions; APT publisher checks where selected. Loopback only.",
+      "acceptance": "A repeated eligible fresh response is served without another origin request. The client still verifies trusted metadata/signatures."
+    },
+    {
+      "requirement": "REQ-policy",
+      "case": "VC-http-miss",
+      "scope": "isolated",
+      "status": "passed",
+      "checks": [
+        "policy-source",
+        "policy-generated",
+        "signed-retrieval",
+        "publisher-policy"
+      ],
+      "method": "test",
+      "claim": "Actual Squid policy/cache/privacy assertions; APT publisher checks where selected. Loopback only.",
+      "acceptance": "An admitted miss or stale response reaches the source; cache/privacy rules are respected and the client verifies before use. Unsigned or expired metadata is rejected unless an explicit trusted-source exception was selected."
+    },
+    {
+      "requirement": "REQ-policy",
+      "case": "VC-http-source-failure",
+      "scope": "isolated",
+      "status": "passed",
+      "checks": [
+        "signed-retrieval"
+      ],
+      "method": "test",
+      "claim": "Real Squid/APT outcome matches the native retrieval experiment. Loopback only.",
+      "acceptance": "A source failure after an admitted miss produces no usable content, no client verification and no implicit stale fallback. The execution model supplies availability; deployed failure behavior needs separate evidence."
+    },
+    {
+      "requirement": "REQ-policy",
+      "case": "VC-https",
+      "scope": "site",
+      "status": "missing",
+      "checks": [],
+      "method": "demonstration",
+      "claim": "Admitted end-to-end TLS, certificate/hostname validation and no encrypted-payload caching.",
+      "acceptance": "An admitted CONNECT establishes source-authenticated client TLS. Encrypted payload is neither cached nor inspected; client verification still applies."
+    },
+    {
+      "requirement": "REQ-policy",
+      "case": "VC-https-denied",
+      "scope": "isolated",
+      "status": "passed",
+      "checks": [
+        "policy-source",
+        "policy-generated"
+      ],
+      "method": "test",
+      "claim": "Actual Squid policy/cache/privacy assertions; APT publisher checks where selected. Loopback only.",
+      "acceptance": "A disallowed CONNECT destination, client or port receives denial without opening a source connection."
+    }
+  ],
+  "checks": {
+    "policy-source": {
+      "status": "passed",
+      "selector": "test_tier_cache_policy.NativeCachePolicy.test_source_policy",
+      "tests_run": 1,
+      "reason": "unittest assertions and fixtures completed",
+      "failures": [],
+      "skips": [],
+      "subtests": [
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (method='GET', target='http://software-intake-denied.invalid/')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (method='CONNECT', target='software-intake-denied.invalid:443')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (method='GET', target='http://unknown.example.test/unknown.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (method='CONNECT', target='unknown.example.test:443')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (method='GET', target='http://repo.example.test:81/forbidden-port.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (method='CONNECT', target='repo.example.test:80')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (method='GET', target='http://192.0.2.99/ip-literal.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (method='GET', target='http://loop.example.test/local.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (method='GET', target='http://link.example.test/metadata')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (client='outside-allowed-cidr')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (allowed_domain='example.test')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (allowed_domain='updates.example.test')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (allowed_domain='mirror.updates.example.test')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (cache_control='/private.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (cache_control='/no-store.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_source_policy (cache_control='/no-cache.rpm')",
+          "status": "passed",
+          "detail": ""
+        }
+      ],
+      "log": "policy-source.log",
+      "finished_at": "2026-11-20T08:23:41.174773+00:00",
+      "previous_status": "passed",
+      "changed_inputs": [],
+      "attempt": "20261120T082324465570Z-cba236d3",
+      "record": "20261120T082324465570Z-cba236d3/run.json"
+    },
+    "policy-generated": {
+      "status": "passed",
+      "selector": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy",
+      "tests_run": 1,
+      "reason": "unittest assertions and fixtures completed",
+      "failures": [],
+      "skips": [],
+      "subtests": [
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (method='GET', target='http://software-intake-denied.invalid/')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (method='CONNECT', target='software-intake-denied.invalid:443')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (method='GET', target='http://unknown.example.test/unknown.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (method='CONNECT', target='unknown.example.test:443')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (method='GET', target='http://repo.example.test:81/forbidden-port.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (method='CONNECT', target='repo.example.test:80')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (method='GET', target='http://192.0.2.99/ip-literal.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (method='GET', target='http://loop.example.test/local.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (method='GET', target='http://link.example.test/metadata')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (client='outside-allowed-cidr')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (allowed_domain='example.test')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (allowed_domain='updates.example.test')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (allowed_domain='mirror.updates.example.test')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (cache_control='/private.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (cache_control='/no-store.rpm')",
+          "status": "passed",
+          "detail": ""
+        },
+        {
+          "id": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy (cache_control='/no-cache.rpm')",
+          "status": "passed",
+          "detail": ""
+        }
+      ],
+      "log": "policy-generated.log",
+      "finished_at": "2026-11-20T08:23:34.240201+00:00",
+      "previous_status": "passed",
+      "changed_inputs": [],
+      "attempt": "20261120T082324465570Z-cba236d3",
+      "record": "20261120T082324465570Z-cba236d3/run.json"
+    },
+    "signed-retrieval": {
+      "status": "passed",
+      "selector": "test_tier_intake_product.NativeIntakeScenarios.test_signed_package_retrieval_matches_model",
+      "tests_run": 1,
+      "reason": "unittest assertions and fixtures completed",
+      "failures": [],
+      "skips": [],
+      "subtests": [],
+      "log": "signed-retrieval.log",
+      "finished_at": "2026-11-20T08:23:47.319035+00:00",
+      "previous_status": "passed",
+      "changed_inputs": [],
+      "attempt": "20261120T082324465570Z-cba236d3",
+      "record": "20261120T082324465570Z-cba236d3/run.json"
+    },
+    "publisher-policy": {
+      "status": "passed",
+      "selector": "test_tier_package_policy.PackagePolicy.test_native_apt_rejects_unsigned_and_expired_metadata_but_trusted_source_is_an_exception",
+      "tests_run": 1,
+      "reason": "unittest assertions and fixtures completed",
+      "failures": [],
+      "skips": [],
+      "subtests": [],
+      "log": "publisher-policy.log",
+      "finished_at": "2026-11-20T08:23:42.793450+00:00",
+      "previous_status": "passed",
+      "changed_inputs": [],
+      "attempt": "20261120T082324465570Z-cba236d3",
+      "record": "20261120T082324465570Z-cba236d3/run.json"
+    }
+  },
+  "freshness": "Current declared source/configuration inputs; tool versions belong to each recorded environment."
+}

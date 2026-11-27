@@ -7,16 +7,16 @@ import xml.etree.ElementTree as ET
 from diagram_notation import tag, legend, validate_model_roles
 from intake_sources import require
 
-LAYOUT = Path("architecture/views/system-overall.json")
+LAYOUT = Path("scripts/architecture/config/views/system-overall.json")
 OVERVIEW_OUTPUTS = [
-    Path("architecture/views/system-overall.svg"),
-    Path("architecture/views/platform/overview.svg"),
+    Path("architecture/generated/HomelabSystemOverview.svg"),
+    Path("architecture/generated/platform/SharedPlatformOverview.svg"),
 ]
 
 
 def overview_sources(root):
-    return {LAYOUT.as_posix()} | {
-        p.relative_to(root).as_posix() for p in (root / "architecture/design").rglob("*.md")
+    return {LAYOUT.as_posix(), "architecture/README.md"} | {
+        p.relative_to(root).as_posix() for p in (root / "architecture/models").rglob("*.sysml")
     }
 
 
@@ -48,17 +48,16 @@ def check_overviews(root, model, views):
         for node in view["nodes"]:
             target = (output.parent / node["href"]).resolve()
             require(
-                target.is_relative_to((root / "architecture/design").resolve()) and target.is_file(),
+                target.is_relative_to((root / "architecture/models").resolve()) and target.is_file(),
                 "Missing or escaping overview link: " + node["href"],
             )
             # A root box must open its direct child folder, matching design composition.
             if view["subject"] == "SYS-homelab":
                 require(
-                    target.name == "README.md" and target.parent.parent == (root / 'architecture/design').resolve(),
+                    target.suffix == ".sysml" and target.parent.parent == (root / 'architecture/models').resolve(),
                     "Root overview must open a direct child design: " + node["href"],
                 )
-                text = target.read_text(encoding="utf-8")
-                require("../README.md" in text, "Subsystem overview needs its parent link")
+                require(bool(target.read_text(encoding="utf-8").strip()), "Empty native subsystem owner")
         for selection in view["edges"]:
             matches = [
                 e
@@ -79,13 +78,15 @@ def check_overviews(root, model, views):
 
 
 def draw(root, model, view):
-    notation = json.loads((root / "architecture/views/notation.json").read_text(encoding="utf-8"))
+    notation = json.loads((root / "scripts/architecture/config/views/notation.json").read_text(encoding="utf-8"))
     palette = json.loads((root / notation["palette"]).read_text(encoding="utf-8"))["roles"]
     height = view["height"]
     ET.register_namespace("", "http://www.w3.org/2000/svg")
     svg = ET.Element(
         tag("svg"), {"viewBox": f"0 0 960 {height}", "role": "img", "aria-labelledby": "title desc"}
     )
+    if view.get("view_id"):
+        svg.set("data-view-id", view["view_id"])
     ET.SubElement(svg, tag("title"), {"id": "title"}).text = view["title"]
     ET.SubElement(svg, tag("desc"), {"id": "desc"}).text = view["description"]
     ET.SubElement(svg, tag("rect"), {"width": "960", "height": str(height), "fill": "white"})

@@ -1,0 +1,483 @@
+{
+  "date": "2026-11-20",
+  "project_id": "2ec0f9ec-176a-4470-b9d0-414f7188b996",
+  "view_count": 6,
+  "catalogue_ownership_paths_checked": 16,
+  "native_owner_paths": {
+    "VIEW-software-intake-functions": "Views/software-intake",
+    "VIEW-software-intake-logical": "Views/software-intake",
+    "VIEW-software-intake-placement": "Views/software-intake",
+    "VIEW-software-intake-use-cases": "Views/software-intake",
+    "VIEW-system-overall": "Views",
+    "VIEW-use-cases": "Views"
+  },
+  "model": "Complete named semantic projection unchanged",
+  "system_overall": "Native node/edge labels, styles, positions and sizes identical to accepted reference",
+  "general_views": "Native content, measured body geometry, actor aspect ratios and outside label placement verified after browser reload",
+  "browser_checks": {
+    "functions": {
+      "url": "http://localhost:8080/projects/2ec0f9ec-176a-4470-b9d0-414f7188b996/edit/b167e0ad-aa08-45d5-91ec-0ece3adcb27f",
+      "nodes": [
+        {
+          "height": "110px",
+          "id": "f8c915f2-7f5e-32a9-b951-4cdc9f54f7d1",
+          "labels": [],
+          "rect": {
+            "h": 107.3424835205078,
+            "w": 439.1283264160156,
+            "x": 1124.1512451171875,
+            "y": 417.3053283691406
+          },
+          "text": "\u00c2\u00abref part\u00c2\u00bb\n<L-Consumers> Update Consumers : UpdateClient",
+          "width": "450px"
+        },
+        {
+          "height": "110px",
+          "id": "0090ab96-c4ce-34d3-8f2f-ea5dca605ed2",
+          "labels": [],
+          "rect": {
+            "h": 107.3424835205078,
+            "w": 439.1283264160156,
+            "x": 1124.1512451171875,
+            "y": 661.2655029296875
+          },
+          "text": "\u00c2\u00abpart\u00c2\u00bb\n<L-Proxy> Policy proxy / HTTP cache : PolicyProxy",
+          "width": "450px"
+        },
+        {
+          "height": "110px",
+          "id": "f71c515f-2f70-317c-96d7-645108a6b216",
+          "labels": [],
+          "rect": {
+            "h": 107.3424835205078,
+            "w": 439.1283264160156,
+            "x": 1124.1512451171875,
+            "y": 173.3451385498047
+          },
+          "text": "\u00c2\u00abpart\u00c2\u00bb\n<L-Cache> Rebuildable cache storage : DisposableCache",
+          "width": "450px"
+        },
+        {
+          "height": "105px",
+          "id": "1a5a40d6-8a2a-3eac-b1fd-8b27e25d171c",
+          "labels": [],
+          "rect": {
+            "h": 102.4632568359375,
+            "w": 419.6114807128906,
+            "x": 382.5123596191406,
+            "y": 388.0301208496094
+          },
+          "text": "\u00c2\u00abaction\u00c2\u00bb\n<F-http> Fetch content from source",
+          "width": "430px"
+        },
+        {
+          "height": "105px",
+          "id": "040c4502-1c10-3261-b3f0-796bb5e588e8",
+          "labels": [],
+          "rect": {
+            "h": 102.4632797241211,
+            "w": 419.6114807128906,
+            "x": 382.5123596191406,
+            "y": 524.6478271484375
+          },
+          "text": "\u00c2\u00abaction\u00c2\u00bb\n<F-tunnel> Forward HTTPS traffic",
+          "width": "430px"
+        },
+        {
+          "height": "105px",
+          "id": "87f4d7f7-b683-3545-8893-14485e24e272",
+          "labels": [],
+          "rect": {
+            "h": 102.4632797241211,
+            "w": 419.6114807128906,
+            "x": 382.5123596191406,
+            "y": 251.4123992919922
+          },
+          "text": "\u00c2\u00abaction\u00c2\u00bb\n<F-cache> Reuse fresh cached content",
+          "width": "430px"
+        },
+        {
+          "height": "105px",
+          "id": "bc76194d-a516-3f48-a264-824930b9ca6e",
+          "labels": [],
+          "rect": {
+            "h": 102.4632797241211,
+            "w": 419.6114807128906,
+            "x": 382.5123596191406,
+            "y": 114.7947006225586
+          },
+          "text": "\u00c2\u00abaction\u00c2\u00bb\n<F-admit> Check request access",
+          "width": "430px"
+        },
+        {
+          "height": "105px",
+          "id": "cf46f0a1-0530-349d-976a-ac8767bea070",
+          "labels": [],
+          "rect": {
+            "h": 102.4632797241211,
+            "w": 419.6114807128906,
+            "x": 382.5123596191406,
+            "y": 661.2655029296875
+          },
+          "text": "\u00c2\u00abaction\u00c2\u00bb\n<F-verify> Verify before use",
+          "width": "430px"
+        }
+      ],
+      "collisions": []
+    },
+    "intake-use-cases": {
+      "url": "http://localhost:8080/projects/2ec0f9ec-176a-4470-b9d0-414f7188b996/edit/ad72e5e7-cecd-4976-baf8-f29d0f211231",
+      "nodes": [
+        {
+          "height": "108px",
+          "id": "f928ecb0-ccdd-364a-89dc-a6ca3cf61ac0",
+          "labels": [
+            {
+              "rect": {
+                "h": 19.379688262939453,
+                "w": 527.8761596679688,
+                "x": 641.7932739257812,
+                "y": 835.9083862304688
+              },
+              "text": "<ACT-source> Approved source : ApprovedSource = context.Approved external sources"
+            }
+          ],
+          "rect": {
+            "h": 99.6667022705078,
+            "w": 44.411720275878906,
+            "x": 606.6676635742188,
+            "y": 736.24169921875
+          },
+          "text": "<ACT-source> Approved source : ApprovedSource = context.Approved external sources",
+          "width": "48.1304px"
+        },
+        {
+          "height": "108px",
+          "id": "b5d96eaf-47fb-31dc-b1df-6a1331e71ccc",
+          "labels": [
+            {
+              "rect": {
+                "h": 19.379638671875,
+                "w": 433.4119567871094,
+                "x": 689.0195922851562,
+                "y": 256.36474609375
+              },
+              "text": "<ACT-client> Update client : UpdateClient = context.Update Consumers"
+            }
+          ],
+          "rect": {
+            "h": 99.666748046875,
+            "w": 44.411720275878906,
+            "x": 606.6676635742188,
+            "y": 256.36474609375
+          },
+          "text": "<ACT-client> Update client : UpdateClient = context.Update Consumers",
+          "width": "48.1304px"
+        },
+        {
+          "height": "110px",
+          "id": "474ae43e-6fbb-38f2-8a7d-98b17947e89a",
+          "labels": [],
+          "rect": {
+            "h": 101.512451171875,
+            "w": 304.5373229980469,
+            "x": 938.89013671875,
+            "y": 597.8156127929688
+          },
+          "text": "\u00c2\u00abref parameter\u00c2\u00bb\n<UC-supply> Controlled software supply : PolicyProxy = context.Policy proxy / HTTP cache",
+          "width": "330px"
+        },
+        {
+          "height": "85px",
+          "id": "6081ac61-036b-366b-bf09-8159dc3ed093",
+          "labels": [],
+          "rect": {
+            "h": 78.44140625,
+            "w": 313.7657165527344,
+            "x": 1326.483154296875,
+            "y": 413.24761962890625
+          },
+          "text": "\u00c2\u00abref action\u00c2\u00bb\n<SC-http-miss> Retrieve or revalidate HTTP content : HttpRetrieval",
+          "width": "340px"
+        },
+        {
+          "height": "85px",
+          "id": "b02c6036-6630-37f2-8667-26de48f3c337",
+          "labels": [],
+          "rect": {
+            "h": 78.44145965576172,
+            "w": 313.7657165527344,
+            "x": 1326.483154296875,
+            "y": 616.2723999023438
+          },
+          "text": "\u00c2\u00abref action\u00c2\u00bb\n<SC-http-untrusted> Reject untrusted source content : HttpRetrieval",
+          "width": "340px"
+        },
+        {
+          "height": "85px",
+          "id": "c3604a79-2cb1-367f-8b4e-b32e1cb1c2f8",
+          "labels": [],
+          "rect": {
+            "h": 78.4414291381836,
+            "w": 313.7657165527344,
+            "x": 1326.483154296875,
+            "y": 311.73516845703125
+          },
+          "text": "\u00c2\u00abref action\u00c2\u00bb\n<SC-http-hit> Reuse a fresh HTTP response : HttpRetrieval",
+          "width": "340px"
+        },
+        {
+          "height": "85px",
+          "id": "8b905910-dead-3da8-bf2f-dbbb8c259bad",
+          "labels": [],
+          "rect": {
+            "h": 78.4415054321289,
+            "w": 313.7657165527344,
+            "x": 1326.483154296875,
+            "y": 819.2973022460938
+          },
+          "text": "\u00c2\u00abref action\u00c2\u00bb\n<SC-https-denied> Reject a disallowed CONNECT request : HttpsRetrieval",
+          "width": "340px"
+        },
+        {
+          "height": "85px",
+          "id": "3afc96f0-fe54-3810-8bcf-4654dc33e5ea",
+          "labels": [],
+          "rect": {
+            "h": 78.44140625,
+            "w": 313.7657165527344,
+            "x": 1326.483154296875,
+            "y": 514.760009765625
+          },
+          "text": "\u00c2\u00abref action\u00c2\u00bb\n<SC-http-source-failure> Stop when the source is unavailable : HttpRetrieval",
+          "width": "340px"
+        },
+        {
+          "height": "85px",
+          "id": "b8dcefde-5d01-361a-81f6-e3e76296fc01",
+          "labels": [],
+          "rect": {
+            "h": 78.44145965576172,
+            "w": 313.7657165527344,
+            "x": 1326.483154296875,
+            "y": 717.7848510742188
+          },
+          "text": "\u00c2\u00abref action\u00c2\u00bb\n<SC-https> Retrieve through source TLS : HttpsRetrieval",
+          "width": "340px"
+        },
+        {
+          "height": "85px",
+          "id": "7329633c-8be3-3c2b-af00-f4ec10e6b372",
+          "labels": [],
+          "rect": {
+            "h": 78.44145965576172,
+            "w": 313.7657165527344,
+            "x": 1326.483154296875,
+            "y": 210.2227020263672
+          },
+          "text": "\u00c2\u00abref action\u00c2\u00bb\n<SC-http-denied> Reject a disallowed HTTP request : HttpRetrieval",
+          "width": "340px"
+        },
+        {
+          "height": "85px",
+          "id": "6e6d690a-a0a0-3ecb-981d-519ba902c143",
+          "labels": [],
+          "rect": {
+            "h": 78.4414291381836,
+            "w": 313.7657165527344,
+            "x": 1326.483154296875,
+            "y": 108.71028137207033
+          },
+          "text": "\u00c2\u00abref action\u00c2\u00bb\n<SC-http-cache-untrusted> Reject untrusted cached content : HttpRetrieval",
+          "width": "340px"
+        },
+        {
+          "height": "100px",
+          "id": "37dae96f-cb22-3d73-949e-49cd503c9d16",
+          "labels": [],
+          "rect": {
+            "h": 92.28398895263672,
+            "w": 304.5373229980469,
+            "x": 938.89013671875,
+            "y": 413.24761962890625
+          },
+          "text": "\u00c2\u00abuse case def\u00c2\u00bb\n<UC-update> Retrieve and verify software",
+          "width": "330px"
+        }
+      ],
+      "collisions": []
+    },
+    "system-use-cases": {
+      "url": "http://localhost:8080/projects/2ec0f9ec-176a-4470-b9d0-414f7188b996/edit/1108b0d6-01de-4fd9-b896-a1d25ad0a245",
+      "nodes": [
+        {
+          "height": "108px",
+          "id": "f9da879f-5f90-3272-8d3c-534be66ecf1d",
+          "labels": [
+            {
+              "rect": {
+                "h": 19.777978897094727,
+                "w": 538.7278442382812,
+                "x": 644.6734619140625,
+                "y": 818.3331909179688
+              },
+              "text": "<ACT-source> Approved source : ApprovedSource = context.Approved external sources"
+            }
+          ],
+          "rect": {
+            "h": 101.715576171875,
+            "w": 45.32465744018555,
+            "x": 608.8258056640625,
+            "y": 716.6176147460938
+          },
+          "text": "<ACT-source> Approved source : ApprovedSource = context.Approved external sources",
+          "width": "48.1304px"
+        },
+        {
+          "height": "108px",
+          "id": "9966afc5-3825-36bf-bd6e-1f79904fb6dc",
+          "labels": [
+            {
+              "rect": {
+                "h": 19.778039932250977,
+                "w": 354.9333190917969,
+                "x": 736.5707397460938,
+                "y": 104.4402847290039
+              },
+              "text": "<ACT-operator> Operator : BootstrapOperator = operator"
+            }
+          ],
+          "rect": {
+            "h": 101.7155990600586,
+            "w": 45.32465744018555,
+            "x": 608.8258056640625,
+            "y": 104.4402847290039
+          },
+          "text": "<ACT-operator> Operator : BootstrapOperator = operator",
+          "width": "48.1304px"
+        },
+        {
+          "height": "108px",
+          "id": "df85c157-f050-3543-ae23-6b35a9dbbc7e",
+          "labels": [
+            {
+              "rect": {
+                "h": 19.77802848815918,
+                "w": 526.4254150390625,
+                "x": 650.8187866210938,
+                "y": 403.9362487792969
+              },
+              "text": "<ACT-intake> Software intake : SoftwareIntakeSubsystem = homelab.Software intake"
+            }
+          ],
+          "rect": {
+            "h": 101.7155990600586,
+            "w": 45.32465744018555,
+            "x": 608.8258056640625,
+            "y": 302.22064208984375
+          },
+          "text": "<ACT-intake> Software intake : SoftwareIntakeSubsystem = homelab.Software intake",
+          "width": "48.1304px"
+        },
+        {
+          "height": "108px",
+          "id": "b708ef20-7e52-3e0a-ba90-e3c390635ba3",
+          "labels": [
+            {
+              "rect": {
+                "h": 19.77802848815918,
+                "w": 442.321533203125,
+                "x": 692.8706665039062,
+                "y": 518.8372192382812
+              },
+              "text": "<ACT-client> Update client : UpdateClient = context.Update Consumers"
+            }
+          ],
+          "rect": {
+            "h": 101.71562957763672,
+            "w": 45.32465744018555,
+            "x": 608.8258056640625,
+            "y": 518.8372192382812
+          },
+          "text": "<ACT-client> Update client : UpdateClient = context.Update Consumers",
+          "width": "48.1304px"
+        },
+        {
+          "height": "110px",
+          "id": "4d239f64-49a3-3aca-b393-c11993e82a1a",
+          "labels": [],
+          "rect": {
+            "h": 103.5992202758789,
+            "w": 282.5433654785156,
+            "x": 1315.1842041015625,
+            "y": 660.10888671875
+          },
+          "text": "\u00c2\u00abref parameter\u00c2\u00bb\n<UC-supply> Controlled software supply : PolicyProxy = context.Policy proxy / HTTP cache",
+          "width": "300px"
+        },
+        {
+          "height": "100px",
+          "id": "cc252a44-8446-369b-b648-b6e1dcbdcd25",
+          "labels": [],
+          "rect": {
+            "h": 94.1811065673828,
+            "w": 282.5433654785156,
+            "x": 1315.1842041015625,
+            "y": 245.7119598388672
+          },
+          "text": "\u00c2\u00abref parameter\u00c2\u00bb\n<UC-clone-host> boot-1 : UpdateClient = boot-1",
+          "width": "300px"
+        },
+        {
+          "height": "100px",
+          "id": "4f8a381d-9cff-3e4a-bf26-aede41f94011",
+          "labels": [],
+          "rect": {
+            "h": 94.1811065673828,
+            "w": 310.7977600097656,
+            "x": 947.8777465820312,
+            "y": 245.7119598388672
+          },
+          "text": "\u00c2\u00abuse case def\u00c2\u00bb\n<UC-clone> Clone a Git repository over HTTPS",
+          "width": "330px"
+        },
+        {
+          "height": "100px",
+          "id": "8a029b75-b531-3eae-8914-4cc40d9375a3",
+          "labels": [],
+          "rect": {
+            "h": 94.1811065673828,
+            "w": 310.7977600097656,
+            "x": 947.8777465820312,
+            "y": 660.10888671875
+          },
+          "text": "\u00c2\u00abuse case def\u00c2\u00bb\n<UC-update> Retrieve and verify software",
+          "width": "330px"
+        }
+      ],
+      "collisions": []
+    }
+  },
+  "focused_tests": 36,
+  "retired": [
+    "167086f3-227f-4db7-9fb2-83c7019b8de4",
+    "a590dfcc-29c6-4820-b4d9-60eb00f2c01b"
+  ],
+  "preserved_modified": [],
+  "native_gaps": "Unchanged: outer System Overall annotation; contained ItemUsage in logical and placement views",
+  "remaining_projects": [
+    {
+      "id": "2ec0f9ec-176a-4470-b9d0-414f7188b996",
+      "name": "Homelab review - c8bd264eaf31"
+    },
+    {
+      "id": "321ccd13-6777-4729-a72e-657174db6df6",
+      "name": "homelab"
+    },
+    {
+      "id": "01fbc9a1-7d17-4e70-9211-47159409cbaa",
+      "name": "SysMLv2"
+    }
+  ],
+  "repeat_publication": "Same final project reused successfully after browser reload; no extra representations"
+}

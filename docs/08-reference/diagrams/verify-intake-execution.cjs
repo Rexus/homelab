@@ -4,7 +4,7 @@ const { pathToFileURL } = require('node:url');
 const { chromium } = require(process.env.DIAGRAM_PLAYWRIGHT || 'playwright');
 (async () => {
   const folder = path.resolve('.tmp/intake-render'); fs.mkdirSync(folder, {recursive:true});
-  const file = 'architecture/views/software-intake/execution.svg';
+  const file = 'architecture/generated/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.svg';
   const url = id => pathToFileURL(path.resolve(file)).href + (id ? '#' + id : '');
   const browser = await chromium.launch({channel:'msedge', headless:true});
   const report = {browser:browser.version(), views:[], journey:[]};

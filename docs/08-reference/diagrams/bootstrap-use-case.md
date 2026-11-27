@@ -1,10 +1,10 @@
 # Bootstrap views and navigation
 
-The [clone goal](../../../architecture/views/platform/hosting/clone-repository.svg) selects native
+The [clone goal](../../../architecture/generated/platform/hosting/Boot1CloneRepository.svg) selects native
 subject/actor roles. Its boot-1 subject binds to `BOOT-host`; its supporting system actor binds to
 `SYS-intake`. Selecting each opens the respective foundation or intake design directly.
 
-The [foundation SVG](../../../architecture/views/platform/hosting/bootstrap-reference.svg) is generated
+The [foundation SVG](../../../architecture/generated/platform/hosting/Boot1FoundationReference.svg) is generated
 from Figure 1 in the [owning guide](../../03-deployment/foundation/bootstrap/README.md#figure-1-bootstrap-execution-host).
 That Mermaid block remains authoritative. Only its boot-1 boundary is associated with the native
 model; its internal topology is an existing mapped reference. It is not automatically added to the

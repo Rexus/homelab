@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 970" role="img" data-subject="SYS-homelab" data-engineering-view="true" data-view-id="VIEW-use-cases">
+  <title>Homelab | Use cases</title>
+  <rect width="960" height="970" fill="white" />
+  <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5}</style>
+  <defs>
+    <marker id="relationship" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L7 4 L0 8" fill="none" stroke="#627581" />
+    </marker>
+  </defs>
+  <text x="30" y="36" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Homelab | Use cases</text>
+  <text x="30" y="66" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Modeled goals at their actual subject boundaries. Other subsystem goals remain mapped.</text>
+  <svg viewBox="0 0 960 430" role="img" data-subject="UC-clone-host" x="15" y="105" width="930" height="380">
+    <title id="UC-clone-title">Clone a Git repository over HTTPS</title>
+    <desc id="UC-clone-desc">The operator asks boot-1 to clone a Git repository over HTTPS. Software intake is a supporting service; select it to open its separately owned logical design. Lines mean participation, not network routes.</desc>
+    <rect width="960" height="430" fill="#ffffff" />
+    <style>text{font-family:Arial,sans-serif;font-size:17px;text-anchor:middle;fill:#1f2937}.legend text{font-size:13px}.caption{font-size:15px}</style>
+    <a href="platform/hosting/Boot1FoundationReference.svg" target="_top">
+      <g data-model="UC-clone-host" class="subject" fill="#f3f1ed" stroke="#8b857c" stroke-width="1.6" data-relationships="[{&quot;from&quot;: &quot;UC-clone&quot;, &quot;to&quot;: &quot;UC-clone-host&quot;, &quot;kind&quot;: &quot;has-subject&quot;}]" data-boundary-kind="subject">
+        <rect x="260" y="62" width="440" height="248" rx="5" style="fill:#fbfcfd;stroke:#8393a6;stroke-dasharray:none;" />
+        <text x="480" y="95.0" stroke="none">boot-1</text>
+      </g>
+    </a>
+    <line data-relationships="[{&quot;from&quot;: &quot;UC-clone&quot;, &quot;to&quot;: &quot;ACT-operator&quot;, &quot;kind&quot;: &quot;has-actor&quot;}]" x1="156" x2="295" y1="195" y2="195" stroke="#627581" stroke-width="1.6" />
+    <line data-relationships="[{&quot;from&quot;: &quot;UC-clone&quot;, &quot;to&quot;: &quot;ACT-intake&quot;, &quot;kind&quot;: &quot;has-actor&quot;}]" x1="665" x2="740" y1="195" y2="195" stroke="#627581" stroke-width="1.6" />
+    <a href="platform/hosting/Boot1CloneRepository.svg" target="_top">
+      <g data-model="UC-clone" class="goal" fill="#fcebdc" stroke="#a16c43" stroke-width="1.6" data-category="intent" color="#42325d" style=";color:#42325d;">
+        <ellipse cx="480" cy="195" rx="185" ry="74" style=";fill:#eeeafa;stroke:#78639b;" />
+        <text x="480" y="178.5" stroke="none">Clone a Git repository over</text>
+        <text x="480" y="201.5" stroke="none">HTTPS</text>
+      </g>
+    </a>
+    <g data-model="ACT-operator" class="useCaseActor" fill="#edf0f3" stroke="#697682" stroke-width="1.6" data-category="external" color="#293642" style=";color:#293642;">
+      <g class="actor-symbol" transform="translate(130 195) scale(1)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="0" cy="-29" r="9" style=";fill:#edf0f3;stroke:#697682;" />
+        <path d="M0 -20 V18 M-26 0 H26 M0 18 L-24 46 M0 18 L24 46" fill="none" style=";fill:none;stroke:#697682;" />
+      </g>
+      <text x="130" y="270.0" stroke="none">Operator</text>
+    </g>
+    <a href="software-intake/SoftwareIntakeLogicalDesign.svg" target="_top">
+      <g data-model="ACT-intake" class="useCaseSystemActor" fill="#edf0f3" stroke="#697682" stroke-width="1.6" data-category="logical" color="#203a5b" style=";color:#203a5b;">
+        <rect x="740" y="152" width="180" height="86" rx="5" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="830" y="177.0" stroke="none">«actor»</text>
+        <text x="830" y="209.0" stroke="none">Software intake</text>
+      </g>
+    </a>
+    <text x="480" y="345" class="caption">Expected use · Select Software intake to open its design</text>
+    <g class="legend" id="UC-clone-Legend">
+      <g fill="#e7f0fc" stroke="#4d719b" stroke-dasharray="none" data-category-key="logical">
+        <rect x="30" y="380.0" width="22" height="16" />
+      </g>
+      <text x="59" y="393.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Logical component</text>
+      <g fill="#eeeafa" stroke="#78639b" stroke-dasharray="none" data-category-key="intent">
+        <ellipse cx="271" cy="388.0" rx="12" ry="8" />
+      </g>
+      <text x="289" y="393.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Requirement / use case</text>
+      <g fill="#fbfcfd" stroke="#8393a6" stroke-dasharray="none" data-category-key="subject">
+        <rect x="490" y="380.0" width="22" height="16" />
+      </g>
+      <text x="519" y="393.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Subject / scope</text>
+      <g fill="#edf0f3" stroke="#697682" stroke-dasharray="none" data-category-key="human">
+        <g class="actor-symbol" transform="translate(731 387.0) scale(0.24)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="0" cy="-29" r="9" />
+          <path d="M0 -20 V18 M-26 0 H26 M0 18 L-24 46 M0 18 L24 46" fill="none" />
+        </g>
+      </g>
+      <text x="749" y="393.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Human actor</text>
+    </g>
+  </svg>
+  <svg viewBox="0 0 960 430" role="img" data-subject="UC-supply" x="15" y="500" width="930" height="380">
+    <title id="UC-update-title">Software intake | Use cases</title>
+    <desc id="UC-update-desc">External update client and approved source participate in a controlled-supply use case. Associations show participation, not network routes. Consumer verification remains external.</desc>
+    <rect width="960" height="430" fill="#ffffff" />
+    <style>text{font-family:Arial,sans-serif;font-size:17px;text-anchor:middle;fill:#1f2937}.legend text{font-size:13px}.caption{font-size:15px}</style>
+    <a href="software-intake/SoftwareIntakeLogicalDesign.svg" target="_top">
+      <g data-model="UC-supply" class="subject" fill="#f3f1ed" stroke="#8b857c" stroke-width="1.6" data-relationships="[{&quot;from&quot;: &quot;UC-update&quot;, &quot;to&quot;: &quot;UC-supply&quot;, &quot;kind&quot;: &quot;has-subject&quot;}]" data-boundary-kind="subject">
+        <rect x="260" y="62" width="440" height="248" rx="5" style="fill:#fbfcfd;stroke:#8393a6;stroke-dasharray:none;" />
+        <text x="480" y="95.0" stroke="none">Controlled software supply</text>
+      </g>
+    </a>
+    <line data-relationships="[{&quot;from&quot;: &quot;UC-update&quot;, &quot;to&quot;: &quot;ACT-client&quot;, &quot;kind&quot;: &quot;has-actor&quot;}]" x1="220" x2="295" y1="195" y2="195" stroke="#627581" stroke-width="1.6" />
+    <line data-relationships="[{&quot;from&quot;: &quot;UC-update&quot;, &quot;to&quot;: &quot;ACT-source&quot;, &quot;kind&quot;: &quot;has-actor&quot;}]" x1="665" x2="740" y1="195" y2="195" stroke="#627581" stroke-width="1.6" />
+    <a href="software-intake/SoftwareIntakeUseCases.svg" target="_top">
+      <g data-model="UC-update" class="goal" fill="#fcebdc" stroke="#a16c43" stroke-width="1.6" data-category="intent" color="#42325d" style=";color:#42325d;">
+        <ellipse cx="480" cy="195" rx="185" ry="74" style=";fill:#eeeafa;stroke:#78639b;" />
+        <text x="480" y="190.0" stroke="none">Retrieve and verify software</text>
+      </g>
+    </a>
+    <g data-model="ACT-client" class="useCaseSystemActor" fill="#edf0f3" stroke="#697682" stroke-width="1.6" data-category="external" color="#293642" style=";color:#293642;">
+      <rect x="40" y="152" width="180" height="86" rx="5" style=";fill:#edf0f3;stroke:#697682;" />
+      <text x="130" y="177.0" stroke="none">«actor»</text>
+      <text x="130" y="209.0" stroke="none">Update client</text>
+    </g>
+    <g data-model="ACT-source" class="useCaseSystemActor" fill="#edf0f3" stroke="#697682" stroke-width="1.6" data-category="external" color="#293642" style=";color:#293642;">
+      <rect x="740" y="152" width="180" height="86" rx="5" style=";fill:#edf0f3;stroke:#697682;" />
+      <text x="830" y="177.0" stroke="none">«actor»</text>
+      <text x="830" y="209.0" stroke="none">Approved source</text>
+    </g>
+    <text x="480" y="345" class="caption">Expected use · Consumer verification remains outside the supply boundary</text>
+    <g class="legend" id="UC-update-Legend">
+      <g fill="#eeeafa" stroke="#78639b" stroke-dasharray="none" data-category-key="intent">
+        <ellipse cx="41" cy="388.0" rx="12" ry="8" />
+      </g>
+      <text x="59" y="393.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Requirement / use case</text>
+      <g fill="#edf0f3" stroke="#697682" stroke-dasharray="none" data-category-key="external">
+        <rect x="260" y="380.0" width="22" height="16" />
+      </g>
+      <text x="289" y="393.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">External / abstract role</text>
+      <g fill="#fbfcfd" stroke="#8393a6" stroke-dasharray="none" data-category-key="subject">
+        <rect x="490" y="380.0" width="22" height="16" />
+      </g>
+      <text x="519" y="393.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Subject / scope</text>
+    </g>
+  </svg>
+  <rect x="0" y="914" width="960" height="56" fill="#eef2f6" />
+  <a href="HomelabSystemOverview.svg" target="_top" aria-label="System Overall">
+    <title>System Overall</title>
+    <rect x="5.0" y="921" width="150.0" height="42" fill="transparent" />
+    <text x="80.0" y="947" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+  </a>
+  <a href="HomelabUseCases.svg" target="_top" aria-label="Use cases">
+    <title>Use cases</title>
+    <rect x="165.0" y="921" width="150.0" height="42" fill="transparent" />
+    <text x="240.0" y="947" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Use cases</text>
+  </a>
+  <a href="HomelabRequirements.md" target="_top" aria-label="Requirements">
+    <title>Requirements</title>
+    <rect x="325.0" y="921" width="150.0" height="42" fill="transparent" />
+    <text x="400.0" y="947" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Requirements</text>
+  </a>
+  <a href="HomelabFunctions.svg" target="_top" aria-label="Functions">
+    <title>Functions</title>
+    <rect x="485.0" y="921" width="150.0" height="42" fill="transparent" />
+    <text x="560.0" y="947" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Functions</text>
+  </a>
+  <a href="software-intake/SoftwareIntakeVerification.md" target="_top" aria-label="Tests">
+    <title>Tests</title>
+    <rect x="645.0" y="921" width="150.0" height="42" fill="transparent" />
+    <text x="720.0" y="947" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Tests</text>
+  </a>
+  <a href="../README.md" target="_top" aria-label="Documentation">
+    <title>Documentation</title>
+    <rect x="805.0" y="921" width="150.0" height="42" fill="transparent" />
+    <text x="880.0" y="947" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+  </a>
+  <metadata data-catalog="VIEW-use-cases">{"content_sha256": "cb9ef99a8be7dcd17f6c506ac0a29d6792f693498231a001f8c4c171cad0b8c4", "elements": ["ACT-client", "ACT-intake", "ACT-operator", "ACT-source", "UC-clone", "UC-clone-host", "UC-supply", "UC-update"], "key": "VIEW-use-cases", "name": "Homelab | Use cases", "owner": ".", "presentation": "model-derived SVG; native SysON uses its own notation", "relationships": [{"from": "UC-clone", "kind": "has-actor", "to": "ACT-intake"}, {"from": "UC-clone", "kind": "has-actor", "to": "ACT-operator"}, {"from": "UC-clone", "kind": "has-subject", "to": "UC-clone-host"}, {"from": "UC-update", "kind": "has-actor", "to": "ACT-client"}, {"from": "UC-update", "kind": "has-actor", "to": "ACT-source"}, {"from": "UC-update", "kind": "has-subject", "to": "UC-supply"}], "subject": "SYS-homelab", "svg": "architecture/generated/HomelabUseCases.svg"}</metadata>
+</svg>

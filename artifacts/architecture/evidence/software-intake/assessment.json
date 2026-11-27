@@ -1,0 +1,166 @@
+{
+  "schema": 1,
+  "scopes": {
+    "isolated": "Linux Squid + APT fixtures; temporary loopback processes; no host package installation or site acceptance.",
+    "site": "Deployed route and recovery demonstrations; no automated site evidence adapter yet."
+  },
+  "inputs": [
+    "scripts/architecture/requirement*.py",
+    "scripts/architecture/intake_product.py",
+    "scripts/tier-repos/*.py",
+    "scripts/tier-repos/*.json",
+    "tests/test_tier_cache_policy.py",
+    "tests/test_tier_package_policy.py",
+    "tests/test_tier_intake_product.py",
+    "tests/tier_repo_test_support.py",
+    "tests/apt_repository_fixture.py",
+    "tests/requirements.txt",
+    "tier-2/ansible/roles/cache_proxy/**/*.*",
+    "shared/ansible/roles/baseline/**/*.*",
+    "tier-0/ansible/roles/proxmox_host/**/*.*",
+    "tier-0/ansible/playbooks/deployment/bootstrap-software-intake.yml",
+    ".gitlab/prepare-architecture.sh",
+    ".gitlab/check-architecture.sh",
+    "scripts/architecture/architecture_ci.py"
+  ],
+  "checks": {
+    "policy-source": {
+      "selector": "test_tier_cache_policy.NativeCachePolicy.test_source_policy",
+      "timeout": 600
+    },
+    "policy-generated": {
+      "selector": "test_tier_cache_policy.NativeCachePolicy.test_generated_policy",
+      "timeout": 600
+    },
+    "signed-retrieval": {
+      "selector": "test_tier_intake_product.NativeIntakeScenarios.test_signed_package_retrieval_matches_model",
+      "timeout": 600
+    },
+    "publisher-policy": {
+      "selector": "test_tier_package_policy.PackagePolicy.test_native_apt_rejects_unsigned_and_expired_metadata_but_trusted_source_is_an_exception",
+      "timeout": 600
+    },
+    "client-policy": {
+      "selector": "test_tier_package_policy.PackagePolicy.test_bootstrap_mirror_and_proxmox_apply_the_same_policy_without_proxy",
+      "timeout": 600
+    },
+    "dnf-policy": {
+      "selector": "test_tier_package_policy.PackagePolicy.test_dnf_policy_preserves_unrelated_settings_and_vendor_repository_overrides",
+      "timeout": 600
+    }
+  },
+  "cases": {
+    "VC-http-miss": {
+      "isolated": {
+        "checks": [
+          "policy-source",
+          "policy-generated",
+          "signed-retrieval",
+          "publisher-policy"
+        ],
+        "method": "test",
+        "claim": "Actual Squid policy/cache/privacy assertions; APT publisher checks where selected. Loopback only."
+      }
+    },
+    "VC-http-hit": {
+      "isolated": {
+        "checks": [
+          "policy-source",
+          "policy-generated",
+          "signed-retrieval"
+        ],
+        "method": "test",
+        "claim": "Actual Squid policy/cache/privacy assertions; APT publisher checks where selected. Loopback only."
+      }
+    },
+    "VC-http-denied": {
+      "isolated": {
+        "checks": [
+          "policy-source",
+          "policy-generated",
+          "signed-retrieval"
+        ],
+        "method": "test",
+        "claim": "Actual Squid policy/cache/privacy assertions; APT publisher checks where selected. Loopback only."
+      }
+    },
+    "VC-https-denied": {
+      "isolated": {
+        "checks": [
+          "policy-source",
+          "policy-generated"
+        ],
+        "method": "test",
+        "claim": "Actual Squid policy/cache/privacy assertions; APT publisher checks where selected. Loopback only."
+      }
+    },
+    "VC-http-source-failure": {
+      "isolated": {
+        "checks": [
+          "signed-retrieval"
+        ],
+        "method": "test",
+        "claim": "Source HTTP 503 causes retrieval failure without content verification; connection refusal is not exercised.",
+        "gaps": [
+          "Source connection refusal is not exercised by the HTTP parent fixture."
+        ]
+      }
+    },
+    "VC-http-untrusted": {
+      "isolated": {
+        "checks": [
+          "signed-retrieval"
+        ],
+        "method": "test",
+        "claim": "Real Squid/APT outcome matches the native retrieval experiment. Loopback only."
+      }
+    },
+    "VC-http-cache-untrusted": {
+      "isolated": {
+        "checks": [
+          "signed-retrieval"
+        ],
+        "method": "test",
+        "claim": "Real Squid/APT outcome matches the native retrieval experiment. Loopback only."
+      }
+    },
+    "VC-integrity": {
+      "isolated": {
+        "checks": [
+          "signed-retrieval",
+          "publisher-policy",
+          "client-policy",
+          "dnf-policy"
+        ],
+        "method": "test",
+        "claim": "APT signed metadata/package hashes, unknown publisher, expiry and explicit trust exceptions; Ansible applies strict APT/DNF policy. DNF runtime trust and deployed TLS remain unverified."
+      },
+      "site": {
+        "checks": [],
+        "method": "demonstration",
+        "claim": "Source TLS/hostname and selected client trust configuration on the deployed route."
+      }
+    },
+    "VC-https": {
+      "site": {
+        "checks": [],
+        "method": "demonstration",
+        "claim": "Admitted end-to-end TLS, certificate/hostname validation and no encrypted-payload caching."
+      }
+    },
+    "VC-custody": {
+      "site": {
+        "checks": [],
+        "method": "demonstration",
+        "claim": "Recovery from independently retained supply after disposable cache removal."
+      }
+    },
+    "VC-egress": {
+      "site": {
+        "checks": [],
+        "method": "demonstration",
+        "claim": "Independent deployed network enforcement refuses direct bypass."
+      }
+    }
+  }
+}

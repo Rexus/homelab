@@ -6,19 +6,19 @@ const { chromium } = require(process.env.DIAGRAM_PLAYWRIGHT || 'playwright');
 (async () => {
   const output = path.resolve('.tmp/intake-render');
   fs.mkdirSync(output, { recursive: true });
-  const views = ['logical', 'placement'].map(name => ({
-    name, svg: fs.readFileSync('architecture/views/software-intake/' + name + '.svg', 'utf8'),
+  const views = ['logical', 'solution'].map(name => ({
+    name, svg: fs.readFileSync('architecture/generated/software-intake/' + name + '.svg', 'utf8'),
   }));
-  views.push({ name: 'system-overall', svg: fs.readFileSync('architecture/views/system-overall.svg', 'utf8') });
-  views.push({ name: 'platform-overview', svg: fs.readFileSync('architecture/views/platform/overview.svg', 'utf8') });
-  views.push({ name: 'use-cases', svg: fs.readFileSync('architecture/views/software-intake/use-cases.svg', 'utf8') });
-  views.push({ name: 'resource-dependencies', svg: fs.readFileSync('architecture/views/software-intake/resource-dependencies.svg', 'utf8') });
+  views.push({ name: 'system-overall', svg: fs.readFileSync('architecture/generated/HomelabSystemOverview.svg', 'utf8') });
+  views.push({ name: 'platform-overview', svg: fs.readFileSync('architecture/generated/platform/SharedPlatformOverview.svg', 'utf8') });
+  views.push({ name: 'use-cases', svg: fs.readFileSync('architecture/generated/software-intake/SoftwareIntakeUseCases.svg', 'utf8') });
+  views.push({ name: 'resource-dependencies', svg: fs.readFileSync('architecture/generated/software-intake/solution/SoftwareIntakeResources.svg', 'utf8') });
   for (const name of ['http', 'https']) {
-    views.push({ name, mermaid: fs.readFileSync(`architecture/generated/software-intake/${name}.mmd`, 'utf8') });
+    views.push({ name, mermaid: fs.readFileSync(`artifacts/architecture/generated/software-intake/${name}.mmd`, 'utf8') });
   }
   const map = fs.readFileSync('docs/01-architecture/model-map.md', 'utf8');
   views.push({ name: 'model-map', mermaid: map.match(/```mermaid\s*([\s\S]*?)```/)[1] });
-  const contexts = JSON.parse(fs.readFileSync('architecture/views/design-context.json', 'utf8')).scopes;
+  const contexts = JSON.parse(fs.readFileSync('scripts/architecture/config/views/design-context.json', 'utf8')).scopes;
   for (const scope of contexts.filter(s => s.svg && !['system', 'platform'].includes(s.key))) {
     views.push({ name: 'context-' + scope.key, svg: fs.readFileSync(scope.svg, 'utf8') });
   }

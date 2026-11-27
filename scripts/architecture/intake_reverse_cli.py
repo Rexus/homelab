@@ -2,11 +2,11 @@
 
 import hashlib
 import json
-from intake_reverse import review, select_asset, REVERSE_VIEW, REVERSE_REPORT, path_text
+from intake_reverse import review, select_asset, REVERSE_REPORT, path_text
 
 
 def run_file_query(root, value):
-    snapshot = json.loads((root / "architecture/generated/software-intake/model-index.json").read_text(encoding="utf-8"))
+    snapshot = json.loads((root / "artifacts/architecture/generated/software-intake/model-index.json").read_text(encoding="utf-8"))
     if "trace_records" not in snapshot:
         raise ValueError("Build the model once to record its reverse trace snapshot")
     records = snapshot["trace_records"]
@@ -33,6 +33,5 @@ def run_file_query(root, value):
             print("  " + path_text(key, path))
         if not data[field]:
             print("  No recorded path in this modeled slice.")
-    print("\nView: " + REVERSE_VIEW + "#" + data["id"])
-    print("Trace paths: " + REVERSE_REPORT + "#" + data["id"])
+    print("\nReport: " + REVERSE_REPORT + "#" + data["id"])
     return data

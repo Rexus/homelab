@@ -3,7 +3,7 @@ from copy import deepcopy
 import json
 import unittest
 from intake_model_fixture import IntakeModelFixture
-from intake_product import EVIDENCE, VIEW, compare, outputs
+from intake_product import EVIDENCE, REPORT, compare, outputs
 
 
 class IntakeComparison(IntakeModelFixture):
@@ -33,6 +33,6 @@ class IntakeComparison(IntakeModelFixture):
         report = json.loads(path.read_text())
         report['sources']['tests/test_tier_intake_product.py'] = 'changed'
         path.write_text(json.dumps(report))
-        result = outputs(self.root, self.model)[VIEW]
+        result = outputs(self.root, self.model)[REPORT]
         self.assertIn('No current implementation result', result)
         self.assertNotIn('Squid: cache hit', result)

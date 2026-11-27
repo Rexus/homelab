@@ -92,14 +92,14 @@ class URLBoundary(unittest.TestCase):
                     client.return_value.archive.assert_not_called()
                     coverage.assert_not_called()
                     self.assertNotIn("SYNTHETIC-SECRET", str(error.exception))
-                self.assertFalse((root / "architecture/test/syson-view-coverage.md").exists())
+                self.assertFalse((root / "artifacts/architecture/evidence/syson-view-coverage.md").exists())
 
 
 class ResumeBoundary(IntakeModelFixture):
     def setUp(self):
         super().setUp()
-        self.name = "architecture/requirements/functional/software-intake.sysml"
-        self.other = "architecture/requirements/non-functional/software-intake.sysml"
+        self.name = "architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml"
+        self.other = "architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml"
         self.folder = self.root / ".tmp/return-review"
         self.source = self.root / self.name
         self.tool = flat(fixture())

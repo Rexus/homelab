@@ -1,6 +1,6 @@
 # Work with the intake model
 
-Start with the [engineering relationships](../../../architecture/views/software-intake/engineering.svg).
+Start with the [engineering relationships](../../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml).
 The folder map stays unchanged. The model is the design source; diagrams are connected views of it.
 Use a diagram element's identity when discussing a change, then revise the owning SysML source and
 check its affected implementation and verification before accepting the design.
@@ -77,7 +77,7 @@ explicit. This is a bounded correctness review, not certification of the entire 
 
 ## Focused use-case boundary
 
-The [bootstrap clone example](../../../architecture/use-cases/bootstrap/README.md) corrects the
+The [bootstrap clone example](../../../architecture/models/platform/hosting/Hosting.sysml) corrects the
 presentation of connectivity: the use-case view selects an operator goal on boot-1 and a supporting
 software-intake actor. The actor binds to the existing intake subsystem; selecting it opens the
 separate logical design. It does not copy the internal proxy/cache or repeat the concern dashboard.
@@ -101,22 +101,22 @@ requirement for its bound subject; it does not establish an empirical test resul
 
 | What the view says | Meaning here | Owning source |
 | --- | --- | --- |
-| Objective **requires** `REQ-policy` | Admission is part of the use-case objective | [use cases](../../../architecture/use-cases/software-intake/use-cases.sysml) |
-| `F-admit` **allocate** `L-Proxy` | This function is assigned to this logical part | [functions](../../../architecture/functions/software-intake/functions.sysml) |
-| `L-Proxy` **satisfy** `REQ-policy` | Explicit design assertion for the selected proxy, subject to verification | [policy requirement and assertion](../../../architecture/requirements/functional/software-intake.sysml) |
-| `VC-http-denied` **verify** `REQ-policy` | The verification case assesses that obligation; no result is implied | [native cases](../../../architecture/test/software-intake/verification.sysml) |
+| Objective **requires** `REQ-policy` | Admission is part of the use-case objective | [use cases](../../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) |
+| `F-admit` **allocate** `L-Proxy` | This function is assigned to this logical part | [functions](../../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) |
+| `L-Proxy` **satisfy** `REQ-policy` | Explicit design assertion for the selected proxy, subject to verification | [policy requirement and assertion](../../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) |
+| `VC-http-denied` **verify** `REQ-policy` | The verification case assesses that obligation; no result is implied | [native cases](../../../architecture/models/software-intake/SoftwareIntakeVerification.sysml) |
 | **Dependency** | A general design relationship; it does not silently become satisfaction, performance or a data flow | The declaring model package |
-| Source/test attachment | Repository trace to implementation or a check; not a native runtime connection | [implementation trace](../../../architecture/trace/software-intake.json) |
+| Source/test attachment | Repository trace to implementation or a check; not a native runtime connection | [implementation trace](../../../scripts/architecture/config/trace/software-intake.json) |
 
-The new view uses native [view exposure and a viewpoint](../../../architecture/views/software-intake/engineering.sysml).
+The new view uses native [view exposure and a viewpoint](../../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml).
 Its SVG retains the project palette but is a tailored rendering, not a claim to implement every standard
 graphical notation. Colour never substitutes for the element kind or relationship label. Use the
-[verification pages](../../../architecture/views/software-intake/engineering.svg#REQ-policy) to see all
+[verification pages](../../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) to see all
 eight cases, their subjects, acceptance intent and the missing satisfaction claims.
 
 ## Change the design from a view
 
-1. Open [System Overall](../../../architecture/views/system-overall.svg), select software intake, and
+1. Open [System Overall](../../../architecture/generated/HomelabSystemOverview.svg), select software intake, and
    choose the use case, requirement, function or part relevant to the question. Use **Engineering
    relationships** from Requirements to inspect the connected argument.
 2. State the desired outcome and selected identities, for example: “For `F-admit`, evaluate whether a
@@ -152,7 +152,7 @@ publishing a broader language subset. This revision's new native cases are not c
 
 **Question:** can a warm cache skip admission? The accepted policy checks client, destination and port
 before any content access. The deliberately rejected candidate allows a cache hit to bypass that check.
-Both expressions live in [admission.sysml](../../../architecture/functions/software-intake/admission.sysml).
+Both expressions live in [admission.sysml](../../../architecture/models/software-intake/SoftwareIntakeBehavior.sysml).
 `F-admit` uses the same accepted calculation; `AN-admission` owns the comparison intent.
 
 From **the upstream homelab checkout**, using the same tool variables as the build:
@@ -173,7 +173,7 @@ the sequence diagram, prove the requirement for arbitrary traffic, or establish 
 The actual Squid tests and deployment acceptance remain separate evidence.
 For executable retrieval paths, use the subsequent [native action execution](05-retrieval-execution.md).
 
-The [recorded 2026-11-18 evaluation](../../../architecture/test/software-intake/admission-analysis-2026-11-18.json)
+The [recorded 2026-11-18 evaluation](../../../artifacts/architecture/evidence/software-intake/admission-analysis-2026-11-18.json)
 contains 16 evaluated combinations and seven counterexamples to the cache shortcut, with the evaluated
 model fingerprint. This is historical evidence; rerun analysis after changing the model. The
 [verification record](verification.md#engineering-relationships-and-design-iteration) captures the checks

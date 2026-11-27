@@ -16,13 +16,13 @@ GUIDE = CASE_GUIDES["UC-clone"]
 
 def outputs(root, model):
     validate_reference(root)
-    view = json.loads((root / VIEW.with_suffix(".json")).read_text(encoding="utf-8"))
+    view = json.loads((root / Path("scripts/architecture/config/views/platform/hosting/clone-repository.json")).read_text(encoding="utf-8"))
     case = model["use_cases"][view["case"]]
     require(case["bindings"] == {"UC-clone-host": "BOOT-host", "ACT-operator": "BOOT-operator",
                                   "ACT-intake": "SYS-intake"},
             "Bootstrap use-case navigation must follow its native subject and actor bindings")
     svg = ET.fromstring(use_case_view(root, model, view))
-    targets = {"ACT-intake": LOGICAL, "UC-clone": GUIDE + "#expected-scenario",
+    targets = {"ACT-intake": LOGICAL, "UC-clone": GUIDE,
                "UC-clone-host": FOUNDATION_VIEW.as_posix()}
     for group in list(svg):
         key = group.get("data-model")
@@ -35,7 +35,7 @@ def outputs(root, model):
             svg.insert(index, anchor)
     rendered = add_navigation(ET.tostring(svg, encoding="unicode"), VIEW, [
         ("HTTPS behavior", SCENARIOS + "#SC-https"),
-        ("Intake use case", "architecture/views/software-intake/use-cases.svg"),
+        ("Intake use case", "architecture/generated/software-intake/SoftwareIntakeUseCases.svg"),
         ("Documentation", GUIDE),
     ])
     return {VIEW: rendered}

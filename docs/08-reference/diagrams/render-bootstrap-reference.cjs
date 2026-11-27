@@ -4,7 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const {chromium} = require(process.env.DIAGRAM_PLAYWRIGHT || 'playwright');
 const sourcePath = 'docs/03-deployment/foundation/bootstrap/README.md';
-const target = 'architecture/views/platform/hosting/bootstrap-reference.svg';
+const target = 'architecture/generated/platform/hosting/Boot1FoundationReference.svg';
 const source = fs.readFileSync(sourcePath,'utf8').match(/```mermaid\s*([\s\S]*?)```/)[1].trim().replace(/\r\n/g,'\n');
 const hash = crypto.createHash('sha256').update(source).digest('hex');
 (async () => {
@@ -48,7 +48,7 @@ const hash = crypto.createHash('sha256').update(source).digest('hex');
       outer.append(el('rect',{x:0,y,width:960,height:56,fill:'#eef2f6'}));
       for(const [i,[name,href]] of [
         ['Clone use case','clone-repository.svg'],
-        ['Intake design','../../software-intake/logical.svg'],
+        ['Intake logical design','../../software-intake/logical.svg'],
         ['Documentation','../../../../docs/03-deployment/foundation/bootstrap/README.md#figure-1-bootstrap-execution-host'],
       ].entries()) {
         const a=el('a',{href,target:'_top','aria-label':name});

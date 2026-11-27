@@ -1,0 +1,407 @@
+{
+  "date": "2026-11-20",
+  "ci": {
+    "native-model": {
+      "exit_code": 0
+    },
+    "reporter-tests": {
+      "exit_code": 0
+    },
+    "requirements": {
+      "exit_code": 0
+    }
+  },
+  "states": {
+    "passed": {
+      "exit_code": 0,
+      "gate_passed": true,
+      "requirements": {
+        "REQ-custody": {
+          "name": "independentRecovery",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-egress": {
+          "name": "noBypass",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-integrity": {
+          "name": "consumerVerification",
+          "status": "missing",
+          "scopes": {
+            "isolated": "passed",
+            "site": "missing"
+          }
+        },
+        "REQ-policy": {
+          "name": "admittedSources",
+          "status": "missing",
+          "scopes": {
+            "isolated": "passed",
+            "site": "missing"
+          }
+        }
+      },
+      "checks": {
+        "policy-source": "passed",
+        "policy-generated": "passed",
+        "signed-retrieval": "passed",
+        "publisher-policy": "passed"
+      }
+    },
+    "missing": {
+      "exit_code": 1,
+      "gate_passed": false,
+      "requirements": {
+        "REQ-custody": {
+          "name": "independentRecovery",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-egress": {
+          "name": "noBypass",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-integrity": {
+          "name": "consumerVerification",
+          "status": "missing",
+          "scopes": {
+            "isolated": "missing",
+            "site": "missing"
+          }
+        },
+        "REQ-policy": {
+          "name": "admittedSources",
+          "status": "missing",
+          "scopes": {
+            "isolated": "missing",
+            "site": "missing"
+          }
+        }
+      },
+      "checks": {
+        "policy-source": "missing",
+        "policy-generated": "missing",
+        "signed-retrieval": "missing",
+        "publisher-policy": "missing"
+      }
+    },
+    "site-missing": {
+      "exit_code": 1,
+      "gate_passed": false,
+      "requirements": {
+        "REQ-custody": {
+          "name": "independentRecovery",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-egress": {
+          "name": "noBypass",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-integrity": {
+          "name": "consumerVerification",
+          "status": "missing",
+          "scopes": {
+            "isolated": "passed",
+            "site": "missing"
+          }
+        },
+        "REQ-policy": {
+          "name": "admittedSources",
+          "status": "missing",
+          "scopes": {
+            "isolated": "passed",
+            "site": "missing"
+          }
+        }
+      },
+      "checks": {
+        "policy-source": "passed",
+        "policy-generated": "passed",
+        "signed-retrieval": "passed",
+        "publisher-policy": "passed"
+      }
+    },
+    "stale": {
+      "exit_code": 1,
+      "gate_passed": false,
+      "requirements": {
+        "REQ-custody": {
+          "name": "independentRecovery",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-egress": {
+          "name": "noBypass",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-integrity": {
+          "name": "consumerVerification",
+          "status": "stale",
+          "scopes": {
+            "isolated": "stale",
+            "site": "missing"
+          }
+        },
+        "REQ-policy": {
+          "name": "admittedSources",
+          "status": "stale",
+          "scopes": {
+            "isolated": "stale",
+            "site": "missing"
+          }
+        }
+      },
+      "checks": {
+        "policy-source": "stale",
+        "policy-generated": "stale",
+        "signed-retrieval": "stale",
+        "publisher-policy": "stale"
+      }
+    },
+    "failed": {
+      "exit_code": 1,
+      "gate_passed": false,
+      "requirements": {
+        "REQ-custody": {
+          "name": "independentRecovery",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-egress": {
+          "name": "noBypass",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-integrity": {
+          "name": "consumerVerification",
+          "status": "stale",
+          "scopes": {
+            "isolated": "stale",
+            "site": "missing"
+          }
+        },
+        "REQ-policy": {
+          "name": "admittedSources",
+          "status": "failed",
+          "scopes": {
+            "isolated": "failed",
+            "site": "missing"
+          }
+        }
+      },
+      "checks": {
+        "policy-source": "failed",
+        "policy-generated": "stale",
+        "signed-retrieval": "stale",
+        "publisher-policy": "stale"
+      }
+    },
+    "failed-attempt-stale": {
+      "exit_code": 1,
+      "gate_passed": false,
+      "requirements": {
+        "REQ-custody": {
+          "name": "independentRecovery",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-egress": {
+          "name": "noBypass",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-integrity": {
+          "name": "consumerVerification",
+          "status": "missing",
+          "scopes": {
+            "isolated": "passed",
+            "site": "missing"
+          }
+        },
+        "REQ-policy": {
+          "name": "admittedSources",
+          "status": "stale",
+          "scopes": {
+            "isolated": "stale",
+            "site": "missing"
+          }
+        }
+      },
+      "checks": {
+        "policy-source": "stale",
+        "policy-generated": "passed",
+        "signed-retrieval": "passed",
+        "publisher-policy": "passed"
+      }
+    },
+    "corrected": {
+      "exit_code": 0,
+      "gate_passed": true,
+      "requirements": {
+        "REQ-custody": {
+          "name": "independentRecovery",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-egress": {
+          "name": "noBypass",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-integrity": {
+          "name": "consumerVerification",
+          "status": "missing",
+          "scopes": {
+            "isolated": "passed",
+            "site": "missing"
+          }
+        },
+        "REQ-policy": {
+          "name": "admittedSources",
+          "status": "missing",
+          "scopes": {
+            "isolated": "passed",
+            "site": "missing"
+          }
+        }
+      },
+      "checks": {
+        "policy-source": "passed",
+        "policy-generated": "passed",
+        "signed-retrieval": "passed",
+        "publisher-policy": "passed"
+      }
+    },
+    "skipped": {
+      "exit_code": 1,
+      "gate_passed": false,
+      "requirements": {
+        "REQ-custody": {
+          "name": "independentRecovery",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-egress": {
+          "name": "noBypass",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-integrity": {
+          "name": "consumerVerification",
+          "status": "missing",
+          "scopes": {
+            "isolated": "passed",
+            "site": "missing"
+          }
+        },
+        "REQ-policy": {
+          "name": "admittedSources",
+          "status": "blocked",
+          "scopes": {
+            "isolated": "blocked",
+            "site": "missing"
+          }
+        }
+      },
+      "checks": {
+        "policy-source": "blocked",
+        "policy-generated": "passed",
+        "signed-retrieval": "passed",
+        "publisher-policy": "passed"
+      }
+    },
+    "final-passed": {
+      "exit_code": 0,
+      "gate_passed": true,
+      "requirements": {
+        "REQ-custody": {
+          "name": "independentRecovery",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-egress": {
+          "name": "noBypass",
+          "status": "missing",
+          "scopes": {
+            "site": "missing"
+          }
+        },
+        "REQ-integrity": {
+          "name": "consumerVerification",
+          "status": "missing",
+          "scopes": {
+            "isolated": "passed",
+            "site": "missing"
+          }
+        },
+        "REQ-policy": {
+          "name": "admittedSources",
+          "status": "missing",
+          "scopes": {
+            "isolated": "passed",
+            "site": "missing"
+          }
+        }
+      },
+      "checks": {
+        "policy-source": "passed",
+        "policy-generated": "passed",
+        "signed-retrieval": "passed",
+        "publisher-policy": "passed"
+      }
+    }
+  },
+  "environment": {
+    "platform": "Linux-6.6.87.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "tools": {
+      "squid": "Squid Cache: Version 6.14",
+      "apt": "apt 2.8.4 (amd64)",
+      "gpg": "gpg (GnuPG) 2.4.4",
+      "ansible": "ansible-playbook [core 2.16.14]"
+    }
+  },
+  "evidence_archive": "requirement-proof-2026-11-20.zip",
+  "hosted_ci": "Not run; signed project push and a runner remain required",
+  "site_evidence": "Missing; isolated pass does not fulfill deployed TLS, bypass or recovery obligations"
+}

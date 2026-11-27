@@ -165,9 +165,9 @@
       "color": "#203a5b"
     },
     "modelPhysical": {
-      "fill": "#e8e5df",
-      "stroke": "#81796c",
-      "color": "#3f3a34"
+      "fill": "#fff2d1",
+      "stroke": "#926820",
+      "color": "#584013"
     },
     "modelFunction": {
       "fill": "#fcebdc",
@@ -180,14 +180,19 @@
       "color": "#42325d"
     },
     "modelVerification": {
-      "fill": "#e2f3ed",
-      "stroke": "#397366",
-      "color": "#173f36"
+      "fill": "#d7f1ef",
+      "stroke": "#287a73",
+      "color": "#164b46"
     },
     "modelInformation": {
       "fill": "#f4dce9",
       "stroke": "#955076",
       "color": "#57253f"
+    },
+    "modelSoftware": {
+      "fill": "#dff2d6",
+      "stroke": "#527d40",
+      "color": "#28451e"
     }
   },
   "links": {

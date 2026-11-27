@@ -126,3 +126,5 @@ bash scripts/init-tier-repos.sh --dry-run
 | Publishing and secret checks | [Secret scanning](secret-scanning.md) |
 | Project-owned records and upstream references | [Project documentation](project-documentation.md) |
 | Preserved architecture alternatives | [Design coverage](design-coverage.md) |
+
+[Requirement results and CI](requirement-reporting.md): actual scoped verdicts, retained attempts and freshness gates.

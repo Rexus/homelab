@@ -3,19 +3,20 @@
 import json
 import os
 from pathlib import Path
-from intake_sources import require
+from intake_sources import require, check_native_tree
 from intake_platform import dependencies
 from intake_use_cases import scenario_functions, CASE_GUIDES
 
-REGISTRY = Path("architecture/views/design-context.json")
-INDEX = Path("architecture/generated/design-context.json")
+REGISTRY = Path("scripts/architecture/config/views/design-context.json")
+INDEX = Path("artifacts/architecture/generated/design-context.json")
 BEGIN, END = "<!-- BEGIN DESIGN CONTEXT -->", "<!-- END DESIGN CONTEXT -->"
 
 
 def scopes(root):
+    check_native_tree(root)
     entries = json.loads((root / REGISTRY).read_text(encoding="utf-8"))["scopes"]
     pages = [s["page"] for s in entries]
-    actual = {p.relative_to(root).as_posix() for p in (root / "architecture/design").rglob("README.md")}
+    actual = {s["page"] for s in entries if (root / s["page"]).is_file()}
     require(
         len(set(pages)) == len(pages) and set(pages) == actual,
         "Every design overview needs exactly one scoped context",
@@ -172,13 +173,16 @@ def projections(root, model, records, plan):
     for scope in scopes(root):
         data = context(model, scope, records, plan)
         page = (root / scope["page"]).read_text(encoding="utf-8")
-        require(
-            page.count(BEGIN) == page.count(END) == 1,
-            "Design context needs unique owned markers: " + scope["page"],
-        )
+        require(bool(page.strip()), "Empty native design owner: " + scope["page"])
         result[scope["key"]] = (
             scope,
             data,
             page,
         )
     return result
+
+
+def context_outputs(root, model, records, plan):
+    """Derived inspection data, not another authored relationship model or diagram."""
+    projected = projections(root, model, records, plan)
+    return {INDEX: json.dumps({key: data for key, (_, data, _) in projected.items()}, indent=2) + "\n"}

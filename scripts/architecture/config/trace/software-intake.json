@@ -1,0 +1,720 @@
+{
+  "DEF-member": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/terraform/deployments/cache/terraform.tfvars.example",
+      "tier-2/terraform/deployments/cache/main.tf",
+      "tier-2/terraform/modules/environment_guests/main.tf",
+      "tier-2/terraform/modules/vm/main.tf",
+      "tier-2/ansible/inventory/hosts.yml.example",
+      "tier-2/ansible/playbooks/cache.yml",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+    ],
+    "checks": [
+      "tests/test_tier_deployment_views.py",
+      "shared/ansible/roles/shared/tasks/keepalived_vip_validation.yml",
+      "tests/test_tier_intake_model.py",
+      "tests/intake_model_fixture.py",
+      "tests/test_tier_intake_behavior.py",
+      "tests/test_tier_intake_use_cases.py"
+    ]
+  },
+  "DEF-proxy": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/group_vars/cache.yml.example",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/main.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/squid.yml",
+      "tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml",
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "shared/ansible/roles/shared/templates/keepalived.conf.j2"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tier-2/ansible/roles/cache_proxy/tasks/services.yml"
+    ]
+  },
+  "DEF-cache": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/tasks/storage.yml",
+      "shared/ansible/roles/data_volume/tasks/inspect.yml",
+      "shared/ansible/roles/data_volume/tasks/validate.yml",
+      "shared/ansible/roles/data_volume/tasks/prepare.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_storage.py"
+    ]
+  },
+  "DEF-client": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-0/ansible/playbooks/deployment/bootstrap-software-intake.yml",
+      "tier-0/ansible/playbooks/proxmox-hosts.yml",
+      "tier-0/ansible/roles/proxmox_host/tasks/main.yml",
+      "shared/ansible/roles/baseline/tasks/repository_proxy.yml",
+      "shared/ansible/roles/baseline/tasks/package_policy.yml"
+    ],
+    "checks": [
+      "tests/test_tier_bootstrap_intake.py",
+      "tests/test_tier_software_intake.py"
+    ]
+  },
+  "REQ-policy": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/tasks/preflight.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+    ]
+  },
+  "REQ-integrity": {
+    "state": "manual-acceptance",
+    "sources": [
+      "shared/ansible/roles/baseline/tasks/package_policy.yml",
+      "docs/03-deployment/stage-01-software-intake/README.md"
+    ],
+    "checks": []
+  },
+  "REQ-egress": {
+    "state": "manual-acceptance",
+    "sources": [
+      "docs/01-architecture/05-networking/01-firewall-policy.md",
+      "docs/03-deployment/stage-01-software-intake/README.md"
+    ],
+    "checks": []
+  },
+  "REQ-custody": {
+    "state": "external-custody",
+    "sources": [
+      "docs/01-architecture/07-software-intake/README.md",
+      "docs/01-architecture/11-operations/04-backup-recovery.md"
+    ],
+    "checks": []
+  },
+  "H-request": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+      "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+    ]
+  },
+  "H-check": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+    ]
+  },
+  "H-cached": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+      "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+    ]
+  },
+  "H-fetch": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+      "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+    ]
+  },
+  "H-origin": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+      "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+    ]
+  },
+  "H-cache-rules": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+    ]
+  },
+  "H-response": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+      "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+    ]
+  },
+  "H-denied": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy",
+      "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+    ]
+  },
+  "S-connect": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+    ]
+  },
+  "S-check": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+    ]
+  },
+  "S-denied": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+    ]
+  },
+  "S-open": {
+    "state": "manual-acceptance",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+    ],
+    "checks": []
+  },
+  "S-established": {
+    "state": "manual-acceptance",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+    ],
+    "checks": []
+  },
+  "S-ready": {
+    "state": "manual-acceptance",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+    ],
+    "checks": []
+  },
+  "S-fetch": {
+    "state": "manual-acceptance",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+    ],
+    "checks": []
+  },
+  "S-response": {
+    "state": "manual-acceptance",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/playbooks/deployment/outbound-cache.yml"
+    ],
+    "checks": []
+  },
+  "H-verify": {
+    "state": "implementation-source",
+    "sources": [
+      "shared/ansible/roles/baseline/tasks/package_policy.yml",
+      "shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2"
+    ],
+    "checks": [
+      "tests/test_tier_package_policy.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_package_policy.py::PackagePolicy.test_native_apt_rejects_unsigned_and_expired_metadata_but_trusted_source_is_an_exception",
+      "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+    ]
+  },
+  "S-verify": {
+    "state": "implementation-source",
+    "sources": [
+      "shared/ansible/roles/baseline/tasks/package_policy.yml",
+      "shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2"
+    ],
+    "checks": [
+      "tests/test_tier_package_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_package_policy.py::PackagePolicy.test_native_apt_rejects_unsigned_and_expired_metadata_but_trusted_source_is_an_exception"
+    ]
+  },
+  "P-virtualization": {
+    "state": "documented-context",
+    "sources": [
+      "docs/01-architecture/04-hosting/01-runtime.md",
+      "tier-2/terraform/modules/vm/main.tf"
+    ],
+    "checks": []
+  },
+  "P-storage": {
+    "state": "documented-context",
+    "sources": [
+      "tier-2/terraform/deployments/cache/terraform.tfvars.example",
+      "tier-2/terraform/modules/vm/main.tf"
+    ],
+    "checks": []
+  },
+  "P-network": {
+    "state": "documented-context",
+    "sources": [
+      "tier-2/terraform/common.tfvars.example",
+      "tier-2/terraform/modules/vm/main.tf"
+    ],
+    "checks": []
+  },
+  "P-fabric": {
+    "state": "documented-context",
+    "sources": [
+      "docs/03-deployment/foundation/proxmox/network.md"
+    ],
+    "checks": []
+  },
+  "P-storage-network": {
+    "state": "documented-context",
+    "sources": [
+      "docs/03-deployment/foundation/proxmox/network.md"
+    ],
+    "checks": []
+  },
+  "P-servers": {
+    "state": "documented-context",
+    "sources": [
+      "docs/01-architecture/04-hosting/01-runtime.md"
+    ],
+    "checks": []
+  },
+  "P-drives": {
+    "state": "documented-context",
+    "sources": [
+      "docs/01-architecture/06-data/README.md"
+    ],
+    "checks": []
+  },
+  "P-switches": {
+    "state": "documented-context",
+    "sources": [
+      "docs/03-deployment/foundation/proxmox/network.md"
+    ],
+    "checks": []
+  },
+  "P-cabling": {
+    "state": "documented-context",
+    "sources": [
+      "docs/03-deployment/foundation/proxmox/network.md"
+    ],
+    "checks": []
+  },
+  "P-context": {
+    "state": "documented-context",
+    "sources": [
+      "architecture/models/platform/SharedPlatform.sysml",
+      "architecture/models/software-intake/solution/SoftwareIntakeSolutionDesign.sysml"
+    ],
+    "checks": []
+  },
+  "SYS-homelab": {
+    "state": "documented-context",
+    "sources": [
+      "architecture/models/HomelabSystemDesign.sysml",
+      "architecture/README.md"
+    ]
+  },
+  "SYS-intake": {
+    "state": "documented-context",
+    "sources": [
+      "architecture/models/HomelabSystemDesign.sysml",
+      "architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml"
+    ]
+  },
+  "SYS-platform": {
+    "state": "documented-context",
+    "sources": [
+      "architecture/models/HomelabSystemDesign.sysml",
+      "architecture/models/platform/SharedPlatform.sysml"
+    ]
+  },
+  "SYS-trust": {
+    "state": "documented-context",
+    "sources": [
+      "architecture/models/HomelabSystemDesign.sysml",
+      "docs/01-architecture/08-cryptography/README.md",
+      "docs/01-architecture/09-identity/README.md"
+    ]
+  },
+  "SYS-delivery": {
+    "state": "documented-context",
+    "sources": [
+      "architecture/models/HomelabSystemDesign.sysml",
+      "docs/01-architecture/10-delivery/README.md"
+    ]
+  },
+  "SYS-operations": {
+    "state": "documented-context",
+    "sources": [
+      "architecture/models/HomelabSystemDesign.sysml",
+      "docs/01-architecture/11-operations/README.md"
+    ]
+  },
+  "VC-http-miss": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+    ]
+  },
+  "VC-http-hit": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+    ]
+  },
+  "VC-http-denied": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+    ]
+  },
+  "VC-https": {
+    "state": "manual-acceptance",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+    ]
+  },
+  "VC-https-denied": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_source_policy",
+      "tests/test_tier_cache_policy.py::NativeCachePolicy.test_generated_policy"
+    ]
+  },
+  "VC-integrity": {
+    "state": "manual-acceptance",
+    "sources": [
+      "shared/ansible/roles/baseline/tasks/package_policy.yml",
+      "docs/03-deployment/stage-01-software-intake/README.md"
+    ],
+    "checks": [
+      "tests/test_tier_package_policy.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_package_policy.py::PackagePolicy.test_native_apt_rejects_unsigned_and_expired_metadata_but_trusted_source_is_an_exception"
+    ]
+  },
+  "VC-custody": {
+    "state": "external-custody",
+    "sources": [
+      "docs/01-architecture/07-software-intake/README.md",
+      "docs/01-architecture/11-operations/04-backup-recovery.md"
+    ],
+    "checks": []
+  },
+  "VC-egress": {
+    "state": "manual-acceptance",
+    "sources": [
+      "docs/01-architecture/05-networking/01-firewall-policy.md",
+      "docs/03-deployment/stage-01-software-intake/README.md"
+    ],
+    "checks": []
+  },
+  "H-lookup": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_execution.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+    ],
+    "note": "Native execution coverage with supplied environment outcomes; inherited source links identify implementation owners, not new runtime product evidence."
+  },
+  "H-source-failure": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_execution.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+    ],
+    "note": "Native execution coverage with supplied environment outcomes; inherited source links identify implementation owners, not new runtime product evidence."
+  },
+  "H-unavailable": {
+    "state": "implementation-source",
+    "sources": [
+      "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2",
+      "tier-2/ansible/roles/cache_proxy/defaults/main.yml"
+    ],
+    "checks": [
+      "tests/test_tier_cache_policy.py",
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths",
+      "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+    ],
+    "note": "Native execution coverage with supplied environment outcomes; inherited source links identify implementation owners, not new runtime product evidence."
+  },
+  "H-accepted": {
+    "state": "implementation-source",
+    "sources": [
+      "shared/ansible/roles/baseline/tasks/package_policy.yml",
+      "shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2"
+    ],
+    "checks": [
+      "tests/test_tier_package_policy.py",
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths",
+      "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+    ],
+    "note": "Native execution coverage with supplied environment outcomes; inherited source links identify implementation owners, not new runtime product evidence."
+  },
+  "H-rejected": {
+    "state": "implementation-source",
+    "sources": [
+      "shared/ansible/roles/baseline/tasks/package_policy.yml",
+      "shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2"
+    ],
+    "checks": [
+      "tests/test_tier_package_policy.py",
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths",
+      "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+    ],
+    "note": "Native execution coverage with supplied environment outcomes; inherited source links identify implementation owners, not new runtime product evidence."
+  },
+  "H-stop": {
+    "state": "implementation-source",
+    "sources": [
+      "architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml"
+    ],
+    "checks": [
+      "tests/test_tier_intake_execution.py",
+      "tests/test_tier_intake_product.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths",
+      "tests/test_tier_intake_product.py::NativeIntakeScenarios.test_signed_package_retrieval_matches_model"
+    ],
+    "note": "Native model termination without content. No package-verification operation or product-test coverage is asserted for this step."
+  },
+  "X-HTTP": {
+    "state": "implementation-source",
+    "sources": [
+      "architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml",
+      "architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml",
+      "scripts/architecture/intake_execution.py"
+    ],
+    "checks": [
+      "tests/test_tier_intake_execution.py",
+      "tests/apt_repository_fixture.py",
+      "tests/test_tier_intake_product.py",
+      "tests/test_tier_intake_comparison.py",
+      "tests/test_tier_intake_language.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+    ],
+    "note": "Implementation of the model experiment, not a deployed service check."
+  },
+  "VC-http-source-failure": {
+    "state": "implementation-source",
+    "sources": [
+      "architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml",
+      "architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml",
+      "scripts/architecture/intake_execution.py"
+    ],
+    "checks": [
+      "tests/test_tier_intake_execution.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+    ],
+    "note": "Implementation of the model experiment, not a deployed service check."
+  },
+  "VC-http-untrusted": {
+    "state": "implementation-source",
+    "sources": [
+      "architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml",
+      "architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml",
+      "scripts/architecture/intake_execution.py"
+    ],
+    "checks": [
+      "tests/test_tier_intake_execution.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+    ],
+    "note": "Implementation of the model experiment, not a deployed service check."
+  },
+  "VC-http-cache-untrusted": {
+    "state": "implementation-source",
+    "sources": [
+      "architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml",
+      "architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml",
+      "scripts/architecture/intake_execution.py"
+    ],
+    "checks": [
+      "tests/test_tier_intake_execution.py"
+    ],
+    "test_symbols": [
+      "tests/test_tier_intake_execution.py::IntakeExecutionContracts.test_observed_failure_and_verification_paths"
+    ],
+    "note": "Implementation of the model experiment, not a deployed service check."
+  },
+  "UC-clone": {
+    "state": "documented-context",
+    "sources": [
+      "docs/03-deployment/foundation/bootstrap/README.md",
+      "tier-0/ansible/playbooks/deployment/bootstrap-software-intake.yml",
+      "shared/ansible/roles/baseline/templates/shell-proxy.sh.j2"
+    ],
+    "checks": [
+      "tests/test_tier_bootstrap_use_case.py"
+    ]
+  }
+}

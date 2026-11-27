@@ -1,15 +1,18 @@
 """Read the selected upstream Stage 1 examples and verify their implementation entry points."""
 
 import json
+import re
 from pathlib import Path
 import hcl2
 import yaml
 
-MODEL = Path("architecture/use-cases/software-intake")
-VIEWS = Path("architecture/views/software-intake")
-GENERATED = Path("architecture/generated/software-intake")
-TRACE = Path("architecture/trace/software-intake.json")
-TOOLCHAIN = Path("architecture/toolchain.json")
+MODEL = Path("architecture/models/software-intake")
+MANIFEST = Path("scripts/architecture/config/build/software-intake.json")
+REALIZATION = Path("artifacts/architecture/generated/software-intake/SoftwareIntakeRealization.sysml")
+VIEWS = Path("scripts/architecture/config/views/software-intake")
+GENERATED = Path("artifacts/architecture/generated/software-intake")
+TRACE = Path("scripts/architecture/config/trace/software-intake.json")
+TOOLCHAIN = Path("scripts/architecture/config/toolchain.json")
 TF = "tier-2/terraform/deployments/cache/terraform.tfvars.example"
 VARS = "tier-2/ansible/group_vars/cache.yml.example"
 INVENTORY = "tier-2/ansible/inventory/hosts.yml.example"
@@ -198,3 +201,23 @@ def trace_map(root):
                 f"{key}: missing trace target {path}",
             )
     return records
+
+
+def check_native_tree(root):
+    """Keep the complete authored model in native validation, separate from generated/tool assets."""
+    manifest = json.loads((root / MANIFEST).read_text(encoding="utf-8"))
+    authored = set()
+    for path in (root / "architecture").rglob("*"):
+        if not path.is_file() or path == root / "architecture/README.md":
+            continue
+        area = path.relative_to(root / "architecture").parts[0]
+        expected = {".sysml"} if area == "models" else {".svg", ".md"} if area == "generated" else set()
+        require(path.suffix in expected and path.name != "README.md",
+                "Native-only models and separate generated content required: " + str(path))
+        require(bool(re.fullmatch(r"[A-Z][A-Za-z0-9]*", path.stem)),
+                "PascalCase model/view filename required: " + str(path))
+        if area == "models":
+            authored.add(path.relative_to(root).as_posix())
+    require(authored == set(manifest["sources"]),
+            "Every authored SysML source must participate in native validation: " +
+            ", ".join(sorted(authored ^ set(manifest["sources"]))))

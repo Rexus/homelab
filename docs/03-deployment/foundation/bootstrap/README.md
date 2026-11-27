@@ -55,7 +55,7 @@ flowchart LR
   class Network network
 ```
 
-[Open this figure as a connected SVG](../../../../architecture/views/platform/hosting/bootstrap-reference.svg).
+[Open this figure as a connected SVG](../../../../architecture/generated/platform/hosting/Boot1FoundationReference.svg).
 
 **Manual:** **Figure 1: Bootstrap execution host.** One `boot-1` VM holds tools, repositories and local state.
 It is manually created, not an IaC resource. The view shows the **separate-filesystem reference layout**;

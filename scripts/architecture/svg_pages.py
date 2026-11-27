@@ -6,13 +6,13 @@ import xml.etree.ElementTree as ET
 from diagram_notation import tag
 from design_context import relative
 
-SYSTEM = "architecture/views/system-overall.svg"
-INTAKE = "architecture/views/software-intake/logical.svg"
-SCENARIOS = "architecture/views/software-intake/scenario-views.svg"
-FUNCTIONS = "architecture/views/software-intake/function-views.svg"
-LOGICAL = "architecture/views/software-intake/logical.svg"
-DEPLOYMENT = "architecture/views/software-intake/placement.svg"
-RESOURCES = "architecture/views/software-intake/resource-dependencies.svg"
+SYSTEM = "architecture/generated/HomelabSystemOverview.svg"
+INTAKE = "architecture/generated/software-intake/SoftwareIntakeLogicalDesign.svg"
+SCENARIOS = "architecture/generated/software-intake/SoftwareIntakeUseCases.svg"
+FUNCTIONS = "architecture/generated/software-intake/SoftwareIntakeFunctions.svg"
+LOGICAL = "architecture/generated/software-intake/SoftwareIntakeLogicalDesign.svg"
+SOLUTION = "architecture/generated/software-intake/solution/SoftwareIntakeSolutionDesign.svg"
+RESOURCES = "architecture/generated/software-intake/solution/SoftwareIntakeResources.svg"
 
 
 def slug(label):
@@ -116,7 +116,7 @@ def page(origin, title, subtitle, documentation, up=INTAKE):
     for line in textwrap.wrap(subtitle, 110):
         text(svg, line, 30, y, 15)
         y += 20
-    return svg, y + 15, [("System Overall", SYSTEM), ("Up to overview", up),
+    return svg, y + 15, [("System Overall", SYSTEM), ("Logical design" if up == INTAKE else "Up to overview", up),
                          ("HTTP example", SCENARIOS + "#SC-http-miss"), ("Documentation", documentation)]
 
 
@@ -153,15 +153,23 @@ def book(pages):
     return ET.tostring(svg, encoding="unicode") + "\n"
 
 
-def add_navigation(source, origin, entries):
+def add_navigation(source, origin, entries, related=(), caption=None):
     svg = ET.fromstring(source)
     height = float(svg.get("viewBox").split()[3])
     width = float(svg.get("viewBox").split()[2])
     # Existing intake figures share a 960-wide view grammar.
     if width != 960:
         raise ValueError("Adapt navigation to the diagram width: " + str(origin))
+    if caption:
+        ET.SubElement(svg, tag("rect"), {"y": str(height), "width": "960", "height": "30", "fill": "#eef2f6"})
+        text(svg, caption, 24, height+21, 14, weight="bold")
+        height += 30
     toolbar(svg, origin, height, entries)
-    svg.set("viewBox", f"0 0 960 {height+56:g}")
+    height += 56
+    if related:
+        toolbar(svg, origin, height, related)
+        height += 56
+    svg.set("viewBox", f"0 0 960 {height:g}")
     ET.indent(svg, space="  ")
     return ET.tostring(svg, encoding="unicode") + "\n"
 

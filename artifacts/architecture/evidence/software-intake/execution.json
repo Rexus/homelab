@@ -1,0 +1,1797 @@
+{
+  "scope": "Native SysML HTTP action execution; environment outcomes are inputs, not deployed observations",
+  "executed_at": "2026-11-20T07:51:40.803950+00:00",
+  "engine": "sysml v0.12.1\n  Commit:     b2f0e9b802a334369da94312c35cefbd8726d3bf\n  Build time: 2026-11-06_03:25:57\n  Go version: go1.27.3",
+  "sources": {
+    "architecture/design/README.md": "31fc3cfac4f14659b017ca4ace69376c478a9f98c4e28d838491af95e0d27206",
+    "architecture/design/delivery/README.md": "c155bcde5d94136549fbfd37ef3e02f1b7153725734868946a1ece0cf453c152",
+    "architecture/design/operations/README.md": "8e4065809b3d2e905c10dc11b238e2faee97c417da115a59de4d60f31cb6b112",
+    "architecture/design/platform/README.md": "f2f69d08b97d360379605efd0dedd5899ef69284c500795262f86875a3a6b079",
+    "architecture/design/platform/contracts.sysml": "c729782fce25c64d8cb2e7bf52d71c1c87fb94c7de0d1cde6d91e247332e7b79",
+    "architecture/design/platform/data/README.md": "a7177d0c17844fbf5c0ed2024eb6da5a0835cc3f6db96ae68580d5e054ef7c42",
+    "architecture/design/platform/hosting/README.md": "5df78b3620a477579c1be58392efbf5bdfcda83085622cea398529351254e265",
+    "architecture/design/platform/hosting/bootstrap.sysml": "659ad3bc1e02200f753a5ee19eb8031dda3c42cb18c1d843c9748f7b3d1f1579",
+    "architecture/design/platform/networking/README.md": "f90741a06c7dc2939a426aa68325aacdc5ef2414f8156d779ec77a00a2eca868",
+    "architecture/design/software-intake/README.md": "dd63a525816c0af88f6dc33acc4f1a5b4ca8897be50f621fd210cef9c53819ab",
+    "architecture/design/software-intake/context.sysml": "ebba370268299b11f0c9a8dfd3c3d384e07e1558fc9de887a498a535da6cc274",
+    "architecture/design/software-intake/deployment.md": "b0beca228463d53a2472b8d2b0a7ec7f18f040ef57b43981457100e3ec50bfd7",
+    "architecture/design/software-intake/logical.md": "a99027dfe3a304c5967612bf8e94e97e0ac55b63d29ea227493c0b392f0d6e80",
+    "architecture/design/software-intake/object-cache/README.md": "d4042514817efa8e81221df687d13ac49b5c9c4cea9b5412a3ac274957dbcc19",
+    "architecture/design/software-intake/object-cache/definition.sysml": "7bbdf8fbce1dc59630d598bd9bc7d9d342b53421d95deb4b125ce4bae3f6245e",
+    "architecture/design/software-intake/policy-proxy/README.md": "ba2a085817d4b9d56fe387f524d35d6568f82846be41e657c9c7ab22d407d258",
+    "architecture/design/software-intake/policy-proxy/definition.sysml": "159c23aaaece565d293d8ee7776dfd240f3826dff90c4c87f8f846051049e846",
+    "architecture/design/software-intake/resources.md": "fad280c1653dc9a5ff412560cc4374d6608bf618315c460a25d45f146fb9f784",
+    "architecture/design/software-intake/structure.sysml": "1de0ef303b9ee3ba04ddaae6660da86e9ce431573501ed68a5b90055398d60c5",
+    "architecture/design/system.sysml": "863845490d0d064f19ef6e64e45cdca5e637ea27f434c1f668db25f078242b1b",
+    "architecture/design/trust-and-access/README.md": "ce157168a52cbd35ff253400d1818fa4305eb16690dcd09827107806538f9b8f",
+    "architecture/functions/software-intake/admission-logic.sysml": "f2eed453829b62d2a1f6159ca9ff01b73a9075f3041f27531a2b14b73620f0fa",
+    "architecture/functions/software-intake/admission.sysml": "aeaa0f5a2a6db8d2347490c7b22b31ab8f40d610d1ac80eefdc587418dced687",
+    "architecture/functions/software-intake/behavior.sysml": "bdd795058b7d8fc8e2eae160997f50898c185db6bdc1f14d419d76db54980fed",
+    "architecture/functions/software-intake/functions.sysml": "e127d8d373be3c0f9b6cf93e8208e0427f0b2f3a119ab8f99c45bbd78ff49187",
+    "architecture/functions/software-intake/retrieval-execution.sysml": "a9efa985b3baae3fd944f26a6f7c39f97ddca6c8c1955e36cac13e09a59a8481",
+    "architecture/requirements/functional/software-intake.sysml": "1db321f68c8aedfa515ad90ff34c9d8aa03d4c2dc08b2692410f206f990b447e",
+    "architecture/requirements/non-functional/software-intake.sysml": "59a81f1f76833e8c3bde83392826d3aebe155df58bcf4430980b5ff01a61ee1f",
+    "architecture/test/software-intake/retrieval-runs.sysml": "fbed72ae283d6eae9b4743d7b18c7384720a86aba11a02e005b639972a3ab76d",
+    "architecture/test/software-intake/verification.sysml": "30c9e3c65a9bf5c93a4a5f1efdf66e2b6c3d425206d6613b5c313be84348d95a",
+    "architecture/trace/software-intake-execution.sysml": "333139f50081fb53c26638730e8eeccb35fd327ffab5fbbee28761f05e43d446",
+    "architecture/use-cases/bootstrap/clone-repository.sysml": "9e4e4a006ef27c5fdbc4370717d2192f2c7186391f70112f388a1576865f2b16",
+    "architecture/use-cases/software-intake/model.json": "f5cd0c72c7240b2e54c214c5caae9968d9456fe98f60035eb30237a66c145398",
+    "architecture/use-cases/software-intake/use-cases.sysml": "449d29d0a863d434d1647ee8843ab080dcbd93d17f07e6af6880c2124cd48bd0",
+    "architecture/views/design-context.json": "f1727d8198077d20faee30c52545544e6a40560a11f03a58ca33b2305e1b941c",
+    "architecture/views/platform/hosting/bootstrap-reference.svg": "15e43bdfaac24c52e921b744f7c9cf105f3af7bc4d3af28b94e3083e87a3a203",
+    "architecture/views/platform/hosting/clone-repository.json": "f8555c0119d57f911e4bba866564492abe78fb9bb3d5799db7fdc34e627d7a8a",
+    "architecture/views/software-intake/engineering.sysml": "4c01a30ef0e8f27d20e3d445ce20627c94f468abdda098be4ccf253350ad31be",
+    "architecture/views/software-intake/logical.layout.svg": "806f97280d2dbc95bfe292d74049626e2855873ad3a896f42db11d7c2dca8501",
+    "architecture/views/software-intake/placement.layout.svg": "66b3c8f533ddf9aca6d225968a9f3428197d3bea90cc4469416ca8c43a8e29c6",
+    "architecture/views/software-intake/resources.json": "50a4b6d9d9cfc33d04343bc03c8fcac74925473ed78184b0cb65dfbfacbe0773",
+    "architecture/views/software-intake/roles.json": "482a0367e20d799171327b73abd272fc4519e124636bdeae14e447b60fbf31a8",
+    "architecture/views/software-intake/sequence.json": "3b5343bd2184e5ad713d13c4083f2d65224fa88c572523603062950e62a11d1f",
+    "architecture/views/software-intake/use-cases.json": "114ec214d8263e0fae0df908b78cba1a34107fb2ba63e0dd011f1981c1b05c24",
+    "architecture/views/system-overall.json": "70cc1f30e4b9b16e5d7862f5a87daecd904fcbc8f8b03311452c5682fa367d95",
+    "architecture/toolchain.json": "d896c9c6d2d7ef3dfa59e95eaf005adf312a24a4d5c7a2949ce01c70d6754483",
+    "architecture/trace/software-intake.json": "c4f890eb52e659b6f9460dd7474fe17fab3fec0408044a17ecc287bacce11a24",
+    "architecture/views/notation.json": "ca7ecc5c050e186623abee1f8bb2f43aaf1922bb0626bbd85fe0836aaa84f9e3",
+    "docs/01-architecture/04-hosting/01-runtime.md": "4222c8e0b4c512111746dd752139072cc70d16aa95091ed7de9c5b0902cc58a7",
+    "docs/01-architecture/04-hosting/README.md": "925610c771b784a731b6e4530cc93192a8d647ec91fcca214fb1ef224e0719dc",
+    "docs/01-architecture/05-networking/01-firewall-policy.md": "9f3573462785153aa4d9aff4851659d507b10cdf0b9dad6209f559eb1fb8a0b2",
+    "docs/01-architecture/05-networking/README.md": "023c99aaaa1509458e47a64f93de3e244239992474bb4f574251a498da35c4d8",
+    "docs/01-architecture/06-data/README.md": "6a471710c7026e2fdafd1f6f6e1be9f2833f637818b5b0c64cdbb065bcc91f46",
+    "docs/01-architecture/07-software-intake/README.md": "bcb52ac6550c79f81498ff56e286a1ecb902a942061510751ac29b3e4d48bb7d",
+    "docs/01-architecture/08-cryptography/README.md": "55b46be3048f030573df70d617ac265a9a00094c3dbb46e2d71816d83f23fa10",
+    "docs/01-architecture/09-identity/README.md": "f2ab19ab0aa9df59c667d002f29ec745280c74af555bb7a7f738a590af95fa8c",
+    "docs/01-architecture/10-delivery/README.md": "c592033841160b60c116954f7790413480395062e9d343a588a776646cfdc915",
+    "docs/01-architecture/11-operations/04-backup-recovery.md": "767e9b85898a84ba2b7a1c2890f02579f30bfbf43a4eaa42d0b31c4aa85f9c05",
+    "docs/01-architecture/11-operations/README.md": "19d2d6186dc98475de82a73f5ac598f5e55bf01edbb752ae753786a4de55bb7e",
+    "docs/01-architecture/README.md": "ae058704e4ea1028af0bc04d607cfe553a6ffe6a1c749a03793cff772a65d9fd",
+    "docs/03-deployment/foundation/bootstrap/README.md": "39778fc506545d66421fdab4c6238d2a0967bfc2cbf8cb862a6edc9801101542",
+    "docs/03-deployment/foundation/proxmox/network.md": "a4f6aa1b37ef69dd4cb140f1d1dc96f4dce52bc2387bd40310a9a2d35f3c1403",
+    "docs/03-deployment/stage-01-software-intake/README.md": "8cbae776d2adeb8e9fe04d01b0ce018d44398dbab038dddadf906258ed478787",
+    "docs/08-reference/diagrams/render-bootstrap-reference.cjs": "3586ecb13ae4d319ed78acedd48c2d0a79416a9c446499c9b170de5f3d0a0475",
+    "docs/08-reference/diagrams/palette.json": "7b08702168f9ad45d976e86d40434885e38f3d309a6a27e8f0746d77e29a4bf4",
+    "scripts/architecture/EvaluateModel.java": "92450a19b1dca3ab3e25ff6a7a5c4b27a616b0d74761e7135d4eca1fd7b7b330",
+    "scripts/architecture/ExportModel.java": "28badcc3608a4130970d931f945fa86aed23ee1a3117477d7494452a3264fcb7",
+    "scripts/architecture/SourceIndex.java": "1e70eb18ff1456f9e159d52b8e10269f4da9052016855fa796780602cd93e666",
+    "scripts/architecture/bootstrap_reference.py": "695df03f37aedc1e0fc00a792eccaa37a8da969bac3a2fbd43328e02ab248399",
+    "scripts/architecture/bootstrap_use_case.py": "b400efc139a443e9e233b42f778e9f0da1f92bf8b738a74e72faea3d2b5df520",
+    "scripts/architecture/design_context.py": "a50d8438056482d4d96d4b7a2a483759d0ef40a95e840fb7bb948730f822fb36",
+    "scripts/architecture/design_context_view.py": "887ba6a37b23b19cc9861913dcf475adeb25faec557cfa2e43f234225fbf28fa",
+    "scripts/architecture/diagram_notation.py": "526bdced24ead974caa84fdcfb3ec30d9335849add05e4ec4b48f9c24848d7df",
+    "scripts/architecture/focused_views.py": "433992b754e1f65c5fc163c65da2504278235a9b6f596678cd5f0fd677b05667",
+    "scripts/architecture/install_execution_runtime.py": "7de3f7ae86042d750e2bce65d196d2a11db28955efcc0e2841eb2b751b20cb77",
+    "scripts/architecture/intake_analysis.py": "12cbfe79db1a9d63647614bbabe48ece9d973944003bb8ef7eb1788fdd892272",
+    "scripts/architecture/intake_behavior.py": "6fa0517ba9fce469bc190f7944b78a0954bce9def7322a3cf5691030e59ee05e",
+    "scripts/architecture/intake_case_reports.py": "da152e207f28b8646a7257e5354db873009777c5cbdeb24681b885cbdba01d1f",
+    "scripts/architecture/intake_case_view.py": "6779c0921db426d80b933bfa5e697e30ca571f8387296a679ea8e65729be906e",
+    "scripts/architecture/intake_contracts.py": "12545f1af918489494a64fa06cde567b192d3ee1e3ca3577430100ee821b44e5",
+    "scripts/architecture/intake_engineering_view.py": "39b870a639a6b0e799dfe3da96dfe7946e29e39eab4213832b11b4af2d6b8509",
+    "scripts/architecture/intake_execution.py": "1ef94df9de4ccc1b58f62f6986f2334ab216354994d6e85e28500bf0ef1e95cb",
+    "scripts/architecture/intake_execution_model.py": "f3d76dd04ab93fae0f3eb8c3729aefdb55ce298b45c281cf665f2b577f7dc68b",
+    "scripts/architecture/intake_execution_view.py": "149753909035e240b27b59c714665056b31b8c8cdf636d4ea177420938d95074",
+    "scripts/architecture/intake_explorer.py": "fa5bc5bbb877c6f17d82248ce7c59a33ed5967f31969815841bdb51228acd6e6",
+    "scripts/architecture/intake_intent.py": "d0ef0f592224fbb5a9d94446d136963e0674cbbe7b8bb1057d75c1be4f1ca4bd",
+    "scripts/architecture/intake_language.py": "53a4ce95153a7638739bbe818d5b297cdc5088016c1240ffb731e4ebb72ec59e",
+    "scripts/architecture/intake_model.py": "1f5b8443e92071e322d558ad3417a50d80a28ba060c95044f10615094452e385",
+    "scripts/architecture/intake_platform.py": "4147ccb70028e50c4d68e123f2f5a9f037b6d9a26fad5a1001e31022c39b1964",
+    "scripts/architecture/intake_product.py": "b10db6ba03661773ad0b9ed44b707465c89a18300702eefdcb107a5ae0973fb6",
+    "scripts/architecture/intake_resource_view.py": "bc7d4ae0e70da2d1dae93f73265fceb0aea9d8c7df0f41dae91635be2fbca33e",
+    "scripts/architecture/intake_reverse.py": "4adf4102165197d5ff4e586557e2f995339cf3d4c8ccd5a3fe952d8cef9642f4",
+    "scripts/architecture/intake_reverse_cli.py": "ec8f3f6e5cabaa8a01d27a32271439ae9ffe48e4c9803517d85d6183b588181b",
+    "scripts/architecture/intake_reverse_view.py": "2b5cb6750e52e89e2574c77c99422d6e6a79edb56184f546ab09ab102d043c9e",
+    "scripts/architecture/intake_scenario_views.py": "5166808224e1fe565d6c404b1b397854b59a9e387e2846d8171afc9b40d28922",
+    "scripts/architecture/intake_semantics.py": "86f9925fa6bb68b405a38146fb85c47695fdd823d09d6c88773b54bc51d35d43",
+    "scripts/architecture/intake_sources.py": "d608aec716068b00bcf6254584a7417d68ae51c6d2bc6e46128eaba2310c5a87",
+    "scripts/architecture/intake_use_cases.py": "04c092ffefbc5e4baae4810d85384f0a507c4729236eb3fb768e0e5c4bedb3ab",
+    "scripts/architecture/intake_views.py": "de306662e59443ad3950a68c463d89ce2f958cffff15df2905dcff4ac6124c46",
+    "scripts/architecture/model_style.py": "4d425aa1bc794b145ebb14631e129e693ca3635421b727f35596ede85b8064b7",
+    "scripts/architecture/requirement_results.py": "325a367ede2de56a10fa3319dfa3e57f299a40d80e4eec000fb078e4c6f42368",
+    "scripts/architecture/requirement_runner.py": "7e53b9e0c242cff567127b94a48cfb7792a97e14d3d2fa4302da3eee0bea2aca",
+    "scripts/architecture/requirements.py": "3aebc65960d34f6072470585c9e7e7891b98623129d32ede10c519d569a9aca6",
+    "scripts/architecture/software_intake.py": "40c6544fd2ff0eca8e5b011ac3361165a0ca9ccd2932f2fd1ca5dbb0d42da251",
+    "scripts/architecture/svg_pages.py": "5dd44a08c01b3aa0cacef4a4be4242102d4cc58a29e13a6963a1aafa6e93ffdf",
+    "scripts/architecture/syson.py": "cf47e751d941e67ee95679869607bd3f119719898ee603524e98c997ff8c2256",
+    "scripts/architecture/syson_annotations.py": "08acbc2734ea34c2fee547024c044a3eabe125def4ca19084016b6019b537f09",
+    "scripts/architecture/syson_api.py": "4a8d15f8ec6801631041bb514954146a2aee332a5c29f101885afb3dba803f71",
+    "scripts/architecture/syson_catalog.py": "610c2ca03ae5eae7b640f8a878850456a26c75957db5b58233e817aff37add94",
+    "scripts/architecture/syson_change_model.py": "7e03c9c57e06221bf20708c6f9cb06c4425539f74f650ba7e98b0861772664b2",
+    "scripts/architecture/syson_change_source.py": "35ff845ae692c28a365df40c561800ef63fc2c781c530987c6295b666a2980d9",
+    "scripts/architecture/syson_change_workspace.py": "6a1a0c3352b43a4e4faae18b6b08ad6b6116c390339d0f607f3d9852ce8b335f",
+    "scripts/architecture/syson_changes.py": "171033bc66641cef98c73f4232fb8d7cb01e9a0a48aae61df211210456d32632",
+    "scripts/architecture/syson_model.py": "87ba7831514656c5b4fd1940fab0866a563e1cbc98dd735487f1981f5b4089d2",
+    "scripts/architecture/syson_nested.py": "e027d65e38009cef7d8be81bc707685f5ef660e46a49e198017f624abb51a46d",
+    "scripts/architecture/syson_session.py": "09e2f6f4ba509543f74c0feaff87f5e58b28efb0b213c01d8e9ec9a62b33b73d",
+    "scripts/architecture/syson_style.py": "b52dfcf1914396822a0f173e5ae0745c35c095749b39a33f46cd9658b70fff40",
+    "scripts/architecture/syson_trace.py": "f11fba22e0489b8ca21d4d42c235eb24ba3094fe72225694b270c5f5d09f7653",
+    "scripts/architecture/syson_views.py": "2f6a52c31f33e2a90d37ffb9bc09c1ec2e3919e39bd8b6637c9b24d3185addd8",
+    "scripts/architecture/system_overall.py": "72b1bf5a6beee5fb041ad663dcd74bc74c556759c77d968b30a0c37399b03e72",
+    "scripts/architecture/view_catalog.py": "d8ddeada77282d82b5ca2e810cad8c83fea3170c0710e4e68a30ff1608a3fc65",
+    "scripts/architecture/view_contracts.py": "78f6617be8a770ff52f2769e67824472b261ab2edd954e8b6e4bf6bb54f82edd",
+    "shared/ansible/roles/baseline/tasks/package_policy.yml": "03eebdfcdd4182e4212dcdf9caae8fdae8a2937d2bb2e171356c68acb2495403",
+    "shared/ansible/roles/baseline/tasks/repository_proxy.yml": "e32b086c171bdd7f82be6e6e214b4d306a7918c28e23cdc9746a997dcece4e9e",
+    "shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2": "ce361191b81759163ebfa7c6ba254810570f9950a64ef3d16b60778d9ceb1df7",
+    "shared/ansible/roles/baseline/templates/shell-proxy.sh.j2": "13ad69bc45366ee33a5559c3d249b52dc607b17255c65677786df4b9f5f0c646",
+    "shared/ansible/roles/data_volume/tasks/inspect.yml": "9f31c767d5473848a141b3febcdff917c59a2d58d970dd1d3c08ff3d1d235b86",
+    "shared/ansible/roles/data_volume/tasks/prepare.yml": "d2fa8224bdf250c32469f0ee6cc8036caee68dc2dd2b69e59f3bf734c0ecb2e7",
+    "shared/ansible/roles/data_volume/tasks/validate.yml": "f73f1a9a8882acf0ad0acb5086543e49800868d4ddc75a1b88e9ed17da3c7188",
+    "shared/ansible/roles/shared/tasks/keepalived_vip_validation.yml": "dfdc58656e4685075c22cbbf7b417bb3d12cf4418b8d0b1ec6de38b986050e8b",
+    "shared/ansible/roles/shared/templates/keepalived.conf.j2": "b3faccb89c31d898cc2f73b8ba9088bef7c54f66632ac00ed01993b726e9e9c4",
+    "tests/apt_repository_fixture.py": "5c3c01d5beb441528ebb8fedc69de50d71b78ed0f8f02427a2378e67d9be3c46",
+    "tests/intake_model_fixture.py": "e9ff27f59f76426ad800f768f9739153865f0aa52fbe53b58af769faea82bb66",
+    "tests/test_tier_bootstrap_intake.py": "2606e1570c833d0cfccb9b583ca7ac0e4edab32f750cf1528d710b34c6b82b87",
+    "tests/test_tier_bootstrap_use_case.py": "d36a0b51298c07e4d78cb73a7ce2034cbaa0300a3b02caaa50af2505adad4f43",
+    "tests/test_tier_cache_policy.py": "3cabc328d7c45ece443347e21c0c1da781de99abc1df6a0e78067e3effe2ef9c",
+    "tests/test_tier_cache_storage.py": "77703c22f2d10a4912ebc56c34d692e2f35dc2d1cc1eb89affac78afc05cf5bd",
+    "tests/test_tier_deployment_views.py": "aed9885a63148149b5dc52c669156adf7d473437b5ee3db3b2a8fde428126bd7",
+    "tests/test_tier_intake_behavior.py": "e8cf8aca5c93fb68a1e9984014d43ecf1837148b33aef4f43f967c9aca3dbf82",
+    "tests/test_tier_intake_comparison.py": "49d2598948ff2730d60f6e8cdb667ba09b66fac53a29a431db6f7ba942be58d2",
+    "tests/test_tier_intake_execution.py": "63fd2bcb514c75da8565d060e5181117f35056c22867d56471a14a21251ab6c7",
+    "tests/test_tier_intake_language.py": "beac38cab08bcdcdaf502c45dbda567b83fd61e3da13bcc3e4112166cf4ee149",
+    "tests/test_tier_intake_model.py": "2dba25e705df513a213adfce3a4e1b2e498588b19e5318cd3d18bc6d2052d91d",
+    "tests/test_tier_intake_product.py": "c4f705966a39298e063066862241231f864687292ab3d18fc7995bc91f49f8e8",
+    "tests/test_tier_intake_use_cases.py": "36f41f362071c2b8b04b43f7577b3a3e23c015a324172e97af09d1f228213bc7",
+    "tests/test_tier_package_policy.py": "e3f885fd65b7f1fbe18b7d4e59c6b9a9cd513feda6e261d2e976a64e1805b367",
+    "tests/test_tier_software_intake.py": "79e93f3a2a52b13f5ce801ab03a36f96da20ef6837380a2998d3a542321730e1",
+    "tier-0/ansible/playbooks/deployment/bootstrap-software-intake.yml": "d4cd9d6bbf9099b99666689e6ba8d4e5c29e2b88140a164acba27654a0b420a6",
+    "tier-0/ansible/playbooks/proxmox-hosts.yml": "51f4e0afd03deb8d0fc162257cb2cbfe9db4e683e933b44076a136ce95cf3eae",
+    "tier-0/ansible/roles/proxmox_host/tasks/main.yml": "57e15a9ed51ebfd62a068eb167813a62547f76457450c5777f111fd25984314a",
+    "tier-2/ansible/group_vars/cache.yml.example": "102e556b9b4c71801d5dbb8389ed9fa519ab10077c48139a2e2930f25acc81da",
+    "tier-2/ansible/inventory/hosts.yml.example": "328e21aa1848f75aa5901b35af4a74a33e26536ee2e358ef64e7d5cada4e93d2",
+    "tier-2/ansible/playbooks/cache.yml": "1b3e561f9fcf139d33b79f00a2ac3b6ccca5c888663a66ad54a63e71bf0f040f",
+    "tier-2/ansible/playbooks/deployment/outbound-cache.yml": "897cbddcd469371f3293c816564da41ca2b9be61e8da5d2f751c71cf99807206",
+    "tier-2/ansible/roles/cache_proxy/defaults/main.yml": "a9e041b4f710adddc52dfc557fe18344c4fd6e83454ecc5e20ca22ad0799cb44",
+    "tier-2/ansible/roles/cache_proxy/tasks/keepalived.yml": "d64f2a781fb1095118604662d8a547c0cd45b61a18bf1f4937e594a5c43a1770",
+    "tier-2/ansible/roles/cache_proxy/tasks/main.yml": "d1e3412461d8b6af93c84d1c0a66955930be2fd2801532b91807fafe8051c65c",
+    "tier-2/ansible/roles/cache_proxy/tasks/preflight.yml": "0d9644672a94b77f96ba235568dedbead255136b3829381801c13c2f50fc5810",
+    "tier-2/ansible/roles/cache_proxy/tasks/services.yml": "3237473cde13b437cda286d6edaa8e1c538de44b17556c5788f1ae144c5f4666",
+    "tier-2/ansible/roles/cache_proxy/tasks/squid.yml": "065a46d3302498bf2ef3857c3b1ea8a33380e3b3b43b44ca84e0aae9df3e0d04",
+    "tier-2/ansible/roles/cache_proxy/tasks/storage.yml": "faf9cbb3bd3bc3a974989c9205728b688068bb26e663d3d067de409240002626",
+    "tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2": "20094a0d92f9126997d908f83b67427f11e412d553c9eebbb2cb2364caa2ea2d",
+    "tier-2/terraform/common.tfvars.example": "d6b7f8429462946497d4830aff3e6a2bbd7c502f153678b94ab0a852569b9425",
+    "tier-2/terraform/deployments/cache/main.tf": "793de2757283d50667aaf8e344a5a193f3cb6f66a4b6bef77d3c02a126db36e9",
+    "tier-2/terraform/deployments/cache/terraform.tfvars.example": "45c60b8c2db9eef276e31430a36e68fad7e1465b55c52c0ec1d709db593ebed4",
+    "tier-2/terraform/modules/environment_guests/main.tf": "c3030396796d23b3fc64c0b69c956d4ed77e52799632b46fd6d582d07cbbefd9",
+    "tier-2/terraform/modules/vm/main.tf": "de9b8f3c71299530a8ff6b82bcbb6f6194d072325e29fd46a3116fa846383018"
+  },
+  "runs": {
+    "RUN-cache-untrusted": {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "eligibleFreshResponse": true,
+        "sourceAvailable": false,
+        "contentVerified": false
+      },
+      "scenario": "SC-http-cache-untrusted",
+      "values": {
+        "accepted": false,
+        "admitted": true,
+        "cacheLookups": 1,
+        "clientAllowed": true,
+        "contentVerified": false,
+        "delivered": true,
+        "destinationAllowed": true,
+        "eligibleFreshResponse": true,
+        "outcome": "verification-failed",
+        "portAllowed": true,
+        "sourceAvailable": false,
+        "sourceRequests": 0,
+        "verificationChecks": 1
+      },
+      "events": [
+        {
+          "step": 1,
+          "action": "X-request",
+          "message": "H-request"
+        },
+        {
+          "step": 2,
+          "action": "X-check",
+          "message": "H-check"
+        },
+        {
+          "step": 4,
+          "action": "X-lookup",
+          "message": "H-lookup"
+        },
+        {
+          "step": 6,
+          "action": "X-cached",
+          "message": "H-cached"
+        },
+        {
+          "step": 8,
+          "action": "X-verify",
+          "message": "H-verify"
+        },
+        {
+          "step": 14,
+          "action": "X-rejected",
+          "message": "H-rejected"
+        }
+      ],
+      "decisions": [
+        {
+          "step": 3,
+          "action": "XD-policy"
+        },
+        {
+          "step": 5,
+          "action": "XD-cache"
+        },
+        {
+          "step": 7,
+          "action": "XM-content"
+        },
+        {
+          "step": 13,
+          "action": "XD-integrity"
+        },
+        {
+          "step": 15,
+          "action": "XM-finish"
+        }
+      ],
+      "raw": {
+        "status": "holds",
+        "exit": 0,
+        "checks": [
+          {
+            "subject": "SoftwareIntake::RetrievalRuns::'Reject untrusted cached content'",
+            "status": "holds",
+            "values": [
+              {
+                "name": "accepted",
+                "value": "[false]"
+              },
+              {
+                "name": "admitted",
+                "value": "true"
+              },
+              {
+                "name": "cacheLookups",
+                "value": "[1]"
+              },
+              {
+                "name": "clientAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "contentVerified",
+                "value": "[false]"
+              },
+              {
+                "name": "delivered",
+                "value": "true"
+              },
+              {
+                "name": "destinationAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "eligibleFreshResponse",
+                "value": "[true]"
+              },
+              {
+                "name": "outcome",
+                "value": "[\"verification-failed\"]"
+              },
+              {
+                "name": "portAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "sourceAvailable",
+                "value": "[false]"
+              },
+              {
+                "name": "sourceRequests",
+                "value": "0"
+              },
+              {
+                "name": "verificationChecks",
+                "value": "[1]"
+              }
+            ],
+            "lines": [
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal \"pending\" -> \"pending\"",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal false -> false",
+              "[trace] step 1: token 1@request",
+              "[trace] step 2: token 1@admission",
+              "[trace] stmt assign admitted",
+              "[trace]     eval feature clientAllowed -> (true)",
+              "[trace]     eval feature destinationAllowed -> (true)",
+              "[trace]     eval feature portAllowed -> (true)",
+              "[trace]     enter calc SoftwareIntake::AdmissionLogic::AdmissionAllowed",
+              "[trace]       bind clientAllowed = (true) [argument]",
+              "[trace]       bind destinationAllowed = (true) [argument]",
+              "[trace]       bind portAllowed = (true) [argument]",
+              "[trace]       stmt return",
+              "[trace]             eval feature clientAllowed -> (true)",
+              "[trace]             eval feature destinationAllowed -> (true)",
+              "[trace]           eval operator and -> true",
+              "[trace]           eval feature portAllowed -> (true)",
+              "[trace]         eval operator and -> true",
+              "[trace]     exit calc SoftwareIntake::AdmissionLogic::AdmissionAllowed -> (true)",
+              "[trace]   eval invoke AdmissionLogic::AdmissionAllowed -> (true)",
+              "[trace] step 3: token 1@policy",
+              "[trace] eval feature admitted -> true",
+              "[trace] step 4: token 1@lookup",
+              "[trace] stmt assign cacheLookups",
+              "[trace]     eval feature cacheLookups -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 5: token 1@cache",
+              "[trace] eval feature eligibleFreshResponse -> (true)",
+              "[trace] step 6: token 1@cached",
+              "[trace] stmt assign delivered",
+              "[trace]   eval literal true -> true",
+              "[trace] step 7: token 1@contentReady",
+              "[trace] step 8: token 1@verifyContent",
+              "[trace] enter action node: verifyContent",
+              "[trace] step 9: token 1@start",
+              "[trace] step 10: token 1@assign verificationChecks",
+              "[trace] stmt assign verificationChecks",
+              "[trace]     eval feature verificationChecks -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 11: token 1@assign accepted",
+              "[trace] stmt assign accepted",
+              "[trace]     eval feature delivered -> true",
+              "[trace]     eval feature contentVerified -> (false)",
+              "[trace]   eval operator and -> false",
+              "[trace] step 12: token 1@done",
+              "[trace] leave action node: verifyContent",
+              "[trace] step 13: token 1@integrity",
+              "[trace] eval feature accepted -> (false)",
+              "[trace] step 14: token 1@rejectContent",
+              "[trace] stmt assign outcome",
+              "[trace]   eval literal \"verification-failed\" -> \"verification-failed\"",
+              "[trace] step 15: token 1@finishRetrieval",
+              "[trace] step 16: token 1@done",
+              "[trace] step 17: no active tokens",
+              "\u2713 Started action executor for \"SoftwareIntake::RetrievalRuns::'Reject untrusted cached content'\"",
+              "  State: Running",
+              "  Tokens: 1",
+              "\u2713 Action completed",
+              "  Final state: Completed",
+              "  Results:",
+              "    accepted = [false]",
+              "    admitted = true",
+              "    cacheLookups = [1]",
+              "    clientAllowed = [true]",
+              "    contentVerified = [false]",
+              "    delivered = true",
+              "    destinationAllowed = [true]",
+              "    eligibleFreshResponse = [true]",
+              "    outcome = [\"verification-failed\"]",
+              "    portAllowed = [true]",
+              "    sourceAvailable = [false]",
+              "    sourceRequests = 0",
+              "    verificationChecks = [1]",
+              "  standing: value (observed: 1 run under reverse)"
+            ],
+            "rows": null,
+            "plan": {
+              "engine": "auto",
+              "standing": "value (observed: 1 run under reverse)",
+              "steps": [
+                {
+                  "engine": "run",
+                  "status": "answered"
+                }
+              ],
+              "workers": 0,
+              "warming": 0
+            },
+            "results": [
+              {
+                "engine": "run",
+                "claim": "value",
+                "strength": "observed",
+                "bounds": [
+                  {
+                    "name": "steps",
+                    "limit": 10000000,
+                    "reached": false
+                  },
+                  {
+                    "name": "elements",
+                    "limit": 1000000,
+                    "reached": false
+                  }
+                ],
+                "witness": null,
+                "standing": "value (observed: 1 run under reverse)"
+              }
+            ]
+          }
+        ],
+        "diagnostics": null,
+        "output": [
+          "\u2713 package SoftwareIntake"
+        ],
+        "errors": null
+      }
+    },
+    "RUN-denied": {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": false,
+        "portAllowed": true,
+        "eligibleFreshResponse": true,
+        "sourceAvailable": true,
+        "contentVerified": true
+      },
+      "scenario": "SC-http-denied",
+      "values": {
+        "accepted": false,
+        "admitted": false,
+        "cacheLookups": 0,
+        "clientAllowed": true,
+        "contentVerified": true,
+        "delivered": false,
+        "destinationAllowed": false,
+        "eligibleFreshResponse": true,
+        "outcome": "denied",
+        "portAllowed": true,
+        "sourceAvailable": true,
+        "sourceRequests": 0,
+        "verificationChecks": 0
+      },
+      "events": [
+        {
+          "step": 1,
+          "action": "X-request",
+          "message": "H-request"
+        },
+        {
+          "step": 2,
+          "action": "X-check",
+          "message": "H-check"
+        },
+        {
+          "step": 4,
+          "action": "X-denied",
+          "message": "H-denied"
+        }
+      ],
+      "decisions": [
+        {
+          "step": 3,
+          "action": "XD-policy"
+        },
+        {
+          "step": 5,
+          "action": "XM-finish"
+        }
+      ],
+      "raw": {
+        "status": "holds",
+        "exit": 0,
+        "checks": [
+          {
+            "subject": "SoftwareIntake::RetrievalRuns::'Deny even when content is cached'",
+            "status": "holds",
+            "values": [
+              {
+                "name": "accepted",
+                "value": "false"
+              },
+              {
+                "name": "admitted",
+                "value": "false"
+              },
+              {
+                "name": "cacheLookups",
+                "value": "0"
+              },
+              {
+                "name": "clientAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "contentVerified",
+                "value": "[true]"
+              },
+              {
+                "name": "delivered",
+                "value": "false"
+              },
+              {
+                "name": "destinationAllowed",
+                "value": "[false]"
+              },
+              {
+                "name": "eligibleFreshResponse",
+                "value": "[true]"
+              },
+              {
+                "name": "outcome",
+                "value": "[\"denied\"]"
+              },
+              {
+                "name": "portAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "sourceAvailable",
+                "value": "[true]"
+              },
+              {
+                "name": "sourceRequests",
+                "value": "0"
+              },
+              {
+                "name": "verificationChecks",
+                "value": "0"
+              }
+            ],
+            "lines": [
+              "[trace] eval literal true -> true",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal \"pending\" -> \"pending\"",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal false -> false",
+              "[trace] step 1: token 1@request",
+              "[trace] step 2: token 1@admission",
+              "[trace] stmt assign admitted",
+              "[trace]     eval feature clientAllowed -> (true)",
+              "[trace]     eval feature destinationAllowed -> (false)",
+              "[trace]     eval feature portAllowed -> (true)",
+              "[trace]     enter calc SoftwareIntake::AdmissionLogic::AdmissionAllowed",
+              "[trace]       bind clientAllowed = (true) [argument]",
+              "[trace]       bind destinationAllowed = (false) [argument]",
+              "[trace]       bind portAllowed = (true) [argument]",
+              "[trace]       stmt return",
+              "[trace]             eval feature clientAllowed -> (true)",
+              "[trace]             eval feature destinationAllowed -> (false)",
+              "[trace]           eval operator and -> false",
+              "[trace]         eval operator and -> false",
+              "[trace]     exit calc SoftwareIntake::AdmissionLogic::AdmissionAllowed -> (false)",
+              "[trace]   eval invoke AdmissionLogic::AdmissionAllowed -> (false)",
+              "[trace] step 3: token 1@policy",
+              "[trace] eval feature admitted -> false",
+              "[trace] step 4: token 1@deny",
+              "[trace] stmt assign outcome",
+              "[trace]   eval literal \"denied\" -> \"denied\"",
+              "[trace] step 5: token 1@finishRetrieval",
+              "[trace] step 6: token 1@done",
+              "[trace] step 7: no active tokens",
+              "\u2713 Started action executor for \"SoftwareIntake::RetrievalRuns::'Deny even when content is cached'\"",
+              "  State: Running",
+              "  Tokens: 1",
+              "\u2713 Action completed",
+              "  Final state: Completed",
+              "  Results:",
+              "    accepted = false",
+              "    admitted = false",
+              "    cacheLookups = 0",
+              "    clientAllowed = [true]",
+              "    contentVerified = [true]",
+              "    delivered = false",
+              "    destinationAllowed = [false]",
+              "    eligibleFreshResponse = [true]",
+              "    outcome = [\"denied\"]",
+              "    portAllowed = [true]",
+              "    sourceAvailable = [true]",
+              "    sourceRequests = 0",
+              "    verificationChecks = 0",
+              "  standing: value (observed: 1 run under reverse)"
+            ],
+            "rows": null,
+            "plan": {
+              "engine": "auto",
+              "standing": "value (observed: 1 run under reverse)",
+              "steps": [
+                {
+                  "engine": "run",
+                  "status": "answered"
+                }
+              ],
+              "workers": 0,
+              "warming": 0
+            },
+            "results": [
+              {
+                "engine": "run",
+                "claim": "value",
+                "strength": "observed",
+                "bounds": [
+                  {
+                    "name": "steps",
+                    "limit": 10000000,
+                    "reached": false
+                  },
+                  {
+                    "name": "elements",
+                    "limit": 1000000,
+                    "reached": false
+                  }
+                ],
+                "witness": null,
+                "standing": "value (observed: 1 run under reverse)"
+              }
+            ]
+          }
+        ],
+        "diagnostics": null,
+        "output": [
+          "\u2713 package SoftwareIntake"
+        ],
+        "errors": null
+      }
+    },
+    "RUN-hit-offline": {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "eligibleFreshResponse": true,
+        "sourceAvailable": false,
+        "contentVerified": true
+      },
+      "scenario": "SC-http-hit",
+      "values": {
+        "accepted": true,
+        "admitted": true,
+        "cacheLookups": 1,
+        "clientAllowed": true,
+        "contentVerified": true,
+        "delivered": true,
+        "destinationAllowed": true,
+        "eligibleFreshResponse": true,
+        "outcome": "accepted",
+        "portAllowed": true,
+        "sourceAvailable": false,
+        "sourceRequests": 0,
+        "verificationChecks": 1
+      },
+      "events": [
+        {
+          "step": 1,
+          "action": "X-request",
+          "message": "H-request"
+        },
+        {
+          "step": 2,
+          "action": "X-check",
+          "message": "H-check"
+        },
+        {
+          "step": 4,
+          "action": "X-lookup",
+          "message": "H-lookup"
+        },
+        {
+          "step": 6,
+          "action": "X-cached",
+          "message": "H-cached"
+        },
+        {
+          "step": 8,
+          "action": "X-verify",
+          "message": "H-verify"
+        },
+        {
+          "step": 14,
+          "action": "X-accepted",
+          "message": "H-accepted"
+        }
+      ],
+      "decisions": [
+        {
+          "step": 3,
+          "action": "XD-policy"
+        },
+        {
+          "step": 5,
+          "action": "XD-cache"
+        },
+        {
+          "step": 7,
+          "action": "XM-content"
+        },
+        {
+          "step": 13,
+          "action": "XD-integrity"
+        },
+        {
+          "step": 15,
+          "action": "XM-finish"
+        }
+      ],
+      "raw": {
+        "status": "holds",
+        "exit": 0,
+        "checks": [
+          {
+            "subject": "SoftwareIntake::RetrievalRuns::'Reuse fresh content while source is offline'",
+            "status": "holds",
+            "values": [
+              {
+                "name": "accepted",
+                "value": "[true]"
+              },
+              {
+                "name": "admitted",
+                "value": "true"
+              },
+              {
+                "name": "cacheLookups",
+                "value": "[1]"
+              },
+              {
+                "name": "clientAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "contentVerified",
+                "value": "[true]"
+              },
+              {
+                "name": "delivered",
+                "value": "true"
+              },
+              {
+                "name": "destinationAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "eligibleFreshResponse",
+                "value": "[true]"
+              },
+              {
+                "name": "outcome",
+                "value": "[\"accepted\"]"
+              },
+              {
+                "name": "portAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "sourceAvailable",
+                "value": "[false]"
+              },
+              {
+                "name": "sourceRequests",
+                "value": "0"
+              },
+              {
+                "name": "verificationChecks",
+                "value": "[1]"
+              }
+            ],
+            "lines": [
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal \"pending\" -> \"pending\"",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal false -> false",
+              "[trace] step 1: token 1@request",
+              "[trace] step 2: token 1@admission",
+              "[trace] stmt assign admitted",
+              "[trace]     eval feature clientAllowed -> (true)",
+              "[trace]     eval feature destinationAllowed -> (true)",
+              "[trace]     eval feature portAllowed -> (true)",
+              "[trace]     enter calc SoftwareIntake::AdmissionLogic::AdmissionAllowed",
+              "[trace]       bind clientAllowed = (true) [argument]",
+              "[trace]       bind destinationAllowed = (true) [argument]",
+              "[trace]       bind portAllowed = (true) [argument]",
+              "[trace]       stmt return",
+              "[trace]             eval feature clientAllowed -> (true)",
+              "[trace]             eval feature destinationAllowed -> (true)",
+              "[trace]           eval operator and -> true",
+              "[trace]           eval feature portAllowed -> (true)",
+              "[trace]         eval operator and -> true",
+              "[trace]     exit calc SoftwareIntake::AdmissionLogic::AdmissionAllowed -> (true)",
+              "[trace]   eval invoke AdmissionLogic::AdmissionAllowed -> (true)",
+              "[trace] step 3: token 1@policy",
+              "[trace] eval feature admitted -> true",
+              "[trace] step 4: token 1@lookup",
+              "[trace] stmt assign cacheLookups",
+              "[trace]     eval feature cacheLookups -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 5: token 1@cache",
+              "[trace] eval feature eligibleFreshResponse -> (true)",
+              "[trace] step 6: token 1@cached",
+              "[trace] stmt assign delivered",
+              "[trace]   eval literal true -> true",
+              "[trace] step 7: token 1@contentReady",
+              "[trace] step 8: token 1@verifyContent",
+              "[trace] enter action node: verifyContent",
+              "[trace] step 9: token 1@start",
+              "[trace] step 10: token 1@assign verificationChecks",
+              "[trace] stmt assign verificationChecks",
+              "[trace]     eval feature verificationChecks -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 11: token 1@assign accepted",
+              "[trace] stmt assign accepted",
+              "[trace]     eval feature delivered -> true",
+              "[trace]     eval feature contentVerified -> (true)",
+              "[trace]   eval operator and -> true",
+              "[trace] step 12: token 1@done",
+              "[trace] leave action node: verifyContent",
+              "[trace] step 13: token 1@integrity",
+              "[trace] eval feature accepted -> (true)",
+              "[trace] step 14: token 1@complete",
+              "[trace] stmt assign outcome",
+              "[trace]   eval literal \"accepted\" -> \"accepted\"",
+              "[trace] step 15: token 1@finishRetrieval",
+              "[trace] step 16: token 1@done",
+              "[trace] step 17: no active tokens",
+              "\u2713 Started action executor for \"SoftwareIntake::RetrievalRuns::'Reuse fresh content while source is offline'\"",
+              "  State: Running",
+              "  Tokens: 1",
+              "\u2713 Action completed",
+              "  Final state: Completed",
+              "  Results:",
+              "    accepted = [true]",
+              "    admitted = true",
+              "    cacheLookups = [1]",
+              "    clientAllowed = [true]",
+              "    contentVerified = [true]",
+              "    delivered = true",
+              "    destinationAllowed = [true]",
+              "    eligibleFreshResponse = [true]",
+              "    outcome = [\"accepted\"]",
+              "    portAllowed = [true]",
+              "    sourceAvailable = [false]",
+              "    sourceRequests = 0",
+              "    verificationChecks = [1]",
+              "  standing: value (observed: 1 run under reverse)"
+            ],
+            "rows": null,
+            "plan": {
+              "engine": "auto",
+              "standing": "value (observed: 1 run under reverse)",
+              "steps": [
+                {
+                  "engine": "run",
+                  "status": "answered"
+                }
+              ],
+              "workers": 0,
+              "warming": 0
+            },
+            "results": [
+              {
+                "engine": "run",
+                "claim": "value",
+                "strength": "observed",
+                "bounds": [
+                  {
+                    "name": "steps",
+                    "limit": 10000000,
+                    "reached": false
+                  },
+                  {
+                    "name": "elements",
+                    "limit": 1000000,
+                    "reached": false
+                  }
+                ],
+                "witness": null,
+                "standing": "value (observed: 1 run under reverse)"
+              }
+            ]
+          }
+        ],
+        "diagnostics": null,
+        "output": [
+          "\u2713 package SoftwareIntake"
+        ],
+        "errors": null
+      }
+    },
+    "RUN-miss": {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "eligibleFreshResponse": false,
+        "sourceAvailable": true,
+        "contentVerified": true
+      },
+      "scenario": "SC-http-miss",
+      "values": {
+        "accepted": true,
+        "admitted": true,
+        "cacheLookups": 1,
+        "clientAllowed": true,
+        "contentVerified": true,
+        "delivered": true,
+        "destinationAllowed": true,
+        "eligibleFreshResponse": false,
+        "outcome": "accepted",
+        "portAllowed": true,
+        "sourceAvailable": true,
+        "sourceRequests": 1,
+        "verificationChecks": 1
+      },
+      "events": [
+        {
+          "step": 1,
+          "action": "X-request",
+          "message": "H-request"
+        },
+        {
+          "step": 2,
+          "action": "X-check",
+          "message": "H-check"
+        },
+        {
+          "step": 4,
+          "action": "X-lookup",
+          "message": "H-lookup"
+        },
+        {
+          "step": 6,
+          "action": "X-fetch",
+          "message": "H-fetch"
+        },
+        {
+          "step": 8,
+          "action": "X-origin",
+          "message": "H-origin"
+        },
+        {
+          "step": 9,
+          "action": "X-cache-rules",
+          "message": "H-cache-rules"
+        },
+        {
+          "step": 10,
+          "action": "X-response",
+          "message": "H-response"
+        },
+        {
+          "step": 12,
+          "action": "X-verify",
+          "message": "H-verify"
+        },
+        {
+          "step": 18,
+          "action": "X-accepted",
+          "message": "H-accepted"
+        }
+      ],
+      "decisions": [
+        {
+          "step": 3,
+          "action": "XD-policy"
+        },
+        {
+          "step": 5,
+          "action": "XD-cache"
+        },
+        {
+          "step": 7,
+          "action": "XD-source"
+        },
+        {
+          "step": 11,
+          "action": "XM-content"
+        },
+        {
+          "step": 17,
+          "action": "XD-integrity"
+        },
+        {
+          "step": 19,
+          "action": "XM-finish"
+        }
+      ],
+      "raw": {
+        "status": "holds",
+        "exit": 0,
+        "checks": [
+          {
+            "subject": "SoftwareIntake::RetrievalRuns::'Retrieve from available source'",
+            "status": "holds",
+            "values": [
+              {
+                "name": "accepted",
+                "value": "[true]"
+              },
+              {
+                "name": "admitted",
+                "value": "true"
+              },
+              {
+                "name": "cacheLookups",
+                "value": "[1]"
+              },
+              {
+                "name": "clientAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "contentVerified",
+                "value": "[true]"
+              },
+              {
+                "name": "delivered",
+                "value": "true"
+              },
+              {
+                "name": "destinationAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "eligibleFreshResponse",
+                "value": "[false]"
+              },
+              {
+                "name": "outcome",
+                "value": "[\"accepted\"]"
+              },
+              {
+                "name": "portAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "sourceAvailable",
+                "value": "[true]"
+              },
+              {
+                "name": "sourceRequests",
+                "value": "[1]"
+              },
+              {
+                "name": "verificationChecks",
+                "value": "[1]"
+              }
+            ],
+            "lines": [
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal \"pending\" -> \"pending\"",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal false -> false",
+              "[trace] step 1: token 1@request",
+              "[trace] step 2: token 1@admission",
+              "[trace] stmt assign admitted",
+              "[trace]     eval feature clientAllowed -> (true)",
+              "[trace]     eval feature destinationAllowed -> (true)",
+              "[trace]     eval feature portAllowed -> (true)",
+              "[trace]     enter calc SoftwareIntake::AdmissionLogic::AdmissionAllowed",
+              "[trace]       bind clientAllowed = (true) [argument]",
+              "[trace]       bind destinationAllowed = (true) [argument]",
+              "[trace]       bind portAllowed = (true) [argument]",
+              "[trace]       stmt return",
+              "[trace]             eval feature clientAllowed -> (true)",
+              "[trace]             eval feature destinationAllowed -> (true)",
+              "[trace]           eval operator and -> true",
+              "[trace]           eval feature portAllowed -> (true)",
+              "[trace]         eval operator and -> true",
+              "[trace]     exit calc SoftwareIntake::AdmissionLogic::AdmissionAllowed -> (true)",
+              "[trace]   eval invoke AdmissionLogic::AdmissionAllowed -> (true)",
+              "[trace] step 3: token 1@policy",
+              "[trace] eval feature admitted -> true",
+              "[trace] step 4: token 1@lookup",
+              "[trace] stmt assign cacheLookups",
+              "[trace]     eval feature cacheLookups -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 5: token 1@cache",
+              "[trace] eval feature eligibleFreshResponse -> (false)",
+              "[trace] step 6: token 1@fetch",
+              "[trace] stmt assign sourceRequests",
+              "[trace]     eval feature sourceRequests -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 7: token 1@source",
+              "[trace] eval feature sourceAvailable -> (true)",
+              "[trace] step 8: token 1@origin",
+              "[trace] stmt assign delivered",
+              "[trace]   eval literal true -> true",
+              "[trace] step 9: token 1@cacheRules",
+              "[trace] step 10: token 1@response",
+              "[trace] step 11: token 1@contentReady",
+              "[trace] step 12: token 1@verifyContent",
+              "[trace] enter action node: verifyContent",
+              "[trace] step 13: token 1@start",
+              "[trace] step 14: token 1@assign verificationChecks",
+              "[trace] stmt assign verificationChecks",
+              "[trace]     eval feature verificationChecks -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 15: token 1@assign accepted",
+              "[trace] stmt assign accepted",
+              "[trace]     eval feature delivered -> true",
+              "[trace]     eval feature contentVerified -> (true)",
+              "[trace]   eval operator and -> true",
+              "[trace] step 16: token 1@done",
+              "[trace] leave action node: verifyContent",
+              "[trace] step 17: token 1@integrity",
+              "[trace] eval feature accepted -> (true)",
+              "[trace] step 18: token 1@complete",
+              "[trace] stmt assign outcome",
+              "[trace]   eval literal \"accepted\" -> \"accepted\"",
+              "[trace] step 19: token 1@finishRetrieval",
+              "[trace] step 20: token 1@done",
+              "[trace] step 21: no active tokens",
+              "\u2713 Started action executor for \"SoftwareIntake::RetrievalRuns::'Retrieve from available source'\"",
+              "  State: Running",
+              "  Tokens: 1",
+              "\u2713 Action completed",
+              "  Final state: Completed",
+              "  Results:",
+              "    accepted = [true]",
+              "    admitted = true",
+              "    cacheLookups = [1]",
+              "    clientAllowed = [true]",
+              "    contentVerified = [true]",
+              "    delivered = true",
+              "    destinationAllowed = [true]",
+              "    eligibleFreshResponse = [false]",
+              "    outcome = [\"accepted\"]",
+              "    portAllowed = [true]",
+              "    sourceAvailable = [true]",
+              "    sourceRequests = [1]",
+              "    verificationChecks = [1]",
+              "  standing: value (observed: 1 run under reverse)"
+            ],
+            "rows": null,
+            "plan": {
+              "engine": "auto",
+              "standing": "value (observed: 1 run under reverse)",
+              "steps": [
+                {
+                  "engine": "run",
+                  "status": "answered"
+                }
+              ],
+              "workers": 0,
+              "warming": 0
+            },
+            "results": [
+              {
+                "engine": "run",
+                "claim": "value",
+                "strength": "observed",
+                "bounds": [
+                  {
+                    "name": "steps",
+                    "limit": 10000000,
+                    "reached": false
+                  },
+                  {
+                    "name": "elements",
+                    "limit": 1000000,
+                    "reached": false
+                  }
+                ],
+                "witness": null,
+                "standing": "value (observed: 1 run under reverse)"
+              }
+            ]
+          }
+        ],
+        "diagnostics": null,
+        "output": [
+          "\u2713 package SoftwareIntake"
+        ],
+        "errors": null
+      }
+    },
+    "RUN-source-failure": {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "eligibleFreshResponse": false,
+        "sourceAvailable": false,
+        "contentVerified": true
+      },
+      "scenario": "SC-http-source-failure",
+      "values": {
+        "accepted": false,
+        "admitted": true,
+        "cacheLookups": 1,
+        "clientAllowed": true,
+        "contentVerified": true,
+        "delivered": false,
+        "destinationAllowed": true,
+        "eligibleFreshResponse": false,
+        "outcome": "source-unavailable",
+        "portAllowed": true,
+        "sourceAvailable": false,
+        "sourceRequests": 1,
+        "verificationChecks": 0
+      },
+      "events": [
+        {
+          "step": 1,
+          "action": "X-request",
+          "message": "H-request"
+        },
+        {
+          "step": 2,
+          "action": "X-check",
+          "message": "H-check"
+        },
+        {
+          "step": 4,
+          "action": "X-lookup",
+          "message": "H-lookup"
+        },
+        {
+          "step": 6,
+          "action": "X-fetch",
+          "message": "H-fetch"
+        },
+        {
+          "step": 8,
+          "action": "X-source-failure",
+          "message": "H-source-failure"
+        },
+        {
+          "step": 9,
+          "action": "X-unavailable",
+          "message": "H-unavailable"
+        },
+        {
+          "step": 10,
+          "action": "X-stop",
+          "message": "H-stop"
+        }
+      ],
+      "decisions": [
+        {
+          "step": 3,
+          "action": "XD-policy"
+        },
+        {
+          "step": 5,
+          "action": "XD-cache"
+        },
+        {
+          "step": 7,
+          "action": "XD-source"
+        },
+        {
+          "step": 11,
+          "action": "XM-finish"
+        }
+      ],
+      "raw": {
+        "status": "holds",
+        "exit": 0,
+        "checks": [
+          {
+            "subject": "SoftwareIntake::RetrievalRuns::'Stop after source failure'",
+            "status": "holds",
+            "values": [
+              {
+                "name": "accepted",
+                "value": "false"
+              },
+              {
+                "name": "admitted",
+                "value": "true"
+              },
+              {
+                "name": "cacheLookups",
+                "value": "[1]"
+              },
+              {
+                "name": "clientAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "contentVerified",
+                "value": "[true]"
+              },
+              {
+                "name": "delivered",
+                "value": "false"
+              },
+              {
+                "name": "destinationAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "eligibleFreshResponse",
+                "value": "[false]"
+              },
+              {
+                "name": "outcome",
+                "value": "[\"source-unavailable\"]"
+              },
+              {
+                "name": "portAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "sourceAvailable",
+                "value": "[false]"
+              },
+              {
+                "name": "sourceRequests",
+                "value": "[1]"
+              },
+              {
+                "name": "verificationChecks",
+                "value": "0"
+              }
+            ],
+            "lines": [
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal \"pending\" -> \"pending\"",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal false -> false",
+              "[trace] step 1: token 1@request",
+              "[trace] step 2: token 1@admission",
+              "[trace] stmt assign admitted",
+              "[trace]     eval feature clientAllowed -> (true)",
+              "[trace]     eval feature destinationAllowed -> (true)",
+              "[trace]     eval feature portAllowed -> (true)",
+              "[trace]     enter calc SoftwareIntake::AdmissionLogic::AdmissionAllowed",
+              "[trace]       bind clientAllowed = (true) [argument]",
+              "[trace]       bind destinationAllowed = (true) [argument]",
+              "[trace]       bind portAllowed = (true) [argument]",
+              "[trace]       stmt return",
+              "[trace]             eval feature clientAllowed -> (true)",
+              "[trace]             eval feature destinationAllowed -> (true)",
+              "[trace]           eval operator and -> true",
+              "[trace]           eval feature portAllowed -> (true)",
+              "[trace]         eval operator and -> true",
+              "[trace]     exit calc SoftwareIntake::AdmissionLogic::AdmissionAllowed -> (true)",
+              "[trace]   eval invoke AdmissionLogic::AdmissionAllowed -> (true)",
+              "[trace] step 3: token 1@policy",
+              "[trace] eval feature admitted -> true",
+              "[trace] step 4: token 1@lookup",
+              "[trace] stmt assign cacheLookups",
+              "[trace]     eval feature cacheLookups -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 5: token 1@cache",
+              "[trace] eval feature eligibleFreshResponse -> (false)",
+              "[trace] step 6: token 1@fetch",
+              "[trace] stmt assign sourceRequests",
+              "[trace]     eval feature sourceRequests -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 7: token 1@source",
+              "[trace] eval feature sourceAvailable -> (false)",
+              "[trace] step 8: token 1@sourceFailure",
+              "[trace] step 9: token 1@unavailable",
+              "[trace] stmt assign outcome",
+              "[trace]   eval literal \"source-unavailable\" -> \"source-unavailable\"",
+              "[trace] step 10: token 1@stopWithoutContent",
+              "[trace] step 11: token 1@finishRetrieval",
+              "[trace] step 12: token 1@done",
+              "[trace] step 13: no active tokens",
+              "\u2713 Started action executor for \"SoftwareIntake::RetrievalRuns::'Stop after source failure'\"",
+              "  State: Running",
+              "  Tokens: 1",
+              "\u2713 Action completed",
+              "  Final state: Completed",
+              "  Results:",
+              "    accepted = false",
+              "    admitted = true",
+              "    cacheLookups = [1]",
+              "    clientAllowed = [true]",
+              "    contentVerified = [true]",
+              "    delivered = false",
+              "    destinationAllowed = [true]",
+              "    eligibleFreshResponse = [false]",
+              "    outcome = [\"source-unavailable\"]",
+              "    portAllowed = [true]",
+              "    sourceAvailable = [false]",
+              "    sourceRequests = [1]",
+              "    verificationChecks = 0",
+              "  standing: value (observed: 1 run under reverse)"
+            ],
+            "rows": null,
+            "plan": {
+              "engine": "auto",
+              "standing": "value (observed: 1 run under reverse)",
+              "steps": [
+                {
+                  "engine": "run",
+                  "status": "answered"
+                }
+              ],
+              "workers": 0,
+              "warming": 0
+            },
+            "results": [
+              {
+                "engine": "run",
+                "claim": "value",
+                "strength": "observed",
+                "bounds": [
+                  {
+                    "name": "steps",
+                    "limit": 10000000,
+                    "reached": false
+                  },
+                  {
+                    "name": "elements",
+                    "limit": 1000000,
+                    "reached": false
+                  }
+                ],
+                "witness": null,
+                "standing": "value (observed: 1 run under reverse)"
+              }
+            ]
+          }
+        ],
+        "diagnostics": null,
+        "output": [
+          "\u2713 package SoftwareIntake"
+        ],
+        "errors": null
+      }
+    },
+    "RUN-untrusted": {
+      "inputs": {
+        "clientAllowed": true,
+        "destinationAllowed": true,
+        "portAllowed": true,
+        "eligibleFreshResponse": false,
+        "sourceAvailable": true,
+        "contentVerified": false
+      },
+      "scenario": "SC-http-untrusted",
+      "values": {
+        "accepted": false,
+        "admitted": true,
+        "cacheLookups": 1,
+        "clientAllowed": true,
+        "contentVerified": false,
+        "delivered": true,
+        "destinationAllowed": true,
+        "eligibleFreshResponse": false,
+        "outcome": "verification-failed",
+        "portAllowed": true,
+        "sourceAvailable": true,
+        "sourceRequests": 1,
+        "verificationChecks": 1
+      },
+      "events": [
+        {
+          "step": 1,
+          "action": "X-request",
+          "message": "H-request"
+        },
+        {
+          "step": 2,
+          "action": "X-check",
+          "message": "H-check"
+        },
+        {
+          "step": 4,
+          "action": "X-lookup",
+          "message": "H-lookup"
+        },
+        {
+          "step": 6,
+          "action": "X-fetch",
+          "message": "H-fetch"
+        },
+        {
+          "step": 8,
+          "action": "X-origin",
+          "message": "H-origin"
+        },
+        {
+          "step": 9,
+          "action": "X-cache-rules",
+          "message": "H-cache-rules"
+        },
+        {
+          "step": 10,
+          "action": "X-response",
+          "message": "H-response"
+        },
+        {
+          "step": 12,
+          "action": "X-verify",
+          "message": "H-verify"
+        },
+        {
+          "step": 18,
+          "action": "X-rejected",
+          "message": "H-rejected"
+        }
+      ],
+      "decisions": [
+        {
+          "step": 3,
+          "action": "XD-policy"
+        },
+        {
+          "step": 5,
+          "action": "XD-cache"
+        },
+        {
+          "step": 7,
+          "action": "XD-source"
+        },
+        {
+          "step": 11,
+          "action": "XM-content"
+        },
+        {
+          "step": 17,
+          "action": "XD-integrity"
+        },
+        {
+          "step": 19,
+          "action": "XM-finish"
+        }
+      ],
+      "raw": {
+        "status": "holds",
+        "exit": 0,
+        "checks": [
+          {
+            "subject": "SoftwareIntake::RetrievalRuns::'Reject untrusted source content'",
+            "status": "holds",
+            "values": [
+              {
+                "name": "accepted",
+                "value": "[false]"
+              },
+              {
+                "name": "admitted",
+                "value": "true"
+              },
+              {
+                "name": "cacheLookups",
+                "value": "[1]"
+              },
+              {
+                "name": "clientAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "contentVerified",
+                "value": "[false]"
+              },
+              {
+                "name": "delivered",
+                "value": "true"
+              },
+              {
+                "name": "destinationAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "eligibleFreshResponse",
+                "value": "[false]"
+              },
+              {
+                "name": "outcome",
+                "value": "[\"verification-failed\"]"
+              },
+              {
+                "name": "portAllowed",
+                "value": "[true]"
+              },
+              {
+                "name": "sourceAvailable",
+                "value": "[true]"
+              },
+              {
+                "name": "sourceRequests",
+                "value": "[1]"
+              },
+              {
+                "name": "verificationChecks",
+                "value": "[1]"
+              }
+            ],
+            "lines": [
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal true -> true",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal \"pending\" -> \"pending\"",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal 0 -> 0",
+              "[trace] eval literal false -> false",
+              "[trace] eval literal false -> false",
+              "[trace] step 1: token 1@request",
+              "[trace] step 2: token 1@admission",
+              "[trace] stmt assign admitted",
+              "[trace]     eval feature clientAllowed -> (true)",
+              "[trace]     eval feature destinationAllowed -> (true)",
+              "[trace]     eval feature portAllowed -> (true)",
+              "[trace]     enter calc SoftwareIntake::AdmissionLogic::AdmissionAllowed",
+              "[trace]       bind clientAllowed = (true) [argument]",
+              "[trace]       bind destinationAllowed = (true) [argument]",
+              "[trace]       bind portAllowed = (true) [argument]",
+              "[trace]       stmt return",
+              "[trace]             eval feature clientAllowed -> (true)",
+              "[trace]             eval feature destinationAllowed -> (true)",
+              "[trace]           eval operator and -> true",
+              "[trace]           eval feature portAllowed -> (true)",
+              "[trace]         eval operator and -> true",
+              "[trace]     exit calc SoftwareIntake::AdmissionLogic::AdmissionAllowed -> (true)",
+              "[trace]   eval invoke AdmissionLogic::AdmissionAllowed -> (true)",
+              "[trace] step 3: token 1@policy",
+              "[trace] eval feature admitted -> true",
+              "[trace] step 4: token 1@lookup",
+              "[trace] stmt assign cacheLookups",
+              "[trace]     eval feature cacheLookups -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 5: token 1@cache",
+              "[trace] eval feature eligibleFreshResponse -> (false)",
+              "[trace] step 6: token 1@fetch",
+              "[trace] stmt assign sourceRequests",
+              "[trace]     eval feature sourceRequests -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 7: token 1@source",
+              "[trace] eval feature sourceAvailable -> (true)",
+              "[trace] step 8: token 1@origin",
+              "[trace] stmt assign delivered",
+              "[trace]   eval literal true -> true",
+              "[trace] step 9: token 1@cacheRules",
+              "[trace] step 10: token 1@response",
+              "[trace] step 11: token 1@contentReady",
+              "[trace] step 12: token 1@verifyContent",
+              "[trace] enter action node: verifyContent",
+              "[trace] step 13: token 1@start",
+              "[trace] step 14: token 1@assign verificationChecks",
+              "[trace] stmt assign verificationChecks",
+              "[trace]     eval feature verificationChecks -> 0",
+              "[trace]     eval literal 1 -> 1",
+              "[trace]   eval operator + -> 1",
+              "[trace] step 15: token 1@assign accepted",
+              "[trace] stmt assign accepted",
+              "[trace]     eval feature delivered -> true",
+              "[trace]     eval feature contentVerified -> (false)",
+              "[trace]   eval operator and -> false",
+              "[trace] step 16: token 1@done",
+              "[trace] leave action node: verifyContent",
+              "[trace] step 17: token 1@integrity",
+              "[trace] eval feature accepted -> (false)",
+              "[trace] step 18: token 1@rejectContent",
+              "[trace] stmt assign outcome",
+              "[trace]   eval literal \"verification-failed\" -> \"verification-failed\"",
+              "[trace] step 19: token 1@finishRetrieval",
+              "[trace] step 20: token 1@done",
+              "[trace] step 21: no active tokens",
+              "\u2713 Started action executor for \"SoftwareIntake::RetrievalRuns::'Reject untrusted source content'\"",
+              "  State: Running",
+              "  Tokens: 1",
+              "\u2713 Action completed",
+              "  Final state: Completed",
+              "  Results:",
+              "    accepted = [false]",
+              "    admitted = true",
+              "    cacheLookups = [1]",
+              "    clientAllowed = [true]",
+              "    contentVerified = [false]",
+              "    delivered = true",
+              "    destinationAllowed = [true]",
+              "    eligibleFreshResponse = [false]",
+              "    outcome = [\"verification-failed\"]",
+              "    portAllowed = [true]",
+              "    sourceAvailable = [true]",
+              "    sourceRequests = [1]",
+              "    verificationChecks = [1]",
+              "  standing: value (observed: 1 run under reverse)"
+            ],
+            "rows": null,
+            "plan": {
+              "engine": "auto",
+              "standing": "value (observed: 1 run under reverse)",
+              "steps": [
+                {
+                  "engine": "run",
+                  "status": "answered"
+                }
+              ],
+              "workers": 0,
+              "warming": 0
+            },
+            "results": [
+              {
+                "engine": "run",
+                "claim": "value",
+                "strength": "observed",
+                "bounds": [
+                  {
+                    "name": "steps",
+                    "limit": 10000000,
+                    "reached": false
+                  },
+                  {
+                    "name": "elements",
+                    "limit": 1000000,
+                    "reached": false
+                  }
+                ],
+                "witness": null,
+                "standing": "value (observed: 1 run under reverse)"
+              }
+            ]
+          }
+        ],
+        "diagnostics": null,
+        "output": [
+          "\u2713 package SoftwareIntake"
+        ],
+        "errors": null
+      }
+    }
+  }
+}

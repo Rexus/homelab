@@ -3,13 +3,14 @@
 import json
 from pathlib import PurePosixPath
 from syson_model import named_elements
+from syson_general import verify_view_owners, verify_general_geometry
 from syson_annotations import read_annotations, annotation_text, annotation_gaps
 from syson_style import shared_colours, palette_gaps
 
 
 def select_catalog(root, raw, model, curated):
-    catalog=json.loads((root/'architecture/views/catalog.json').read_text(encoding='utf-8'))
-    config=json.loads((root/'architecture/views/syson.json').read_text(encoding='utf-8'))
+    catalog=json.loads((root/'artifacts/architecture/catalog.json').read_text(encoding='utf-8'))
+    config=json.loads((root/'scripts/architecture/config/views/syson.json').read_text(encoding='utf-8'))
     selection=config.get('publication_views', [])
     available={v['key'] for v in catalog['views']}
     if not selection or len(set(selection)) != len(selection) or set(selection)-available:
@@ -32,6 +33,14 @@ def select_catalog(root, raw, model, curated):
                 raise ValueError('Native preset differs from shared SVG selection: '+view['key'])
         view['view_definition']='GeneralView'
         view['representation_description']='General View'
+        general=config.get('general_views', {}).get(view['key'])
+        if general:
+            if set(general['boxes']) != set(entry['elements']):
+                raise ValueError('General layout differs from shared SVG selection: '+view['key'])
+            view['boxes']=general['boxes']
+            view['general_layout']=True
+            if 'actor_label_offsets' in general:
+                view['actor_label_offsets']=general['actor_label_offsets']
         nested=config.get('interconnection_views', {}).get(view['key'])
         if nested:
             if set(nested['boxes']) != set(entry['elements']):
@@ -107,6 +116,21 @@ def verify_representation_set(views, diagrams, representations):
         raise ValueError('Native representations differ from the explicit publication selection')
 
 
+# SysON 2026.11 represents these edges by the owning case, rather than the membership.
+# Native descriptor identity distinguishes composition, actor and subject relationships.
+CASE_EDGE_KINDS = {
+    '88a4781f-f2b6-3bcd-9ab6-67a9037c9d16': 'contains',
+    'a4c9fa93-a457-383f-b74c-034bfbacc7fd': 'has-actor',
+    '05391948-5929-3049-bd87-bc6b90a78e1d': 'has-subject',
+}
+
+
+def case_edge_kind(edge):
+    if edge.get('targetObjectKind', '').split('entity=')[-1] != 'UseCaseDefinition':
+        return None
+    return CASE_EDGE_KINDS.get(edge.get('descriptionId', '').split('sourceElementId=')[-1])
+
+
 def coverage(views, objects, diagrams, representations, model):
     indexed=index_objects(objects)
     keys={v['id']:k for k,v in indexed.items()}
@@ -132,7 +156,7 @@ def coverage(views, objects, diagrams, representations, model):
             for child in node.get('childNodes',[])+node.get('borderNodes',[]): endpoints(child,key)
         for node in diagram['nodes']: endpoints(node)
         triples={(endpoint_keys.get(e['sourceId']),endpoint_keys.get(e['targetId']),
-                  kind_map.get(e.get('targetObjectKind','').split('entity=')[-1])) for e in edges}
+                  case_edge_kind(e) or kind_map.get(e.get('targetObjectKind','').split('entity=')[-1])) for e in edges}
         def containment(node, owner=None):
             if node.get('state','Normal') != 'Normal': return
             key=keys.get(node['targetObjectId'])
@@ -190,5 +214,19 @@ def unwanted_details(view,diagram,objects):
                      'contains':{'OwningMembership','FeatureMembership','PartUsage'},'flow':{'FlowUsage'},
                      'connected-to':{'ConnectionUsage'},'allocated-to':{'AllocationUsage'}}
     allowed=set().union(*(allowed_classes.get(k,set()) for k in selected_kinds))
+    nodes={n['id']: names.get(n['targetObjectId']) for n in diagram_nodes(diagram)}
+    triples={(r['from'], r['to'], r['kind']) for r in view['relationships']}
     return [e['id'] for e in diagram['edges'] if names.get(e['targetObjectId']) not in selected_ids
+            and (nodes.get(e['sourceId']), nodes.get(e['targetId']), case_edge_kind(e)) not in triples
             and e.get('targetObjectKind','').split('entity=')[-1] not in allowed]
+
+
+def verify_general(views, objects, diagrams, representations, model):
+    """New compact General Views require full selection and persisted readable geometry."""
+    keys={v['id']:k for k,v in index_objects(objects).items()}
+    for view in (v for v in views if v.get('general_layout')):
+        report=coverage([view],objects,diagrams,representations,model)['views'][0]
+        if report['status'] != 'matched':
+            raise ValueError('General view content mismatch: '+str(report))
+        diagram=diagrams[representations[view['key']]['id']]
+        verify_general_geometry(view, diagram, keys)

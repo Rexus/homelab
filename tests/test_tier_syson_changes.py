@@ -184,7 +184,7 @@ class ImportedIntentCoverage(unittest.TestCase):
         self.assertIn('verification is uncovered',report)
         self.assertIn('REQ-new',report)
         self.assertIn('scenario detail is pending',report)
-        self.assertEqual(case_target('UC-new',{}), 'architecture/generated/software-intake/intent.md#uc-new')
+        self.assertEqual(case_target('UC-new',{}), 'artifacts/architecture/generated/software-intake/intent.md#uc-new')
 
 
 if __name__ == '__main__':

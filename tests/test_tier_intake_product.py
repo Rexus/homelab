@@ -29,7 +29,7 @@ def log_records(path):
                     'Requires Linux/WSL, Squid, APT, GnuPG and dpkg-deb')
 class NativeIntakeScenarios(unittest.TestCase):
     def test_signed_package_retrieval_matches_model(self):
-        snapshot = json.loads((UPSTREAM / 'architecture/generated/software-intake/model-index.json').read_text())
+        snapshot = json.loads((UPSTREAM / 'artifacts/architecture/generated/software-intake/model-index.json').read_text())
         model = snapshot['model']
         runs = model['execution']['runs']
         for path, digest in product_sources(UPSTREAM).items():

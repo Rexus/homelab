@@ -1,8 +1,0 @@
-digraph Engineering {
-graph [rankdir=LR,bgcolor="transparent",pad="0.2",nodesep="0.4",ranksep="0.8"];
-node [fontname="Arial",fontsize=16,shape=box,style="rounded,filled",margin="0.18,0.12"];
-edge [fontname="Arial",fontsize=13,color="#627581",arrowsize="0.75"];
-"REQ-egress" [label="«requirement»\nREQ-egress\nnoBypass",fillcolor="#f4dce9",color="#955076",fontcolor="#57253f",shape="box",URL="engineering.svg#REQ-egress",target="_top",id="model-REQ-egress"];
-"VC-egress" [label="«verification def»\nVC-egress\nDemonstrate bypass\nprevention",fillcolor="#f8fafc",color="#64748b",fontcolor="#1f2937",shape="box",URL="../../generated/software-intake/verification-cases.md#vc-egress",target="_top",id="model-VC-egress"];
-"VC-egress" -> "REQ-egress" [label="verify\n(test intent)",style=dashed];
-}

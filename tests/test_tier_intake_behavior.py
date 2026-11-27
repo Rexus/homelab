@@ -2,6 +2,7 @@
 
 import json
 import unittest
+from pathlib import Path
 import xml.etree.ElementTree as ET
 from intake_model_fixture import IntakeModelFixture
 from intake_sources import MODEL, VIEWS, TRACE, selected_inputs, trace_map
@@ -47,7 +48,7 @@ class IntakeBehaviorContracts(IntakeModelFixture):
 
     def test_behavior_source_change_requires_regeneration(self):
         self.change(
-            "architecture/functions/software-intake/behavior.sysml",
+            "architecture/models/software-intake/SoftwareIntakeBehavior.sysml",
             "'HTTP repository request'",
             "'Changed HTTP request'",
         )
@@ -100,10 +101,10 @@ class IntakeBehaviorContracts(IntakeModelFixture):
         namespace = {"s": "http://www.w3.org/2000/svg"}
         paths = [
             (OUTPUTS["logical"], {"logical", "external", "information"}),
-            (OUTPUTS["placement"], {"logical", "external", "information"}),
-            (VIEWS / "resource-dependencies.svg", {"logical", "physical"}),
+            (OUTPUTS["solution"], {"logical", "external", "information"}),
+            (Path("architecture/generated/software-intake/solution/SoftwareIntakeResources.svg"), {"logical", "physical"}),
         ]
-        notation = json.loads((self.root / "architecture/views/notation.json").read_text(encoding="utf-8"))
+        notation = json.loads((self.root / "scripts/architecture/config/views/notation.json").read_text(encoding="utf-8"))
         for path, categories in paths:
             svg = ET.parse(self.root / path).getroot()
             validate_model_roles(svg, self.root, self.model)
@@ -113,9 +114,17 @@ class IntakeBehaviorContracts(IntakeModelFixture):
                 self.assertIn(notation["modelCategories"][category]["label"], labels)
                 self.assertIsNotNone(key.find(f"s:g[@data-category-key='{category}']/s:rect", namespace))
 
+        linked = ET.parse(self.root / OUTPUTS["logical"]).getroot()
+        storage = linked.find('.//*[@data-model="L-Cache"]')
+        shape = storage.find('s:a/s:path', namespace)
+        self.assertIsNotNone(shape)
+        shape.tag = '{http://www.w3.org/2000/svg}rect'
+        with self.assertRaisesRegex(ValueError, "Inconsistent visual shape for L-Cache"):
+            validate_model_roles(linked, self.root, self.model)
+
         # A future view must not turn the same proxy contract into an interface.
         self.change(
-            "architecture/views/software-intake/logical.layout.svg",
+            "scripts/architecture/config/views/software-intake/logical.layout.svg",
             'id="Proxy" class="edge"',
             'id="Proxy" class="traffic"',
         )

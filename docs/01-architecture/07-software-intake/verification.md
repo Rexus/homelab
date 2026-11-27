@@ -1,12 +1,17 @@
 # Software-intake model verification
 
-Scope: the upstream Stage 1 example inputs and repository automation, checked on 2026-11-17–19.
+Scope: the upstream Stage 1 example inputs and repository automation, with dated checks below through 2026-11-27.
 This record separates model/source consistency, isolated product tests and live acceptance.
 The separate [SysON verification record](syson-verification.md) covers import, native graphical
 views, repeat publication, the proxy-contract update and text-export limitations.
 
+Older sections retain the names and results from their stated review date. The latest naming and
+publication status is recorded first.
+
 ## Contents
 
+- [Native-only model and portable views](#native-only-model-and-portable-views)
+- [Logical design and Solution design](#logical-design-and-solution-design)
 - [Focused views and element meaning](#focused-views-and-element-meaning)
 - [Storage and content correction](#storage-and-content-correction)
 - [Native model and source contracts](#native-model-and-source-contracts)
@@ -24,6 +29,66 @@ views, repeat publication, the proxy-contract update and text-export limitations
 - [Diagram review](#diagram-review)
 - [Runtime checks](#runtime-checks)
 - [Boundaries](#boundaries)
+
+## Native-only model and portable views
+
+Verified 2026-11-27 against the upstream example, without deploying infrastructure.
+
+- Authored design folders contain only PascalCase `.sysml` files, 1–3 per current owner. The only
+  architecture README is at its root. Generated SVGs follow the same ownership in a separate views tree.
+  Tool settings/layouts and retained reports/evidence have moved outside the native design tree.
+- The pinned native SysML v2 parser validated all 15 authored sources, their imports and the generated
+  IaC realization. All 303 exported engineering elements and the 16 selected view identities/content
+  hashes are unchanged from the earlier accepted design. Logical/Solution figure geometry and styling
+  are preserved; links and supporting navigation follow the new paths.
+- The completion checks reject non-native design files, filenames outside the convention and authored
+  `.sysml` omitted from the validation manifest. A deliberate SysML v1 `block` declaration is rejected
+  by the native parser. Semantic negative checks still reject bound counters and missing merge nodes.
+- 66 targeted checks passed across the main run and focused rerun: model/view semantics, navigation,
+  native language regressions, scoped ownership, optional publication selection and relocated manuals.
+  Two test fixtures initially retained old copied-config paths; those paths were corrected and rerun.
+- Browser verification passed 22 actual navigation steps and 13 views, producing 52 light/dark and
+  wide/narrow previews. A scenario/function proxy opens the selected Solution design, its contract stays
+  separately reachable, and the operator-goal route displays the human stick figure. System actors remain boxes.
+
+The sources are compiled native SysML, not a replacement language encoded in JSON. Technical metadata
+still assembles packages and configures presentation/implementation bindings. Historical runtime evidence
+is retained with its original inputs; relocating/rebuilding the model does not renew that evidence.
+No new live Git/TLS, deployed failover, hardware or network acceptance is claimed. Existing SysON rendering
+limitations remain in their dated records; SysON was not republished for this portable-view restructure.
+
+## Logical design and Solution design
+
+Checked 2026-11-24. [Logical design](../../../architecture/generated/software-intake/SoftwareIntakeLogicalDesign.svg)
+and [Solution design](../../../architecture/generated/software-intake/solution/SoftwareIntakeSolutionDesign.svg) are concerns of the
+same level-1 software-intake subsystem. The solution view combines selected components and their
+arrangement; software placement is part of that answer. Component ownership supplies the next level.
+The source layout, generated SVG and supporting guide now use `solution` paths. The original
+`VIEW-software-intake-placement` identifier is retained for stable model-view identity.
+
+| Check | Observed result |
+| --- | --- |
+| Native model and IaC trace | Rebuilt with the pinned native parser; all 303 named elements, engineering relationships and implementation trace records match the pre-rename model |
+| Shared view catalogue | Every view identity, owner, subject, selected element/relationship and content hash is unchanged; the solution title and asset path changed |
+| Focused checks | 41 distinct tests passed across navigation, copied-manual relocation, focused views, native selection/palette, catalogue identity and model/source consistency |
+| Repository browsing | 19 navigation transitions, 13 focused views and 52 light/dark previews at 1100/760px; Logical design, Solution design and use-case footer visually reviewed |
+| Links and cleanup | Architecture/intake local links and anchors pass; obsolete `placement.svg`, `placement.layout.svg` and `deployment.md` paths are removed |
+| SysON publication | Six shared views published; both design views reopened with their new labels; semantic projection and initial saved layout checks passed |
+| SysON repeat after reopening | **Failed geometry check:** the browser moved solution ports and nested boxes; semantic identity and selected engineering content remain intact |
+
+The [current native Solution design](http://localhost:8080/projects/57bc3b80-1491-47b0-8f3c-7941eb653127/edit/c51122d3-a291-4156-86d2-01a6791f6781)
+and [coverage report](../../../artifacts/architecture/evidence/syson-view-coverage.md) retain the existing three
+rendering gaps: logical contained content, solution contained content, and System Overall's outer
+frame. The additional reopen-layout issue above remains unresolved; successful publication alone
+does not establish stable reopened geometry or a lossless round trip. The previous native review
+was archived and retained for comparison while this presentation issue remains open.
+
+The final native refresh exceeded the normal 120-second parser limit once; it passed with a
+task-local 240-second allowance. The repository's parser and validation rules were unchanged.
+Early link/source-freshness failures were corrected and the affected checks passed on rerun.
+Browser previews and publication archives remain under `.tmp/intake-focused/` and
+`.tmp/syson/31b2cf0cfde86b798ca7/`. These naming checks do not rerun cache behavior, simulation or
+live deployment acceptance.
 
 ## Focused views and element meaning
 
@@ -45,7 +110,7 @@ equipment, actions, intent and verification retain their own category; frames ha
 | Native validation and source contracts | Passed with SysML Pilot 0.63.1 and Java 21; flattened relationships and external references resolve |
 | Focused regression checks | 65 passed, including native edit/negative cases, role classification, lost allocations, trace selection, copied-manual links and catalogue checks |
 | HTTP model execution | All six OpenSysML 0.12.1 runs match their scenario traces; availability and trust are supplied inputs, not live observations |
-| Browser navigation | 11 actual transitions cover overall → intake → use case → scenario → function → design, requirement → test and boot-1 → supporting intake |
+| Browser navigation | 11 actual transitions cover overall â†’ intake â†’ use case â†’ scenario â†’ function â†’ design, requirement â†’ test and boot-1 â†’ supporting intake |
 | Render review | 44 previews: 11 focused views at 1100/760px on light/dark backgrounds in Edge 157.0.4341.46; geometry checks passed |
 | Visual inspection | Logical/deployment, System Overall, goals, requirements, functions and tests reviewed; explanatory enclosures and external references remain distinct |
 
@@ -73,13 +138,13 @@ Follow-up checked 2026-11-19. `L-Cache` keeps its storage identity, logical allo
 realizations, now named **Rebuildable cache storage**. `CachedContent` is a separate item definition;
 the logical store and each selected disk have their own content usage. The native `contents[0..*]`
 feature declares the multiplicity. This does not assert replication, shared contents or publisher trust.
-The distinction follows [SysML 2.0 §§7.10–7.11](https://www.omg.org/spec/SysML/2.0/Language/PDF):
+The distinction follows [SysML 2.0 Â§Â§7.10â€“7.11](https://www.omg.org/spec/SysML/2.0/Language/PDF):
 items can represent acted-on data or material; parts describe components. Item kind alone therefore
 does not select the information colour. The reviewed information types do.
 
-Logical and deployment views show blue storage and a mauve `«item»` for its content. Functions retain
+Logical and deployment views show blue storage and a mauve `Â«itemÂ»` for its content. Functions retain
 their native component allocations. The follow-up layout shows each function and component once;
-ordered endpoints keep all six allocation routes separate, without crossings or shared segments. The [storage contract](../../../architecture/design/software-intake/object-cache/README.md)
+ordered endpoints keep all six allocation routes separate, without crossings or shared segments. The [storage contract](../../../architecture/models/software-intake/object-cache/ObjectCache.sysml)
 links the views, source and physical backing.
 
 | Check | Observed result |
@@ -106,7 +171,7 @@ The official SysML Pilot Implementation 2026-09.1 (kernel 0.63.1) and Java 21 va
 structure, guardrails, behavior and IaC-derived realization together. The normalized export retains
 stable identities, reusable types, flows, allocations, participant bindings, guarded alternatives and
 native message succession. The example selects two cache VMs with separate local disks.
-See the [model map](../model-map.md) and [tested toolchain](../../../architecture/toolchain.json).
+See the [model map](../model-map.md) and [tested toolchain](../../../scripts/architecture/config/toolchain.json).
 
 Both HTTP/HTTPS sequences come from native model relationships. Each message has a checked trace to
 implementation and/or acceptance evidence. Source contracts inspect the rendered Squid admission rules,
@@ -162,7 +227,7 @@ light/dark renders passed the geometry checks; the overview, logical view and de
 visually reviewed. No model behavior, IaC configuration or infrastructure was changed.
 
 The subsequent subsystem-ownership correction on 2026-11-18 collects intake design under
-`architecture/design/software-intake/`. A shared platform boundary now models virtualization,
+`architecture/models/software-intake/`. A shared platform boundary now models virtualization,
 local storage, guest attachments, logical fabrics and coarse physical connection with stable native
 identities. The resource view/report derive those relationships from the model; provider and reverse
 impact queries reach the selected VMs, logical contracts and scenarios. Platform detail and actual
@@ -183,7 +248,7 @@ Without them those two checks explicitly skip; the eight fast use-case checks st
 ## System Overall and design depth
 
 On 2026-11-18, Design gained a native system boundary and a five-box
-[System Overall](../../../architecture/design/README.md). Each box opens its level 1 overview;
+[System Overall](../../../architecture/README.md). Each box opens its level 1 overview;
 intake's policy-proxy/object-cache definitions live in level 2 folders. Shared platform folders map
 hosting, networking and data without moving their existing detailed chapters. Native reference bindings
 reuse the existing proxy, cache and provider parts. Other system boundaries remain documented maps.
@@ -233,8 +298,8 @@ allocations merely by appearing in System Overall.
 | Rendering | 72 renders across 18 views passed; all 11 changed overviews rechecked in 44 final renders at 1100/760px on light/dark backgrounds |
 | Visual review | System Overall, object-cache detail and provider/mapped coverage reviewed; context links are distinct from runtime/design relationships |
 
-The [scope registry](../../../architecture/views/design-context.json) owns root selection and mapped
-owner navigation; the [projection](../../../architecture/generated/design-context.json) retains the
+The [scope registry](../../../scripts/architecture/config/views/design-context.json) owns root selection and mapped
+owner navigation; the [projection](../../../artifacts/architecture/generated/design-context.json) retains the
 complete scoped file/check sets. The six cards are trace-navigation summaries, not native satisfaction
 assertions. Test links and accepted scenarios are not runtime pass evidence. No infrastructure was applied.
 
@@ -250,7 +315,7 @@ sections and declared generated outputs, preserving authored prose and site-owne
 
 ## Diagram-first walkthrough
 
-On 2026-11-18, the [System Overall SVG](../../../architecture/views/system-overall.svg) became the
+On 2026-11-18, the [System Overall SVG](../../../architecture/generated/HomelabSystemOverview.svg) became the
 visual entry to linked subsystem and scoped concern views. Documentation remains a labelled asset.
 The [HTTP example](03-http-walkthrough.md) follows `SC-http-miss` through its native messages, functions,
 requirements, logical allocations, selected realization and implementation/test sources. All five
@@ -296,10 +361,10 @@ disable navigation; source/document assets may open or download according to bro
 
 ## Reverse change review
 
-On 2026-11-18, [Change impact](../../../architecture/views/software-intake/asset-impact.svg) added
+On 2026-11-18, [Change impact](../../../artifacts/architecture/generated/software-intake/reverse-trace.md) added
 reverse entry for **57 recorded source, check and test-method assets**. The index and each impact view
 come from the existing trace map and the native model. Their
-[supporting report](../../../architecture/generated/software-intake/reverse-trace.md) retains the
+[supporting report](../../../artifacts/architecture/generated/software-intake/reverse-trace.md) retains the
 relationship path for each function, scenario, use case and guardrail shown.
 
 **30 focused tests passed** in 128.663 seconds: reverse trace contracts, forward SVG navigation,
@@ -317,7 +382,6 @@ rendered at 1100/760 pixels on light/dark backgrounds (**12 previews**) and visu
 From **the upstream kit checkout**, with the existing Playwright/Edge setup:
 
 ```bash
-node docs/08-reference/diagrams/verify-intake-impact.cjs
 ```
 
 Use `DIAGRAM_PLAYWRIGHT` when Playwright is installed outside the normal module path. The report and
@@ -350,7 +414,7 @@ all eight SysON tests passed. In total, 54 distinct focused tests passed across 
 not a full-repository test result. Test-driven corrections also kept client integrity impact scoped
 to its own obligation and included generated `.dot` assets in copied manuals.
 
-The [dated analysis result](../../../architecture/test/software-intake/admission-analysis-2026-11-18.json)
+The [dated analysis result](../../../artifacts/architecture/evidence/software-intake/admission-analysis-2026-11-18.json)
 retains its source-model SHA-256, input combinations and native outputs. It establishes only the stated
 Boolean policy comparison. It does not execute HTTP/HTTPS sequences, simulate the network, establish
 runtime performance or prove the deployed configuration. A changed model requires fresh evaluation.
@@ -364,8 +428,6 @@ and documented CONNECT/TLS, custody and independent-egress gaps remain in force.
 
 From the upstream checkout, use the [build setup](02-connected-model.md#build-and-check), then run
 `python scripts/architecture/software_intake.py analyze`. Browser reruns use
-`node docs/08-reference/diagrams/verify-intake-engineering.cjs` and
-`node docs/08-reference/diagrams/verify-intake-impact.cjs` with the renderer setup below.
 Their reports remain under ignored `.tmp/intake-render/`.
 
 ## Native HTTP behavior execution
@@ -377,9 +439,9 @@ Windows security setting was changed. The runtime installer and documented WSL p
 
 The native action shares the admission calculation with `F-admit`. Execution actions retain explicit
 correspondence to the expected HTTP messages; experiment usages link to their owning use-case scenarios.
-The [execution view](../../../architecture/views/software-intake/execution.svg) uses observed
+The [execution view](../../../architecture/generated/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.svg) uses observed
 engine events and links them to the expected scenario, functions and existing implementation/test owners.
-The [evidence record](../../../architecture/test/software-intake/execution.json) contains native output,
+The [evidence record](../../../artifacts/architecture/evidence/software-intake/execution.json) contains native output,
 inputs, counters, tool identity, UTC execution time and source fingerprints.
 
 | Experiment | Observed outcome | Source attempts | Client checks |
@@ -451,7 +513,7 @@ and logs were temporary. No package was installed and no host trust or homelab i
 | Altered package already cached | Cache hit without source traffic; APT still rejected the hash mismatch |
 | Publisher authentication | Signed metadata accepted with the fixture key; missing publisher key rejected with NO_PUBKEY |
 
-The [measured evidence](../../../architecture/test/software-intake/implementation.json) records versions,
+The [measured evidence](../../../artifacts/architecture/evidence/software-intake/implementation.json) records versions,
 inputs, model expectations, source fingerprints, HTTP/Squid outcomes, source requests and APT results.
 It compares accepted/outcome/source-request/client-verification observations. Internal cache-lookup
 steps are not instrumented or fabricated. APT authenticates metadata before the measured package
@@ -518,7 +580,7 @@ distinct. No homelab deployment or new graphical SysON publication was performed
 
 ## Focused bootstrap use case
 
-Checked 2026-11-18. The [bootstrap goal](../../../architecture/use-cases/bootstrap/README.md)
+Checked 2026-11-18. The [bootstrap goal](../../../architecture/models/platform/hosting/Hosting.sysml)
 binds its subject to the existing boot-1 boundary and its supporting actor to the existing software
 intake subsystem. The native dependency links the goal to the expected HTTPS access scenario;
 it is not an include across different subjects or an executable Git invocation.
@@ -550,7 +612,7 @@ dashboards remain existing navigation; this bounded example demonstrates focused
 
 ## Recorded results
 
-The following records the earlier structure/behavior baseline from 2026-11-17–18.
+The following records the earlier structure/behavior baseline from 2026-11-17â€“18.
 
 | Check | Result |
 | --- | --- |
@@ -608,7 +670,7 @@ Only loopback high ports and disposable test state are used; no host service is 
 The fixture deliberately rejects CONNECT forwarding with HTTP 501. It checks denied CONNECT requests,
 but does **not** prove a successful tunnel, TLS source authentication or encrypted payload retrieval.
 Those exchanges remain `manual-acceptance` in the
-[behavior trace](../../../architecture/generated/software-intake/behavior-trace.md).
+[behavior trace](../../../artifacts/architecture/generated/software-intake/behavior-trace.md).
 
 From **the upstream kit checkout**, in Linux with the required test dependencies and an installed or
 unpacked Squid binary selected through `HOMELAB_SQUID`:

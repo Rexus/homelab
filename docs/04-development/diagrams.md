@@ -1,9 +1,15 @@
 # Diagram conventions
 
-Diagrams answer one question: placement, containment, interaction or deployment
+For connected model views, use the [engineering-role colour profile](model-colours.md).
+
+Diagrams answer one question: solution arrangement, containment, interaction or deployment
 progress. The [platform map](../01-architecture/README.md#functional-structure) owns
 capability placement; domain designs expand it without changing tier or network
-ownership. Deployment views show the capability added by a step, not a new architecture.
+ownership. Use **Logical design** for responsibilities and contracts, and **Solution design** for
+the chosen elements and how they fit together. Software placement belongs in that solution drawing;
+add a focused deployment or resource view only when its question or readability warrants it.
+These views share the same design owner and preserve the distinction between software, virtual
+resources and physical equipment.
 
 ## Table of contents
 
@@ -253,13 +259,13 @@ A convention figure explaining an allocation format is the reference exception.
 ## Boundaries and colour
 
 The [palette](../08-reference/diagrams/palette.json) defines reusable colours.
-The [shared notation](../../architecture/views/notation.json) defines role shapes, model categories and
+The [shared notation](../../scripts/architecture/config/views/notation.json) defines role shapes, model categories and
 separate boundary styles. Portable SVGs of the connected model generate their keys from the categories
 and enclosures actually displayed. Sequence notation retains lifelines, requests and responses; the same
 participant identities bind back to structure. Native SysON presentations retain their renderer's
 notation and coverage limits described in the [publication guide](syson.md#ownership-and-limitations).
 
-For software intake, [type-to-role bindings](../../architecture/views/software-intake/roles.json) select
+For software intake, [type-to-role bindings](../../scripts/architecture/config/views/software-intake/roles.json) select
 shapes; the shared notation's model categories select colours by native kind and explicit type or element
 mapping. The proxy and rebuildable storage are blue logical components. Structural views show the proxy
 as a rectangle and storage as a cylinder, with a separate mauve content item inside. Functions/actions

@@ -7,7 +7,7 @@ For verified publication, use [verified software intake operations](verified-pub
 
 <a id="figure-reference-cache-deployment"></a>
 
-![Cache clients below Tier 2 and approved upstream sources to its left](../../../architecture/views/software-intake/placement.svg)
+![Cache clients below Tier 2 and approved upstream sources to its left](../../../architecture/generated/software-intake/solution/SoftwareIntakeSolutionDesign.svg)
 
 *Figure: Approved update clients below Tier 2 request the Cache VIP; Cache Services request approved
 Internet sources or a configured upstream proxy to the left. Replies use the established connections.

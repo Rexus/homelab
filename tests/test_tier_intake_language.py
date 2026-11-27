@@ -57,9 +57,16 @@ class NativeObjectRules(unittest.TestCase):
                      'Native SysML tools required')
 class NativeSourceRegressions(IntakeModelFixture):
     def reject(self, before, after, diagnostic):
-        self.change('architecture/functions/software-intake/retrieval-execution.sysml', before, after)
+        self.change('architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml', before, after)
         args = Namespace(**{n.lower(): os.environ['SYSML_' + n] for n in ('JAVA', 'KERNEL', 'LIBRARY')})
         with self.assertRaisesRegex(ValueError, diagnostic):
+            run(self.root, 'build', args)
+
+    def test_native_sysml_v1_block_syntax_is_rejected(self):
+        source = self.root / 'architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml'
+        source.write_text(source.read_text(encoding='utf-8') + '\nblock LegacyBlock { }\n', encoding='utf-8')
+        args = Namespace(**{n.lower(): os.environ['SYSML_' + n] for n in ('JAVA', 'KERNEL', 'LIBRARY')})
+        with self.assertRaisesRegex(ValueError, 'Native SysML validation failed'):
             run(self.root, 'build', args)
 
     def test_native_bound_counter_regression_is_rejected(self):

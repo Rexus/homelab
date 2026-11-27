@@ -166,7 +166,7 @@ class SysONCompatibility(unittest.TestCase):
 class SysONViewSelection(unittest.TestCase):
     def test_new_consumers_change_only_impact_and_overall_selection_is_preserved(self):
         root = Path(__file__).resolve().parents[1]
-        overall = json.loads((root / "architecture/views/system-overall.json").read_text())['views'][0]
+        overall = json.loads((root / "scripts/architecture/config/views/system-overall.json").read_text())['views'][0]
         keys = [n['key'] for n in overall['nodes']] + ['DEF-proxy', 'DOC-proxy-contract', 'consumer-1']
         raw = [{'@id': k, '@type': 'PartUsage', 'declaredShortName': k,
                 'qualifiedName': 'Example::' + k} for k in keys]

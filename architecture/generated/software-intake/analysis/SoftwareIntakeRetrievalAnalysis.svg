@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 723" role="img">
+  <style>svg[data-view]{visibility:hidden}view:target+svg[data-view]{visibility:visible}svg:not(:has(&gt;view:target))&gt;svg[data-view]:first-of-type{visibility:visible}</style>
+  <view id="index" viewBox="0 0 960 723" />
+  <svg viewBox="0 0 960 723" role="img" x="0" y="0" width="960" height="723.0" data-view="index">
+    <title>HTTP retrieval | native execution</title>
+    <style>a{cursor:pointer}a:hover rect,a:focus rect{stroke-width:2.5px}</style>
+    <rect width="960" height="723" fill="white" />
+    <text x="30" y="35" style="font:bold 24px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">HTTP retrieval | native execution</text>
+    <text x="30" y="65" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Historical execution is stale for these sources. Run execute again.</text>
+    <a href="../SoftwareIntakeUseCases.svg#SC-http-miss" target="_top" aria-label="Retrieve from available source">
+      <title>Retrieve from available source</title>
+      <g class="explorer-card" data-element="RUN-miss" data-category="function" color="#5b3921" style=";color:#5b3921;">
+        <rect x="30" y="100" width="440" height="76" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="45" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Retrieve from available source</text>
+        <text x="45" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected scenario: SC-http-miss</text>
+      </g>
+    </a>
+    <a href="../SoftwareIntakeUseCases.svg#SC-http-hit" target="_top" aria-label="Reuse fresh content while source is offline">
+      <title>Reuse fresh content while source is offline</title>
+      <g class="explorer-card" data-element="RUN-hit-offline" data-category="function" color="#5b3921" style=";color:#5b3921;">
+        <rect x="490" y="100" width="440" height="76" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="505" y="125" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reuse fresh content while source is offline</text>
+        <text x="505" y="149" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected scenario: SC-http-hit</text>
+      </g>
+    </a>
+    <a href="../SoftwareIntakeUseCases.svg#SC-http-denied" target="_top" aria-label="Deny even when content is cached">
+      <title>Deny even when content is cached</title>
+      <g class="explorer-card" data-element="RUN-denied" data-category="function" color="#5b3921" style=";color:#5b3921;">
+        <rect x="30" y="188" width="440" height="76" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="45" y="213" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Deny even when content is cached</text>
+        <text x="45" y="237" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected scenario: SC-http-denied</text>
+      </g>
+    </a>
+    <a href="../SoftwareIntakeUseCases.svg#SC-http-source-failure" target="_top" aria-label="Stop after source failure">
+      <title>Stop after source failure</title>
+      <g class="explorer-card" data-element="RUN-source-failure" data-category="function" color="#5b3921" style=";color:#5b3921;">
+        <rect x="490" y="188" width="440" height="76" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="505" y="213" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Stop after source failure</text>
+        <text x="505" y="237" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected scenario: SC-http-source-failure</text>
+      </g>
+    </a>
+    <a href="../SoftwareIntakeUseCases.svg#SC-http-untrusted" target="_top" aria-label="Reject untrusted source content">
+      <title>Reject untrusted source content</title>
+      <g class="explorer-card" data-element="RUN-untrusted" data-category="function" color="#5b3921" style=";color:#5b3921;">
+        <rect x="30" y="276" width="440" height="76" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="45" y="301" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reject untrusted source content</text>
+        <text x="45" y="325" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected scenario: SC-http-untrusted</text>
+      </g>
+    </a>
+    <a href="../SoftwareIntakeUseCases.svg#SC-http-cache-untrusted" target="_top" aria-label="Reject untrusted cached content">
+      <title>Reject untrusted cached content</title>
+      <g class="explorer-card" data-element="RUN-cache-untrusted" data-category="function" color="#5b3921" style=";color:#5b3921;">
+        <rect x="490" y="276" width="440" height="76" rx="4" fill="#f8fafc" stroke="#64748b" style=";fill:#fcebdc;stroke:#a16c43;" />
+        <text x="505" y="301" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Reject untrusted cached content</text>
+        <text x="505" y="325" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Expected scenario: SC-http-cache-untrusted</text>
+      </g>
+    </a>
+    <a href="../../../../docs/01-architecture/07-software-intake/06-implementation-comparison.md" target="_top" aria-label="Compare with real software">
+      <title>Compare with real software</title>
+      <g class="explorer-card">
+        <rect x="30" y="364" width="900" height="76" rx="4" fill="#f8fafc" stroke="#64748b" />
+        <text x="45" y="389" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Compare with real software</text>
+        <text x="45" y="413" style="font:normal 15px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Observed Squid cache results and APT verification, compared with these same expectations.</text>
+      </g>
+    </a>
+    <g class="explorer-card">
+      <rect x="30" y="452" width="440" height="193" fill="#f8fafc" stroke="#64748b" rx="4" />
+      <text x="45" y="478" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Native model and experiments</text>
+      <a href="../../../models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml" target="_top" aria-label="architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml">
+        <title>architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml</title>
+        <text x="45" y="504" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">software-intake/analysis/SoftwareIntakeRetrieval</text>
+        <text x="45" y="522" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Analysis.sysml</text>
+      </a>
+      <a href="../../../models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml" target="_top" aria-label="architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml">
+        <title>architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml</title>
+        <text x="45" y="549" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">software-intake/analysis/SoftwareIntakeRetrieval</text>
+        <text x="45" y="567" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Analysis.sysml</text>
+      </a>
+      <a href="../../../models/software-intake/SoftwareIntakeLogicalDesign.sysml" target="_top" aria-label="architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml">
+        <title>architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml</title>
+        <text x="45" y="594" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">models/software-</text>
+        <text x="45" y="612" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">intake/SoftwareIntakeLogicalDesign.sysml</text>
+      </a>
+    </g>
+    <g class="explorer-card">
+      <rect x="490" y="452" width="440" height="130" fill="#f8fafc" stroke="#64748b" rx="4" />
+      <text x="505" y="478" style="font:bold 17px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Evidence and scope</text>
+      <a href="../../../../docs/01-architecture/07-software-intake/05-retrieval-execution.md" target="_top" aria-label="docs/01-architecture/07-software-intake/05-retrieval-execution.md">
+        <title>docs/01-architecture/07-software-intake/05-retrieval-execution.md</title>
+        <text x="505" y="504" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">01-architecture/07-software-intake/05-retrieval-</text>
+        <text x="505" y="522" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">execution.md</text>
+      </a>
+      <a href="../../../../artifacts/architecture/evidence/software-intake/execution.json" target="_top" aria-label="artifacts/architecture/evidence/software-intake/execution.json">
+        <title>artifacts/architecture/evidence/software-intake/execution.json</title>
+        <text x="505" y="549" style="font:normal 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">evidence/software-intake/execution.json</text>
+      </a>
+    </g>
+    <rect x="0" y="667" width="960" height="56" fill="#eef2f6" />
+    <a href="../../HomelabSystemOverview.svg" target="_top" aria-label="System Overall">
+      <title>System Overall</title>
+      <rect x="20.0" y="674" width="200" height="42" fill="transparent" />
+      <text x="120.0" y="700" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+    </a>
+    <a href="../SoftwareIntakeLogicalDesign.svg" target="_top" aria-label="Logical design">
+      <title>Logical design</title>
+      <rect x="260.0" y="674" width="200" height="42" fill="transparent" />
+      <text x="360.0" y="700" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Logical design</text>
+    </a>
+    <a href="../SoftwareIntakeUseCases.svg#SC-http-miss" target="_top" aria-label="Expected HTTP">
+      <title>Expected HTTP</title>
+      <rect x="500.0" y="674" width="200" height="42" fill="transparent" />
+      <text x="600.0" y="700" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Expected HTTP</text>
+    </a>
+    <a href="../../../../docs/01-architecture/07-software-intake/05-retrieval-execution.md" target="_top" aria-label="Documentation">
+      <title>Documentation</title>
+      <rect x="740.0" y="674" width="200" height="42" fill="transparent" />
+      <text x="840.0" y="700" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+    </a>
+  </svg>
+</svg>

@@ -114,25 +114,25 @@ class IntakeNativeUseCaseRoundTrip(IntakeModelFixture):
     def test_native_message_edit_updates_scenario_and_sequence_with_same_identity(self):
         before = "Fetch or conditionally revalidate"
         after = "Retrieve or conditionally revalidate accepted content"
-        self.change("architecture/functions/software-intake/behavior.sysml", before, after)
+        self.change("architecture/models/software-intake/SoftwareIntakeBehavior.sysml", before, after)
         model = self.build()
         self.assertIn("H-fetch", model["scenarios"]["SC-http-miss"]["messages"])
         self.assertEqual(
             scenario_functions(model, "SC-http-miss"), scenario_functions(self.model, "SC-http-miss")
         )
         for file in (
-            "architecture/generated/software-intake/scenarios.md",
-            "architecture/generated/software-intake/http.mmd",
+            "artifacts/architecture/generated/software-intake/scenarios.md",
+            "artifacts/architecture/generated/software-intake/http.mmd",
             "docs/01-architecture/07-software-intake/README.md",
         ):
             self.assertIn(after, (self.root / file).read_text(encoding="utf-8"))
         self.check()
 
     def test_missing_native_scenario_condition_preserves_previous_export(self):
-        index = self.root / "architecture/generated/software-intake/model-index.json"
+        index = self.root / "artifacts/architecture/generated/software-intake/model-index.json"
         previous = index.read_bytes()
         self.change(
-            "architecture/use-cases/software-intake/use-cases.sysml", "attribute :>> admitted = false;", ""
+            "architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml", "attribute :>> admitted = false;", ""
         )
         with self.assertRaisesRegex(ValueError, "missing scenario condition"):
             self.build()

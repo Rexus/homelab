@@ -15,7 +15,7 @@ from view_catalog import selections
 class BootstrapUseCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.model = json.loads((UPSTREAM / 'architecture/generated/software-intake/model-index.json')
+        cls.model = json.loads((UPSTREAM / 'artifacts/architecture/generated/software-intake/model-index.json')
                                .read_text(encoding='utf-8'))['model']
 
     def test_native_roles_and_focus_survive_projection(self):
@@ -34,7 +34,7 @@ class BootstrapUseCase(unittest.TestCase):
         anchor = next(a for a in svg.iter(tag('a'))
                       if a.find(tag('g') + "[@data-model='ACT-intake']") is not None)
         self.assertEqual((VIEW.parent / anchor.get('href')).as_posix(),
-                         'architecture/views/platform/hosting/../../software-intake/logical.svg')
+                         'architecture/generated/platform/hosting/../../software-intake/SoftwareIntakeLogicalDesign.svg')
         self.assertEqual(target_for(self.model, [], 'UC-clone'), str(VIEW).replace('\\', '/'))
 
     def test_bootstrap_configuration_traces_back_to_its_goal(self):
@@ -43,7 +43,7 @@ class BootstrapUseCase(unittest.TestCase):
         result = review(self.model, trace_map(UPSTREAM),
                         'tier-0/ansible/playbooks/deployment/bootstrap-software-intake.yml')
         self.assertIn('UC-clone', result['use_cases'])
-        from intake_reverse_view import model_link
+        from intake_reverse_report import model_link
         self.assertEqual(model_link('UC-clone'), VIEW.as_posix())
         self.assertEqual(next(row['state'] for row in result['direct'] if row['element'] == 'UC-clone'), 'documented-context')
 

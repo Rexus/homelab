@@ -5,7 +5,7 @@ The main path creates a Tier 2 policy proxy/cache; an existing approved proxy or
 
 <a id="figure-1-controlled-proxy-pair"></a>
 
-![Cache clients below Tier 2 and approved upstream sources to its left](../../../architecture/views/software-intake/placement.svg)
+![Cache clients below Tier 2 and approved upstream sources to its left](../../../architecture/generated/software-intake/solution/SoftwareIntakeSolutionDesign.svg)
 
 **IaC:** **Figure 1: Controlled proxy pair.** Tier 2 [cache inputs](../../../tier-2/terraform/deployments/cache/terraform.tfvars.example)
 and [cache recipe](../../../tier-2/ansible/playbooks/deployment/outbound-cache.yml).

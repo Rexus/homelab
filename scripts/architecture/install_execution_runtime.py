@@ -12,7 +12,7 @@ import zipfile
 
 
 def install(root, selected, archive=None):
-    pin = json.loads((root / 'architecture/toolchain.json').read_text())['execution']
+    pin = json.loads((root / 'scripts/architecture/config/toolchain.json').read_text())['execution']
     version = pin['version']
     destination = root / '.tmp/tools' / ('opensysml-' + version.removeprefix('v'))
     destination.mkdir(parents=True, exist_ok=True)

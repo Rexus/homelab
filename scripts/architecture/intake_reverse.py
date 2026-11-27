@@ -5,8 +5,7 @@ import hashlib
 from pathlib import Path
 from intake_use_cases import connections
 
-GENERATED = "architecture/generated/software-intake/"
-REVERSE_VIEW = "architecture/views/software-intake/asset-impact.svg"
+GENERATED = "artifacts/architecture/generated/software-intake/"
 REVERSE_REPORT = GENERATED + "reverse-trace.md"
 REVERSE_INDEX = GENERATED + "reverse-trace.json"
 
@@ -26,7 +25,7 @@ def associations(records):
 
 
 def asset_links(records):
-    return {asset: REVERSE_VIEW + "#" + asset_id(asset) for asset in associations(records)}
+    return {asset: REVERSE_REPORT + "#" + asset_id(asset) for asset in associations(records)}
 
 
 def upstream_paths(model, seeds):

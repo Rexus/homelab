@@ -1,6 +1,6 @@
 # Follow an HTTP retrieval through the design
 
-Start in the [System Overall SVG](../../../architecture/views/system-overall.svg), opened directly
+Start in the [System Overall SVG](../../../architecture/generated/HomelabSystemOverview.svg), opened directly
 in a browser. Stay in the diagrams while exploring; use **Documentation** for supporting
 text. Browser Back returns to the previous view, including its selected scenario/function.
 
@@ -55,7 +55,7 @@ that is absent from the cache or needs revalidation.
 | **IaC and sources** | Actual Terraform, Ansible and template assets selected through logical/realization trace ownership |
 | Back to the intake overview → **Verification** | Scenario acceptance, linked checks, recorded executions and remaining site acceptance |
 
-Direct entry: [HTTP scenario SVG](../../../architecture/views/software-intake/scenario-views.svg#SC-http-miss).
+Direct entry: [HTTP scenario SVG](../../../architecture/generated/software-intake/SoftwareIntakeUseCases.svg#SC-http-miss).
 The scenario retains source request/response direction and chronological order. Clicking a message
 opens its assigned function, rather than an independently maintained description of that message.
 
@@ -102,8 +102,8 @@ through the cache to actual client verification in one isolated fixture. It does
 
 ## Follow a file or test backwards
 
-Open **Change impact** at the bottom of [System Overall](../../../architecture/views/system-overall.svg),
-or use the [file/test index](../../../architecture/views/software-intake/asset-impact.svg) directly.
+Open **Change impact** at the bottom of [System Overall](../../../architecture/generated/HomelabSystemOverview.svg),
+or use the [file/test index](../../../artifacts/architecture/generated/software-intake/reverse-trace.md) directly.
 Source and test attachments in the concern/function views also have an adjacent **Impact** link.
 The original filename still opens its source; Impact opens its reverse model view.
 

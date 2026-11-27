@@ -3,7 +3,7 @@ const path = require('node:path');
 const {pathToFileURL} = require('node:url');
 const {chromium} = require(process.env.DIAGRAM_PLAYWRIGHT);
 (async () => {
-  const file = path.resolve('architecture/views/platform/hosting/clone-repository.svg');
+  const file = path.resolve('architecture/generated/platform/hosting/Boot1CloneRepository.svg');
   const output = path.resolve('.tmp/intake-render');
   fs.mkdirSync(output, {recursive:true});
   const browser = await chromium.launch({channel:'msedge',headless:true});

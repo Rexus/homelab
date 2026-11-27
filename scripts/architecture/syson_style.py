@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 
 
 def shared_colours(root, source, view):
-    notation = json.loads((root / 'architecture/views/notation.json').read_text(encoding='utf-8'))
+    notation = json.loads((root / 'scripts/architecture/config/views/notation.json').read_text(encoding='utf-8'))
     palette = json.loads((root / notation['palette']).read_text(encoding='utf-8'))
     svg = ET.fromstring(source.read_text(encoding='utf-8'))
 
@@ -17,9 +17,9 @@ def shared_colours(root, source, view):
         else:
             category = notation['modelCategories'][node.get('data-category')]
             style = palette['roles'][category['paletteRole']]
-            # SVG class CSS still owns inherited text colour; the category decorator overrides
-            # shape fills/borders. Preserve the actual SVG, including its existing text treatment.
-            foreground = palette['roles'].get(node.get('class'), style)['color']
+            # Preserve the rendered foreground: semantic inline colour overrides legacy class CSS.
+            inline = dict(item.split(':', 1) for item in node.get('style', '').split(';') if ':' in item)
+            foreground = inline.get('color', palette['roles'].get(node.get('class'), style)['color'])
         return {'fill': style['fill'], 'stroke': style['stroke'], 'color': foreground}
 
     selected = {node.get('data-model'): colours(node) for node in svg.iter()

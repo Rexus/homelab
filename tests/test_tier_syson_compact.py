@@ -16,12 +16,14 @@ class CompactPublication(unittest.TestCase):
     def test_publication_is_explicit_and_not_expanded_by_catalogue_growth(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            folder = root / 'architecture/views'
+            folder = root / 'scripts/architecture/config/views'
             folder.mkdir(parents=True)
+            catalog = root / 'artifacts/architecture/catalog.json'
+            catalog.parent.mkdir(parents=True)
             entries = [{'key': k, 'name': k, 'owner': '.', 'svg': k+'.svg',
                         'elements': ['A'], 'relationships': [], 'content_sha256': 'selection'}
                        for k in ('chosen', 'report')]
-            (folder/'catalog.json').write_text(json.dumps({'views': entries}))
+            catalog.write_text(json.dumps({'views': entries}))
             config = {'publication_views': ['chosen']}
             (folder/'syson.json').write_text(json.dumps(config))
             raw = [{'declaredShortName': 'A', 'qualifiedName': 'System::A'}]
@@ -42,10 +44,11 @@ class CompactPublication(unittest.TestCase):
     def test_known_item_gap_keeps_selection_without_exposing_unsupported_kind(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            folder = root / 'architecture/views'; folder.mkdir(parents=True)
+            folder = root / 'scripts/architecture/config/views'; folder.mkdir(parents=True)
+            catalog = root / 'artifacts/architecture/catalog.json'; catalog.parent.mkdir(parents=True)
             entry = {'key': 'chosen', 'name': 'chosen', 'owner': '.', 'svg': 'chosen.svg',
                      'elements': ['A', 'D'], 'relationships': [], 'content_sha256': 'selection'}
-            (folder/'catalog.json').write_text(json.dumps({'views': [entry]}))
+            catalog.write_text(json.dumps({'views': [entry]}))
             config = {'publication_views': ['chosen'], 'interconnection_views': {'chosen': {
                 'boxes': {'A': [0,0,300,200], 'D': [20,42,100,80]}, 'ports': {},
                 'rendering_gaps': {'D': {'kind': 'ItemUsage', 'reason': 'Release limitation'}}}}}

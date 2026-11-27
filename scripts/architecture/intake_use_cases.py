@@ -4,12 +4,12 @@ from intake_sources import require
 
 # Navigation owns presentation destinations; native memberships own case meaning.
 CASE_VIEWS = {
-    "UC-update": "architecture/views/software-intake/use-cases.svg",
-    "UC-clone": "architecture/views/platform/hosting/clone-repository.svg",
+    "UC-update": "architecture/generated/software-intake/SoftwareIntakeUseCases.svg",
+    "UC-clone": "architecture/generated/platform/hosting/Boot1CloneRepository.svg",
 }
 CASE_GUIDES = {
-    "UC-update": "architecture/use-cases/software-intake/README.md",
-    "UC-clone": "architecture/use-cases/bootstrap/README.md",
+    "UC-update": "architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml",
+    "UC-clone": "architecture/models/platform/hosting/Hosting.sysml",
 }
 
 

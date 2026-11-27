@@ -9,11 +9,11 @@ from intake_sources import VIEWS, require
 
 def resource_view(root, model, inputs):
     view = json.loads((root / VIEWS / "resources.json").read_text(encoding="utf-8"))
-    notation = json.loads((root / "architecture/views/notation.json").read_text(encoding="utf-8"))
+    notation = json.loads((root / "scripts/architecture/config/views/notation.json").read_text(encoding="utf-8"))
     palette = json.loads((root / notation["palette"]).read_text(encoding="utf-8"))["roles"]
     ET.register_namespace("", "http://www.w3.org/2000/svg")
     svg = ET.Element(
-        tag("svg"), {"viewBox": "0 0 960 960", "role": "img", "aria-labelledby": "title desc"}
+        tag("svg"), {"data-view-id": "VIEW-software-intake-resource-dependencies", "viewBox": "0 0 960 960", "role": "img", "aria-labelledby": "title desc"}
     )
     ET.SubElement(svg, tag("title"), {"id": "title"}).text = (
         "Software intake and its shared resource dependencies"

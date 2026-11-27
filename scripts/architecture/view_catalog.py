@@ -9,16 +9,18 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import posixpath
 import xml.etree.ElementTree as ET
 
 from diagram_notation import tag
 
-CATALOG = Path('architecture/views/catalog.json')
-INDEX = Path('architecture/views/README.md')
+CATALOG = Path('artifacts/architecture/catalog.json')
+INDEX = Path('artifacts/architecture/Views.md')
 
 
 def identity(path, fragment=''):
-    name = Path(path).relative_to('architecture/views').with_suffix('').as_posix()
+    base = 'architecture/models' if Path(path).is_relative_to('architecture/models') else 'architecture/generated'
+    name = Path(path).relative_to(base).with_suffix('').as_posix()
     return 'VIEW-' + re.sub(r'[^a-zA-Z0-9_-]', '-', name + ('--' + fragment if fragment else ''))
 
 
@@ -57,14 +59,14 @@ def selections(svg, model):
     return sorted(nodes), [unique[k] for k in sorted(unique)], boundary
 
 
-def compile_views(outputs, model, selection=None):
+def compile_views(outputs, model, selection=None, identities=None):
     views = []
     selected = set(selection) if selection is not None else None
     found = set()
     for path, value in sorted(outputs.items()):
         if path.suffix != '.svg':
             continue
-        if not path.is_relative_to('architecture/views'):
+        if not any(path.is_relative_to(base) for base in ('architecture/generated','architecture/models')):
             raise ValueError('Architecture SVG outside views: ' + str(path))
         root = ET.fromstring(value)
         pages = [e for e in root if e.get('data-view')] or [root]
@@ -76,9 +78,9 @@ def compile_views(outputs, model, selection=None):
             found.add(destination)
             nodes, relations, subject = selections(page, model)
             title = next((e.text for e in page if e.tag == tag('title')), None) or path.stem
-            key = page.get('data-view-id') or identity(path, fragment)
+            key = page.get('data-view-id') or (identities or {}).get(destination) or identity(path, fragment)
             page.set('data-view-id', key)
-            view = {'key': key, 'name': title, 'owner': path.parent.relative_to('architecture/views').as_posix(),
+            view = {'key': key, 'name': title, 'owner': path.parent.relative_to('architecture/models' if path.is_relative_to('architecture/models') else 'architecture/generated').as_posix(),
                     'svg': path.as_posix() + ('#' + fragment if fragment else ''),
                     'subject': subject, 'elements': nodes, 'relationships': relations,
                     'presentation': 'model-derived SVG; native SysON uses its own notation'}
@@ -98,15 +100,18 @@ def compile_views(outputs, model, selection=None):
     outputs[CATALOG] = json.dumps({'schema': 1, 'semantic_owner': 'Git', 'views': views}, indent=2) + '\n'
     lines = ['# Architecture views', '',
              'Styled SVGs and native SysON views use the same model selections and stable view identities.',
-             'Folders follow Design ownership. This is the deliberately selected engineering view set.',
+             'Native sources live in architecture/models; generated SVGs live separately in architecture/generated.',
+             'These are projections of one native model, not another authored design tree.',
+             'This is the deliberately selected engineering view set.',
              'Supporting scenario details, inspection reports and evidence remain linked assets; their pages',
              'are not automatically additional native views.',
-             'Git owns semantic edits. SysON is a generated review snapshot; publication records actual',
+             'Git holds accepted semantics; reviewed SysON intent changes can return to the owning sources.',
+             'Publication records actual',
              'element and relationship coverage and must not call an incomplete rendering equivalent.', '',
-             '[System Overall](system-overall.svg) · [Authoring and publication](../../docs/04-development/syson.md)', '',
+             '[System Overall](../../architecture/generated/HomelabSystemOverview.svg) · [Authoring and publication](../../docs/04-development/syson.md)', '',
              '| View | Owner | Model elements | Selected relationships |', '| --- | --- | ---: | ---: |']
     for v in views:
-        lines.append(f"| [{v['name'].replace('|', ' / ')}]({v['svg'].removeprefix('architecture/views/')}) | "
+        lines.append(f"| [{v['name'].replace('|', ' / ')}]({posixpath.relpath(v['svg'], INDEX.parent.as_posix())}) | "
                      f"{v['owner']} | {len(v['elements'])} | {len(v['relationships'])} |")
     outputs[INDEX] = '\n'.join(lines) + '\n'
     return views

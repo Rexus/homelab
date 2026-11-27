@@ -1,13 +1,11 @@
 # Review the homelab model in SysON
 
-Git holds the accepted model baseline. The normal SysON publication contains **two compact views**:
-[System Overall](../../architecture/views/system-overall.svg) and
-[software intake](../../architecture/views/software-intake/logical.svg).
-The styled SVGs remain the portable repository presentation of those selections.
+Git holds the accepted model baseline. The normal publication contains **six selected views**:
+System Overall, system use cases, and software-intake Logical design, use cases, functions and Solution design. The styled SVGs remain the portable repository presentation of those selections.
 
-The broader [engineering catalogue](../../architecture/views/README.md) is available in Git.
+The broader [engineering catalogue](../../architecture/README.md) is available in Git.
 Only the explicit `publication_views` list in
-[`architecture/views/syson.json`](../../architecture/views/syson.json) is published to SysON.
+[`scripts/architecture/config/views/syson.json`](../../scripts/architecture/config/views/syson.json) is published to SysON.
 Adding an SVG, report, page or catalogue entry does not add a native view.
 
 ## Contents
@@ -36,7 +34,7 @@ Prepare the pinned Java and SysML Pilot tools using
 [Build and check](../01-architecture/07-software-intake/02-connected-model.md#build-and-check).
 Set `SYSML_JAVA`, `SYSML_KERNEL` and `SYSML_LIBRARY` to their installed locations.
 A missing tool or invalid model stops publication before project creation. The declared WebSocket
-client keeps SysON's native editing context and both diagram subscriptions active during publication;
+client keeps SysON's native editing context and all selected diagram subscriptions active during publication;
 HTTP success alone is insufficient. The adapter still verifies the saved state before accepting it.
 
 ## Publish and browse
@@ -50,14 +48,44 @@ python scripts/architecture/syson.py publish
 Alternatively, pass `--java /path/to/jdk/bin/java`,
 `--kernel /path/to/jupyter-sysml-kernel-0.63.1-all.jar` and `--library /path/to/sysml.library`.
 
-**Expected:** a `Homelab review - <revision>` project containing the full model and exactly two
-representations. The command prints both view URLs and a linked coverage report.
+**Expected:** a `Homelab review - <revision>` project containing the full model and exactly six
+representations. The command prints the view URLs and a linked coverage report.
 Open those links, or browse `Views` and its `software-intake` package.
 
 | View | Native presentation | Selected content |
 | --- | --- | --- |
 | System Overall | General View | The accepted five subsystems, four dependencies and saved placement. |
-| Software intake | Interconnection View | Seven parts/reference roles, three nested client references and three actual flows. Update Consumers contains its three client groups; the proxy, cache and external source role remain individually inspectable. |
+| Homelab / Use cases | General View | Two actor goals with their subjects and actors. |
+| Software intake / Use cases | General View | Intake goal, subject, actors and eight owned scenario references. |
+| Software intake / Functions | General View | Five functions allocated through six native relationships to three logical roles. |
+| Software intake / Solution design | Interconnection View | Selected listener, service group, nested VMs, runtimes and virtual disks; actual request/storage flows and tier/network annotations. |
+| Software intake / Logical design | Interconnection View | Seven parts/reference roles, three nested client references and three actual flows. Update Consumers contains its three client groups; the proxy, cache and external source role remain individually inspectable. |
+
+Open `Views / Homelab | Use cases` for system goals. Inside `Views / software-intake`, open
+`Software intake | Use cases`, `Software intake | Functions`, `Software intake | Logical design`,
+or `Software intake | Solution design`.
+Logical design and Solution design are both level 1: responsibilities versus selected realization.
+Level 2 follows component ownership into proxy/cache contracts, not a change from Logical design to Solution design.
+See [the intake owner](../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) for the same repository paths.
+
+Every view follows the owning system path, regardless of its diagram type. The system-wide overview
+can reference subsystem goals without moving their definitions or detailed views out of the subsystem.
+`architecture/generated/<owner>/` and `Views::<owner>` share this hierarchy; publishing verifies actual
+native package ancestry. A different concern does not introduce another ownership level.
+
+Actor images use their native aspect ratio, with space reserved for their full outside labels.
+Use-case and function edges attach to the side facing their other endpoint. Publication rejects
+distorted actor seeds, overlapping bodies and unexpected saved resizing. Inspect the browser after
+layout and reload: headless seed dimensions alone cannot establish a readable native rendering.
+Use **Fit to screen** after changing panel widths; close Details or collapse the toolbar when
+reviewing a full diagram. The [view-navigation verification record](../../artifacts/architecture/evidence/syson-view-navigation.json)
+captures the browser checks, ownership paths, unchanged overview and archived superseded reviews.
+
+Use-case edges use native composition, actor and subject presentations. The adapter preserves their
+distinct renderer identities and directions. Functions reuse native allocation edges. No extra semantic
+links or per-scenario representations are manufactured. Solution design retains the two contained-content
+ItemUsage omissions under its disks, just as logical intake retains its contained-item gap.
+The [coverage report](../../artifacts/architecture/evidence/syson-view-coverage.md) records the exact selected omissions.
 
 The intake diagram selects the same identities and relationships as `logical.svg`; the release-specific
 item omission below remains visible in coverage. SysON shows flow
@@ -89,7 +117,7 @@ captions reserve the tested minimum height of 70, including after the browser me
 Selecting an enclosing note brings it to the front in SysON; click blank canvas before selecting a
 part inside it. Normal part selection and the model's ownership are unaffected.
 
-Reusable boundary treatments live in [the project notation](../../architecture/views/notation.json):
+Reusable boundary treatments live in [the project notation](../../scripts/architecture/config/views/notation.json):
 tier, zone, network, runtime, group and subject. Component categories use the linked
 [palette](../08-reference/diagrams/palette.json). These are reusable visual definitions; each frame
 keeps its view-local placement and selected members. Actual components reuse their SysML identity.
@@ -130,9 +158,9 @@ Publication performs these checks:
    and visibility, then check nested containment, flow endpoints/direction and persisted geometry.
    Validate annotation kinds, captions, enclosure membership, nested boundary placement and shared colours.
 6. Record gaps honestly and save a receipt, project ZIP, comparisons and coverage report under
-   `.tmp/syson/`. Publish the portable report under `architecture/test/`.
+   `.tmp/syson/`. Publish the portable report under `artifacts/architecture/evidence/`.
 
-See the [current coverage report](../../architecture/test/syson-view-coverage.md) and
+See the [current coverage report](../../artifacts/architecture/evidence/syson-view-coverage.md) and
 [verification record](../01-architecture/07-software-intake/syson-verification.md).
 System Overall intentionally retains its accepted presentation: the SVG system boundary has no
 matching enclosing native frame. That boundary difference remains an explicit coverage gap.
@@ -143,7 +171,7 @@ or the portable SVG.
 ## Change the model
 
 Edit the owning source, preserving its stable short identifiers. For example, change
-[PolicyProxy](../../architecture/design/software-intake/policy-proxy/definition.sysml), then run:
+[PolicyProxy](../../architecture/models/software-intake/policy-proxy/PolicyProxy.sysml), then run:
 
 ```bash
 python scripts/architecture/syson.py publish
@@ -196,13 +224,13 @@ model before replacing a snapshot; do not replace the repository with its text e
 | Artifact | Owning source |
 | --- | --- |
 | Semantic model and implementation traces | `architecture/` sources and native build |
-| Overall selection and placement | `architecture/views/system-overall.json` |
-| Selected native views, geometry and colour-profile opt-in | `architecture/views/syson.json` |
-| Shared visual roles, boundary treatments and colours | `architecture/views/notation.json` and its linked palette |
-| Shared view identities and selected content | Renderer declarations compiled into `architecture/views/catalog.json` |
-| Portable SVG presentation | `architecture/views/`, following Design ownership |
+| Overall selection and placement | `scripts/architecture/config/views/system-overall.json` |
+| Selected native views, geometry and colour-profile opt-in | `scripts/architecture/config/views/syson.json` |
+| Shared visual roles, boundary treatments and colours | `scripts/architecture/config/views/notation.json` and its linked palette |
+| Shared view identities and selected content | Renderer declarations compiled into `artifacts/architecture/catalog.json` |
+| Portable SVG presentation | `architecture/generated/`, following Design ownership |
 | Import, placement and repeat-publication checks | `scripts/architecture/syson*.py` |
-| Current correspondence and rendering gaps | `architecture/test/syson-view-coverage.json` and `.md` |
+| Current correspondence and rendering gaps | `artifacts/architecture/evidence/syson-view-coverage.json` and `.md` |
 | Snapshot IDs and native review state | SysON project and local receipt/archive |
 
 SysON 2026.11 General View does not render all imported verification and sequence content. That finding

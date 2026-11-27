@@ -1,0 +1,32 @@
+{
+  "views": [
+    "architecture/generated/HomelabSystemOverview.svg",
+    "architecture/generated/HomelabUseCases.svg",
+    "architecture/generated/HomelabFunctions.svg",
+    "architecture/generated/platform/SharedPlatformOverview.svg",
+    "architecture/generated/software-intake/SoftwareIntakeLogicalDesign.svg",
+    "architecture/generated/software-intake/solution/SoftwareIntakeSolutionDesign.svg",
+    "architecture/generated/software-intake/solution/SoftwareIntakeResources.svg",
+    "architecture/generated/software-intake/SoftwareIntakeUseCases.svg#overview",
+    "architecture/generated/software-intake/SoftwareIntakeFunctions.svg#overview",
+    "architecture/generated/software-intake/policy-proxy/PolicyProxyContract.svg",
+    "architecture/generated/platform/hosting/Boot1CloneRepository.svg",
+    "architecture/generated/software-intake/SoftwareIntakeUseCases.svg#SC-http-miss",
+    "architecture/generated/software-intake/SoftwareIntakeUseCases.svg#SC-https"
+  ],
+  "identities": {
+    "architecture/generated/HomelabFunctions.svg": "VIEW-functions",
+    "architecture/generated/platform/hosting/Boot1CloneRepository.svg": "VIEW-platform-hosting-clone-repository",
+    "architecture/generated/platform/SharedPlatformOverview.svg": "VIEW-platform-overview",
+    "architecture/generated/software-intake/policy-proxy/PolicyProxyContract.svg": "VIEW-proxy-contract",
+    "architecture/generated/software-intake/SoftwareIntakeFunctions.svg#overview": "VIEW-software-intake-functions",
+    "architecture/generated/software-intake/SoftwareIntakeLogicalDesign.svg": "VIEW-software-intake-logical",
+    "architecture/generated/software-intake/solution/SoftwareIntakeSolutionDesign.svg": "VIEW-software-intake-placement",
+    "architecture/generated/software-intake/solution/SoftwareIntakeResources.svg": "VIEW-software-intake-resource-dependencies",
+    "architecture/generated/software-intake/SoftwareIntakeUseCases.svg#SC-http-miss": "VIEW-software-intake-scenario-views--SC-http-miss",
+    "architecture/generated/software-intake/SoftwareIntakeUseCases.svg#SC-https": "VIEW-software-intake-scenario-views--SC-https",
+    "architecture/generated/software-intake/SoftwareIntakeUseCases.svg#overview": "VIEW-software-intake-use-cases",
+    "architecture/generated/HomelabSystemOverview.svg": "VIEW-system-overall",
+    "architecture/generated/HomelabUseCases.svg": "VIEW-use-cases"
+  }
+}

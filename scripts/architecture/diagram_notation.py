@@ -25,7 +25,7 @@ def stick_actor(parent, x, y, scale=1):
 
 
 def legend(svg, root, height, footer_text=None):
-    notation = json.loads((root / "architecture/views/notation.json").read_text(encoding="utf-8"))
+    notation = json.loads((root / "scripts/architecture/config/views/notation.json").read_text(encoding="utf-8"))
     palette = json.loads((root / notation["palette"]).read_text(encoding="utf-8"))["roles"]
     used = set()
     for group in svg.iter(tag("g")):
@@ -106,9 +106,9 @@ def legend(svg, root, height, footer_text=None):
 def validate_model_roles(svg, root, model):
     """Reject cross-view role drift using native reusable types, not product names."""
     bindings = json.loads(
-        (root / "architecture/views/software-intake/roles.json").read_text(encoding="utf-8")
+        (root / "scripts/architecture/config/views/software-intake/roles.json").read_text(encoding="utf-8")
     )
-    notation = json.loads((root / "architecture/views/notation.json").read_text(encoding="utf-8"))
+    notation = json.loads((root / "scripts/architecture/config/views/notation.json").read_text(encoding="utf-8"))
     types = {e["from"]: e["to"] for e in model["edges"] if e["kind"] == "typed-by"}
     for node in svg.iter(tag("g")):
         keys = (node.get("data-model") or node.get("data-models") or "").split()
@@ -132,6 +132,8 @@ def validate_model_roles(svg, root, model):
             "hexagon": "polygon",
             "cylinder": "path",
         }[shape]
-        shapes = [child for child in node if child.tag in {tag("rect"), tag("polygon"), tag("path")}]
+        # Navigation may wrap this node's symbol. Do not borrow a nested model element's shape.
+        own = [symbol for child in node for symbol in (list(child) if child.tag == tag("a") else [child])]
+        shapes = [child for child in own if child.tag in {tag("rect"), tag("polygon"), tag("path")}]
         if not shapes or shapes[0].tag != tag(element):
             raise ValueError("Inconsistent visual shape for " + ", ".join(keys))

@@ -4,7 +4,7 @@ The platform gives applications a common foundation for hosting, software supply
 identity, trust and recovery. This chapter explains how those capabilities work
 together, from the infrastructure underneath a service to the users who consume it.
 
-Start at [System Overall](../../architecture/design/README.md) to navigate the design hierarchy and
+Start at [System Overall](../../architecture/README.md) to navigate the design hierarchy and
 open each subsystem's overview. The functional structure below adds tier ownership and protection zones.
 
 ## Functional structure

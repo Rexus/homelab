@@ -7,15 +7,42 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 from intake_model_fixture import IntakeModelFixture
 from focused_views import outputs, functions
+from intake_matrices import outputs as matrices, REQUIREMENTS, SYSTEM, VERIFICATION
 from model_style import decorate, category
 from view_catalog import compile_views
 from diagram_notation import tag
 
 
 class FocusedViewContracts(IntakeModelFixture):
+    def test_requirement_matrices_follow_native_constraints_and_keep_navigation(self):
+        changed=copy.deepcopy(self.model)
+        changed['requirements']['REQ-policy']['constraints']=['Only explicitly admitted requests may proceed.']
+        rendered=matrices(self.root,changed)
+        for path in (SYSTEM,REQUIREMENTS):
+            table=rendered[path]
+            self.assertIn('Only explicitly admitted requests may proceed.',table)
+            self.assertNotIn(self.model['requirements']['REQ-policy']['constraints'][0],table)
+            for key in changed['requirements']:self.assertIn('id="'+key+'"',table)
+            self.assertIn('SoftwareIntakeVerification.md#VC-http-denied',table)
+            self.assertIn('Design satisfaction assertion',table)
+            self.assertIn('None recorded',table)
+
+    def test_matrices_distinguish_scoped_passes_from_unverified_site_obligations(self):
+        from intake_matrices import status_summary
+        self.assertEqual(status_summary([
+            {'scope':'isolated','status':'passed'}, {'scope':'site','status':'missing'}]),
+            'Overall: missing; isolated: passed; site: missing')
+        table=matrices(self.root,self.model)[REQUIREMENTS]
+        for key in ('REQ-integrity','REQ-custody','REQ-egress'):
+            self.assertIn(self.model['requirements'][key]['satisfaction_review'].replace('\n',' '),table)
+        self.assertTrue(any(e['from']=='L-Consumers' and e['to']=='REQ-integrity'
+                            and e['kind']=='satisfies' for e in self.model['edges']))
+        self.assertFalse(any(e['kind']=='satisfies' and e['to'] in ('REQ-custody','REQ-egress')
+                             for e in self.model['edges']))
+
     def test_system_goals_keep_their_own_subjects_and_participation(self):
         rendered=outputs(self.root,self.model)
-        svg=ET.fromstring(rendered[Path('architecture/views/use-cases.svg')])
+        svg=ET.fromstring(rendered[Path('architecture/generated/HomelabUseCases.svg')])
         subjects={e.get('data-subject') for e in svg.iter(tag('svg'))}
         self.assertTrue({'UC-supply','UC-clone-host'}<=subjects)
         relations=[r for e in svg.iter() for r in json.loads(e.get('data-relationships','[]'))]
@@ -23,15 +50,14 @@ class FocusedViewContracts(IntakeModelFixture):
             expected=[e for e in self.model['edges'] if e['from']==key and e['kind'] in ('has-actor','has-subject')]
             self.assertTrue(all(e in relations for e in expected))
 
-    def test_tests_show_actual_verify_and_scenario_relations(self):
-        svg=ET.fromstring(outputs(self.root,self.model)[Path('architecture/views/software-intake/tests.svg')])
-        shown={e.get('data-model') for e in svg.iter()}
-        self.assertTrue(set(self.model['verification'])<=shown)
-        relations=[r for e in svg.iter() for r in json.loads(e.get('data-relationships','[]'))]
-        expected=[e for e in self.model['edges'] if e['from'] in self.model['verification']
-                  and (e['kind']=='verifies' or e['to'] in self.model['scenarios'])]
-        self.assertEqual({json.dumps(e,sort_keys=True) for e in expected},
-                         {json.dumps(e,sort_keys=True) for e in relations})
+    def test_verification_matrix_exposes_native_procedures_and_traces(self):
+        table=matrices(self.root,self.model)[VERIFICATION]
+        for key,case in self.model['verification'].items():
+            row=next(line for line in table.splitlines() if line.startswith('| <a id="'+key+'"'))
+            for field in ('method','setup','action','acceptance'):self.assertIn(case[field],row)
+            for req in case['requirements']:self.assertIn('Requirements.md#'+req,row)
+            for scenario in case['scenarios']:self.assertIn('UseCases.svg#'+scenario,row)
+        self.assertNotIn('| passed |',table)
 
     def test_native_allocation_changes_the_function_view(self):
         changed=copy.deepcopy(self.model)
@@ -43,7 +69,7 @@ class FocusedViewContracts(IntakeModelFixture):
 
     def test_colour_follows_kind_across_views_not_subsystem_name(self):
         svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" data-engineering-view="true"><g data-model="SYS-trust"><rect/></g><g data-model="SYS-intake"><rect/></g><g data-model="P-servers"><rect/></g></svg>'
-        rendered={Path('architecture/views/example.svg'):svg}
+        rendered={Path('architecture/generated/example.svg'):svg}
         decorate(self.root,self.model,rendered)
         parsed=ET.fromstring(next(iter(rendered.values())))
         nodes={n.get('data-model'):n for n in parsed.iter(tag('g'))}
@@ -55,17 +81,17 @@ class FocusedViewContracts(IntakeModelFixture):
 
     def test_catalogue_does_not_promote_supporting_reports_or_missing_views(self):
         svg='<svg xmlns="http://www.w3.org/2000/svg"><title>View</title><g data-model="SYS-intake"/></svg>'
-        selected='architecture/views/selected.svg'
-        rendered={Path(selected):svg,Path('architecture/views/report.svg'):svg}
+        selected='architecture/generated/selected.svg'
+        rendered={Path(selected):svg,Path('architecture/generated/report.svg'):svg}
         views=compile_views(rendered,self.model,[selected])
         self.assertEqual([v['svg'] for v in views],[selected])
         with self.assertRaisesRegex(ValueError,'Selected engineering view is missing'):
-            compile_views({Path(selected):svg},self.model,['architecture/views/missing.svg'])
+            compile_views({Path(selected):svg},self.model,['architecture/generated/missing.svg'])
 
     def test_classification_frames_are_not_model_parts_or_external_implementations(self):
         self.assertFalse({'L-T2','L-DMZ','R-T2','R-Edge'} & set(self.model['elements']))
         self.assertFalse(self.model['elements']['L-Sources']['composite'])
-        svg=ET.parse(self.root/'architecture/views/software-intake/logical.svg')
+        svg=ET.parse(self.root/'architecture/generated/software-intake/SoftwareIntakeLogicalDesign.svg')
         source=svg.find('.//*[@data-model="L-Sources"]')
         proxy=svg.find('.//*[@data-model="L-Proxy"]')
         frame=svg.find('.//*[@id="T2"]')
@@ -77,7 +103,7 @@ class FocusedViewContracts(IntakeModelFixture):
         self.assertNotEqual(frame.find(tag('rect')).get('style'),proxy.find(tag('rect')).get('style'))
 
     def test_native_part_kind_alone_does_not_mean_software(self):
-        notation=json.loads((self.root/'architecture/views/notation.json').read_text())
+        notation=json.loads((self.root/'scripts/architecture/config/views/notation.json').read_text())
         self.assertEqual(category(self.model,'L-context',notation),'external')
         self.assertEqual(category(self.model,'PAYLOAD',notation),'information')
         self.assertEqual(category(self.model,'P-IF-physical',notation),'interface')
@@ -138,9 +164,9 @@ class FocusedViewContracts(IntakeModelFixture):
             self.assertIn((content,'DEF-cached-content','typed-by'),edges)
             self.assertFalse(any(e['kind']=='allocated-to' and e['to']==content
                                  for e in self.model['edges']))
-        rendered={Path(f'architecture/views/software-intake/{kind}.svg'):
+        rendered={Path(f'architecture/generated/software-intake/{kind}.svg'):
                   render(self.root,self.model,selected_inputs(self.root),kind)
-                  for kind in ('logical','placement')}
+                  for kind in ('logical','solution')}
         decorate(self.root,self.model,rendered)
         nodes={node.get('data-model'):node for value in rendered.values()
                for node in ET.fromstring(value).iter() if node.get('data-model')}
@@ -159,8 +185,27 @@ class FocusedViewContracts(IntakeModelFixture):
             render(self.root,changed,selected_inputs(self.root),'logical')
 
     def test_native_item_kind_does_not_always_mean_information(self):
-        notation=json.loads((self.root/'architecture/views/notation.json').read_text())
+        notation=json.loads((self.root/'scripts/architecture/config/views/notation.json').read_text())
         changed=copy.deepcopy(self.model)
         changed['elements']['MATERIAL']={'kind':'ItemDefinition','name':'Raw material'}
         self.assertNotEqual(category(changed,'MATERIAL',notation),'information')
         self.assertEqual(category(changed,'DEF-cached-content',notation),'information')
+
+    def test_software_role_follows_native_ownership_without_recolouring_the_contract(self):
+        notation=json.loads((self.root/'scripts/architecture/config/views/notation.json').read_text())
+        self.assertEqual(category(self.model,'L-Proxy',notation),'logical')
+        self.assertEqual(category(self.model,'DEF-proxy',notation),'logical')
+        self.assertEqual(category(self.model,'RUN-cache-1',notation),'software')
+        self.assertEqual(category(self.model,'DISK-cache-1',notation),'logical')
+        changed=copy.deepcopy(self.model)
+        # A differently named future realization gets the same role through native relationships.
+        changed['elements']['arbitrary-host']={'name':'Any guest','kind':'PartUsage'}
+        changed['elements']['arbitrary-app']={'name':'Any implementation','kind':'PartUsage'}
+        changed['edges'] += [
+            {'from':'arbitrary-host','to':'DEF-member','kind':'typed-by'},
+            {'from':'arbitrary-app','to':'DEF-proxy','kind':'typed-by'},
+            {'from':'arbitrary-host','to':'arbitrary-app','kind':'contains'}]
+        self.assertEqual(category(changed,'arbitrary-app',notation),'software')
+        changed['edges']=[e for e in changed['edges'] if
+                          (e['from'],e['to'],e['kind'])!=('arbitrary-host','arbitrary-app','contains')]
+        self.assertEqual(category(changed,'arbitrary-app',notation),'logical')

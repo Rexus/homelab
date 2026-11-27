@@ -4,16 +4,16 @@ import hashlib
 import json
 from pathlib import Path
 
-EVIDENCE = Path('architecture/test/software-intake/implementation.json')
-VIEW = Path('architecture/views/software-intake/implementation.svg')
+EVIDENCE = Path('artifacts/architecture/evidence/software-intake/implementation.json')
 GUIDE = 'docs/01-architecture/07-software-intake/06-implementation-comparison.md'
+REPORT = Path(GUIDE)
 INPUTS = (
-    'architecture/use-cases/software-intake/use-cases.sysml',
-    'architecture/functions/software-intake/behavior.sysml',
-    'architecture/functions/software-intake/admission-logic.sysml',
-    'architecture/functions/software-intake/retrieval-execution.sysml',
-    'architecture/test/software-intake/retrieval-runs.sysml',
-    'architecture/trace/software-intake-execution.sysml',
+    'architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml',
+    'architecture/models/software-intake/SoftwareIntakeBehavior.sysml',
+    'architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml',
+    'architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml',
+    'architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml',
+    'architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml',
     'tier-2/ansible/roles/cache_proxy/defaults/main.yml',
     'tier-2/ansible/roles/cache_proxy/templates/squid.conf.j2',
     'shared/ansible/roles/baseline/templates/apt-package-policy.conf.j2',
@@ -44,38 +44,22 @@ def compare(model, report):
 
 
 def outputs(root, model):
-    from svg_pages import page, grid, card, finish, book, SCENARIOS
-    path = root / EVIDENCE
-    report = json.loads(path.read_text()) if path.is_file() else None
-    current = report and report['sources'] == product_sources(root)
-    differences = compare(model, report) if current else []
-    status = ('Real Squid and APT on loopback; compared with the model. No deployed network test.' if current else
-              'No current implementation result. Run the isolated product comparison in the guide.')
-    if differences:
-        status = 'Implementation differs from the model. Open the evidence and investigate.'
-    origin = VIEW.as_posix()
-    svg, y, nav = page(origin, 'Software intake | implementation comparison', status, GUIDE)
-    rows = []
-    order = json.loads((root / 'architecture/views/software-intake/use-cases.json').read_text())['scenarios']
-    for key in sorted(model['execution']['runs'], key=lambda k: order.index(model['execution']['runs'][k]['scenario'])):
-        run = model['execution']['runs'][key]
-        actual = report['runs'].get(key) if current else None
-        labels = {'accepted': 'accepted', 'verification-failed': 'rejected by client',
-                  'denied': 'denied by policy', 'source-unavailable': 'source unavailable'}
-        cache_result = ('cache hit' if any('HIT' in r for r in actual['proxy_results']) else
-                        'access denied' if actual['http_status'] == 403 else
-                        'source error' if actual['http_status'] >= 500 else 'fetched from source') if actual else ''
-        detail = ('Model: '  + labels.get(run['expected']['outcome'], run['expected']['outcome']) +
-                  '; software: ' + labels.get(actual['observed']['outcome'], actual['observed']['outcome']) +
-                  '. Squid: ' + cache_result + '. Source requests: ' +
-                  str(actual['observed']['sourceRequests']) + '.') if actual else 'Open the expected retrieval sequence.'
-        rows.append((run['name'], detail, SCENARIOS + '#' + run['scenario'], key))
-    y = grid(svg, origin, y, rows)
-    y += card(svg, origin, 30, y, 900, 'What this checks',
-        'APT authenticates signed repository metadata, then downloads through Squid and checks package hashes. '
-        'A cached response can still fail verification. Internal model steps are not claimed as product observations.', GUIDE) + 12
-    y += card(svg, origin, 30, y, 900, 'Measured evidence',
-        '; '.join(differences) if differences else 'Product versions, source fingerprints, Squid results and APT outcomes.',
-        EVIDENCE.as_posix() if report else GUIDE) + 12
-    nav[2] = ('Model execution', 'architecture/views/software-intake/execution.svg')
-    return {VIEW: book([('index', finish(svg, origin, y, nav))])}
+    from design_context import relative
+    from svg_pages import SCENARIOS
+    path=root/EVIDENCE
+    report=json.loads(path.read_text(encoding='utf-8')) if path.is_file() else None
+    current=report and report['sources']==product_sources(root)
+    differences=compare(model,report) if current else []
+    status=('Current isolated Squid/APT comparison; no deployed network acceptance.' if current
+            else 'No current implementation result. Retained results are historical; rerun the comparison.')
+    if differences:status='Implementation differs from the model: '+'; '.join(differences)
+    rows=[status,'','| Experiment | Expected outcome | Observed outcome |','| --- | --- | --- |']
+    for key,run in model['execution']['runs'].items():
+        actual=report['runs'].get(key) if current else None
+        observed=actual['observed']['outcome'] if actual else 'Not current'
+        rows.append('| ['+run['name']+']('+relative(GUIDE,SCENARIOS)+'#'+run['scenario']+') | '+
+                    run['expected']['outcome']+' | '+observed+' |')
+    document=(root/REPORT).read_text(encoding='utf-8')
+    begin,end='<!-- BEGIN MODEL COMPARISON -->','<!-- END MODEL COMPARISON -->'
+    a,b=document.index(begin)+len(begin),document.index(end)
+    return {REPORT:document[:a]+'\n'+'\n'.join(rows)+'\n'+document[b:]}

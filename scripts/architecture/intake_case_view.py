@@ -17,7 +17,7 @@ def use_case_view(root, model, view=None):
         "Use-case view must show both external actors exactly once; adapt layout for more actors",
     )
     require(view["width"] == 960 and view["height"] == 430, "Use-case layout supports a 960 by 430 canvas")
-    notation = json.loads((root / "architecture/views/notation.json").read_text(encoding="utf-8"))
+    notation = json.loads((root / "scripts/architecture/config/views/notation.json").read_text(encoding="utf-8"))
     human_types = set(notation.get("humanActorTypes", []))
     human_actors = {actor for actor in actors if any(
         edge["from"] == case["bindings"][actor] and edge["kind"] == "typed-by"
@@ -26,7 +26,7 @@ def use_case_view(root, model, view=None):
     palette = json.loads((root / notation["palette"]).read_text(encoding="utf-8"))["roles"]
     ET.register_namespace("", "http://www.w3.org/2000/svg")
     svg = ET.Element(tag("svg"), {"viewBox": "0 0 960 430", "role": "img", "aria-labelledby": "title desc"})
-    ET.SubElement(svg, tag("title"), {"id": "title"}).text = model["elements"][view["case"]]["name"]
+    ET.SubElement(svg, tag("title"), {"id": "title"}).text = view.get("title", model["elements"][view["case"]]["name"])
     svg.set("data-subject", case["subject"])
     ET.SubElement(svg, tag("desc"), {"id": "desc"}).text = view.get("description", (
         "External update client and approved source participate in a controlled-supply use case. "

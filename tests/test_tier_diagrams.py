@@ -13,13 +13,13 @@ from tier_repo_test_support import TierRepositoryTestCase, UPSTREAM
 
 PALETTE = "08-reference/diagrams/palette.json"
 IDENTITY_SVG = UPSTREAM / "docs/08-reference/diagrams/identity-operations.svg"
-CACHE_SVG = UPSTREAM / "architecture/views/software-intake/placement.svg"
+CACHE_SVG = UPSTREAM / "architecture/generated/software-intake/solution/SoftwareIntakeSolutionDesign.svg"
 LOGGING_SVG = UPSTREAM / "docs/08-reference/diagrams/protected-logging.svg"
 LOGGING_ROUTING_SVGS = tuple(UPSTREAM / f"docs/08-reference/diagrams/{name}.svg"
                            for name in ("logging-receivers", "logging-sender-routing", "logging-shared-endpoint"))
 LAB_SVG = UPSTREAM / "docs/08-reference/diagrams/lab-ownership.svg"
 INTAKE_SVG = UPSTREAM / "docs/08-reference/diagrams/verified-intake-placement.svg"
-SUPPLY_SVG = UPSTREAM / "architecture/views/software-intake/logical.svg"
+SUPPLY_SVG = UPSTREAM / "architecture/generated/software-intake/SoftwareIntakeLogicalDesign.svg"
 SECRETS_SVG = UPSTREAM / "docs/08-reference/diagrams/secrets-context.svg"
 BACKUP_SVG = UPSTREAM / "docs/08-reference/diagrams/backup-recovery-context.svg"
 CRYPTO_SVG = UPSTREAM / "docs/08-reference/diagrams/cryptography-operations.svg"

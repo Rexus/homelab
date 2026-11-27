@@ -1,0 +1,33 @@
+{
+  "package": "SoftwareIntake",
+  "imports": [
+    "Structure",
+    "Context",
+    "FunctionalRequirements",
+    "QualityRequirements",
+    "UseCases",
+    "Platform",
+    "ProxyDesign",
+    "CacheDesign"
+  ],
+  "sources": [
+    "architecture/models/platform/SharedPlatform.sysml",
+    "architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml",
+    "architecture/models/software-intake/SoftwareIntakeBehavior.sysml",
+    "architecture/models/HomelabSystemDesign.sysml",
+    "architecture/models/software-intake/policy-proxy/PolicyProxy.sysml",
+    "architecture/models/software-intake/object-cache/ObjectCache.sysml",
+    "architecture/models/software-intake/SoftwareIntakeVerification.sysml",
+    "architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml",
+    "architecture/models/platform/hosting/Hosting.sysml",
+    "architecture/models/software-intake/solution/SoftwareIntakeSolutionDesign.sysml",
+    "architecture/models/platform/networking/Networking.sysml",
+    "architecture/models/platform/data/Data.sysml",
+    "architecture/models/trust-and-access/TrustAndAccess.sysml",
+    "architecture/models/delivery/DeliveryAndWorkloads.sysml",
+    "architecture/models/operations/OperationsAndRecovery.sysml"
+  ],
+  "execution_sources": [
+    "architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml"
+  ]
+}

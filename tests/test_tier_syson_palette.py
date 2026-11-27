@@ -18,10 +18,10 @@ from model_style import geometry
 
 class SharedNativePalette(unittest.TestCase):
     def test_palette_matches_the_generated_svg_shapes(self):
-        catalog = json.loads((ROOT / 'architecture/views/catalog.json').read_text(encoding='utf-8'))
+        catalog = json.loads((ROOT / 'artifacts/architecture/catalog.json').read_text(encoding='utf-8'))
         view = copy.deepcopy(next(v for v in catalog['views'] if v['key'] == 'VIEW-software-intake-logical'))
         source = ROOT / view['svg']
-        config = json.loads((ROOT / 'architecture/views/syson.json').read_text(encoding='utf-8'))
+        config = json.loads((ROOT / 'scripts/architecture/config/views/syson.json').read_text(encoding='utf-8'))
         view['annotations'] = read_annotations(source, view, config['interconnection_views'][view['key']]['annotations'])
         colours = shared_colours(ROOT, source, view)
         nodes = {n.get('data-model'): n for n in ET.parse(source).getroot().iter() if n.get('data-model')}
@@ -32,7 +32,8 @@ class SharedNativePalette(unittest.TestCase):
             self.assertEqual((actual['fill'], actual['stroke']), (expected['fill'], expected['stroke']), key)
             rule = re.search(r'\.' + re.escape(nodes[key].get('class')) + r'\s*\{([^}]+)\}', css)
             declaration = re.search(r'(?:^|;)\s*color\s*:\s*([^;]+)', rule[1]) if rule else None
-            foreground = declaration[1].strip() if declaration else nodes[key].get('color')
+            inline = dict(item.split(':', 1) for item in nodes[key].get('style', '').split(';') if ':' in item)
+            foreground = inline.get('color', declaration[1].strip() if declaration else nodes[key].get('color'))
             self.assertEqual(expected['color'], foreground, key)
         frames = {n.get('id'): n for n in ET.parse(source).getroot().iter() if n.get('data-explanatory') == 'true'}
         for annotation in view['annotations']:
@@ -40,6 +41,15 @@ class SharedNativePalette(unittest.TestCase):
             actual = dict(item.split(':', 1) for item in shape.get('style', '').split(';') if ':' in item)
             self.assertEqual((actual['fill'], actual['stroke']),
                              (annotation['colours']['fill'], annotation['colours']['stroke']))
+
+    def test_realized_software_palette_is_reusable_by_the_native_adapter(self):
+        catalog = json.loads((ROOT / 'artifacts/architecture/catalog.json').read_text())
+        view = next(v for v in catalog['views'] if v['svg']=='architecture/generated/software-intake/solution/SoftwareIntakeSolutionDesign.svg')
+        actual = shared_colours(ROOT, ROOT/view['svg'], view)['elements']
+        palette = json.loads((ROOT/'docs/08-reference/diagrams/palette.json').read_text())['roles']
+        self.assertEqual(actual['RUN-cache-1'],palette['modelSoftware'])
+        self.assertEqual(actual['DISK-cache-1'],palette['modelLogical'])
+        self.assertEqual(actual['CONTENT-cache-1'],palette['modelInformation'])
 
     def test_unselected_profile_cannot_recolour_system_overall(self):
         client = Mock()

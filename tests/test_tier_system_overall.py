@@ -18,7 +18,7 @@ class SystemOverallContracts(IntakeModelFixture):
         links = svg.findall(".//{http://www.w3.org/2000/svg}a")
         self.assertEqual(len(links), 5)
         for link in links:
-            target = self.root / "architecture/views" / link.get("href")
+            target = self.root / "architecture/generated" / link.get("href")
             self.assertTrue(target.is_file())
             self.assertIn("../README.md", target.read_text(encoding="utf-8"))
         affected = set(impact(self.model, "P-servers"))
@@ -37,7 +37,7 @@ class SystemOverallContracts(IntakeModelFixture):
         views[0]["nodes"][0]["href"] = "missing/README.md"
         with self.assertRaisesRegex(ValueError, "Missing or escaping"):
             check_overviews(self.root, self.model, views)
-        views[0]["nodes"][0]["href"] = "../design/software-intake/policy-proxy/README.md"
+        views[0]["nodes"][0]["href"] = "../models/software-intake/policy-proxy/README.md"
         with self.assertRaisesRegex(ValueError, "direct child design"):
             check_overviews(self.root, self.model, views)
 

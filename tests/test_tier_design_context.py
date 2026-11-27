@@ -16,7 +16,7 @@ class DesignContextContracts(IntakeModelFixture):
         self.scopes = {s["key"]: s for s in scopes(self.root)}
         self.records = trace_map(self.root)
         self.plan = json.loads(
-            (self.root / "architecture/test/software-intake/cases.json").read_text(encoding="utf-8")
+            (self.root / "artifacts/architecture/evidence/software-intake/cases.json").read_text(encoding="utf-8")
         )
 
     def project(self, key, model=None):
@@ -64,20 +64,42 @@ class DesignContextContracts(IntakeModelFixture):
         self.assertEqual(data["scenarios"], [])
 
     def test_focused_views_replace_repeated_context_frames(self):
-        for name in ("system-overall.svg", "software-intake/logical.svg"):
-            svg = ET.parse(self.root / "architecture/views" / name)
+        for name in ("HomelabSystemOverview.svg", "software-intake/SoftwareIntakeLogicalDesign.svg"):
+            svg = ET.parse(self.root / "architecture/generated" / name)
             labels = {a.get("aria-label") for a in svg.findall(".//{http://www.w3.org/2000/svg}a")}
             self.assertTrue({"Use cases", "Requirements", "Functions", "Tests"} <= labels)
             self.assertFalse(svg.findall('.//*[@data-concern]'))
         self.assertNotIn("svg", self.scopes["trust"])
         self.assertEqual(self.project("trust")["requirements"], [])
 
-    def test_new_design_overview_cannot_be_left_without_context(self):
-        page = self.root / "architecture/design/new-subsystem/README.md"
+    def test_design_folder_rejects_non_native_documentation(self):
+        page = self.root / "architecture/models/new-subsystem/README.md"
         page.parent.mkdir()
         page.write_text("# New subsystem\n", encoding="utf-8")
-        with self.assertRaisesRegex(ValueError, "Every design overview"):
+        with self.assertRaisesRegex(ValueError, "Native-only"):
             scopes(self.root)
+
+    def test_unlisted_native_source_cannot_escape_validation(self):
+        source = self.root / "architecture/models/NewSubsystem.sysml"
+        source.write_text("package NewSubsystem { }\n", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "Every authored SysML source"):
+            scopes(self.root)
+
+
+    def test_engineering_views_keep_the_owner_file_budget_without_report_diagrams(self):
+        from software_intake import expected_outputs
+        from intake_sources import selected_inputs, trace_map
+        rendered=expected_outputs(self.root,self.model,selected_inputs(self.root),trace_map(self.root))
+        groups={}
+        for path in rendered:
+            if path.is_relative_to('architecture/generated'):
+                groups.setdefault(path.parent,set()).add(path.name)
+        for owner,names in groups.items():self.assertLessEqual(len(names),5,str(owner))
+        self.assertEqual(groups[Path('architecture/generated/software-intake')],{
+            'SoftwareIntakeLogicalDesign.svg','SoftwareIntakeUseCases.svg','SoftwareIntakeFunctions.svg',
+            'SoftwareIntakeRequirements.md','SoftwareIntakeVerification.md'})
+        for name in ('ImplementationSources','ImplementationComparison','Relationships','ChangeImpact'):
+            self.assertFalse(any(name in str(path) for path in rendered if path.suffix=='.svg'))
 
 
 from tier_repo_test_support import TierRepositoryTestCase
@@ -88,7 +110,7 @@ class DesignContextManualIntegration(TierRepositoryTestCase):
         self.generate()
         manual = self.root / "verify-architecture/docs/auto-docs"
         registry = json.loads(
-            (manual / "architecture/views/design-context.json").read_text(encoding="utf-8")
+            (manual / "upstream/scripts/architecture/config/views/design-context.json").read_text(encoding="utf-8")
         )
         for scope in registry["scopes"]:
             if not scope.get("svg"):

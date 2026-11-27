@@ -138,7 +138,7 @@ class SysON:
             "representationDescriptionId": descriptions[0], "representationName": name,
         }, "... on CreateRepresentationSuccessPayload{representation{id label}} ")["representation"]
 
-    def layout(self, context, diagram, boxes, *, details=None, handles=None):
+    def layout(self, context, diagram, boxes, *, details=None, handles=None, labels=None):
         nodes = []
         positions = {n['id']: boxes[n['targetObjectId']] for n in diagram['nodes'] if n['targetObjectId'] in boxes}
         positions.update(details or {})
@@ -151,7 +151,7 @@ class SysON:
             "editingContextId": context, "representationId": diagram["id"],
             # Any other cause with a fresh request ID is silently ignored by Sirius.
             "cause": "layout", "diagramLayoutData": {
-                "nodeLayoutData": nodes, "edgeLayoutData": [], "labelLayoutData": [],
+                "nodeLayoutData": nodes, "edgeLayoutData": [], "labelLayoutData": labels or [],
                 "autoLayoutState": "DEACTIVATE",
             },
         })

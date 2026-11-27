@@ -41,7 +41,7 @@ def render(root, model, inputs, kind):
             ".legend {fill:#1f2937;font-size:12px;}",
         ]
     )
-    if kind == "placement":
+    if kind == "solution":
         prototype = nodes["CacheA"]
         pair = nodes["Pair"]
         pair.remove(prototype)

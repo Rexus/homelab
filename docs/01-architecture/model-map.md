@@ -1,6 +1,6 @@
 # MBSE model map
 
-Start with [System Overall](../../architecture/design/README.md), open a subsystem overview and follow
+Start with [System Overall](../../architecture/README.md), open a subsystem overview and follow
 its child folders toward a more focused design. The diagram there shows the main system relationships;
 this map locates engineering concerns and records native versus documented coverage.
 
@@ -50,14 +50,14 @@ flowchart TB
 | Question | Start here |
 | --- | --- |
 | What problem does the whole system solve? | [Platform context](01-background/README.md) and [responsibilities](02-organization/README.md) |
-| How does the whole platform fit together? | [System Overall and subsystem links](../../architecture/design/README.md), [ownership view](README.md) and [reference realization](03-reference-platform.md) |
-| How is intake used? | [Use case and scenarios](../../architecture/use-cases/software-intake/README.md) |
-| Which obligations remain essential? | [Functional and non-functional requirements](../../architecture/requirements/README.md) |
-| What functions fulfill those scenarios? | [Function contracts and behavior](../../architecture/functions/software-intake/README.md) |
-| What parts and interfaces are reused? | [Logical design](../../architecture/design/software-intake/logical.md) |
-| Which product choices and IaC fulfill it? | [Software deployment](../../architecture/design/software-intake/deployment.md) |
-| Which physical equipment supports intake? | [Hardware context and existing owners](../../architecture/design/software-intake/resources.md) |
-| What has actually been checked? | [Test intent and evidence](../../architecture/test/software-intake/README.md) |
+| How does the whole platform fit together? | [System Overall and subsystem links](../../architecture/README.md), [ownership view](README.md) and [reference realization](03-reference-platform.md) |
+| How is intake used? | [Use case and scenarios](../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) |
+| Which obligations remain essential? | [Functional and non-functional requirements](../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) |
+| What functions fulfill those scenarios? | [Function contracts and behavior](../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) |
+| What parts and interfaces are reused? | [Logical design](../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) |
+| Which product choices and IaC fulfill it? | [Solution design](../../architecture/models/software-intake/solution/SoftwareIntakeSolutionDesign.sysml) |
+| Which physical equipment supports intake? | [Hardware context and existing owners](../../architecture/models/software-intake/solution/SoftwareIntakeSolutionDesign.sysml) |
+| What has actually been checked? | [Test intent and evidence](../../artifacts/architecture/evidence/software-intake/README.md) |
 | Why was a product or design choice selected? | [Decision records](../07-decisions/README.md) and the owning realization guide |
 
 ## Capability coverage
@@ -79,13 +79,16 @@ reachable or verified merely because they appear in its context.
 
 ## Repository organization
 
-The [engineering entry point](../../architecture/README.md) owns navigation through Use Cases,
-Requirements, Functions, Design and Test. [Design](../../architecture/design/README.md) opens at level 0;
+The [engineering entry point](../../architecture/README.md) opens the owner-based native model.
+Each owner gathers its goals/scenarios, guardrails, behavior, design and verification intent together. Native
+design folders contain only 1–5 PascalCase `.sysml` files; explanations use native `doc`. Generated SVGs
+are separate under `architecture/generated/`, with the same owner hierarchy. Only the architecture root has
+a README; tool inputs and evidence live outside this browsing tree. [Design](../../architecture/README.md) opens at level 0;
 its child folders are level 1 subsystem overviews, with more focused child designs below them. Intake's
 policy proxy and object cache own their definitions in those child folders. Shared platform children
 map hosting, networking and data; trust/access, delivery and operations retain existing detailed chapters.
 Only intake has been adopted end to end; the shared platform is a referenced provider boundary.
-[Its manifest](../../architecture/use-cases/software-intake/model.json) combines the source packages;
+[Its manifest](../../scripts/architecture/config/build/software-intake.json) combines the source packages;
 stable identities survive the file moves. Shared notation/layout and generated projections support
 the reader structure. IaC, code and executable tests remain with their existing owners.
 

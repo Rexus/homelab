@@ -9,7 +9,7 @@ import textwrap
 from syson_change_model import Graph, digest
 from syson_api import checked_url
 
-MANIFEST = "architecture/use-cases/software-intake/model.json"
+MANIFEST = "scripts/architecture/config/build/software-intake.json"
 
 
 def sha(path):

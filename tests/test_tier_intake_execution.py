@@ -71,7 +71,7 @@ class IntakeExecutionContracts(unittest.TestCase):
         sources = fingerprint(UPSTREAM, trace_map(UPSTREAM))
         self.assertIsNotNone(load_evidence(UPSTREAM, self.model, sources)[0])
         changed = dict(sources)
-        changed['architecture/functions/software-intake/retrieval-execution.sysml'] = 'changed'
+        changed['architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml'] = 'changed'
         result, message = load_evidence(UPSTREAM, self.model, changed)
         self.assertIsNone(result)
         self.assertIn('stale', message)

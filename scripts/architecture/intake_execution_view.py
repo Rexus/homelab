@@ -17,7 +17,7 @@ def execution_outputs(root, model, records, sources, report=None):
     origin = VIEW.as_posix()
     svg, y, nav = page(origin, 'HTTP retrieval | native execution', status, GUIDE)
     rows = []
-    scenario_order = json.loads((root/'architecture/views/software-intake/use-cases.json').read_text())['scenarios']
+    scenario_order = json.loads((root/'scripts/architecture/config/views/software-intake/use-cases.json').read_text())['scenarios']
     order = sorted(model['execution']['runs'], key=lambda k: scenario_order.index(model['execution']['runs'][k]['scenario']))
     for key in order:
         run = model['execution']['runs'][key]
@@ -29,11 +29,11 @@ def execution_outputs(root, model, records, sources, report=None):
     y = grid(svg, origin, y, rows)
     y += card(svg, origin, 30, y, 900, 'Compare with real software',
         'Observed Squid cache results and APT verification, compared with these same expectations.',
-        'architecture/views/software-intake/implementation.svg') + 12
+        'docs/01-architecture/07-software-intake/06-implementation-comparison.md') + 12
     y = assets(svg, origin, y, [('Native model and experiments', [
-        'architecture/functions/software-intake/retrieval-execution.sysml',
-        'architecture/test/software-intake/retrieval-runs.sysml',
-        'architecture/trace/software-intake-execution.sysml']), ('Evidence and scope',
+        'architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml',
+        'architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml',
+        'architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml']), ('Evidence and scope',
         [GUIDE] + ([EVIDENCE.as_posix()] if report or (root/EVIDENCE).is_file() else []))])
     nav[2] = ('Expected HTTP', SCENARIOS+'#SC-http-miss')
     pages = [('index', finish(svg, origin, y, nav))]

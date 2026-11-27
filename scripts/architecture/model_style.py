@@ -20,7 +20,19 @@ def category(model,key,notation):
         explicit=notation['modelCategoryElements'].get(key)
         if explicit:
             return explicit
-        types={key} | {e['to'] for e in model['edges'] if e['from']==key and e['kind']=='typed-by'}
+        def types_of(element):
+            return {element} | {e['to'] for e in model['edges']
+                                if e['from']==element and e['kind']=='typed-by'}
+        types=types_of(key)
+        owners={e['from'] for e in model['edges'] if e['to']==key and e['kind']=='contains'}
+        # Project-reviewed realization roles select native type/ownership, never product names or ID prefixes.
+        matches={r['category'] for r in notation.get('modelCategoryRules',[])
+                 if kind==r['kind'] and r['type'] in types
+                 and any(r['ownerType'] in types_of(owner) for owner in owners)}
+        if len(matches)>1:
+            raise ValueError('Conflicting model colour roles: '+key)
+        if matches:
+            return matches.pop()
         for name,definitions in notation['modelCategoryTypes'].items():
             if types & set(definitions):
                 return name
@@ -42,7 +54,7 @@ def geometry(node):
 
 
 def decorate(root,model,outputs):
-    notation=json.loads((root/'architecture/views/notation.json').read_text(encoding='utf-8'))
+    notation=json.loads((root/'scripts/architecture/config/views/notation.json').read_text(encoding='utf-8'))
     palette=json.loads((root/notation['palette']).read_text(encoding='utf-8'))['roles']
     categories=notation['modelCategories']
     for path,value in list(outputs.items()):
@@ -82,6 +94,8 @@ def decorate(root,model,outputs):
                 fill='none' if fill=='none' else colours['fill']
                 shape.set('style',shape.get('style','')+f';fill:{fill};stroke:{colours["stroke"]};')
             node.set('color',colours['color'])
+            # Inline colour wins over older deployment-class CSS for currentColor text.
+            node.set('style',node.get('style','')+f';color:{colours["color"]};')
         legends=[n for n in svg.iter(tag('g')) if n.get('class')=='legend']
         if not legends and svg.get('data-engineering-view')=='true':
             legends=[ET.SubElement(svg,tag('g'),{'class':'legend','data-y':str(float(svg.get('viewBox').split()[3])-82)})]

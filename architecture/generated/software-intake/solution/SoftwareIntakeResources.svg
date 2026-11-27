@@ -1,0 +1,215 @@
+<svg xmlns="http://www.w3.org/2000/svg" data-view-id="VIEW-software-intake-resource-dependencies" viewBox="0 0 960 1102" role="img" aria-labelledby="title desc">
+  <title id="title">Software intake and its shared resource dependencies</title>
+  <desc id="desc">One intake design uses virtual execution, local disk storage and guest networking provided by the shared platform. Those providers map to physical servers, drives and network equipment. The optional storage network is shown as context, not a dependency of local cache disks.</desc>
+  <rect width="960" height="960" fill="white" />
+  <style>text{font:16px Arial,sans-serif;fill:currentColor;stroke:none;text-anchor:middle}.heading{font-size:22px;font-weight:600}.label{font-size:13px}.note{font-size:14px}.legend text{font-size:12px}</style>
+  <defs>
+    <marker id="dep" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581" />
+    </marker>
+  </defs>
+  <path d="M172 156 L172 220" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M172 156 L172 220" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="ALLOC-proxy" data-relationships="[{&quot;from&quot;: &quot;L-Proxy&quot;, &quot;to&quot;: &quot;R-Pair&quot;, &quot;kind&quot;: &quot;allocated-to&quot;, &quot;id&quot;: &quot;ALLOC-proxy&quot;}]" />
+  <rect x="123.0" y="182" width="98" height="20" fill="white" />
+  <text x="172" y="196" class="label">Allocated to</text>
+  <path d="M480 156 L480 220" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M480 156 L480 220" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="ALLOC-cache-1 ALLOC-cache-2" data-relationships="[{&quot;from&quot;: &quot;L-Cache&quot;, &quot;to&quot;: &quot;DISK-cache-1&quot;, &quot;kind&quot;: &quot;allocated-to&quot;, &quot;id&quot;: &quot;ALLOC-cache-1&quot;}, {&quot;from&quot;: &quot;L-Cache&quot;, &quot;to&quot;: &quot;DISK-cache-2&quot;, &quot;kind&quot;: &quot;allocated-to&quot;, &quot;id&quot;: &quot;ALLOC-cache-2&quot;}]" />
+  <rect x="431.0" y="182" width="98" height="20" fill="white" />
+  <text x="480" y="196" class="label">Allocated to</text>
+  <path d="M172 296 L172 370" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M172 296 L172 370" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="" data-relationships="[{&quot;from&quot;: &quot;R-Pair&quot;, &quot;to&quot;: &quot;VM-cache-1&quot;, &quot;kind&quot;: &quot;contains&quot;}, {&quot;from&quot;: &quot;R-Pair&quot;, &quot;to&quot;: &quot;VM-cache-2&quot;, &quot;kind&quot;: &quot;contains&quot;}]" />
+  <rect x="109.0" y="326" width="126" height="20" fill="white" />
+  <text x="172" y="340" class="label">Selected members</text>
+  <path d="M480 296 L480 370" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M480 296 L480 370" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="STORE-cache-1 STORE-cache-2" data-relationships="[{&quot;from&quot;: &quot;DISK-cache-1&quot;, &quot;to&quot;: &quot;P-storage&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;STORE-cache-1&quot;}, {&quot;from&quot;: &quot;DISK-cache-2&quot;, &quot;to&quot;: &quot;P-storage&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;STORE-cache-2&quot;}]" />
+  <rect x="410.0" y="326" width="140" height="20" fill="white" />
+  <text x="480" y="340" class="label">Uses local storage</text>
+  <path d="M172 446 L172 540" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M172 446 L172 540" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="HOST-cache-1 HOST-cache-2" data-relationships="[{&quot;from&quot;: &quot;VM-cache-1&quot;, &quot;to&quot;: &quot;P-virtualization&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;HOST-cache-1&quot;}, {&quot;from&quot;: &quot;VM-cache-2&quot;, &quot;to&quot;: &quot;P-virtualization&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;HOST-cache-2&quot;}]" />
+  <rect x="105.5" y="508" width="133" height="20" fill="white" />
+  <text x="172" y="522" class="label">Virtual execution</text>
+  <path d="M172 446 L172 486 L788 486 L788 446" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M172 446 L172 486 L788 486 L788 446" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="NET-cache-1 NET-cache-2" data-relationships="[{&quot;from&quot;: &quot;VM-cache-1&quot;, &quot;to&quot;: &quot;P-network&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;NET-cache-1&quot;}, {&quot;from&quot;: &quot;VM-cache-2&quot;, &quot;to&quot;: &quot;P-network&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;NET-cache-2&quot;}]" />
+  <rect x="417.0" y="466" width="126" height="20" fill="white" />
+  <text x="480" y="480" class="label">Guest attachment</text>
+  <path d="M348 408 L326 408 L326 578 L304 578" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M348 408 L326 408 L326 578 L304 578" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="P-storage-provider" data-relationships="[{&quot;from&quot;: &quot;P-storage&quot;, &quot;to&quot;: &quot;P-virtualization&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;P-storage-provider&quot;}]" />
+  <rect x="284.5" y="504" width="91" height="20" fill="white" />
+  <text x="330" y="518" class="label">Provided by</text>
+  <path d="M656 408 L634 408 L634 656 L172 656 L172 616" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M656 408 L634 408 L634 656 L172 656 L172 616" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="P-network-provider" data-relationships="[{&quot;from&quot;: &quot;P-network&quot;, &quot;to&quot;: &quot;P-virtualization&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;P-network-provider&quot;}]" />
+  <rect x="316.0" y="636" width="196" height="20" fill="white" />
+  <text x="414" y="650" class="label">Provided by virtualization</text>
+  <path d="M172 616 L172 730" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M172 616 L172 730" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="P-hosting" data-relationships="[{&quot;from&quot;: &quot;P-virtualization&quot;, &quot;to&quot;: &quot;P-servers&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;P-hosting&quot;}]" />
+  <rect x="140.5" y="687" width="63" height="20" fill="white" />
+  <text x="172" y="701" class="label">Runs on</text>
+  <path d="M480 446 L480 730" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M480 446 L480 730" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="P-disk-backing" data-relationships="[{&quot;from&quot;: &quot;P-storage&quot;, &quot;to&quot;: &quot;P-drives&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;P-disk-backing&quot;}]" />
+  <rect x="417.0" y="688" width="126" height="20" fill="white" />
+  <text x="480" y="702" class="label">Physical backing</text>
+  <path d="M788 446 L788 540" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M788 446 L788 540" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="P-fabric-use" data-relationships="[{&quot;from&quot;: &quot;P-network&quot;, &quot;to&quot;: &quot;P-fabric&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;P-fabric-use&quot;}]" />
+  <rect x="721.5" y="508" width="133" height="20" fill="white" />
+  <text x="788" y="522" class="label">Logical transport</text>
+  <path d="M788 616 L788 730" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M788 616 L788 730" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="P-fabric-backing" data-relationships="[{&quot;from&quot;: &quot;P-fabric&quot;, &quot;to&quot;: &quot;P-switches&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;P-fabric-backing&quot;}]" />
+  <rect x="735.5" y="687" width="105" height="20" fill="white" />
+  <text x="788" y="701" class="label">Realized over</text>
+  <path d="M788 156 L788 210 L942 210 L942 768 L920 768" fill="none" stroke="white" stroke-width="6" stroke-dasharray="6 4" marker-end="none" />
+  <path d="M788 156 L788 210 L942 210 L942 768 L920 768" fill="none" stroke="#627581" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#dep)" data-relations="P-storage-network-backing" data-relationships="[{&quot;from&quot;: &quot;P-storage-network&quot;, &quot;to&quot;: &quot;P-switches&quot;, &quot;kind&quot;: &quot;depends-on&quot;, &quot;id&quot;: &quot;P-storage-network-backing&quot;}]" />
+  <rect x="787.5" y="185" width="105" height="20" fill="white" />
+  <text x="840" y="199" class="label">When selected</text>
+  <path d="M172 806 L172 840 L788 840 L788 806" fill="none" stroke="white" stroke-width="6" marker-end="none" />
+  <path d="M172 806 L172 840 L788 840 L788 806" fill="none" stroke="#627581" stroke-width="1.6" data-relations="P-cabling" data-relationships="[{&quot;from&quot;: &quot;P-servers&quot;, &quot;to&quot;: &quot;P-switches&quot;, &quot;kind&quot;: &quot;connected-to&quot;, &quot;id&quot;: &quot;P-cabling&quot;}]" />
+  <rect x="406.5" y="821" width="147" height="20" fill="white" />
+  <text x="480" y="835" class="label">Physical attachment</text>
+  <a href="SoftwareIntakeSolutionDesign.svg" target="_top">
+    <g data-model="L-Proxy" class="edge" fill="#fce8ec" stroke="#9b4d67" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+      <rect x="40" y="80" width="264" height="76" stroke-dasharray="none" style=";fill:#e7f0fc;stroke:#4d719b;" />
+      <text x="172" y="120">Policy proxy / HTTP cache</text>
+    </g>
+  </a>
+  <a href="SoftwareIntakeSolutionDesign.svg" target="_top">
+    <g data-model="L-Cache" class="data" fill="#eeeafa" stroke="#78639b" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+      <path d="M348 92 C348 76 612 76 612 92 L612 144 C612 160 348 160 348 144 Z" style=";fill:#e7f0fc;stroke:#4d719b;" />
+      <path d="M348 92 C348 108 612 108 612 92" fill="none" style=";fill:none;stroke:#4d719b;" />
+      <text x="480" y="125">Rebuildable cache storage</text>
+    </g>
+  </a>
+  <a href="../../../models/platform/networking/Networking.sysml" target="_top">
+    <g data-model="P-storage-network" class="network" fill="#f4eded" stroke="#9b7378" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+      <rect x="656" y="80" width="264" height="76" stroke-dasharray="4 3" style=";fill:#e7f0fc;stroke:#4d719b;" />
+      <text x="788" y="110">Logical storage network</text>
+      <text x="788" y="130">Optional platform context</text>
+    </g>
+  </a>
+  <a href="SoftwareIntakeSolutionDesign.svg" target="_top">
+    <g data-model="R-Pair" class="edge" fill="#fce8ec" stroke="#9b4d67" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+      <rect x="40" y="220" width="264" height="76" stroke-dasharray="none" style=";fill:#e7f0fc;stroke:#4d719b;" />
+      <text x="172" y="260">Squid + keepalived</text>
+    </g>
+  </a>
+  <g data-models="DISK-cache-1 DISK-cache-2" class="data" fill="#eeeafa" stroke="#78639b" color="#42325d" stroke-width="1.5">
+    <path d="M348 232 C348 216 612 216 612 232 L612 284 C612 300 348 300 348 284 Z" />
+    <path d="M348 232 C348 248 612 248 612 232" fill="none" />
+    <text x="480" y="265">Per-VM virtual cache disk</text>
+  </g>
+  <g data-models="VM-cache-1 VM-cache-2" class="boundary" fill="#eef2f6" stroke="#64748b" color="#1f2937" stroke-width="1.5">
+    <rect x="40" y="370" width="264" height="76" stroke-dasharray="none" />
+    <text x="172" y="410">Cache VMs: cache-1, cache-2</text>
+  </g>
+  <a href="../../../models/platform/data/Data.sysml" target="_top">
+    <g data-model="P-storage" class="services" fill="#e7f0fc" stroke="#4d719b" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+      <rect x="348" y="370" width="264" height="76" stroke-dasharray="none" style=";fill:#e7f0fc;stroke:#4d719b;" />
+      <text x="480" y="410">Local guest-disk service</text>
+    </g>
+  </a>
+  <a href="../../../models/platform/networking/Networking.sysml" target="_top">
+    <g data-model="P-network" class="services" fill="#e7f0fc" stroke="#4d719b" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+      <rect x="656" y="370" width="264" height="76" stroke-dasharray="none" style=";fill:#e7f0fc;stroke:#4d719b;" />
+      <text x="788" y="410">Guest network attachment</text>
+    </g>
+  </a>
+  <a href="../../platform/hosting/Boot1FoundationReference.svg" target="_top">
+    <g data-model="P-virtualization" class="services" fill="#e7f0fc" stroke="#4d719b" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+      <rect x="40" y="540" width="264" height="76" stroke-dasharray="none" style=";fill:#e7f0fc;stroke:#4d719b;" />
+      <text x="172" y="580">Proxmox virtualization</text>
+    </g>
+  </a>
+  <a href="../../../models/platform/networking/Networking.sysml" target="_top">
+    <g data-model="P-fabric" class="network" fill="#f4eded" stroke="#9b7378" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+      <rect x="656" y="540" width="264" height="76" stroke-dasharray="none" style=";fill:#e7f0fc;stroke:#4d719b;" />
+      <text x="788" y="580">Logical fabric network</text>
+    </g>
+  </a>
+  <a href="../../platform/hosting/Boot1FoundationReference.svg" target="_top">
+    <g data-model="P-servers" class="equipment" fill="#f3f1ed" stroke="#8b857c" color="#584013" stroke-width="1.5" data-category="physical" style=";color:#584013;">
+      <rect x="40" y="730" width="264" height="76" stroke-dasharray="none" style=";fill:#fff2d1;stroke:#926820;" />
+      <rect x="44" y="734" width="256" height="68" fill="none" style=";fill:none;stroke:#926820;" />
+      <text x="172" y="770">Physical servers</text>
+    </g>
+  </a>
+  <a href="../../../models/platform/data/Data.sysml" target="_top">
+    <g data-model="P-drives" class="equipment" fill="#f3f1ed" stroke="#8b857c" color="#584013" stroke-width="1.5" data-category="physical" style=";color:#584013;">
+      <rect x="348" y="730" width="264" height="76" stroke-dasharray="none" style=";fill:#fff2d1;stroke:#926820;" />
+      <rect x="352" y="734" width="256" height="68" fill="none" style=";fill:none;stroke:#926820;" />
+      <text x="480" y="770">Physical storage devices</text>
+    </g>
+  </a>
+  <a href="../../../models/platform/networking/Networking.sysml" target="_top">
+    <g data-model="P-switches" class="equipment" fill="#f3f1ed" stroke="#8b857c" color="#584013" stroke-width="1.5" data-category="physical" style=";color:#584013;">
+      <rect x="656" y="730" width="264" height="76" stroke-dasharray="none" style=";fill:#fff2d1;stroke:#926820;" />
+      <rect x="660" y="734" width="256" height="68" fill="none" style=";fill:none;stroke:#926820;" />
+      <text x="788" y="770">Physical switches and NICs</text>
+    </g>
+  </a>
+  <text x="480" y="31" class="heading">Software intake | connected design and resource providers</text>
+  <text x="480" y="58" class="note">Follow responsibilities into realization, then required resources and their physical backing.</text>
+  <text x="480" y="869" class="note">Shared platform contracts are mapped context; physical counts, ports and placement remain site-owned.</text>
+  <g class="legend" id="Legend">
+    <g fill="#e7f0fc" stroke="#4d719b" stroke-dasharray="none" data-category-key="logical">
+      <rect x="30" y="885.0" width="22" height="16" />
+    </g>
+    <text x="59" y="898.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Logical component</text>
+    <g fill="#fff2d1" stroke="#926820" stroke-dasharray="none" data-category-key="physical">
+      <rect x="260" y="885.0" width="22" height="16" />
+    </g>
+    <text x="289" y="898.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Physical equipment</text>
+  </g>
+  <rect y="960.0" width="960" height="30" fill="#eef2f6" />
+  <text x="24" y="981.0" style="font:bold 14px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Software intake Â· Resources</text>
+  <rect x="0" y="990.0" width="960" height="56" fill="#eef2f6" />
+  <a href="../../HomelabSystemOverview.svg" target="_top" aria-label="System Overall">
+    <title>System Overall</title>
+    <rect x="5.0" y="997.0" width="182.0" height="42" fill="transparent" />
+    <text x="96.0" y="1023.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+  </a>
+  <a href="../SoftwareIntakeLogicalDesign.svg" target="_top" aria-label="Logical design">
+    <title>Logical design</title>
+    <rect x="197.0" y="997.0" width="182.0" height="42" fill="transparent" />
+    <text x="288.0" y="1023.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Logical design</text>
+  </a>
+  <a href="SoftwareIntakeSolutionDesign.svg" target="_top" aria-label="Solution design">
+    <title>Solution design</title>
+    <rect x="389.0" y="997.0" width="182.0" height="42" fill="transparent" />
+    <text x="480.0" y="1023.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Solution design</text>
+  </a>
+  <a href="../policy-proxy/PolicyProxyContract.svg" target="_top" aria-label="Proxy contract">
+    <title>Proxy contract</title>
+    <rect x="581.0" y="997.0" width="182.0" height="42" fill="transparent" />
+    <text x="672.0" y="1023.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Proxy contract</text>
+  </a>
+  <a href="../../../../artifacts/architecture/generated/software-intake/trace.md" target="_top" aria-label="IaC and sources">
+    <title>IaC and sources</title>
+    <rect x="773.0" y="997.0" width="182.0" height="42" fill="transparent" />
+    <text x="864.0" y="1023.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">IaC and sources</text>
+  </a>
+  <rect x="0" y="1046.0" width="960" height="56" fill="#eef2f6" />
+  <a href="../SoftwareIntakeUseCases.svg" target="_top" aria-label="Use cases">
+    <title>Use cases</title>
+    <rect x="5.0" y="1053.0" width="182.0" height="42" fill="transparent" />
+    <text x="96.0" y="1079.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Use cases</text>
+  </a>
+  <a href="../SoftwareIntakeRequirements.md" target="_top" aria-label="Requirements">
+    <title>Requirements</title>
+    <rect x="197.0" y="1053.0" width="182.0" height="42" fill="transparent" />
+    <text x="288.0" y="1079.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Requirements</text>
+  </a>
+  <a href="../SoftwareIntakeFunctions.svg" target="_top" aria-label="Functions">
+    <title>Functions</title>
+    <rect x="389.0" y="1053.0" width="182.0" height="42" fill="transparent" />
+    <text x="480.0" y="1079.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Functions</text>
+  </a>
+  <a href="../SoftwareIntakeVerification.md" target="_top" aria-label="Tests">
+    <title>Tests</title>
+    <rect x="581.0" y="1053.0" width="182.0" height="42" fill="transparent" />
+    <text x="672.0" y="1079.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Tests</text>
+  </a>
+  <a href="../../../models/software-intake/solution/SoftwareIntakeSolutionDesign.sysml" target="_top" aria-label="Documentation">
+    <title>Documentation</title>
+    <rect x="773.0" y="1053.0" width="182.0" height="42" fill="transparent" />
+    <text x="864.0" y="1079.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+  </a>
+  <metadata data-catalog="VIEW-software-intake-resource-dependencies">{"content_sha256": "bc295ab527ce44b5330eae71c3688c6eb939659263d5ebd754e0e557fb291456", "elements": ["DISK-cache-1", "DISK-cache-2", "L-Cache", "L-Proxy", "P-drives", "P-fabric", "P-network", "P-servers", "P-storage", "P-storage-network", "P-switches", "P-virtualization", "R-Pair", "VM-cache-1", "VM-cache-2"], "key": "VIEW-software-intake-resource-dependencies", "name": "Software intake and its shared resource dependencies", "owner": "software-intake/solution", "presentation": "model-derived SVG; native SysON uses its own notation", "relationships": [{"from": "DISK-cache-1", "id": "STORE-cache-1", "kind": "depends-on", "to": "P-storage"}, {"from": "DISK-cache-2", "id": "STORE-cache-2", "kind": "depends-on", "to": "P-storage"}, {"from": "L-Cache", "id": "ALLOC-cache-1", "kind": "allocated-to", "to": "DISK-cache-1"}, {"from": "L-Cache", "id": "ALLOC-cache-2", "kind": "allocated-to", "to": "DISK-cache-2"}, {"from": "L-Proxy", "id": "ALLOC-proxy", "kind": "allocated-to", "to": "R-Pair"}, {"from": "P-fabric", "id": "P-fabric-backing", "kind": "depends-on", "to": "P-switches"}, {"from": "P-network", "id": "P-fabric-use", "kind": "depends-on", "to": "P-fabric"}, {"from": "P-network", "id": "P-network-provider", "kind": "depends-on", "to": "P-virtualization"}, {"from": "P-servers", "id": "P-cabling", "kind": "connected-to", "to": "P-switches"}, {"from": "P-storage", "id": "P-disk-backing", "kind": "depends-on", "to": "P-drives"}, {"from": "P-storage", "id": "P-storage-provider", "kind": "depends-on", "to": "P-virtualization"}, {"from": "P-storage-network", "id": "P-storage-network-backing", "kind": "depends-on", "to": "P-switches"}, {"from": "P-virtualization", "id": "P-hosting", "kind": "depends-on", "to": "P-servers"}, {"from": "R-Pair", "kind": "contains", "to": "VM-cache-1"}, {"from": "R-Pair", "kind": "contains", "to": "VM-cache-2"}, {"from": "VM-cache-1", "id": "HOST-cache-1", "kind": "depends-on", "to": "P-virtualization"}, {"from": "VM-cache-1", "id": "NET-cache-1", "kind": "depends-on", "to": "P-network"}, {"from": "VM-cache-2", "id": "HOST-cache-2", "kind": "depends-on", "to": "P-virtualization"}, {"from": "VM-cache-2", "id": "NET-cache-2", "kind": "depends-on", "to": "P-network"}], "subject": null, "svg": "architecture/generated/software-intake/solution/SoftwareIntakeResources.svg"}</metadata>
+</svg>

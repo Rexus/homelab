@@ -1,0 +1,19 @@
+stages: [test]
+
+architecture-contracts:
+  stage: test
+  image: ubuntu:24.04
+  timeout: 60 minutes
+  before_script:
+    - bash .gitlab/prepare-architecture.sh
+  script:
+    - bash .gitlab/check-architecture.sh
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths:
+      - .tmp/architecture-ci/
+      - .tmp/requirement-evidence/
+      - .tmp/software-intake-model/validation.log
+    reports:
+      junit: .tmp/requirement-evidence/report/requirements.xml

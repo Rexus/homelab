@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 756" role="img" aria-labelledby="title desc" data-view-id="VIEW-system-overall">
+  <title id="title">Homelab | System Overall</title>
+  <desc id="desc">Model-derived logical responsibility view. Software intake uses shared execution, storage and networking. Delivery depends on controlled supply and trust. Operations acts on managed platform resources. Each box links to its design overview.</desc>
+  <rect width="960" height="700" fill="white" />
+  <style>text{font:16px Arial,sans-serif;fill:currentColor;stroke:none;text-anchor:middle}.title{font-size:23px;font-weight:600}.node-title{font-size:18px;font-weight:600}.note{font-size:14px}.label{font-size:13px}.legend text{font-size:12px}a:focus rect,a:hover rect{stroke-width:3px}</style>
+  <defs>
+    <marker id="dep" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0 0 L8 4 L0 8 Z" fill="#627581" />
+    </marker>
+  </defs>
+  <g data-model="SYS-homelab" class="subject" color="#1f2937" data-boundary-kind="subject">
+    <rect x="15" y="78" width="930" height="498" rx="5" fill="#f8fafc" stroke="#8b857c" style="fill:#fbfcfd;stroke:#8393a6;stroke-dasharray:none;" />
+    <path d="M420 152 H540" fill="none" stroke="#627581" stroke-width="1.6" data-relation="SYS-delivery-trust" stroke-dasharray="6 4" marker-end="url(#dep)" />
+    <rect x="418.0" y="126" width="124" height="20" fill="#f8fafc" />
+    <text x="480" y="140" class="label">Identity / trust</text>
+    <path d="M230 206 V296" fill="none" stroke="#627581" stroke-width="1.6" data-relation="SYS-delivery-supply" stroke-dasharray="6 4" marker-end="url(#dep)" />
+    <rect x="147.0" y="240" width="166" height="20" fill="#f8fafc" />
+    <text x="230" y="254" class="label">Controlled acquisition</text>
+    <path d="M230 392 V482" fill="none" stroke="#627581" stroke-width="1.6" data-relation="SYS-intake-resources" stroke-dasharray="6 4" marker-end="url(#dep)" />
+    <rect x="122.5" y="426" width="215" height="20" fill="#f8fafc" />
+    <text x="230" y="440" class="label">Execution / storage / network</text>
+    <path d="M730 392 V482" fill="none" stroke="#627581" stroke-width="1.6" data-relation="SYS-operations-resources" stroke-dasharray="6 4" marker-end="url(#dep)" />
+    <rect x="664.5" y="426" width="131" height="20" fill="#f8fafc" />
+    <text x="730" y="440" class="label">Managed resources</text>
+    <a href="../models/delivery/DeliveryAndWorkloads.sysml" target="_top" aria-label="Open Delivery and workloads overview">
+      <g data-model="SYS-delivery" class="services" fill="#e7f0fc" stroke="#4d719b" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+        <rect x="40" y="110" width="380" height="96" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="230.0" y="138" class="node-title">Delivery and workloads</text>
+        <text x="230.0" y="191" class="note">Reviewed source, builds and releases</text>
+      </g>
+    </a>
+    <a href="../models/trust-and-access/TrustAndAccess.sysml" target="_top" aria-label="Open Trust and access overview">
+      <g data-model="SYS-trust" class="control" fill="#e2f3ed" stroke="#397366" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+        <rect x="540" y="110" width="380" height="96" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="730.0" y="138" class="node-title">Trust and access</text>
+        <text x="730.0" y="191" class="note">Cryptography, custody and identity</text>
+      </g>
+    </a>
+    <a href="software-intake/SoftwareIntakeLogicalDesign.svg" target="_top" aria-label="Open Software intake overview">
+      <g data-model="SYS-intake" class="edge" fill="#fce8ec" stroke="#9b4d67" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+        <rect x="40" y="296" width="380" height="96" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="230.0" y="324" class="node-title">Software intake</text>
+        <text x="230.0" y="377" class="note">Admission, forwarding and disposable reuse</text>
+      </g>
+    </a>
+    <a href="../models/operations/OperationsAndRecovery.sysml" target="_top" aria-label="Open Operations and recovery overview">
+      <g data-model="SYS-operations" class="control" fill="#e2f3ed" stroke="#397366" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+        <rect x="540" y="296" width="380" height="96" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="730.0" y="324" class="node-title">Operations and recovery</text>
+        <text x="730.0" y="377" class="note">Visibility, maintenance and recovery</text>
+      </g>
+    </a>
+    <a href="platform/SharedPlatformOverview.svg" target="_top" aria-label="Open Shared platform overview">
+      <g data-model="SYS-platform" class="services" fill="#e7f0fc" stroke="#4d719b" color="#203a5b" stroke-width="1.5" data-category="logical" style=";color:#203a5b;">
+        <rect x="40" y="482" width="880" height="84" style=";fill:#e7f0fc;stroke:#4d719b;" />
+        <text x="480.0" y="510" class="node-title">Shared platform</text>
+        <text x="480.0" y="551" class="note">Execution, storage and networking backed by physical equipment</text>
+      </g>
+    </a>
+  </g>
+  <text x="480" y="32" class="title" color="#1f2937">Homelab | System Overall</text>
+  <text x="480" y="59" class="note" color="#1f2937">Five design boundaries. Open a box to explore its next level.</text>
+  <text x="480" y="607" class="note" color="#1f2937">Intake: connected model and IaC | Shared platform: provider contracts | Other areas: mapped design</text>
+  <g class="legend" id="Legend">
+    <g fill="#e7f0fc" stroke="#4d719b" stroke-dasharray="none" data-category-key="logical">
+      <rect x="30" y="650.0" width="22" height="16" />
+    </g>
+    <text x="59" y="663.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Logical component</text>
+    <g fill="#fbfcfd" stroke="#8393a6" stroke-dasharray="none" data-category-key="subject">
+      <rect x="260" y="650.0" width="22" height="16" />
+    </g>
+    <text x="289" y="663.0" style="font:normal 12px Arial,sans-serif;text-anchor:start;fill:#1f2937;stroke:none">Subject / scope</text>
+  </g>
+  <rect x="0" y="700.0" width="960" height="56" fill="#eef2f6" />
+  <a href="HomelabUseCases.svg" target="_top" aria-label="Use cases">
+    <title>Use cases</title>
+    <rect x="5.0" y="707.0" width="150.0" height="42" fill="transparent" />
+    <text x="80.0" y="733.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Use cases</text>
+  </a>
+  <a href="HomelabRequirements.md" target="_top" aria-label="Requirements">
+    <title>Requirements</title>
+    <rect x="165.0" y="707.0" width="150.0" height="42" fill="transparent" />
+    <text x="240.0" y="733.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Requirements</text>
+  </a>
+  <a href="HomelabFunctions.svg" target="_top" aria-label="Functions">
+    <title>Functions</title>
+    <rect x="325.0" y="707.0" width="150.0" height="42" fill="transparent" />
+    <text x="400.0" y="733.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Functions</text>
+  </a>
+  <a href="software-intake/SoftwareIntakeVerification.md" target="_top" aria-label="Tests">
+    <title>Tests</title>
+    <rect x="485.0" y="707.0" width="150.0" height="42" fill="transparent" />
+    <text x="560.0" y="733.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Tests</text>
+  </a>
+  <a href="HomelabSystemOverview.svg" target="_top" aria-label="System Overall">
+    <title>System Overall</title>
+    <rect x="645.0" y="707.0" width="150.0" height="42" fill="transparent" />
+    <text x="720.0" y="733.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">System Overall</text>
+  </a>
+  <a href="../README.md" target="_top" aria-label="Documentation">
+    <title>Documentation</title>
+    <rect x="805.0" y="707.0" width="150.0" height="42" fill="transparent" />
+    <text x="880.0" y="733.0" style="font:normal 15px Arial,sans-serif;text-anchor:middle;fill:#1f2937;stroke:none">Documentation</text>
+  </a>
+  <metadata data-catalog="VIEW-system-overall">{"content_sha256": "c9846dcd9601239f2e8e8f6e4235fcfc1598c440faf3c58354aeb074e0a608a5", "elements": ["SYS-delivery", "SYS-intake", "SYS-operations", "SYS-platform", "SYS-trust"], "key": "VIEW-system-overall", "name": "Homelab | System Overall", "owner": ".", "presentation": "model-derived SVG; native SysON uses its own notation", "relationships": [{"from": "SYS-delivery", "id": "SYS-delivery-supply", "kind": "depends-on", "to": "SYS-intake"}, {"from": "SYS-delivery", "id": "SYS-delivery-trust", "kind": "depends-on", "to": "SYS-trust"}, {"from": "SYS-homelab", "kind": "contains", "to": "SYS-delivery"}, {"from": "SYS-homelab", "kind": "contains", "to": "SYS-intake"}, {"from": "SYS-homelab", "kind": "contains", "to": "SYS-operations"}, {"from": "SYS-homelab", "kind": "contains", "to": "SYS-platform"}, {"from": "SYS-homelab", "kind": "contains", "to": "SYS-trust"}, {"from": "SYS-intake", "id": "SYS-intake-resources", "kind": "depends-on", "to": "SYS-platform"}, {"from": "SYS-operations", "id": "SYS-operations-resources", "kind": "depends-on", "to": "SYS-platform"}], "subject": "SYS-homelab", "svg": "architecture/generated/HomelabSystemOverview.svg"}</metadata>
+</svg>

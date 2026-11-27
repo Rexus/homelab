@@ -9,7 +9,7 @@ artifact or replaces a retained repository mirror.
 
 <a id="figure-software-intake-context"></a>
 
-![Connected proxy and update consumers](../../../architecture/views/software-intake/logical.svg)
+![Connected proxy and update consumers](../../../architecture/generated/software-intake/SoftwareIntakeLogicalDesign.svg)
 
 *Figure: Separately owned update clients below request the Tier 2 proxy interface upward.
 The proxy requests approved external sources to its left and uses the rebuildable cache below it;
@@ -21,7 +21,7 @@ The [Squid policy template](../../../tier-2/ansible/roles/cache_proxy/templates/
 and [cache inputs](../../../tier-2/ansible/group_vars/cache.yml.example) realize the proxy boundary.
 Offline recovery supply remains outside this connected path.
 
-Start with the [use-case view and scenarios](../../../architecture/use-cases/software-intake/README.md).
+Start with the [use-case view and scenarios](../../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml).
 The [connected SysML model](02-connected-model.md) ties this view to the selected Terraform and Ansible
 examples, reusable member contracts and implementation checks. Its layouts preserve this visual grammar.
 

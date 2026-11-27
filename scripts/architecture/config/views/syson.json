@@ -1,0 +1,567 @@
+{
+  "tested_version": "2026.11.0",
+  "contract": "DEF-proxy",
+  "contract_documentation": "DOC-proxy-contract",
+  "contract_question": "What interfaces and obligations define PolicyProxy, independently of its uses?",
+  "contract_boxes": {
+    "DEF-proxy": [
+      40,
+      60,
+      1040,
+      500
+    ]
+  },
+  "impact_question": "Which typed uses need review when PolicyProxy changes? This view is direct type impact; use the repository impact query for transitive functions, scenarios, realization and verification.",
+  "publication_views": [
+    "VIEW-system-overall",
+    "VIEW-use-cases",
+    "VIEW-software-intake-logical",
+    "VIEW-software-intake-use-cases",
+    "VIEW-software-intake-functions",
+    "VIEW-software-intake-placement"
+  ],
+  "interconnection_views": {
+    "VIEW-software-intake-logical": {
+      "colour_profile": "shared-notation",
+      "annotations": {
+        "T2": {
+          "frame": [
+            410,
+            -80,
+            550,
+            550
+          ],
+          "caption": [
+            450,
+            -78,
+            440,
+            70
+          ]
+        },
+        "DMZ": {
+          "frame": [
+            440,
+            -10,
+            490,
+            450
+          ],
+          "caption": [
+            465,
+            -8,
+            440,
+            70
+          ]
+        }
+      },
+      "boxes": {
+        "L-Sources": [
+          20,
+          100,
+          300,
+          110
+        ],
+        "L-Proxy": [
+          500,
+          100,
+          370,
+          110
+        ],
+        "L-Cache": [
+          500,
+          310,
+          370,
+          100
+        ],
+        "L-Consumers": [
+          350,
+          510,
+          930,
+          240
+        ],
+        "L-Workloads": [
+          20,
+          42,
+          270,
+          110
+        ],
+        "L-Platform": [
+          320,
+          42,
+          270,
+          110
+        ],
+        "L-Control": [
+          620,
+          42,
+          270,
+          110
+        ],
+        "L-cached-content": [
+          20,
+          42,
+          330,
+          90
+        ]
+      },
+      "ports": {
+        "L-Sources": {
+          "access": [
+            295,
+            50,
+            10,
+            10
+          ]
+        },
+        "L-Proxy": {
+          "outbound": [
+            -5,
+            50,
+            10,
+            10
+          ],
+          "listener": [
+            365,
+            50,
+            10,
+            10
+          ],
+          "cacheAccess": [
+            180,
+            105,
+            10,
+            10
+          ]
+        },
+        "L-Cache": {
+          "access": [
+            180,
+            -5,
+            10,
+            10
+          ]
+        },
+        "L-Consumers": {
+          "access": [
+            925,
+            80,
+            10,
+            10
+          ]
+        }
+      },
+      "rendering_gaps": {
+        "L-cached-content": {
+          "kind": "ItemUsage",
+          "reason": "SysON 2026.11 Interconnection View imports this contained item but does not render it; retain the SVG item and containment as an explicit native gap."
+        }
+      }
+    },
+    "VIEW-software-intake-placement": {
+      "boxes": {
+        "R-Upstream": [
+          -440,
+          170,
+          330,
+          110
+        ],
+        "R-VIP": [
+          60,
+          430,
+          330,
+          110
+        ],
+        "R-Consumers": [
+          600,
+          980,
+          490,
+          110
+        ],
+        "R-Pair": [
+          520,
+          100,
+          1060,
+          650
+        ],
+        "VM-cache-1": [
+          20,
+          20,
+          1000,
+          250
+        ],
+        "RUN-cache-1": [
+          20,
+          40,
+          330,
+          110
+        ],
+        "DISK-cache-1": [
+          430,
+          20,
+          520,
+          140
+        ],
+        "CONTENT-cache-1": [
+          10,
+          10,
+          480,
+          70
+        ],
+        "VM-cache-2": [
+          20,
+          300,
+          1000,
+          250
+        ],
+        "RUN-cache-2": [
+          20,
+          40,
+          330,
+          110
+        ],
+        "DISK-cache-2": [
+          430,
+          20,
+          520,
+          140
+        ],
+        "CONTENT-cache-2": [
+          10,
+          10,
+          480,
+          70
+        ]
+      },
+      "ports": {
+        "R-Upstream": {
+          "access": [
+            320,
+            45,
+            20,
+            20
+          ]
+        },
+        "R-VIP": {
+          "inbound": [
+            155,
+            100,
+            20,
+            20
+          ],
+          "dispatch": [
+            320,
+            45,
+            20,
+            20
+          ]
+        },
+        "R-Consumers": {
+          "access": [
+            235,
+            -10,
+            20,
+            20
+          ]
+        },
+        "R-Pair": {
+          "listener": [
+            -10,
+            380,
+            20,
+            20
+          ],
+          "outbound": [
+            -10,
+            110,
+            20,
+            20
+          ]
+        },
+        "RUN-cache-1": {
+          "cacheAccess": [
+            320,
+            45,
+            20,
+            20
+          ]
+        },
+        "DISK-cache-1": {
+          "access": [
+            -10,
+            45,
+            20,
+            20
+          ]
+        },
+        "RUN-cache-2": {
+          "cacheAccess": [
+            320,
+            45,
+            20,
+            20
+          ]
+        },
+        "DISK-cache-2": {
+          "access": [
+            -10,
+            45,
+            20,
+            20
+          ]
+        }
+      },
+      "colour_profile": "shared-notation",
+      "rendering_gaps": {
+        "CONTENT-cache-1": {
+          "kind": "ItemUsage",
+          "reason": "SysON 2026.11 Interconnection View omits contained items; imported content identity and ownership are retained."
+        },
+        "CONTENT-cache-2": {
+          "kind": "ItemUsage",
+          "reason": "SysON 2026.11 Interconnection View omits contained items; imported content identity and ownership are retained."
+        }
+      },
+      "annotations": {
+        "T2": {
+          "frame": [
+            -20,
+            -70,
+            1690,
+            900
+          ],
+          "caption": [
+            400,
+            -68,
+            800,
+            70
+          ],
+          "border_color": "#a6a6a6"
+        },
+        "Edge": {
+          "frame": [
+            0,
+            0,
+            1650,
+            800
+          ],
+          "caption": [
+            400,
+            2,
+            800,
+            70
+          ],
+          "border_color": "#9b7378"
+        }
+      }
+    }
+  },
+  "general_views": {
+    "VIEW-use-cases": {
+      "boxes": {
+        "ACT-operator": [
+          280,
+          20,
+          48,
+          108
+        ],
+        "ACT-intake": [
+          280,
+          230,
+          48,
+          108
+        ],
+        "UC-clone": [
+          640,
+          170,
+          330,
+          100
+        ],
+        "UC-clone-host": [
+          1030,
+          170,
+          300,
+          100
+        ],
+        "ACT-client": [
+          280,
+          460,
+          48,
+          108
+        ],
+        "ACT-source": [
+          280,
+          670,
+          48,
+          108
+        ],
+        "UC-update": [
+          640,
+          610,
+          330,
+          100
+        ],
+        "UC-supply": [
+          1030,
+          610,
+          300,
+          110
+        ]
+      },
+      "actor_label_offsets": {
+        "ACT-operator": [
+          300,
+          -108
+        ],
+        "ACT-intake": [
+          300,
+          0
+        ],
+        "ACT-client": [
+          300,
+          -108
+        ],
+        "ACT-source": [
+          300,
+          0
+        ]
+      }
+    },
+    "VIEW-software-intake-use-cases": {
+      "boxes": {
+        "ACT-client": [
+          280,
+          180,
+          48,
+          108
+        ],
+        "ACT-source": [
+          280,
+          700,
+          48,
+          108
+        ],
+        "UC-update": [
+          640,
+          350,
+          330,
+          100
+        ],
+        "UC-supply": [
+          640,
+          550,
+          330,
+          110
+        ],
+        "SC-http-cache-untrusted": [
+          1060,
+          20,
+          340,
+          85
+        ],
+        "SC-http-denied": [
+          1060,
+          130,
+          340,
+          85
+        ],
+        "SC-http-hit": [
+          1060,
+          240,
+          340,
+          85
+        ],
+        "SC-http-miss": [
+          1060,
+          350,
+          340,
+          85
+        ],
+        "SC-http-source-failure": [
+          1060,
+          460,
+          340,
+          85
+        ],
+        "SC-http-untrusted": [
+          1060,
+          570,
+          340,
+          85
+        ],
+        "SC-https": [
+          1060,
+          680,
+          340,
+          85
+        ],
+        "SC-https-denied": [
+          1060,
+          790,
+          340,
+          85
+        ]
+      },
+      "actor_label_offsets": {
+        "ACT-client": [
+          300,
+          -108
+        ],
+        "ACT-source": [
+          300,
+          0
+        ]
+      }
+    },
+    "VIEW-software-intake-functions": {
+      "boxes": {
+        "F-admit": [
+          40,
+          40,
+          430,
+          105
+        ],
+        "F-cache": [
+          40,
+          180,
+          430,
+          105
+        ],
+        "F-http": [
+          40,
+          320,
+          430,
+          105
+        ],
+        "F-tunnel": [
+          40,
+          460,
+          430,
+          105
+        ],
+        "F-verify": [
+          40,
+          600,
+          430,
+          105
+        ],
+        "L-Cache": [
+          800,
+          100,
+          450,
+          110
+        ],
+        "L-Consumers": [
+          800,
+          350,
+          450,
+          110
+        ],
+        "L-Proxy": [
+          800,
+          600,
+          450,
+          110
+        ]
+      }
+    }
+  }
+}

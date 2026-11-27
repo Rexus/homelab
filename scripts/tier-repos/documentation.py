@@ -203,8 +203,8 @@ def copy_documentation(writer, prefix, upstream):
               "08-reference/diagrams/kubernetes-platform.svg",
               "08-reference/diagrams/vmid-cutover.svg")
     # Reference model bundles are generated-manual assets, separate from project-owned models.
-    model_assets = sorted(path for path in (upstream / "architecture").rglob("*")
-                          if path.is_file() and path.suffix in (".sysml", ".json", ".svg", ".mmd", ".md", ".dot"))
+    model_assets = sorted(path for area in ("architecture", "artifacts/architecture") for path in (upstream / area).rglob("*")
+                          if path.is_file() and path.suffix in (".sysml", ".json", ".svg", ".mmd", ".md", ".dot", ".xml", ".zip"))
     # Model prose follows owners into the collection. Upstream-only tools/tests are inspection snapshots.
     model_text = {}
     reference_assets = set()
@@ -224,19 +224,19 @@ def copy_documentation(writer, prefix, upstream):
             # General document links retain the established relocation below. Tests/scripts
             # are inspection assets; diagram links use the same ownership rules as model prose.
             if in_docs and source.suffix == ".md" and not any(
-                    owner.is_relative_to(upstream.resolve() / area) for area in ("tests", "scripts")):
+                    owner.is_relative_to(upstream.resolve() / area) for area in ("tests", "scripts", ".gitlab", ".gitlab-ci.yml")):
                 return href
             if not owner.is_relative_to(upstream.resolve()) or not owner.exists():
                 raise ValueError(f"Missing or escaping model document link: {source}: {href}")
             relative = owner.relative_to(upstream)
             area = relative.parts[0]
-            if area == "architecture":
+            if area in ("architecture", "artifacts"):
                 destination = writer.root / AUTO_DOCS / relative
             elif area == "docs":
                 destination = writer.root / AUTO_DOCS / Path(*relative.parts[1:])
             elif area in ("shared", "tier-0", "tier-1", "tier-2"):
                 destination = writer.root.parent / f"{prefix.lower()}-{area}" / Path(*relative.parts[1:])
-            elif area in ("tests", "scripts") and owner.is_file():
+            elif area in ("tests", "scripts", ".gitlab", ".gitlab-ci.yml") and owner.is_file():
                 reference_assets.add(owner)
                 destination = writer.root / AUTO_DOCS / "upstream" / relative
             else:
@@ -283,7 +283,7 @@ def copy_documentation(writer, prefix, upstream):
         def relocate(match):
             source = (path.parent / match[0]).resolve().relative_to(upstream)
             parts = source.parts
-            if parts[0] == "architecture":
+            if parts[0] in ("architecture", "artifacts"):
                 destination = writer.root / AUTO_DOCS / source
                 return Path(os.path.relpath(destination, (writer.root / target).parent)).as_posix()
             if parts[0] not in ("shared", "tier-0", "tier-1", "tier-2"):
@@ -292,7 +292,7 @@ def copy_documentation(writer, prefix, upstream):
             return Path(os.path.relpath(destination, (writer.root / target).parent)).as_posix()
 
         # Preserve local doc links; source files and repository roots move between repos.
-        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:shared|tier-[012]|architecture)(?:/[^)#]*)?(?=[)#])",
+        content = re.sub(r"(?<=\]\()(?:\.\./)+(?:shared|tier-[012]|architecture|artifacts)(?:/[^)#]*)?(?=[)#])",
                          relocate, content)
         # Upstream uses generic repository names; copied run/edit contexts name actual folders.
         # A bare <prefix> can describe DNS or another domain concept, so restrict the suffixes.

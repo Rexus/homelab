@@ -251,6 +251,12 @@ class NativeCachePolicy(PrivateCollection):
             self.assertEqual(request(port, target), first)
             self.assertEqual(sum(path == '/package.rpm' for path, _ in calls), 1,
                              'A fresh public response did not produce a cache hit')
+            # Admission must still deny an unapproved client when the response is already cached.
+            before = len(calls)
+            for method, destination in [('GET', target), ('CONNECT', 'repo.example.test:443')]:
+                with self.subTest(cached_client_denial=method):
+                    self.assertEqual(request(port, destination, method, source='127.0.0.3')[0], 403)
+                    self.assertEqual(len(calls), before, 'Rejected client reached the source')
             time.sleep(MAX_AGE + 0.2)
             expired = request(port, target)
             self.assertEqual(expired[0], 200)
@@ -283,7 +289,7 @@ class NativeCachePolicy(PrivateCollection):
                 self.assertEqual(result[0], 200)
             self.assertEqual(sum(path == '/authenticated.rpm' for path, _ in calls), 2)
 
-            expected = len(denied) + 1 + 3 + 3 + 6 + 2 + 2
+            expected = len(denied) + 1 + 3 + 3 + 6 + 2 + 2 + 2
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
                 lines = access_log.read_text().splitlines() if access_log.exists() else []

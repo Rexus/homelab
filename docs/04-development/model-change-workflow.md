@@ -6,8 +6,9 @@ effect on requirements and use cases, then publish the reconciled model to SysON
 
 The bounded return path supports additions and edits to package-owned requirements and use-case
 definitions. It prepares a conflict-checked source diff, validates the full model and checks a fresh
-SysON import before application. A combined requirement-result runner and hosted CI gate remain
-planned; importing a requirement does not establish that the implementation fulfills it.
+SysON import before application. The [requirement runner and CI checks](requirement-reporting.md)
+connect actual scoped results to every native requirement; importing a requirement alone does not
+establish fulfillment. Hosted pipeline execution follows the normal signed push handoff.
 
 ## Contents
 
@@ -16,12 +17,12 @@ planned; importing a requirement does not establish that the implementation fulf
 - [Develop and verify a requirement](#develop-and-verify-a-requirement)
 - [Reconcile code into the model](#reconcile-code-into-the-model)
 - [Current capabilities](#current-capabilities)
-- [Acceptance for the next implementation](#acceptance-for-the-next-implementation)
+- [Further integration](#further-integration)
 
 ## One baseline and two ways to start
 
-Start at [System Overall](../../architecture/design/README.md), follow the affected subsystem, and
-identify the actor goal, constraints and intended observable outcome. Keep the two compact SysON views
+Start at [System Overall](../../architecture/README.md), follow the affected subsystem, and
+identify the actor goal, constraints and intended observable outcome. Keep the explicitly selected SysON views
 and their shared SVG selections; adding requirements or results does not automatically add diagrams.
 
 | Starting point | Change to review |
@@ -85,9 +86,9 @@ It never replaces the entire repository with the text export: that export loses 
 known behavioral syntax gaps outside this supported subset. A complete candidate build and comparison
 of stored relationships detect loss inside the selected elements. See [recorded limits](syson.md#ownership-and-limitations).
 
-Every requirement/use case remains visible in the generated [intent inventory](../../architecture/generated/software-intake/intent.md).
+Every requirement/use case remains visible in the generated [intent inventory](../../artifacts/architecture/generated/software-intake/intent.md).
 Missing verification cases and missing scenario detail appear as gaps. New entries do not expand the
-two compact SysON views or the curated engineering diagram selection.
+selected SysON views or the curated engineering diagram selection.
 
 Complete the engineering change before treating it as delivered: reconcile implementation allocations,
 acceptance criteria and test bindings, run relevant tests and retain their evidence. A draft requirement
@@ -109,9 +110,9 @@ criteria, responsible design and implementation targets connected. Link its nati
 to real test identifiers or an explicit analysis, inspection or demonstration. A test must assert the
 criterion in the relevant configuration; a linked test file alone establishes no result.
 
-For intake, the existing [native verification cases](../../architecture/test/software-intake/verification.sysml)
-and [implementation/test bindings](../../architecture/trace/software-intake.json) are the starting point.
-The [test entry](../../architecture/test/software-intake/README.md) separates source checks, executable
+For intake, the existing [native verification cases](../../architecture/models/software-intake/SoftwareIntakeVerification.sysml)
+and [implementation/test bindings](../../scripts/architecture/config/trace/software-intake.json) are the starting point.
+The [test entry](../../artifacts/architecture/evidence/software-intake/README.md) separates source checks, executable
 model behavior, isolated products and site obligations. For example, isolated Squid refusal tests can
 support proxy-policy evidence; they cannot establish that a deployed network has no bypass path.
 
@@ -173,32 +174,21 @@ After reconciling the affected sources, use the existing build/check path, run t
 | Capability | Current state |
 | --- | --- |
 | Native model validation, source/trace checks and reproducible SVGs | Available through `software_intake.py build` and `check` |
-| Git model to the two selected SysON views, repeat publication and drift detection | Available through `syson.py publish`; [coverage gaps](../../architecture/test/syson-view-coverage.md) remain explicit |
+| Git model to six selected SysON views, repeat publication and drift detection | Available through `syson.py publish`; [coverage gaps](../../artifacts/architecture/evidence/syson-view-coverage.md) remain explicit |
 | Reverse impact from known code/test bindings | Available through `software_intake.py impact --file`; bounded to recorded traces |
 | Test-selector existence and scenario acceptance coverage | Checked; does not mean those tests were executed |
 | Native model execution and isolated Squid/APT comparison | Available for the documented scenarios; source fingerprints detect stale evidence |
 | Site egress, recovery and other operational obligations | Require their own environment-specific evidence; model/product tests do not fulfill them |
 | SysON requirement/use-case changes returned as conflict-checked Git edits | Available through `review-changes` / `apply-changes` for the bounded scope above; full model validation and stored-subtree comparison required |
-| Unified requirement verdicts from actual run results, including failure/skip history | Not implemented; existing reports are separate and are not a complete requirement-status runner |
-| Discovery of new untraced behavior and requirement gates in hosted CI | Not automated; inspect the actual diff now and implement scoped discovery/gates explicitly |
+| Requirement verdicts from actual results, including failure/skip history | Available through `requirements.py run/report/gate`; all obligations remain visible across isolated and site scopes |
+| Requirement CI gates | GitLab job wired to native validation, reporting regression tests and isolated implementation checks; locally rehearsed, hosted run awaits signed push |
+| Discovery of new untraced behavior | Manual scoped diff and execution-path review; not automated |
 
-## Acceptance for the next implementation
+## Further integration
 
 The return slice is recorded in [return-path evidence](../01-architecture/07-software-intake/syson-return-verification.md).
-The remaining implementation is evidence aggregation and enforcement. Acceptance for that work:
-
-1. Extend the proven requirement/use-case return path with an executable acceptance scenario and its verification bindings.
-2. Demonstrate a concurrent Git/tool conflict, an unsupported change and a deletion with consumers;
-   each must remain visible without overwriting unrelated work. Reapplying an accepted change must
-   not duplicate elements or relations.
-3. Connect the changed obligation to a real implementation test. Show its criterion failing, then
-   passing after the implementation is corrected. Keep the failing evidence and show the requirement
-   verdict following the actual results. Exercise missing, skipped and stale evidence as separate gaps.
-4. Add representative untraced behavior and demonstrate the reverse path finding and reconciling it.
-   Native validation must pass; implementation evidence must retain its actual test/environment scope.
-5. Rebuild and republish, proving the returned requirement/use-case relationships survive and the
-   accepted System Overall and software-intake selections remain intact. Archive the test project and
-   retire only confirmed disposable output. Wire and exercise a scoped CI gate before claiming it works.
-
-This completes an evidence-backed engineering loop for that supported slice. It does not establish
-lossless editing of all SysML constructs or automatic correctness of the deployed system.
+Requirement evidence and CI are now covered by the [reporting workflow](requirement-reporting.md) and
+its [verification record](../01-architecture/07-software-intake/requirement-reporting-verification.md).
+Future slices can add reviewed site-evidence ingestion and scoped discovery of newly untraced behavior.
+Preserve the existing change conflict, identity and relationship checks when extending those paths.
+This does not establish lossless editing of all SysML constructs or deployed system correctness.

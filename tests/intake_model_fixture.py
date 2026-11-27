@@ -32,15 +32,19 @@ class IntakeModelFixture(unittest.TestCase):
         files = set(snapshot["sources"]) | {
             str(p.relative_to(UPSTREAM)) for p in (UPSTREAM / GENERATED).rglob("*") if p.is_file()
         }
-        files.update(p.relative_to(UPSTREAM).as_posix() for p in (UPSTREAM / "architecture/views").rglob("*") if p.is_file())
+        files.update(p.relative_to(UPSTREAM).as_posix() for p in (UPSTREAM / "architecture/generated").rglob("*") if p.is_file())
+        files.update(p.relative_to(UPSTREAM).as_posix() for p in
+                     (UPSTREAM / "artifacts/architecture/evidence/software-intake").iterdir()
+                     if p.is_file() and p.suffix in (".json", ".md"))
+        files.update(snapshot["outputs_sha256"])
         files.add(str(CASE_PLAN))
         files.update(str(p) for p in OUTPUTS.values())
         files.update(str(p) for p in OVERVIEW_OUTPUTS)
         scopes = json.loads(
-            (UPSTREAM / "architecture/views/design-context.json").read_text(encoding="utf-8")
+            (UPSTREAM / "scripts/architecture/config/views/design-context.json").read_text(encoding="utf-8")
         )["scopes"]
         files.update(scope["svg"] for scope in scopes if scope.get("svg"))
-        files.add("architecture/generated/design-context.json")
+        files.add("artifacts/architecture/generated/design-context.json")
         # The fixture owns the same navigable bundle, including supporting document assets.
         for name in list(files):
             path = UPSTREAM / name

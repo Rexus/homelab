@@ -1,6 +1,17 @@
 # Compare the model with real software
 
-[![Software intake implementation results](../../../architecture/views/software-intake/implementation.svg)](../../../architecture/views/software-intake/implementation.svg)
+<!-- BEGIN MODEL COMPARISON -->
+No current implementation result. Retained results are historical; rerun the comparison.
+
+| Experiment | Expected outcome | Observed outcome |
+| --- | --- | --- |
+| [Reject untrusted cached content](../../../architecture/generated/software-intake/SoftwareIntakeUseCases.svg#SC-http-cache-untrusted) | verification-failed | Not current |
+| [Deny even when content is cached](../../../architecture/generated/software-intake/SoftwareIntakeUseCases.svg#SC-http-denied) | denied | Not current |
+| [Reuse fresh content while source is offline](../../../architecture/generated/software-intake/SoftwareIntakeUseCases.svg#SC-http-hit) | accepted | Not current |
+| [Retrieve from available source](../../../architecture/generated/software-intake/SoftwareIntakeUseCases.svg#SC-http-miss) | accepted | Not current |
+| [Stop after source failure](../../../architecture/generated/software-intake/SoftwareIntakeUseCases.svg#SC-http-source-failure) | source-unavailable | Not current |
+| [Reject untrusted source content](../../../architecture/generated/software-intake/SoftwareIntakeUseCases.svg#SC-http-untrusted) | verification-failed | Not current |
+<!-- END MODEL COMPARISON -->
 
 This comparison follows one concrete use of software intake: **download a package through the cache
 and verify it before use**. Real Squid runs the project's proxy configuration. Real APT authenticates
@@ -33,7 +44,7 @@ its signed metadata through Squid. Each measured scenario then downloads one pac
 authenticated package index. APT verifies package hashes linked to signed metadata; this is not an
 individual signature on each `.deb` file. [1]
 
-The six experiments come from the [same SysML experiment usages](../../../architecture/test/software-intake/retrieval-runs.sysml)
+The six experiments come from the [same SysML experiment usages](../../../architecture/models/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.sysml)
 as [model execution](05-retrieval-execution.md). Their inputs set up the fixture; their expected results
 are compared with measured outcomes. The comparison does not implement a second expected-behavior list.
 
@@ -48,10 +59,10 @@ are compared with measured outcomes. The comparison does not implement a second 
 | Altered package from source | Retrieval succeeds, but APT reports a hash mismatch and rejects the package |
 | Altered package already cached | Squid returns a cache hit; APT still rejects the package |
 
-The [recorded comparison](../../../architecture/test/software-intake/implementation.json) retains tool
+The [recorded comparison](../../../artifacts/architecture/evidence/software-intake/implementation.json) retains tool
 versions, source fingerprints, HTTP status, Squid result, source requests, APT exit/result and the
-expected model outcome. Open a card in the [comparison view](../../../architecture/views/software-intake/implementation.svg)
-to inspect its expected sequence, then follow a message to its function, implementation and tests.
+expected model outcome. Follow the experiment links in the comparison table to the expected sequence,
+then follow a message to its function, implementation and tests.
 
 Only observable outcomes are compared. Squid does not expose each internal model action, and its
 privacy-preserving log does not record full package URLs. The serialized fixture correlates each
@@ -71,7 +82,7 @@ Then, from **the upstream homelab checkout in Linux/WSL**:
 ```bash
 export HOMELAB_SQUID="$(command -v squid)"
 export PYTHONPATH="tests${PYTHONPATH:+:$PYTHONPATH}"
-export INTAKE_IMPLEMENTATION_REPORT="$PWD/architecture/test/software-intake/implementation.json"
+export INTAKE_IMPLEMENTATION_REPORT="$PWD/artifacts/architecture/evidence/software-intake/implementation.json"
 python -B -m unittest -v test_tier_intake_product
 ```
 

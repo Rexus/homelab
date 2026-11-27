@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import subprocess
 from intake_sources import (
-    MODEL,
+    MODEL, MANIFEST, REALIZATION, check_native_tree,
     VIEWS,
     GENERATED,
     TRACE,
@@ -19,7 +19,8 @@ from intake_sources import (
     require,
 )
 from intake_model import normalize, impact, validate_trace, trace_report
-from intake_intent import intent_report
+from intake_intent import intent_report, guardrail_table
+from model_artifacts import seal_outputs, verify_outputs
 from intake_views import render
 from view_catalog import compile_views
 from focused_views import outputs as focused_outputs
@@ -34,15 +35,15 @@ from bootstrap_reference import prepare_reference, VIEW as FOUNDATION_VIEW, REND
 from intake_resource_view import resource_view
 from system_overall import overview_outputs, overview_sources
 from design_context import source_paths as context_sources
-from design_context_view import context_outputs
+from design_context import context_outputs
 from intake_explorer import navigation_outputs
 from intake_scenario_views import scenario_views, function_views
 from design_context import scopes
 from svg_pages import SCENARIOS, FUNCTIONS, validate_links
-from intake_reverse_view import reverse_outputs
+from intake_reverse_report import reverse_outputs
 from intake_reverse_cli import run_file_query
 from intake_semantics import case_plan
-from intake_engineering_view import outputs as engineering_outputs
+from intake_matrices import outputs as matrix_outputs, sources as matrix_sources
 from intake_execution_view import execution_outputs
 from intake_product import outputs as product_outputs
 from intake_platform import check_platform, dependencies, resource_report
@@ -51,11 +52,11 @@ from intake_contracts import check_behavior_contracts, behavior_report
 DIAGRAMS = Path("docs/08-reference/diagrams")
 GUIDE = Path("docs/01-architecture/07-software-intake/README.md")
 OUTPUTS = {
-    "placement": Path("architecture/views/software-intake/placement.svg"),
-    "logical": Path("architecture/views/software-intake/logical.svg"),
+    "solution": Path("architecture/generated/software-intake/solution/SoftwareIntakeSolutionDesign.svg"),
+    "logical": Path("architecture/generated/software-intake/SoftwareIntakeLogicalDesign.svg"),
 }
-CASE_PLAN = Path("architecture/test/software-intake/cases.json")
-CASE_VIEW = Path("architecture/views/software-intake/use-cases.svg")
+CASE_PLAN = Path("artifacts/architecture/evidence/software-intake/cases.json")
+CASE_VIEW = Path("architecture/generated/software-intake/SoftwareIntakeUseCases.svg")
 SEQUENCES = {"HTTP": "B-HTTP", "HTTPS": "B-HTTPS"}
 
 
@@ -68,15 +69,17 @@ def fingerprint(root, records):
             if (p.suffix in (".sysml", ".json", ".py", ".java") or p.name.endswith(".layout.svg"))
             and p.name != "catalog.json"
         )
-    files.add(BOOTSTRAP_VIEW.with_suffix(".json").as_posix())
+    files.add(MANIFEST.as_posix())
+    files.add("scripts/architecture/config/views/platform/hosting/clone-repository.json")
     files.update(p.as_posix() for p in (FOUNDATION_VIEW, FOUNDATION_RENDERER))
     files.update(overview_sources(root))
     files.update(context_sources(root))
+    files.update(matrix_sources(root))
     # CASE_PLAN is a generated compatibility projection of native verification cases.
-    files.update(json.loads((root / MODEL / "model.json").read_text(encoding="utf-8"))["sources"])
+    files.update(json.loads((root / MANIFEST).read_text(encoding="utf-8"))["sources"])
     files.update(
         map(
-            str, (TRACE, TOOLCHAIN, DIAGRAMS / "palette.json", Path("architecture/views/notation.json"))
+            str, (TRACE, TOOLCHAIN, DIAGRAMS / "palette.json", Path("scripts/architecture/config/views/notation.json"))
         )
     )
     return {
@@ -90,7 +93,7 @@ def native_export(root, selected, args):
         all((args.java, args.kernel, args.library)),
         "build needs --java, --kernel and --library (or SYSML_JAVA/KERNEL/LIBRARY)",
     )
-    manifest = json.loads((root / MODEL / "model.json").read_text(encoding="utf-8"))
+    manifest = json.loads((root / MANIFEST).read_text(encoding="utf-8"))
     sources = []
     for name in manifest["sources"]:
         path = (root / name).resolve()
@@ -141,7 +144,7 @@ def native_export(root, selected, args):
 def expected_outputs(root, model, inputs, records, *, execution_report=None):
     outputs = {
         CASE_PLAN: json.dumps(case_plan(model), indent=2) + "\n",
-        GENERATED / "realization.sysml": realization(inputs),
+        REALIZATION: realization(inputs),
         GENERATED
         / "scenarios.md": scenario_report(
             model,
@@ -152,7 +155,7 @@ def expected_outputs(root, model, inputs, records, *, execution_report=None):
         GENERATED / "functions.md": function_report(model),
         GENERATED / "intent.md": intent_report(model),
         CASE_VIEW: use_case_view(root, model),
-        Path("architecture/views/software-intake/resource-dependencies.svg"): resource_view(root, model, inputs),
+        Path("architecture/generated/software-intake/solution/SoftwareIntakeResources.svg"): resource_view(root, model, inputs),
         GENERATED / "resource-trace.md": resource_report(model),
         GENERATED / "trace.md": trace_report(model, records, inputs),
         GENERATED / "behavior-trace.md": behavior_report(model, records),
@@ -174,29 +177,32 @@ def expected_outputs(root, model, inputs, records, *, execution_report=None):
     outputs[GUIDE] = document
     outputs.update(
         context_outputs(
-            root, model, records, case_plan(model), outputs
+            root, model, records, case_plan(model)
         )
     )
+    outputs[Path("architecture/README.md")] = (root / "architecture/README.md").read_text(encoding="utf-8")
+    guardrail_table(model, outputs)
     plan = case_plan(model)
     outputs.update(navigation_outputs(root, model, records, plan, outputs))
     entries = scopes(root)
-    outputs[Path(SCENARIOS)] = scenario_views(root, model, entries, records, plan)
-    outputs[Path(FUNCTIONS)] = function_views(model, entries, records)
+    outputs[Path(SCENARIOS)] = scenario_views(root, model, entries, records, plan, views=outputs)
+    outputs[Path(FUNCTIONS)] = function_views(model, entries, records, views=outputs)
     outputs.update(reverse_outputs(model, records))
-    outputs.update(engineering_outputs(root, model, records))
+    outputs.update(matrix_outputs(root, model))
     outputs.update(execution_outputs(root, model, records, fingerprint(root, records), report=execution_report))
     outputs.update(product_outputs(root, model))
     outputs.update(contract_outputs(root, model))
     outputs.update(bootstrap_outputs(root, model))
-    outputs.update(focused_outputs(root, model))
+    outputs.update(focused_outputs(root, model, views=outputs))
     decorate(root, model, outputs)
-    selection = json.loads((root / "architecture/views/engineering-views.json").read_text(encoding="utf-8"))["views"]
-    compile_views(outputs, model, selection)
+    selection = json.loads((root / "scripts/architecture/config/views/engineering-views.json").read_text(encoding="utf-8"))
+    compile_views(outputs, model, selection["views"], selection["identities"])
     validate_links(root, outputs)
     return outputs
 
 
 def run(root, command, args):
+    check_native_tree(root)
     if command == "execute":
         from intake_execution import execute
         return execute(root, args)
@@ -223,10 +229,17 @@ def run(root, command, args):
         )
         require(not changed, "Model export needs regeneration after changes to: " + ", ".join(changed))
         model = snapshot["model"]
+    if command == "validate":
+        parsed = native_export(root, realization(inputs), args)
+        require(parsed == model, "Native model differs from committed model-index; rebuild and review")
     validate_trace(model, records)
     check_platform(root, model, inputs)
     check_behavior_contracts(root, inputs, model, records)
     validate_use_cases(model, records, case_plan(model))
+    if command == "validate":
+        verify_outputs(root, snapshot)
+        print("PASS: native model, source inputs, trace contracts and generated-artifact manifest agree.")
+        return model
     outputs = expected_outputs(root, model, inputs, records)
     if command == "build":
         for path, value in outputs.items():
@@ -239,6 +252,7 @@ def run(root, command, args):
                     "model": model,
                     "trace_records": records,
                     "sources": fingerprint(root, records),
+                    "outputs_sha256": seal_outputs(outputs),
                 },
                 indent=2,
             )
@@ -273,7 +287,7 @@ def run(root, command, args):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("command", choices=("build", "check", "impact", "dependencies", "analyze", "execute"))
+    p.add_argument("command", choices=("build", "check", "validate", "impact", "dependencies", "analyze", "execute"))
     p.add_argument("element", nargs="?")
     p.add_argument("--file", help="Upstream file path or path::test method; review the last built trace")
     p.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])

@@ -8,12 +8,20 @@ from diagram_notation import tag
 from design_context import scopes, owned_parts, relative
 from intake_use_cases import connections, CASE_VIEWS
 from intake_intent import case_target
-from intake_reverse import asset_links
-from svg_pages import (SYSTEM,INTAKE,SCENARIOS,FUNCTIONS,LOGICAL,DEPLOYMENT,RESOURCES,
-    text,link,assets,page,finish,add_navigation)
+from svg_pages import (SYSTEM,INTAKE,SCENARIOS,FUNCTIONS,LOGICAL,SOLUTION,RESOURCES,
+    add_navigation)
 
 
-def target_for(model,entries,key):
+def target_for(model,entries,key,origin=None,views=None):
+    # A logical role opens its selected realization when the native allocation is shown there.
+    # The same role keeps this destination across use cases, functions and logical views.
+    for scope in entries:
+        target=scope.get('realization_svg')
+        if not target or not views or Path(target) not in views or key not in owned_parts(model,scope['roots']):
+            continue
+        selected={n.get('data-model') for n in ET.fromstring(views[Path(target)]).iter()}
+        if set(connections(model,key,'allocated-to')) & selected:
+            return target
     if key in model['functions']:return FUNCTIONS+'#'+key
     if key in model['scenarios']:return SCENARIOS+'#'+key
     if key in model['use_cases']:return case_target(key, CASE_VIEWS)
@@ -22,9 +30,9 @@ def target_for(model,entries,key):
         owner=max(owners,key=lambda s:len(Path(s['page']).parts))
         return owner.get('svg') or owner['page']
     if key.startswith('CONTENT-') or key=='L-cached-content':
-        return 'architecture/design/software-intake/object-cache/README.md#storage-and-content'
-    if key.startswith(('VM-','RUN-','DISK-','R-')):return DEPLOYMENT
-    if key.startswith('REQ-'):return 'architecture/generated/software-intake/intent.md#'+key.lower()
+        return 'architecture/models/software-intake/object-cache/ObjectCache.sysml'
+    if key.startswith(('VM-','RUN-','DISK-','R-')):return SOLUTION
+    if key.startswith('REQ-'):return 'artifacts/architecture/generated/software-intake/intent.md#'+key.lower()
     return LOGICAL
 
 
@@ -33,23 +41,14 @@ def realized_parts(model,parts):
     return owned_parts(model,roots)
 
 
-def source_rows(model,records,parts):
-    rows=[]
-    for category,selected in [('Logical implementation',parts),('Selected realization',realized_parts(model,parts))]:
-        types={t for p in selected for t in connections(model,p,'typed-by')}
-        for key in sorted(types & set(records)):
-            rows.extend((source,category+' · '+key,source,None) for source in records[key]['sources'])
-    return list({row[0]:row for row in reversed(rows)}.values())
-
-
 def navigation_outputs(root,model,records,plan,existing):
     entries=scopes(root);outputs={}
     destinations={s['page']:s.get('svg') or s['page'] for s in entries}
-    documents={SYSTEM:'architecture/design/README.md',
-        'architecture/views/platform/overview.svg':'architecture/design/platform/README.md',
-        LOGICAL:'architecture/design/software-intake/logical.md',
-        DEPLOYMENT:'architecture/design/software-intake/deployment.md',
-        RESOURCES:'architecture/design/software-intake/resources.md'}
+    documents={SYSTEM:'architecture/README.md',
+        'architecture/generated/platform/SharedPlatformOverview.svg':'architecture/models/platform/SharedPlatform.sysml',
+        LOGICAL:'architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml',
+        SOLUTION:'architecture/models/software-intake/solution/SoftwareIntakeSolutionDesign.sysml',
+        RESOURCES:'architecture/models/software-intake/solution/SoftwareIntakeSolutionDesign.sysml'}
     for origin,document in documents.items():
         svg=ET.fromstring(existing[Path(origin)])
         for a in svg.iter(tag('a')):
@@ -59,28 +58,36 @@ def navigation_outputs(root,model,records,plan,existing):
             for child in list(parent):
                 key=child.get('data-model')
                 if not key or key not in model['elements'] or parent.tag==tag('a'):continue
-                if any(e is not child and (e.get('data-model') or e.tag==tag('a')) for e in child.iter()):continue
-                target=target_for(model,entries,key)
+                target=target_for(model,entries,key,origin,existing)
                 if target==origin:continue
                 a=ET.Element(tag('a'),{'href':relative(origin,target),'target':'_top'})
-                i=list(parent).index(child);parent.remove(child);a.append(child);parent.insert(i,a)
-        if origin in (SYSTEM,LOGICAL):
-            base='architecture/views/' + ('software-intake/' if origin==LOGICAL else '')
-            nav=[('Use cases',base+'use-cases.svg'),('Requirements',base+'requirements.svg'),
-                 ('Functions',base+'functions.svg'),('Tests','architecture/views/software-intake/tests.svg'),
+                if any(e is not child and (e.get('data-model') or e.tag==tag('a')) for e in child.iter()):
+                    # Link the container's own symbol without enclosing its children's links.
+                    own=[n for n in child if n.tag in {tag(t) for t in
+                         ('rect','ellipse','circle','path','polygon','text')} and not n.get('data-model')]
+                    if not own:continue
+                    i=list(child).index(own[0])
+                    for n in own:child.remove(n);a.append(n)
+                    child.insert(i,a)
+                else:
+                    i=list(parent).index(child);parent.remove(child);a.append(child);parent.insert(i,a)
+        related=[];caption=None
+        if origin in (LOGICAL,SOLUTION,RESOURCES):
+            base='architecture/generated/software-intake/SoftwareIntake'
+            designs=[('Logical design',LOGICAL),('Solution design',SOLUTION),('Resources',RESOURCES)]
+            current=next(label for label,path in designs if path==origin)
+            caption='Software intake Â· '+current
+            nav=[('System Overall',SYSTEM)]+[(label,path) for label,path in designs if path!=origin]
+            nav += [('Proxy contract','architecture/generated/software-intake/policy-proxy/PolicyProxyContract.svg'),('IaC and sources','artifacts/architecture/generated/software-intake/trace.md')]
+            related=[('Use cases',base+'UseCases.svg'),('Requirements',base+'Requirements.md'),
+                     ('Functions',base+'Functions.svg'),('Tests',base+'Verification.md'),('Documentation',document)]
+        elif origin==SYSTEM:
+            base='architecture/generated/Homelab'
+            nav=[('Use cases',base+'UseCases.svg'),('Requirements',base+'Requirements.md'),
+                 ('Functions',base+'Functions.svg'),('Tests','architecture/generated/software-intake/SoftwareIntakeVerification.md'),
                  ('System Overall',SYSTEM),('Documentation',document)]
         else:
-            nav=[('System Overall',SYSTEM),('Intake design',LOGICAL),
-                 ('IaC and sources','architecture/views/software-intake/sources.svg'),('Documentation',document)]
-        outputs[Path(origin)]=add_navigation(ET.tostring(svg,encoding='unicode'),origin,nav)
-    origin='architecture/views/software-intake/sources.svg'
-    svg,y,nav=page(origin,'Software intake | Implementation assets',
-        'Sources and checks attached to the modeled design; this index is supporting material.',
-        'architecture/design/software-intake/deployment.md')
-    parts=owned_parts(model,['SYS-intake'])
-    rows=source_rows(model,records,parts)
-    groups={}
-    for _,group,target,_ in rows:groups.setdefault(group,[]).append(target)
-    y=assets(svg,origin,y,list(groups.items()),asset_links(records))
-    outputs[Path(origin)]=ET.tostring(finish(svg,origin,y,nav),encoding='unicode')+'\n'
+            nav=[('System Overall',SYSTEM),('Intake logical design',LOGICAL),
+                 ('IaC and sources','artifacts/architecture/generated/software-intake/trace.md'),('Documentation',document)]
+        outputs[Path(origin)]=add_navigation(ET.tostring(svg,encoding='unicode'),origin,nav,related,caption)
     return outputs

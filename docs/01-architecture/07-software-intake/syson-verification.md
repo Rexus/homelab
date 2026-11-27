@@ -23,7 +23,7 @@ The normal publication is explicitly limited to `VIEW-system-overall` and
 reports, catalogue growth and SVG pages do not automatically create native representations.
 
 - System Overall retains the accepted five subsystem identities, four dependencies and source-owned
-  placement from `architecture/views/system-overall.json`.
+  placement from `scripts/architecture/config/views/system-overall.json`.
 - Software intake uses native **Interconnection View**, preserving the seven parts/reference roles,
   three nested client references and three actual flows selected by `logical.svg`. Each arrow resolves
   through its port to the expected selected source and target. The native ports remain intact while
@@ -67,7 +67,7 @@ membership and placement remain local to each view, and the native comments add 
 The [workflow](../../04-development/syson.md) describes the shared definitions and colour ownership.
 
 The preceding cache-content refinement receipt and detailed check are `.tmp/syson/c5f1438a639ab27f121c/receipt.json` and
-`cache-content-verification.json`. The [portable coverage report](../../../architecture/test/syson-view-coverage.md)
+`cache-content-verification.json`. The [portable coverage report](../../../artifacts/architecture/evidence/syson-view-coverage.md)
 records the retained System Overall enclosure difference and the intake item/containment omission.
 It does not claim full native rendering parity.
 
@@ -122,7 +122,7 @@ keep needed native archives outside it. The server database volume remains its p
 ## Earlier contract-change evidence
 
 The earlier test clarified the existing
-[PolicyProxy contract](../../../architecture/design/software-intake/policy-proxy/definition.sysml):
+[PolicyProxy contract](../../../architecture/models/software-intake/policy-proxy/PolicyProxy.sysml):
 admit by client/destination/port before forwarding or cache lookup, and reject disallowed requests
 without origin access or cached-content reads. The stable identity remained `DEF-proxy`.
 

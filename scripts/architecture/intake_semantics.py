@@ -29,7 +29,8 @@ def project_semantics(objects, names, model):
             constraints = [objects[r['@id']] for r in e.get('requiredConstraint', [])]
             descriptions = [' '.join(docs(c).values()) for c in constraints]
             require(descriptions and all(descriptions), key + ': missing required constraint')
-            requirements[key] = {'subject_types': subject_type(e), 'constraints': descriptions}
+            requirements[key] = {'subject_types': subject_type(e), 'constraints': descriptions,
+                                 'satisfaction_review': docs(e).get('SatisfactionReview', '')}
             if not model['elements'][key]['docs']:
                 model['elements'][key]['docs'] = descriptions
         if e['@type'] == 'UseCaseDefinition':
@@ -45,10 +46,15 @@ def project_semantics(objects, names, model):
             require(targets and all(targets), key + ': no native verified requirement')
             detail = docs(e)
             require(detail.get('Acceptance'), key + ': missing acceptance intent')
+            require(all(detail.get(field) for field in ('Method','Setup','Action')),
+                    key + ': verification needs a method, setup and action')
+            require(detail['Method'] in ('Inspection','Analysis','Demonstration','Test'),
+                    key + ': unsupported verification method')
             scenarios = [r['to'] for r in model['edges'] if r['from'] == key
                          and r['kind'] == 'depends-on' and r['to'] in model['scenarios']]
             verification[key] = {'requirements': targets, 'subject_types': subject_type(e),
                 'scenarios': scenarios, 'acceptance': detail['Acceptance'],
+                'method': detail['Method'], 'setup': detail['Setup'], 'action': detail['Action'],
                 **({'manual': detail['Manual']} if detail.get('Manual') else {})}
             for target in targets:
                 edge(key, target, 'verifies')

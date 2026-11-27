@@ -9,7 +9,7 @@ from diagram_notation import tag
 from intake_sources import require
 
 SOURCE = Path("docs/03-deployment/foundation/bootstrap/README.md")
-VIEW = Path("architecture/views/platform/hosting/bootstrap-reference.svg")
+VIEW = Path("architecture/generated/platform/hosting/Boot1FoundationReference.svg")
 RENDERER = Path("docs/08-reference/diagrams/render-bootstrap-reference.cjs")
 
 

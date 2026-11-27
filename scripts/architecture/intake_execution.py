@@ -6,10 +6,10 @@ import os
 from pathlib import Path
 import re
 import subprocess
-from intake_sources import MODEL, GENERATED, TOOLCHAIN, require, trace_map
+from intake_sources import MANIFEST, GENERATED, TOOLCHAIN, require, trace_map
 
-EVIDENCE = Path('architecture/test/software-intake/execution.json')
-VIEW = Path('architecture/views/software-intake/execution.svg')
+EVIDENCE = Path('artifacts/architecture/evidence/software-intake/execution.json')
+VIEW = Path('architecture/generated/software-intake/analysis/SoftwareIntakeRetrievalAnalysis.svg')
 GUIDE = 'docs/01-architecture/07-software-intake/05-retrieval-execution.md'
 
 
@@ -90,7 +90,7 @@ def execute(root, args):
             pin['commit'] in version.stdout,
             'Use the pinned OpenSysML ' + pin['version'] + '; runtime was unavailable or had another version')
     model = run(root, 'build', args)
-    manifest = json.loads((root / MODEL / 'model.json').read_text())
+    manifest = json.loads((root / MANIFEST).read_text())
     require(set(manifest['execution_sources']) <= set(manifest['sources']), 'Executable sources must belong to the native model')
     work = root / '.tmp/software-intake-execution'
     work.mkdir(parents=True, exist_ok=True)

@@ -1,89 +1,64 @@
-# Connected architecture
+# Homelab architecture
 
-Start with [System Overall](design/README.md), then open a subsystem and descend to its more focused
-designs. Use cases explain intended use; functions, realization and tests stay connected to that design.
-Software intake is the first capability traced end to end. Other areas remain mapped to existing owners.
+[![System Overall](generated/HomelabSystemOverview.svg)](generated/HomelabSystemOverview.svg)
 
-For a focused actor goal, open [Clone a Git repository on boot-1](views/platform/hosting/clone-repository.svg).
-Select Software intake to follow the supporting service to its own design.
+Open the SVG to follow software intake from Logical design to Solution design, use cases, functions
+and tests. Each view uses the same native identities. The other areas remain mapped to their existing
+owners; their folders do not claim detailed modeled implementation.
 
-For the software-intake example, [follow one request in familiar terms](../docs/01-architecture/07-software-intake/03-http-walkthrough.md),
-then [compare the model with real software](../docs/01-architecture/07-software-intake/06-implementation-comparison.md).
+## Read and edit the model
 
-[![Homelab System Overall](views/system-overall.svg)](views/system-overall.svg)
+`models/` owns the SysML sources; `generated/` contains the portable diagrams and matrices.
+Both follow the same subject hierarchy. View remains a modeling concept, not a file ownership category.
 
-Open [system use cases](views/use-cases.svg), [requirements](views/requirements.svg) or
-[functions](views/functions.svg) directly. The [software intake design](views/software-intake/logical.svg)
-has its own focused concern views and [verification cases](views/software-intake/tests.svg).
+`models/` contains authored native `.sysml`, normally 1–5 files per owner. Their `doc` annotations
+explain intent and assumptions. Descending folders focuses the design; shared providers retain their
+own home. Generated SVG diagrams and Markdown matrices live under `generated/`, following the same owner hierarchy.
+Aim for 1–5 view files per owner too. Software intake has Logical design, Use cases (including their
+scenarios), Functions (including focused detail), Requirements, and Verification. Solution and analysis
+detail stays in its owning child folder. Source, comparison and reverse-trace reports are supporting
+assets, not another diagram inventory.
 
-Open the SVG directly in a browser to move between views. Use its **Documentation** link for
-supporting text. Use [Change impact](views/software-intake/asset-impact.svg) to start from a file or test.
-[Inspect engineering relationships](views/software-intake/engineering.svg) or
-[review the MBSE working method](../docs/01-architecture/07-software-intake/04-mbse-review.md).
-[Run and inspect HTTP retrieval](views/software-intake/execution.svg).
-[Follow one HTTP scenario](../docs/01-architecture/07-software-intake/03-http-walkthrough.md).
+| Start | Native source | Portable view |
+| --- | --- | --- |
+| System Overall | [HomelabSystemDesign.sysml](models/HomelabSystemDesign.sysml) | [Overall](generated/HomelabSystemOverview.svg) |
+| Software intake | [SoftwareIntakeLogicalDesign.sysml](models/software-intake/SoftwareIntakeLogicalDesign.sysml) | [Logical design](generated/software-intake/SoftwareIntakeLogicalDesign.svg) |
+| Selected solution | [SoftwareIntakeSolutionDesign.sysml](models/software-intake/solution/SoftwareIntakeSolutionDesign.sysml) | [Solution design](generated/software-intake/solution/SoftwareIntakeSolutionDesign.svg) |
+| Human-led use | [Hosting.sysml](models/platform/hosting/Hosting.sysml) | [Clone a repository on boot-1](generated/platform/hosting/Boot1CloneRepository.svg) |
+| Retrieval behavior | [SoftwareIntakeBehavior.sysml](models/software-intake/SoftwareIntakeBehavior.sysml) | [Scenarios](generated/software-intake/SoftwareIntakeUseCases.svg) |
+| Verification intent | [SoftwareIntakeVerification.sysml](models/software-intake/SoftwareIntakeVerification.sysml) | [Tests](generated/software-intake/SoftwareIntakeVerification.md) |
 
-*Logical responsibility view: open [Design](design/README.md) for linked subsystem boxes and folder
-navigation. Dashed arrows are selected design dependencies, not traffic or installation order.*
+Use PascalCase names with the subject and concern where needed, and the `.sysml`, `.svg` or generated `.md` extension.
+Keep stable model/view identities when renaming a file. Folder names remain descriptive kebab-case.
 
-| Concern | Software intake entry |
-| --- | --- |
-| Use Cases | [System goals](use-cases/README.md); [actors and retrieval scenarios](use-cases/software-intake/README.md) |
-| Requirements | [Few functional and quality guardrails](requirements/README.md) |
-| Functions | [Responsibilities, inputs, outputs and behavior](functions/software-intake/README.md) |
-| Design | [System Overall](design/README.md) → [Software intake](design/software-intake/README.md): logical contracts, realization and resource dependencies; [shared platform boundary](design/platform/README.md) |
-| Test | [Scenario acceptance, executable checks and evidence](test/software-intake/README.md) |
+## Guardrails
 
-The [connected resource view](views/software-intake/resource-dependencies.svg) follows the intake
-design through shared virtualization, storage and network providers to physical backing. Design is
-organized by subsystem ownership; logical, deployment and resource diagrams are views of that design.
+<!-- BEGIN MODEL GUARDRAILS -->
+| Guardrail | Subject | Native acceptance constraint | Verification intent |
+| --- | --- | --- | --- |
+| `REQ-custody` | DisposableCache | The disposable cache shall keep the effects of losing its rebuildable data isolated from the independently retained recovery supply. | [VC-custody](views/software-intake/SoftwareIntakeVerification.md#REQ-custody) |
+| `REQ-egress` | UpdateClient | The update client shall be unable to retrieve external software through a path that bypasses the independently enforced egress policy. | [VC-egress](views/software-intake/SoftwareIntakeVerification.md#REQ-egress) |
+| `REQ-integrity` | UpdateClient | The update client shall accept retrieved software for use only after the applicable source and publisher authenticity checks succeed, retaining end-to-end source TLS through CONNECT for HTTPS. | [VC-http-cache-untrusted, VC-http-untrusted, VC-integrity](views/software-intake/SoftwareIntakeVerification.md#REQ-integrity) |
+| `REQ-policy` | PolicyProxy | The policy proxy shall deny external retrieval requests that fail the accepted client, destination or port policy. | [VC-http-denied, VC-http-hit, VC-http-miss, VC-http-source-failure, VC-https, VC-https-denied](views/software-intake/SoftwareIntakeVerification.md#REQ-policy) |
+<!-- END MODEL GUARDRAILS -->
 
-The engineering concerns own the authored sources. Shared notation, layout, implementation traces and
-generated views support them. Existing IaC, application code and executable tests keep their owners.
+The [requirements matrix](generated/software-intake/SoftwareIntakeRequirements.md) connects obligations,
+recorded design satisfaction assertions and checks. The [verification matrix](generated/software-intake/SoftwareIntakeVerification.md)
+lists method, setup/action, pass criteria and evidence status. Both are generated from native SysML.
+An assertion of satisfaction is not a passed verification result.
 
-```text
-architecture/
-  use-cases/software-intake/       Goal, scenarios and compilation manifest
-  requirements/functional/        Essential observable capability obligations
-  requirements/non-functional/    Integrity, custody and egress constraints
-  functions/software-intake/       Function contracts and HTTP/HTTPS behavior
-  design/                         Level 0: System Overall and native system boundary
-    software-intake/               Level 1: connected intake design
-      policy-proxy/                Level 2: reusable proxy definition and contracts
-      object-cache/                Level 2: reusable cache definition and contracts
-    platform/                      Level 1: shared provider boundary
-      hosting/                     Level 2: mapped execution and equipment owner
-      networking/                  Level 2: mapped network and attachment owner
-      data/                        Level 2: mapped storage owner
-    trust-and-access/              Level 1: mapped cryptography and identity
-    delivery/                      Level 1: mapped delivery and workloads
-    operations/                    Level 1: mapped operations and recovery
-  test/software-intake/            Acceptance criteria and evidence entry
-  views/                          Shared catalogue, notation and generated SVGs
-    software-intake/               Same owner depth as Design
-      policy-proxy/                Context, contract and change impact
-      object-cache/                Cache context and concern views
-    platform/                      Platform overview and owner views
-      hosting/                     Hosting views
-      networking/                  Networking views
-      data/                        Data views
-  trace/                          Checked model-to-code/IaC/test ownership
-  generated/software-intake/       Reproducible model projections; do not edit
-```
+The table above is generated from native constraints and verification intent. It does not declare passed
+tests; client integrity, independent custody and network enforcement retain their actual owners.
+Use cases and activities explain goals and behavior without requiring an extra requirement for every step.
 
-Design folder depth follows composition: each README opens the design at its level, and child folders
-focus further. Shared providers remain beside their consumers under the common owner, with dependency
-links across folders. The [coverage map](../docs/01-architecture/model-map.md) records modeled versus mapped
-areas. This is a repository convention, not a SysML-mandated tree. Intake has detailed native coverage;
-System Overall adds connected boundary references. Sources compile as one `SoftwareIntake` package using
-stable identities, with `SystemDesign::homelab` as the root design part.
-Browse all [styled SVG views](views/README.md), including pages within the linked SVG books.
-The matching SysON `Views` hierarchy consumes the same catalogue. Git holds the accepted semantic baseline;
-[native rendering coverage](test/syson-view-coverage.md) records matches and explicit gaps.
-Follow the [model development workflow](../docs/04-development/model-change-workflow.md) to reconcile
-proposed SysON edits, implementation changes and requirement evidence. Requirement/use-case return import
-is available with explicit scope and conflict checks; combined execution verdicts remain planned.
-See [build and change instructions](../docs/01-architecture/07-software-intake/02-connected-model.md)
-and [publish review snapshots to SysON](../docs/04-development/syson.md).
-Copied `docs/auto-docs/architecture/` bundles are read-only upstream references; selected site models
-and operating records belong outside auto-docs and survive refresh.
+## Build and verify
+
+Follow the [build/change guide](../docs/01-architecture/07-software-intake/02-connected-model.md).
+Native SysML v2 validation, implementation checks and current evidence are separate completion gates.
+[Verification records](../docs/01-architecture/07-software-intake/verification.md) retain gaps and scope.
+Git owns the native sources; SysON is optional. Ordinary operating guides remain under `docs/`.
+
+Tool settings/layouts are under `scripts/architecture/config`; generated indexes/reports and retained
+evidence are under `artifacts/architecture`. These support validation and browsing, not a second
+authored model. Update native sources and relevant implementation, rebuild, and inspect the actual
+clicked route. Model parsing or simulation alone does not establish live operation.

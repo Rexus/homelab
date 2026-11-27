@@ -4,7 +4,7 @@ const {pathToFileURL} = require('node:url');
 const {chromium} = require(process.env.DIAGRAM_PLAYWRIGHT || 'playwright');
 (async () => {
   const folder = path.resolve('.tmp/intake-render');
-  const base = 'architecture/views/software-intake/';
+  const base = 'architecture/generated/software-intake/';
   const url = file => { const [name, fragment] = file.split('#'); return pathToFileURL(path.resolve(base + name)).href + (fragment ? '#' + fragment : ''); };
   const browser = await chromium.launch({channel:'msedge', headless:true});
   const report = {browser:browser.version(), views:[], journey:[]};

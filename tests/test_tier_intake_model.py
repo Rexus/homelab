@@ -83,7 +83,7 @@ class IntakeModelContracts(IntakeModelFixture):
 
     def test_model_change_requires_native_regeneration(self):
         self.change(
-            "architecture/design/software-intake/policy-proxy/definition.sysml",
+            "architecture/models/software-intake/policy-proxy/PolicyProxy.sysml",
             "Cache eligible HTTP",
             "Cache only eligible HTTP",
         )
@@ -124,7 +124,7 @@ class IntakeModelContracts(IntakeModelFixture):
             render(self.root, self.model, selected_inputs(self.root), "logical")
 
     def test_generated_svg_cannot_drift(self):
-        self.change(OUTPUTS["placement"], "Cache VIP", "A different listener")
+        self.change(OUTPUTS["solution"], "Cache VIP", "A different listener")
         with self.assertRaisesRegex(ValueError, "Stale generated output"):
             self.check()
 
@@ -156,7 +156,7 @@ class IntakeManualIntegration(TierRepositoryTestCase):
         record = self.root / "verify-architecture" / "architecture" / "intake-design.sysml"
         record.parent.mkdir(exist_ok=True)
         record.write_text("package SiteIntake { /* Selected site design */ }\n")
-        retired = manual / "architecture/design/logical/software-intake/context.sysml"
+        retired = manual / "architecture/models/logical/software-intake/context.sysml"
         retired.parent.mkdir(parents=True, exist_ok=True)
         retired.write_text("// Old generated reference\n")
         self.generate("--refresh")

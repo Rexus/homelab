@@ -7,8 +7,8 @@ from intake_sources import require
 
 def link(path, label=None):
     file, _, selector = path.partition("::")
-    # Reports live under architecture/generated/software-intake.
-    return f"[{label or "/".join(Path(file).parts[-3:])}](../../../{file})" + (
+    # Reports live under artifacts/architecture/generated/software-intake.
+    return f"[{label or "/".join(Path(file).parts[-3:])}](../../../../{file})" + (
         f" `{selector}`" if selector else ""
     )
 
@@ -25,8 +25,8 @@ def scenario_report(model, records, plan, view):
         "Generated from the owning use case, native branch selections and test plan.",
         "These are expected paths through the model, not simulated or observed executions.",
         "",
-        "[Use-case view](../../use-cases/software-intake/README.md) · "
-        "[Functions](functions.md) · [Test and evidence](../../test/software-intake/README.md)",
+        "[Use-case view](../../../../architecture/generated/software-intake/SoftwareIntakeUseCases.svg) Â· "
+        "[Functions](functions.md) Â· [Test and evidence](../../evidence/software-intake/README.md)",
         "",
         "## Contents",
         "",
@@ -56,7 +56,7 @@ def scenario_report(model, records, plan, view):
             functions = [t for t in connections(model, message, "depends-on") if t in model["functions"]]
             owners = sorted({p for f in functions for p in connections(model, f, "allocated-to")})
             rows.append(
-                f'| {index} · `{message}` | {model["elements"][message]["name"]} | '
+                f'| {index} Â· `{message}` | {model["elements"][message]["name"]} | '
                 + ", ".join(f"`{f}`" for f in functions)
                 + " | "
                 + ", ".join(model["elements"][p]["name"] for p in owners)
@@ -88,9 +88,9 @@ def function_report(model):
         "# Software intake functions",
         "",
         "Generated from native function contracts and allocations. Product choices remain in "
-        "[software deployment](../../design/software-intake/deployment.md).",
+        "[Solution design](../../../../architecture/models/software-intake/solution/SoftwareIntakeSolutionDesign.sysml).",
         "",
-        "| Function | Inputs → outputs | Responsibility | Allocated logical parts | Guardrails |",
+        "| Function | Inputs â†’ outputs | Responsibility | Allocated logical parts | Guardrails |",
         "| --- | --- | --- | --- | --- |",
     ]
     for key in sorted(model["functions"]):
@@ -101,7 +101,7 @@ def function_report(model):
         rows.append(
             f'| `{key}` {element["name"]} | '
             + ", ".join(ports["in"])
-            + " → "
+            + " â†’ "
             + ", ".join(ports["out"])
             + " | "
             + " ".join(element["docs"])

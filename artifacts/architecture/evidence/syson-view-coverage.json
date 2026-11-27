@@ -1,0 +1,170 @@
+{
+  "scope": "Selected model elements and relationships; SVG styling/navigation/evidence are separate.",
+  "views": [
+    {
+      "key": "VIEW-software-intake-functions",
+      "svg": "architecture/views/software-intake/SoftwareIntakeFunctions.svg",
+      "representation": "e1d21df9-576a-4068-84cb-7c0eddebf40e",
+      "missing_elements": [],
+      "extra_elements": [],
+      "unrendered_relationships": [],
+      "unrendered_annotations": [],
+      "model_content_status": "matched",
+      "palette_mismatches": [],
+      "declared_rendering_gaps": {},
+      "issues": [],
+      "status": "matched"
+    },
+    {
+      "key": "VIEW-software-intake-logical",
+      "svg": "architecture/views/software-intake/SoftwareIntakeLogicalDesign.svg",
+      "representation": "469f5350-76c3-4ab4-bb8f-1f9780390aea",
+      "missing_elements": [
+        "L-cached-content"
+      ],
+      "extra_elements": [],
+      "unrendered_relationships": [
+        {
+          "from": "L-Cache",
+          "to": "L-cached-content",
+          "kind": "contains"
+        }
+      ],
+      "unrendered_annotations": [],
+      "model_content_status": "gap",
+      "palette_mismatches": [],
+      "declared_rendering_gaps": {
+        "L-cached-content": {
+          "kind": "ItemUsage",
+          "reason": "SysON 2026.11 Interconnection View imports this contained item but does not render it; retain the SVG item and containment as an explicit native gap."
+        }
+      },
+      "issues": [
+        "Selected element kinds are not rendered",
+        "Selected relationships are not rendered"
+      ],
+      "status": "gap"
+    },
+    {
+      "key": "VIEW-software-intake-placement",
+      "svg": "architecture/views/software-intake/solution/SoftwareIntakeSolutionDesign.svg",
+      "representation": "c51122d3-a291-4156-86d2-01a6791f6781",
+      "missing_elements": [
+        "CONTENT-cache-1",
+        "CONTENT-cache-2"
+      ],
+      "extra_elements": [],
+      "unrendered_relationships": [
+        {
+          "from": "DISK-cache-1",
+          "to": "CONTENT-cache-1",
+          "kind": "contains"
+        },
+        {
+          "from": "DISK-cache-2",
+          "to": "CONTENT-cache-2",
+          "kind": "contains"
+        }
+      ],
+      "unrendered_annotations": [],
+      "model_content_status": "gap",
+      "palette_mismatches": [],
+      "declared_rendering_gaps": {
+        "CONTENT-cache-1": {
+          "kind": "ItemUsage",
+          "reason": "SysON 2026.11 Interconnection View omits contained items; imported content identity and ownership are retained."
+        },
+        "CONTENT-cache-2": {
+          "kind": "ItemUsage",
+          "reason": "SysON 2026.11 Interconnection View omits contained items; imported content identity and ownership are retained."
+        }
+      },
+      "issues": [
+        "Selected element kinds are not rendered",
+        "Selected relationships are not rendered"
+      ],
+      "status": "gap"
+    },
+    {
+      "key": "VIEW-software-intake-use-cases",
+      "svg": "architecture/views/software-intake/SoftwareIntakeUseCases.svg",
+      "representation": "ad8d257a-35d9-4572-bd37-e60f4b7b8439",
+      "missing_elements": [],
+      "extra_elements": [],
+      "unrendered_relationships": [],
+      "unrendered_annotations": [],
+      "model_content_status": "matched",
+      "palette_mismatches": [],
+      "declared_rendering_gaps": {},
+      "issues": [],
+      "status": "matched"
+    },
+    {
+      "key": "VIEW-system-overall",
+      "svg": "architecture/views/HomelabSystemOverview.svg",
+      "representation": "fd2fdd96-bdae-470c-8ca8-4e5addbf8e44",
+      "missing_elements": [],
+      "extra_elements": [],
+      "unrendered_relationships": [
+        {
+          "from": "SYS-homelab",
+          "to": "SYS-delivery",
+          "kind": "contains"
+        },
+        {
+          "from": "SYS-homelab",
+          "to": "SYS-intake",
+          "kind": "contains"
+        },
+        {
+          "from": "SYS-homelab",
+          "to": "SYS-operations",
+          "kind": "contains"
+        },
+        {
+          "from": "SYS-homelab",
+          "to": "SYS-platform",
+          "kind": "contains"
+        },
+        {
+          "from": "SYS-homelab",
+          "to": "SYS-trust",
+          "kind": "contains"
+        }
+      ],
+      "unrendered_annotations": [],
+      "model_content_status": "gap",
+      "palette_mismatches": [],
+      "declared_rendering_gaps": {},
+      "issues": [
+        "Selected relationships are not rendered"
+      ],
+      "status": "gap"
+    },
+    {
+      "key": "VIEW-use-cases",
+      "svg": "architecture/views/HomelabUseCases.svg",
+      "representation": "3d520e53-a74c-47b9-8e91-14ec7105b9e4",
+      "missing_elements": [],
+      "extra_elements": [],
+      "unrendered_relationships": [],
+      "unrendered_annotations": [],
+      "model_content_status": "matched",
+      "palette_mismatches": [],
+      "declared_rendering_gaps": {},
+      "issues": [],
+      "status": "matched"
+    }
+  ],
+  "matched": 3,
+  "gaps": 3,
+  "model_sha256": "080eff2f730eb41e3304e99e705de170e01a940999f3811cb0b9dde3f4ec5ef8",
+  "catalogue": {
+    "VIEW-software-intake-functions": "0a7848b857e90e4f484f9004864da4ce021178b1757f57ee17997d1cb2d29e96",
+    "VIEW-software-intake-logical": "f795fb18be276e975307258772885e442eaa05cf4d60efc27991dc4d717f9b49",
+    "VIEW-software-intake-placement": "affa2f8c28489ea2795cec7890bf6bcb90d8e80d6ebddbccdd7b9fb9a7b6f2ab",
+    "VIEW-software-intake-use-cases": "8330ae907f3fe4b4aeea5275fef481db8dce1115cc4103155f78cc220ed3de6d",
+    "VIEW-system-overall": "c9846dcd9601239f2e8e8f6e4235fcfc1598c440faf3c58354aeb074e0a608a5",
+    "VIEW-use-cases": "cb9ef99a8be7dcd17f6c506ac0a29d6792f693498231a001f8c4c171cad0b8c4"
+  }
+}

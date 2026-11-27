@@ -8,9 +8,9 @@ from syson_model import named_elements
 
 def select_views(root, raw, model):
     names = named_elements(raw)
-    overall = json.loads((root / "architecture/views/system-overall.json").read_text(encoding="utf-8"))
+    overall = json.loads((root / "scripts/architecture/config/views/system-overall.json").read_text(encoding="utf-8"))
     overview = next(v for v in overall["views"] if v["subject"] == "SYS-homelab")
-    config = json.loads((root / "architecture/views/syson.json").read_text(encoding="utf-8"))
+    config = json.loads((root / "scripts/architecture/config/views/syson.json").read_text(encoding="utf-8"))
     views = [{"key": "VIEW-system-overall", "name": "System Overall", "subject": overview["subject"],
               "boxes": {n["key"]: n["box"] for n in overview["nodes"]},
               "edges": [e["id"] for e in overview["edges"]]}]
@@ -105,6 +105,9 @@ def detail_boxes(view, diagram):
 
 
 def edge_handles(view, diagram, indexed):
+    if view.get('general_layout'):
+        from syson_general import facing_handles
+        return facing_handles(view, diagram, indexed)
     if not view.get('compact'):
         return {}
     nodes = {n['id']: n for n in diagram['nodes']}

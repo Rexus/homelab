@@ -1,0 +1,27 @@
+{
+  "SC-https-denied": {
+    "acceptance": "CONNECT is denied and the source records zero connections."
+  },
+  "SC-http-miss": {
+    "acceptance": "Both variants contact the source. Received content follows the configured cache/privacy policy and passes client verification before use; unsigned or expired metadata is rejected unless explicitly excepted."
+  },
+  "SC-http-cache-untrusted": {
+    "acceptance": "The client rejects the content before use and the source records zero new requests."
+  },
+  "SC-http-denied": {
+    "acceptance": "Each request is denied. The source records zero requests; cached content is not returned."
+  },
+  "SC-http-untrusted": {
+    "acceptance": "The client rejects the content before use; retrieval alone does not count as verification."
+  },
+  "SC-https": {
+    "acceptance": "Client TLS authenticates the source certificate and hostname end to end. The proxy neither inspects nor caches decrypted payload; client content verification succeeds before use.",
+    "manual": "Run the Stage 1 accepted-source HTTPS retrieval on the deployed route; verify source certificate/hostname, payload integrity and refusal of invalid trust. The isolated HTTP fixture does not forward CONNECT."
+  },
+  "SC-http-hit": {
+    "acceptance": "No additional source request occurs. The client verifies the returned content before accepting it."
+  },
+  "SC-http-source-failure": {
+    "acceptance": "Retrieval reports failure, delivers no usable content, performs zero content-verification checks and does not serve a stale fallback."
+  }
+}

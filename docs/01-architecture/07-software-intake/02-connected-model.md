@@ -4,7 +4,7 @@ This pilot connects the Stage 1 logical design to the existing proxy/cache autom
 model defines responsibilities, reusable parts, request flows, guarded behavior and four guardrails. Separate layout
 sources retain the established compact figures; the selected member instances come from the IaC examples.
 
-![Logical controlled acquisition](../../../architecture/views/software-intake/logical.svg)
+[![Logical controlled acquisition](../../../architecture/generated/software-intake/SoftwareIntakeLogicalDesign.svg)](../../../architecture/generated/software-intake/SoftwareIntakeLogicalDesign.svg)
 
 *Logical view: update consumers request accepted sources through a policy boundary. Disposable cached
 objects do not confer approval or recovery custody. This is a tailored model-derived view.*
@@ -24,7 +24,7 @@ objects do not confer approval or recovery custody. This is a tailored model-der
 ## Use cases and guardrails
 
 Start at the [engineering map](../../../architecture/README.md), then open the
-[use-case diagram and owned scenarios](../../../architecture/use-cases/software-intake/README.md).
+[use-case diagram and owned scenarios](../../../architecture/generated/software-intake/SoftwareIntakeUseCases.svg).
 The model selects eight paths through the existing HTTP/HTTPS behavior; generated scenario walkthroughs
 link each step to functions, logical owners, implementation and named checks.
 
@@ -35,12 +35,9 @@ denial, and verifies publisher metadata/signatures. The existing
 including denied requests and cache misses. They are generated from native SysML messages, guarded
 actions and succession. Their participants bind to the same logical parts used in the structural view.
 
-| Guardrail | Obligation |
-| --- | --- |
-| `REQ-policy` | Admit only accepted client, destination and port combinations; otherwise deny |
-| `REQ-integrity` | Preserve source TLS through CONNECT and consumer verification; caching is not approval |
-| `REQ-custody` | Keep independent recovery supply outside disposable cache storage |
-| `REQ-egress` | Enforce the accepted network policy independently; proxy settings alone cannot block bypass |
+The [native guardrail table](../../../architecture/README.md#guardrails)
+is generated in the single architecture entry point. It contains the acceptance constraints and verification intent;
+results remain separate evidence.
 
 The [model map](../model-map.md) locates the authored context, guardrails, structure and behavior packages. A `ProxyMember` definition
 provides the proxy and its local cache; both selected VMs reuse that definition. Reuse does not share
@@ -48,14 +45,18 @@ their data or imply that requests are balanced across both hosts.
 
 ## System and folder navigation
 
-[System Overall](../../../architecture/design/README.md) is level 0; intake and the shared platform are
+[System Overall](../../../architecture/README.md) is level 0; intake and the shared platform are
 level 1 siblings. Intake's policy-proxy and object-cache folders own level 2 contracts. Platform child
 folders map hosting, networking and data to the existing chapters. Other top-level designs remain mapped.
 The native system part references the existing intake roles and shared platform, preserving stable IDs.
+Design folders contain only PascalCase `.sysml` files, normally 1–5 per owner. The architecture root
+has the only README; generated SVGs and Markdown matrices live in the matching `architecture/generated/` hierarchy. Technical
+settings/layouts are in `scripts/architecture/config/`; reports and historical evidence are in
+`artifacts/architecture/`. The build rejects stray design files and native sources omitted from validation.
 
 The same build generates the linked overall and platform SVGs from
-[system.sysml](../../../architecture/design/system.sysml) and the
-[overview selection](../../../architecture/views/system-overall.json). Checks reject missing root boxes,
+[HomelabSystemDesign.sysml](../../../architecture/models/HomelabSystemDesign.sysml) and the
+[overview selection](../../../scripts/architecture/config/views/system-overall.json). Checks reject missing root boxes,
 missing dependency selections, broken child/parent links and lost bindings into the existing model.
 The top-level dependencies summarize responsibilities; use the selected intake resource view for exact
 provider obligations. A broad shared-platform reference does not make every optional platform service
@@ -65,36 +66,46 @@ the same navigation in viewers that disable embedded-image links.
 ### Focused concern views
 
 System Overall and software intake each have focused use-case, requirement and function views.
-The intake test view connects verification cases to their requirements and scenario coverage.
+Requirement overviews are generated Markdown matrices derived from native identities, subjects,
+constraints, satisfaction assertions and verification relationships.
+Requirement boxes remain useful in focused diagrams showing satisfaction or verification relationships.
+The intake verification matrix lists each check's method, setup/action, pass criterion, requirement/scenario
+coverage and current evidence status. Missing or stale evidence remains explicitly unverified.
 The designs link directly to these views; there is no repeated frame of concern panels.
 Other areas remain mapped to their existing owners rather than receiving empty diagrams.
 
-[design-context.json](../../../architecture/views/design-context.json) retains design ownership,
+[design-context.json](../../../scripts/architecture/config/views/design-context.json) retains design ownership,
 native roots and available diagram destinations. The scoped inspection data follows native
 allocations and relationships while retaining external responsibilities and incomplete coverage.
-The generated links between `BEGIN DESIGN CONTEXT` / `END DESIGN CONTEXT` markers are supporting
-navigation; [the source projection](../../../architecture/generated/design-context.json) supports
+The model files carry their own native documentation. [The source projection](../../../artifacts/architecture/generated/design-context.json) supports
 inspection without becoming another diagram catalogue.
+
+The trace/view JSON files are project adapters, not artifacts required by SysML v2. Native `.sysml`
+owns model-to-model relationships. The trace map binds those identities to external implementation
+files and named tests; view settings select native elements/relationships and place/style them.
+The build rejects missing or reversed selected connections rather than creating them from JSON.
+Generated indexes are derived inspection data. Keep these roles separate when changing the model;
+do not add semantic relationships or acceptance criteria to a layout or trace file.
 
 ## Connected behavior
 
-[Engineering relationships](../../../architecture/views/software-intake/engineering.svg) shows the
+[Engineering relationships](../../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) shows the
 native require, allocation, satisfaction and verification meanings. See the
 [MBSE review and design loop](04-mbse-review.md) for findings, authoring ownership and native evaluation.
 
-[behavior.sysml](../../../architecture/functions/software-intake/behavior.sysml) owns messages, alternatives
+[SoftwareIntakeBehavior.sysml](../../../architecture/models/software-intake/SoftwareIntakeBehavior.sysml) owns messages, alternatives
 and chronology. The native export supplies the branches and order; the renderer does not keep a second
-message list. [sequence.json](../../../architecture/views/software-intake/sequence.json) owns participant
+message list. [sequence.json](../../../scripts/architecture/config/views/software-intake/sequence.json) owns participant
 placement and formatting. Change semantic behavior in SysML, then rebuild both sequences in the README.
 
-The [behavior trace](../../../architecture/generated/software-intake/behavior-trace.md) connects each
+The [behavior trace](../../../artifacts/architecture/generated/software-intake/behavior-trace.md) connects each
 message to configuration, implementation and named tests. Source checks render the actual Squid template
 and inspect admission order, CONNECT restrictions, caching overrides and package verification settings.
 Native Squid tests cover denial, fresh hits, expiry, conditional revalidation and privacy behavior.
-[functions.sysml](../../../architecture/functions/software-intake/functions.sysml) assigns messages to
+[SoftwareIntakeLogicalDesign.sysml](../../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) assigns messages to
 product-independent functions and allocates those functions to logical parts. Scenario references own
 fixed native guard values; the projection follows the existing succession and choices. The
-[native verification cases](../../../architecture/test/software-intake/verification.sysml) own acceptance
+[native verification cases](../../../architecture/models/software-intake/SoftwareIntakeVerification.sysml) own acceptance
 criteria, verified requirements and subject types. `cases.json` is generated from those cases.
 Checks reject missing scenario conditions, unallocated functions, unowned messages and incomplete coverage.
 Successful CONNECT/TLS needs additional runtime evidence; naming a source or test does not prove it passed.
@@ -102,21 +113,21 @@ The expected model is not a network simulator and does not model every retry or 
 
 ## Realize the design
 
-The [software-intake design](../../../architecture/design/software-intake/README.md) owns the logical,
-deployment and resource views together. [Selected deployment](../../../architecture/design/software-intake/deployment.md)
-binds product choices and VMs to the logical contracts. [Resource dependencies](../../../architecture/design/software-intake/resources.md)
+The [software-intake design](../../../architecture/models/software-intake/SoftwareIntakeLogicalDesign.sysml) owns the logical,
+solution and focused resource views together. [Solution design](../../../architecture/models/software-intake/solution/SoftwareIntakeSolutionDesign.sysml)
+binds product choices and VMs to the logical contracts. [Resource dependencies](../../../architecture/models/software-intake/solution/SoftwareIntakeSolutionDesign.sysml)
 connect those VMs to shared virtualization, local disk storage and guest network services, then to
-physical backing. The [platform boundary](../../../architecture/design/platform/README.md) maps the
+physical backing. The [platform boundary](../../../architecture/models/platform/SharedPlatform.sysml) maps the
 existing hosting, networking and storage owners without claiming a complete platform or site inventory.
 
-The [connected resource view](../../../architecture/views/software-intake/resource-dependencies.svg)
+The [connected resource view](../../../architecture/generated/software-intake/solution/SoftwareIntakeResources.svg)
 selects these native relationships. Logical fabric and optional storage networks are software-defined
 transports over physical equipment. The local cache disks do not depend on the optional storage network.
 Physical server/port identities and failure-domain placement remain site-owned inputs and acceptance.
 
-![Selected proxy/cache realization](../../../architecture/views/software-intake/placement.svg)
+![Selected proxy/cache realization](../../../architecture/generated/software-intake/solution/SoftwareIntakeSolutionDesign.svg)
 
-*Software deployment view from IaC examples: Tier 2 owns the selected VMs and virtual disks. The shared listener selects an active owner;
+*Solution design from IaC examples: Tier 2 owns the selected VMs and virtual disks. The shared listener selects an active owner;
 it is not a separate VM. Upstreams, consumers and physical networking are existing context.*
 
 | Logical responsibility | Selected realization | Source |
@@ -128,20 +139,21 @@ it is not a separate VM. Upstreams, consumers and physical networking are existi
 
 The build reads the tracked Terraform example with `python-hcl2` and Ansible YAML with PyYAML.
 It checks membership, addresses, network selection, disk binding and selected module/role entry points,
-then generates [realization.sysml](../../../architecture/generated/software-intake/realization.sysml). Native SysML allocations connect the logical
+then generates [SoftwareIntakeRealization.sysml](../../../artifacts/architecture/generated/software-intake/SoftwareIntakeRealization.sysml). Native SysML allocations connect the logical
 proxy and cache to that realization. The official parser validates the combined model before rendering.
 
-The [trace report](../../../architecture/generated/software-intake/trace.md) maps model identities to owning source and existing checks.
+The [trace report](../../../artifacts/architecture/generated/software-intake/trace.md) maps model identities to owning source and existing checks.
 `implementation-source` means automation exists and its selected wiring is checked; it does not mean
 a running system passed acceptance. `manual-acceptance` and `external-custody` preserve those boundaries. `documented-context` marks
 external platform contracts whose detailed implementation and site topology remain with their owners.
 
 ## Follow a change
 
-Edit the owning Use Cases, Requirements, Functions or Design package linked from `architecture/README.md`. Change member inputs in
-the owning Tier 2 example. Edit layouts under `architecture/views/software-intake/`; they contain placement,
-model identities and presentation, not an independent system inventory. Do not edit generated figures
-or files under `architecture/generated/` directly. The README sequence blocks have generated-content markers;
+Edit the owning native package linked from `architecture/README.md`; each design owner keeps its
+related use cases, requirements, functions and checks together. Change member inputs in the owning
+Tier 2 example. Edit layouts under `scripts/architecture/config/views/software-intake/`; they contain
+placement, model identities and presentation, not an independent system inventory. Do not edit generated views
+or files under `artifacts/architecture/generated/` directly. The README sequence blocks have generated-content markers;
 prose outside those blocks remains authored.
 
 From **the upstream kit checkout**, after installing the test dependencies below:
@@ -158,7 +170,7 @@ python scripts/architecture/software_intake.py dependencies L-Proxy
 python scripts/architecture/software_intake.py impact P-servers
 ```
 
-The generated [resource report](../../../architecture/generated/software-intake/resource-trace.md)
+The generated [resource report](../../../artifacts/architecture/generated/software-intake/resource-trace.md)
 records both directions. These queries use the native relation graph, not the folder hierarchy.
 
 **Expected:** both cache runtimes, their containing members and the logical consumers are identified,
@@ -188,7 +200,7 @@ Element colours and enclosure styles answer separate questions:
 | Network membership | Pale grey-rose enclosure with an explicit network label |
 | Actual runtime containment | Light blue-grey enclosure, distinct from its contained software |
 
-The [shared notation](../../../architecture/views/notation.json) owns the category and enclosure mapping;
+The [shared notation](../../../scripts/architecture/config/views/notation.json) owns the category and enclosure mapping;
 the [project palette](../../08-reference/diagrams/palette.json) owns colour values. Each view displays the
 key it needs. Types, labels, shapes and relationship names retain meaning without colour. [1][4]
 
@@ -209,7 +221,7 @@ python -m pip install -r tests/requirements.txt
 ```
 
 For native model builds, extract a Java 21 JDK and the official Pilot Implementation kernel and
-matching library outside the repository. [toolchain.json](../../../architecture/toolchain.json) records tested
+matching library outside the repository. [toolchain.json](../../../scripts/architecture/config/toolchain.json) records tested
 versions, download URLs and checksums. The pilot archive contains both the kernel JAR and library.
 Engineering relationship rendering also requires Graphviz `dot` (tested 14.0.5), on PATH or selected
 with `GRAPHVIZ_DOT`. Use the same renderer version when checking generated SVG snapshots.
@@ -258,7 +270,7 @@ and operating procedures retain their execution role.
 
 ## Diagram navigation
 
-Open [System Overall](../../../architecture/views/system-overall.svg) directly in a browser.
+Open [System Overall](../../../architecture/generated/HomelabSystemOverview.svg) directly in a browser.
 Subsystem boxes open their SVG overviews. The bottom bar returns to the parent or whole system;
 **Documentation** opens the supporting document. The [HTTP walkthrough](03-http-walkthrough.md)
 follows one scenario through functions, logical allocation, IaC and tests.
@@ -270,7 +282,7 @@ scenario/function inspections and evidence are supporting assets, not automatica
 
 Colours identify element kinds across all model views: logical/software, physical equipment,
 function/action, requirement/use-case intent, and verification/test. The model category mapping in
-`architecture/views/notation.json` uses the shared project palette; deployment-guide palettes remain
+`scripts/architecture/config/views/notation.json` uses the shared project palette; deployment-guide palettes remain
 available outside this MBSE view set. Labels and shapes retain the specific SysML kind. Requirements
 use native v2 requirement elements; BDD is a v1 diagram name. Quality constraints remain requirements,
 not non-functional actions.
@@ -296,7 +308,7 @@ trace is deliberately broader than a method-level trace. Unmodeled consumers rem
 
 ## References
 
-Reviewed 2026-11-19. Element/reference semantics: [1, §§7.6, 7.11]; tailored views: [1, §8.2.3.1].
+Reviewed 2026-11-19. Element/reference semantics: [1, Ã‚Â§Ã‚Â§7.6, 7.11]; tailored views: [1, Ã‚Â§8.2.3.1].
 
 1. [OMG SysML 2.0 language specification, section 8.2.3.1](https://www.omg.org/spec/SysML/2.0/Language/PDF).
 2. [C4 notation and colours](https://c4model.com/diagrams/notation).
